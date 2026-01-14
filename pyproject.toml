@@ -9,27 +9,17 @@ description = "A unified library for estimating effective dimensionality."
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
-authors = [
-    { name = "EffDim Contributors" },
-]
+authors = [{ name = "amanasci", email = "kumaramanasci@gmail.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
-dependencies = [
-    "numpy",
-    "scipy",
-]
+dependencies = ["numpy", "scipy"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "black",
-    "mypy"
-]
+dev = ["pytest", "pytest-cov", "black", "mypy"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/effdim"]
