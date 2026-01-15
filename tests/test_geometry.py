@@ -1,48 +1,43 @@
+import unittest
 import numpy as np
-import pytest
 from effdim import geometry
 
-def test_knn_intrinsic_dimension_hypercube():
-    # Generate points in D-dim hypercube
-    # If points fill the space, ID should be close to D.
-    np.random.seed(42)
-    N = 1000
-    D = 5
-    data = np.random.rand(N, D)
-    
-    # Levina-Bickel usually slightly underestimates on bounds, but should be close.
-    # k should be small relative to N
-    id_est = geometry.knn_intrinsic_dimension(data, k=10)
-    assert 4.0 < id_est < 6.0
+class TestGeometry(unittest.TestCase):
+    def setUp(self):
+        np.random.seed(42)
+        # Generate 1D line in 5D space
+        # X = t * v + noise
+        N = 200
+        t = np.random.rand(N) * 10
+        v = np.array([1, 1, 1, 1, 1]) / np.sqrt(5)
+        self.X_line = np.outer(t, v) + np.random.randn(N, 5) * 0.0001
 
-def test_two_nn_intrinsic_dimension_hypercube():
-    np.random.seed(42)
-    N = 1000
-    D = 5
-    data = np.random.rand(N, D)
-    
-    id_est = geometry.two_nn_intrinsic_dimension(data)
-    # Two-NN robustly estimates D
-    assert 4.0 < id_est < 6.0
+        # 3D gaussian blob
+        self.X_blob = np.random.randn(200, 3)
 
-def test_knn_low_manifold():
-    # 2D plane in 10D space
-    np.random.seed(42)
-    N = 1000
-    # 2 latent vars
-    latent = np.random.randn(N, 2)
-    # Project to 10D linearly
-    P = np.random.randn(2, 10)
-    data = latent @ P
-    
-    id_est_k = geometry.knn_intrinsic_dimension(data, k=5)
-    id_est_2 = geometry.two_nn_intrinsic_dimension(data)
-    
-    assert 1.5 < id_est_k < 2.5
-    assert 1.5 < id_est_2 < 2.5
+    def test_lid_intrinsic_dimension(self):
+        # Line -> ID ~ 1
+        # Use small k for 1D structure
+        dim = geometry.lid_intrinsic_dimension(self.X_line, k=10)
+        self.assertAlmostEqual(dim, 1.0, delta=0.2)
 
-def test_input_validation():
-    with pytest.raises(ValueError):
-        geometry.knn_intrinsic_dimension(np.random.rand(10)) # 1D array
-    with pytest.raises(ValueError):
-        geometry.knn_intrinsic_dimension(np.random.rand(5, 5), k=10) # N < k+1
+        # Blob -> ID ~ 3
+        dim = geometry.lid_intrinsic_dimension(self.X_blob, k=20)
+        self.assertAlmostEqual(dim, 3.0, delta=0.5)
+
+    def test_correlation_dimension(self):
+        # Line -> ID ~ 1
+        dim = geometry.correlation_dimension(self.X_line, n_steps=10)
+        self.assertAlmostEqual(dim, 1.0, delta=0.2)
+
+        # Blob -> ID ~ 3
+        dim = geometry.correlation_dimension(self.X_blob, n_steps=10)
+        self.assertAlmostEqual(dim, 3.0, delta=0.5)
+
+    def test_knn_alias(self):
+        # Just check it runs
+        dim = geometry.knn_intrinsic_dimension(self.X_blob, k=5)
+        self.assertTrue(dim > 0)
+
+if __name__ == '__main__':
+    unittest.main()

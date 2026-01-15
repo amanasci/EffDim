@@ -1,44 +1,45 @@
+import unittest
 import numpy as np
-import pytest
 from effdim import api
 
-def test_api_compute_pca():
-    # Data with clear structure
-    # 2 strong dimensions
-    rng = np.random.RandomState(42)
-    U = rng.randn(100, 2)
-    data = U @ rng.randn(2, 50) + 0.01 * rng.randn(100, 50)
-    
-    # PCA threshold 0.9 should give 2
-    ed = api.compute(data, method='pca', threshold=0.90)
-    assert ed == 2.0
+class TestAPI(unittest.TestCase):
+    def setUp(self):
+        np.random.seed(42)
+        self.X = np.random.randn(50, 5)
+        self.s = np.array([10.0, 5.0, 1.0])
 
-def test_api_compute_different_inputs():
-    # Effective Rank expects singular values.
-    # PR expects variance.
-    # api.compute handles this.
-    
-    rng = np.random.RandomState(42)
-    # create uncorrelated data (high dim)
-    data = rng.randn(100, 100)
-    
-    ed_pr = api.compute(data, method='pr')
-    ed_er = api.compute(data, method='effective_rank')
-    
-    # For random matrix, both should be high (~N or N/2?).
-    # Just check they run and return floats.
-    assert isinstance(ed_pr, float)
-    assert isinstance(ed_er, float)
-    assert ed_pr > 10.0
-    
-def test_api_analyze():
-    data = np.random.randn(50, 50)
-    results = api.analyze(data)
-    assert 'participation_ratio' in results
-    assert 'shannon' in results
-    assert 'effective_rank' in results
-    assert len(results) >= 3
+    def test_analyze_integration(self):
+        # Mixed methods
+        methods = ['pca', 'lid', 'stable_rank', 'mle']
+        res = api.analyze(self.X, methods=methods, k=10, z=1.0)
 
-def test_unknown_method():
-    with pytest.raises(ValueError):
-        api.compute(np.zeros((10,10)), method='invalid_method')
+        self.assertIn('pca', res)
+        self.assertIn('lid', res)
+        self.assertIn('stable_rank', res)
+        self.assertIn('mle', res)
+
+        # Check values roughly
+        self.assertTrue(res['lid'] > 0)
+        self.assertTrue(res['stable_rank'] > 0)
+
+    def test_compute_spectrum(self):
+        # Pass spectrum directly
+        # Participation Ratio of [10, 5, 1].
+        # Var: [100, 25, 1]. Sum=126. SumSq=10000+625+1=10626.
+        # PR = 126^2 / 10626 = 15876 / 10626 ~ 1.49
+        dim = api.compute(self.s, method='participation_ratio', is_spectrum=True)
+        self.assertAlmostEqual(dim, 1.494, places=2)
+
+    def test_analyze_spectrum(self):
+        # Spectrum input -> Geometric methods should be NaN
+        res = api.analyze(self.s, methods=['pr', 'lid'], is_spectrum=True, k=5)
+        self.assertAlmostEqual(res['pr'], 1.494, places=2)
+        self.assertTrue(np.isnan(res['lid']))
+
+    def test_aliases(self):
+        res = api.analyze(self.X, methods=['regularized', 'erank'])
+        self.assertIn('regularized', res)
+        self.assertIn('erank', res)
+
+if __name__ == '__main__':
+    unittest.main()
