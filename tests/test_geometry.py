@@ -37,7 +37,7 @@ class TestGeometry(unittest.TestCase):
     def test_knn_alias(self):
         # Just check it runs
         dim = geometry.knn_intrinsic_dimension(self.X_blob, k=5)
-        self.assertTrue(dim > 0)
+        self.assertGreater(dim, 0)
 
 if __name__ == '__main__':
     unittest.main()
