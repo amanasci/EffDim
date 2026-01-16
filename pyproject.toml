@@ -20,6 +20,7 @@ dependencies = ["numpy", "scipy"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/effdim"]
