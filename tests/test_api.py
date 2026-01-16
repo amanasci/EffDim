@@ -19,8 +19,8 @@ class TestAPI(unittest.TestCase):
         self.assertIn('mle', res)
 
         # Check values roughly
-        self.assertTrue(res['lid'] > 0)
-        self.assertTrue(res['stable_rank'] > 0)
+        self.assertGreater(res['lid'], 0)
+        self.assertGreater(res['stable_rank'], 0)
 
     def test_compute_spectrum(self):
         # Pass spectrum directly
