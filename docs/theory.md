@@ -39,11 +39,37 @@ $$ ED_{\alpha} = \exp(H_\alpha) $$
 
 ### Effective Rank
 
-Often used in matrix completion and low-rank approximation contexts. For a covariance matrix, it is often defined identically to the Shannon Effective Dimension or related trace-norm metrics. EffDim implements it as an alias for Shannon Effective Dimension currently.
+Often used in matrix completion and low-rank approximation contexts. EffDim implements this as an alias for Shannon Effective Dimension.
 
 ### Geometric Mean Dimension
 
-Based on the ratio of the arithmetic mean to the geometric mean of the spectrum.
+A dimension proxy based on the ratio of the arithmetic mean to the geometric mean of the spectrum.
+
+$$ d \approx \frac{\frac{1}{D} \sum \lambda_i}{(\prod \lambda_i)^{1/D}} $$
+
+### Stable Rank
+
+A stable alternative to the algebraic rank, often used in high-dimensional probability. It is robust to small perturbations of the singular values.
+
+$$ R_{stable} = \frac{\sum_i \lambda_i}{\max_i \lambda_i} $$
+
+where $\lambda_i$ are the eigenvalues (variances).
+
+### Numerical Rank (Epsilon-Rank)
+
+The number of singular values greater than a specific threshold $\epsilon$.
+
+$$ rank_\epsilon(A) = | \{ \sigma_i \mid \sigma_i > \epsilon \} | $$
+
+If $\epsilon$ is not provided, it defaults to a value based on the machine precision and the largest singular value.
+
+### Cumulative Eigenvalue Ratio (CER)
+
+A weighted sum of the normalized spectrum, giving more weight to earlier components.
+
+$$ CER = \sum_{i=1}^D w_i p_i $$
+
+where weights decrease linearly from 1 to 0.
 
 ## Geometric Estimators
 
@@ -63,4 +89,26 @@ A robust estimator proposed by Facco et al. (2017) that relies only on the dista
 
 It assumes that the ratio of distances $\mu_i = \frac{r_2(x_i)}{r_1(x_i)}$ follows a Pareto distribution depending on the intrinsic dimension $d$.
 
-$$ d \approx \frac{\ln(1-F(\mu))}{-\ln(\mu)} $$
+### DANCo
+
+**Dimensionality from Angle and Norm Concentration**. This method jointly exploits the statistics of the norms of vectors to nearest neighbors and the angles between them. High-dimensional data exhibits specific concentration of measure properties for both angles and norms. DANCo estimates $d$ by minimizing the KL-divergence between the empirical distributions and the theoretical distributions derived for a d-dimensional ball.
+
+### MiND (Maximum Likelihood on Minimum Distances)
+
+A family of estimators based on the statistics of nearest neighbor distances.
+*   **MiND-MLi**: Uses the distribution of the distance to the nearest neighbor ($r_1$).
+*   **MiND-MLk**: Uses the joint distribution of distances to the first $k$ neighbors.
+
+### ESS (Expected Simplex Skewness)
+
+Estimates dimension by analyzing the "skewness" (volume) of the simplex formed by a point and its neighbors. In high dimensions, random simplices tend to be regular (perfectly "skewed"). The estimator compares the empirical volumes of local simplices to theoretical expected volumes.
+
+### TLE (Tight Localities Estimator)
+
+Estimates dimension by maximizing the likelihood of distances within small, "tight" neighborhoods. It is designed to be robust to scale variations.
+
+### GMST (Geodesic Minimum Spanning Tree)
+
+Estimates dimension based on the scaling law of the length of the Minimum Spanning Tree (MST) of a graph constructed from the data.
+$$ L(N) \propto N^{1 - 1/d} $$
+where $L(N)$ is the length of the MST on $N$ points. The dimension $d$ is estimated from the slope of $\log L(N)$ vs $\log N$ using subsampling. The graph can be constructed using Euclidean distances or Geodesic distances (approximated by k-NN graph paths).

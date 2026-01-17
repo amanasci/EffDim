@@ -60,21 +60,30 @@ print(f"PR of Structured Data: {pr:.2f}")
 
 ## Available Methods
 
-You can check the available methods in the [Theory](../theory.md) section. Common ones include:
+You can check the available methods in the [Theory](../theory.md) section.
 
+**Spectral Methods:**
 *   `'pca'`: PCA Explained Variance
 *   `'participation_ratio'` (or `'pr'`)
 *   `'shannon'` (or `'entropy'`)
-*   `'effective_rank'` (or `'erank'`)
+*   `'effective_rank'` (or `'erank'`): Alias for Shannon Effective Dimension (Trace Norm).
+*   `'renyi'`
+*   `'stable_rank'`: Ratio of sum/max eigenvalues.
+*   `'numerical_rank'`: Count of singular values > epsilon.
+
+**Geometric Methods:**
 *   `'knn'`: k-Nearest Neighbors
 *   `'twonn'`: Two-Nearest Neighbors
+*   `'danco'`: Angle and Norm Concentration
+*   `'mind_mlk'`: MiND (Maximum Likelihood)
+*   `'ess'`: Expected Simplex Skewness
 
 ## analyzing Multiple Metrics
 
 Use `effdim.analyze` to get a report.
 
 ```python
-report = effdim.analyze(structured_data, methods=['pr', 'pca', 'shannon'])
+report = effdim.analyze(structured_data, methods=['pr', 'pca', 'shannon', 'danco'])
 print(report)
-# {'participation_ratio': ..., 'pca': ..., 'shannon': ...}
+# {'participation_ratio': ..., 'pca': ..., 'shannon': ..., 'danco': ...}
 ```

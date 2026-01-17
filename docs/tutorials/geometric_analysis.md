@@ -14,9 +14,6 @@ import effdim
 from sklearn.datasets import make_swiss_roll
 
 # Generate Swiss Roll
-X, _ = make_swiss_roll(n_samples=2000, noise=0.0)
-X = X[:, [0, 2]] # Project to 2D for test? No, make_swiss_roll returns 3D.
-# Actually make_swiss_roll returns (N, 3).
 X, _ = make_swiss_roll(n_samples=2000, noise=0.01)
 
 # PCA
