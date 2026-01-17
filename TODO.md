@@ -11,3 +11,8 @@
 - [x] Add tests for `cumulative_eigenvalue_ratio` (Identity and Rank-1)
 - [x] Run tests and ensure they pass
 - [x] Verify API integration
+- [x] Implement `danco`, `mind_mli`, `mind_mlk`, `ess`, `tle`, `gmst` in `src/effdim/geometry.py`
+- [x] Generate ESS constants via MC
+- [x] Update `src/effdim/api.py` to expose new geometric methods
+- [x] Add tests for new geometric methods in `tests/test_advanced_geometry.py`
+- [x] Ensure all tests pass
