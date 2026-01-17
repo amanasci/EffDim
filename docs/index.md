@@ -1,0 +1,40 @@
+# Welcome to EffDim
+
+**EffDim** is a unified, research-oriented Python library designed to compute "effective dimensionality" (ED) across diverse data modalities.
+
+It aims to standardize the fragmented landscape of ED metrics found in statistics, physics, information theory, and machine learning into a single, cohesive interface.
+
+## Key Features
+
+*   **Modality Agnostic**: Works with raw data, covariance matrices, and pre-computed spectra.
+*   **Unified Interface**: Simple `compute` and `analyze` functions.
+*   **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
+*   **Research Ready**: Accurate implementations of metrics from literature.
+
+## Installation
+
+Install via pip:
+
+```bash
+pip install effdim
+```
+
+## Quick Start
+
+```python
+import numpy as np
+import effdim
+
+# Generate random high-dimensional data
+data = np.random.randn(100, 50)
+
+# Compute Effective Dimension using PCA (95% variance)
+ed = effdim.compute(data, method='pca', threshold=0.95)
+print(f"Effective Dimension (PCA): {ed}")
+
+# Compute using Participation Ratio
+pr = effdim.compute(data, method='participation_ratio')
+print(f"Participation Ratio: {pr}")
+```
+
+Explore the [User Guide](tutorials/getting_started.md) for more examples.
