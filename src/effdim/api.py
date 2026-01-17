@@ -21,6 +21,13 @@ METHOD_CONFIG = {
     # Geometric
     'knn': {'func': geometry.knn_intrinsic_dimension, 'input_type': 'geometric'},
     'twonn': {'func': geometry.two_nn_intrinsic_dimension, 'input_type': 'geometric'},
+    # New Geometric Methods
+    'danco': {'func': geometry.danco_intrinsic_dimension, 'input_type': 'geometric'},
+    'mind_mli': {'func': geometry.mind_mli_intrinsic_dimension, 'input_type': 'geometric'},
+    'mind_mlk': {'func': geometry.mind_mlk_intrinsic_dimension, 'input_type': 'geometric'},
+    'ess': {'func': geometry.ess_intrinsic_dimension, 'input_type': 'geometric'},
+    'tle': {'func': geometry.tle_intrinsic_dimension, 'input_type': 'geometric'},
+    'gmst': {'func': geometry.gmst_intrinsic_dimension, 'input_type': 'geometric'},
     # Aliases
     'erank': {'func': metrics.effective_rank, 'input_type': 'singular'},
     'pr': {'func': metrics.participation_ratio, 'input_type': 'variance'},
@@ -81,12 +88,6 @@ def analyze(data: Union[np.ndarray, Any], methods: Optional[List[str]] = None, *
         
     results = {}
     
-    # Cache singular values to avoid re-computing SVD for each method
-    # But compute() calls adapters.get_singular_values() every time.
-    # Optimization: We should split the logic.
-    # For now, simplistic approach is fine. For large data, we should optimize.
-    # Let's optimize:
-    
     # Optimize: Compute valid inputs once
     s = None
     s_sq = None
@@ -113,13 +114,10 @@ def analyze(data: Union[np.ndarray, Any], methods: Optional[List[str]] = None, *
         
         config = METHOD_CONFIG.get(method_name)
         if not config:
-            # Check aliases in METHOD_CONFIG directly or manual map above?
-            # Creating a standard clean name helper would be better but keeping it simple.
-            # METHOD_CONFIG now has aliases.
             if method_name not in METHOD_CONFIG:
                  results[orig_name] = np.nan
                  continue
-            config = METHOD_CONFIG[method_name] # Retrieve again if needed
+            config = METHOD_CONFIG[method_name]
         
         input_type = config['input_type']
         
