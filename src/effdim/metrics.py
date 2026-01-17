@@ -126,3 +126,113 @@ def geometric_mean_dimension(spectrum: np.ndarray) -> float:
     # Vardi's "The effective dimension..."?
     # I will just return the ratio for now.
     return arithmetic / geometric if geometric > 0 else 0.0
+
+def stable_rank(spectrum: np.ndarray) -> float:
+    """
+    Computes the Stable Rank of the matrix.
+
+    Formula:
+        Stable Rank = (sum lambda_i) / (max lambda_i)
+        where lambda_i are eigenvalues (variances).
+
+    Args:
+        spectrum: Array of eigenvalues or variances (lambda).
+
+    Returns:
+        float: The stable rank.
+
+    References:
+        Vershynin, R. (2018). High-Dimensional Probability.
+    """
+    # Contract: Input MUST be eigenvalues / variances
+    # No additional normalization
+    if len(spectrum) == 0:
+        return 0.0
+
+    # Ensure non-negative just in case, though variances should be >= 0
+    # But strictly speaking, formula is sum/max.
+    # We should probably use real part or abs if complex, but assuming variances are real >= 0
+    s_abs = np.abs(spectrum)
+    total = np.sum(s_abs)
+    mx = np.max(s_abs)
+
+    if mx == 0:
+        return 0.0
+
+    return float(total / mx)
+
+
+def numerical_rank(spectrum: np.ndarray, epsilon: float = None) -> float:
+    """
+    Computes the Numerical Rank (epsilon-rank).
+
+    Formula:
+        rank_epsilon(A) = | { i : sigma_i > epsilon } |
+        where sigma_i are singular values.
+
+    Args:
+        spectrum: Array of eigenvalues or variances (lambda).
+                  These are converted to singular values: sigma = sqrt(lambda).
+        epsilon: Threshold. If None, defaults to max(sigma) * machine_epsilon.
+
+    Returns:
+        float: The count of singular values above threshold.
+    """
+    if len(spectrum) == 0:
+        return 0.0
+
+    # Convert variances to singular values
+    # Ensure no negative values before sqrt (numerical noise)
+    spectrum_clean = np.maximum(spectrum, 0.0)
+    sigmas = np.sqrt(spectrum_clean)
+
+    if epsilon is None:
+        # Machine epsilon for the dtype
+        dtype = sigmas.dtype
+        # If integer or other, default to float64
+        if not np.issubdtype(dtype, np.floating):
+             sigmas = sigmas.astype(np.float64)
+             dtype = np.float64
+
+        eps_machine = np.finfo(dtype).eps
+        epsilon = np.max(sigmas) * eps_machine
+
+    return float(np.sum(sigmas > epsilon))
+
+
+def cumulative_eigenvalue_ratio(spectrum: np.ndarray) -> float:
+    """
+    Computes the Cumulative Eigenvalue Ratio.
+
+    Formula:
+        CER = sum(weights * p)
+        where p = lambda / sum(lambda)
+        and weights_i = 1 - (i-1)/d
+        (using 1-based indexing for formula, 0-based for code)
+
+    Args:
+        spectrum: Array of eigenvalues or variances.
+
+    Returns:
+        float: The cumulative eigenvalue ratio.
+    """
+    if len(spectrum) == 0:
+        return 0.0
+
+    # Ensure non-negative and handle complex if necessary (abs)
+    s_abs = np.abs(spectrum)
+    total = np.sum(s_abs)
+    if total == 0:
+        return 0.0
+
+    p = s_abs / total
+    d = len(p)
+
+    # weights = 1 - (i-1)/d for i=1..d
+    # in 0-based code: i code ranges 0..d-1.
+    # Formula i corresponds to code_i + 1.
+    # weights code = 1 - (code_i)/d
+    indices = np.arange(d)
+    weights = 1.0 - indices / d
+
+    return float(np.sum(weights * p))

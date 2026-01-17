@@ -15,6 +15,9 @@ METHOD_CONFIG = {
     'renyi': {'func': metrics.renyi_effective_dimension, 'input_type': 'variance'},
     'effective_rank': {'func': metrics.effective_rank, 'input_type': 'singular'},
     'geometric_mean': {'func': metrics.geometric_mean_dimension, 'input_type': 'singular'},
+    'stable_rank': {'func': metrics.stable_rank, 'input_type': 'variance'},
+    'numerical_rank': {'func': metrics.numerical_rank, 'input_type': 'variance'},
+    'cumulative_eigenvalue_ratio': {'func': metrics.cumulative_eigenvalue_ratio, 'input_type': 'variance'},
     # Geometric
     'knn': {'func': geometry.knn_intrinsic_dimension, 'input_type': 'geometric'},
     'twonn': {'func': geometry.two_nn_intrinsic_dimension, 'input_type': 'geometric'},
