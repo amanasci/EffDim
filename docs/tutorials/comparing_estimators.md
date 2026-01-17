@@ -12,27 +12,19 @@ Consider a spectrum where eigenvalues decay slowly: $\lambda_i = 1/i$.
 ```python
 import numpy as np
 import effdim
-import matplotlib.pyplot as plt
 
 # Simulate a slow decay spectrum directly
-# (We pass a diagonal matrix to simulate uncorrelated data with specific variances)
 D = 50
 lambdas = 1.0 / np.arange(1, D+1)
-# Create a covariance matrix
-cov = np.diag(lambdas)
 
-# effdim accepts covariance matrices directly if we assume these are eigenvalues
-# But currently `compute` expects data (N,D) and calls `adapters.get_singular_values`.
-# If we pass (D, D), it might treat it as N=D samples.
-# Ideally, we construct data that has this spectrum.
-# X = U * S * V.T.
-# Let's create data X (N=1000, D=50) with singular values s_i = sqrt(lambda_i * (N-1))
-
+# Generate data X (N=1000, D=50) that respects this spectrum
+# X = U * S * V.T
+# Singular values s_i = sqrt(lambda_i * (N-1))
 N = 1000
 s = np.sqrt(lambdas * (N - 1))
 # Random orthogonal matrix U (N x D)
 U, _ = np.linalg.qr(np.random.randn(N, D))
-# Identity V (since we don't care about rotation)
+
 X = U @ np.diag(s)
 
 pca_95 = effdim.compute(X, method='pca', threshold=0.95)
