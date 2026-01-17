@@ -136,28 +136,69 @@ def danco_intrinsic_dimension(data: np.ndarray, k: int = 20, d_max: int = None) 
     # "Compute ALL pairwise angles".
     # For k=20, 190 pairs per point. N=1000 -> 190,000 angles. Feasible.
 
-    all_angles = []
+    n_pairs = k * (k - 1) // 2
 
-    # Iterate over points to compute angles
-    for i in range(N):
-        # Neighbors of i
-        nbrs_idx = nbr_indices[i] # (k,)
-        # Vectors
-        vecs = data[nbrs_idx] - data[i] # (k, D)
-        # Normalize vectors
-        norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+    # Ensure float dtype for angles
+    dtype = data.dtype
+    if not np.issubdtype(dtype, np.floating):
+        dtype = np.float64
+    all_angles = np.empty(N * n_pairs, dtype=dtype)
+
+    # Indices of upper triangle
+    tri_u_idx = np.triu_indices(k, k=1)
+
+    # Process in batches to vectorize operations while keeping memory usage reasonable
+    BATCH_SIZE = 1000
+
+    for start_idx in range(0, N, BATCH_SIZE):
+        end_idx = min(start_idx + BATCH_SIZE, N)
+        # Current batch size (might be less than BATCH_SIZE for last batch)
+        # b_sz = end_idx - start_idx
+
+        # 1. Get neighbors for this batch
+        # nbr_indices: (N, k) -> batch slice: (B, k)
+        batch_nbrs_idx = nbr_indices[start_idx:end_idx]
+
+        # 2. Get neighbor coordinates
+        # data: (N, D). batch_nbrs: (B, k, D)
+        batch_nbrs = data[batch_nbrs_idx]
+
+        # 3. Get center point coordinates
+        # batch_centers: (B, D) -> reshape to (B, 1, D) for broadcasting
+        batch_centers = data[start_idx:end_idx][:, None, :]
+
+        # 4. Compute vectors: neighbors - center
+        # vecs: (B, k, D)
+        vecs = batch_nbrs - batch_centers
+
+        # 5. Normalize vectors
+        # norms: (B, k, 1)
+        norms = np.linalg.norm(vecs, axis=2, keepdims=True)
         norms = np.maximum(norms, 1e-10)
-        vecs_hat = vecs / norms # (k, D)
+        vecs_hat = vecs / norms
 
-        # Pairwise dot products: (k, D) @ (D, k) -> (k, k)
-        dots = vecs_hat @ vecs_hat.T
-        # We only want upper triangle, off-diagonal
-        # Indices of upper triangle
-        tri_u_idx = np.triu_indices(k, k=1)
-        angles = np.arccos(np.clip(dots[tri_u_idx], -1.0, 1.0))
-        all_angles.extend(angles)
+        # 6. Compute pairwise dot products for each point in batch
+        # We need (k, k) matrix for each item in batch.
+        # vecs_hat: (B, k, D).
+        # We want result (B, k, k) where res[b, i, j] = dot(vecs_hat[b, i], vecs_hat[b, j])
+        # This is batch matrix multiplication: (B, k, D) @ (B, D, k)
+        dots = np.matmul(vecs_hat, vecs_hat.transpose(0, 2, 1))
 
-    all_angles = np.array(all_angles)
+        # 7. Extract upper triangle angles
+        # dots: (B, k, k).
+        # We select specific indices from last two dimensions.
+        # tri_u_idx is tuple of arrays (idx0, idx1).
+        # We need to broadcast across batch dimension.
+        # Result should be (B, n_pairs).
+        batch_dots_tri = dots[:, tri_u_idx[0], tri_u_idx[1]]
+
+        # 8. Compute angles
+        batch_angles = np.arccos(np.clip(batch_dots_tri, -1.0, 1.0))
+
+        # 9. Store in pre-allocated array
+        start_out = start_idx * n_pairs
+        end_out = end_idx * n_pairs
+        all_angles[start_out:end_out] = batch_angles.ravel()
 
     # Binning for KL
     n_bins = 20
