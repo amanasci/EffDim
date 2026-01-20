@@ -1,133 +1,117 @@
 from typing import Union, List, Dict, Any, Optional
 import numpy as np
-from . import adapters
-from . import metrics
-from . import geometry
+from sklearn.utils.extmath import randomized_svd
 
-# Map method names to function calls and their expected input type
-# 'variance': pass s**2 (eigenvalues of covariance)
-# 'singular': pass s
-# 'geometric': pass raw data (N, D)
-METHOD_CONFIG = {
-    'pca': {'func': metrics.pca_explained_variance, 'input_type': 'variance'},
-    'participation_ratio': {'func': metrics.participation_ratio, 'input_type': 'variance'},
-    'shannon': {'func': metrics.shannon_effective_dimension, 'input_type': 'variance'},
-    'renyi': {'func': metrics.renyi_effective_dimension, 'input_type': 'variance'},
-    'effective_rank': {'func': metrics.effective_rank, 'input_type': 'singular'},
-    'geometric_mean': {'func': metrics.geometric_mean_dimension, 'input_type': 'singular'},
-    'stable_rank': {'func': metrics.stable_rank, 'input_type': 'variance'},
-    'numerical_rank': {'func': metrics.numerical_rank, 'input_type': 'variance'},
-    'cumulative_eigenvalue_ratio': {'func': metrics.cumulative_eigenvalue_ratio, 'input_type': 'variance'},
-    # Geometric
-    'knn': {'func': geometry.knn_intrinsic_dimension, 'input_type': 'geometric'},
-    'twonn': {'func': geometry.two_nn_intrinsic_dimension, 'input_type': 'geometric'},
-    # New Geometric Methods
-    'danco': {'func': geometry.danco_intrinsic_dimension, 'input_type': 'geometric'},
-    'mind_mli': {'func': geometry.mind_mli_intrinsic_dimension, 'input_type': 'geometric'},
-    'mind_mlk': {'func': geometry.mind_mlk_intrinsic_dimension, 'input_type': 'geometric'},
-    'ess': {'func': geometry.ess_intrinsic_dimension, 'input_type': 'geometric'},
-    'tle': {'func': geometry.tle_intrinsic_dimension, 'input_type': 'geometric'},
-    'gmst': {'func': geometry.gmst_intrinsic_dimension, 'input_type': 'geometric'},
-    # Aliases
-    'erank': {'func': metrics.effective_rank, 'input_type': 'singular'},
-    'pr': {'func': metrics.participation_ratio, 'input_type': 'variance'},
-    'entropy': {'func': metrics.shannon_effective_dimension, 'input_type': 'variance'},
-}
+from .metrics import pca_explained_variance, participation_ratio, shannon_entropy,renyi_eff_dimensionality, geometric_mean_eff_dimensionality
 
-def compute(data: Union[np.ndarray, Any], method: str = 'participation_ratio', **kwargs) -> float:
+def compute(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
     """
-    Computes effective dimension using the specified method.
-    
-    Args:
-        data: Input data.
-        method: Method name.
-        **kwargs: Arguments passed to the estimator.
-        
-    Returns:
-        float: Estimated effective dimension.
-    """
-    method = method.lower()
-    
-    config = METHOD_CONFIG.get(method)
-    if not config:
-        raise ValueError(f"Unknown method '{method}'. Available: {list(METHOD_CONFIG.keys())}")
-        
-    input_type = config['input_type']
-    
-    # Branching logic for Data
-    if input_type == 'geometric':
-        # Geometric methods need raw data (N, D) or distance matrix
-        # For now, geometry.py assumes (N, D) points.
-        return config['func'](data, **kwargs)
-        
-    # Spectral methods need singular values
-    s = adapters.get_singular_values(data)
-    
-    if input_type == 'variance':
-        spectrum = s**2
-    else: # 'singular'
-        spectrum = s
-        
-    return config['func'](spectrum, **kwargs)
+    Compute the effective dimensionality of the given data using the specified method.
 
-def analyze(data: Union[np.ndarray, Any], methods: Optional[List[str]] = None, **kwargs) -> Dict[str, float]:
+    Parameters:
+    -----------
+    data : Union[np.ndarray, List[np.ndarray]]
+        Input data. Can be a single numpy array or a list of numpy arrays.
+    Returns: dict
+        A dictionary containing the results of the effective dimensionality computation.
     """
-    Computes multiple effective dimension metrics.
-    
-    Args:
-        data: Input data.
-        methods: List of methods to compute. Defaults to generic set.
-        **kwargs: Shared kwargs (e.g. threshold=0.95). 
-                  Note: Specific kwargs for specific methods not easily supported in this simple API.
-    
-    Returns:
-        Dict[str, float]: Dictionary of results.
-    """
-    if methods is None:
-        methods = ['participation_ratio', 'shannon', 'effective_rank']
-        
     results = {}
+
+    # Getting the data and then converting to numpy array if it's a list
+    if isinstance(data, list):
+        data = np.vstack(data)
+    elif not isinstance(data, np.ndarray):
+        raise ValueError("Input data must be a numpy array or a list of numpy arrays.")
     
-    # Optimize: Compute valid inputs once
-    s = None
-    s_sq = None
+    # Ensure the data is centered after checking
+    data = _ensure_centered(data)
+    s = _do_svd(data)
+
+    # gettinf the eigenvalues from the singular values for the covariance matrix
+    eigenvalues = (s ** 2) / (data.shape[0] - 1)
+
+    # Total variance
+    total_variance = np.sum(eigenvalues)
+
+    #  getting the probabilities
+    if total_variance == 0:
+        probabilities = np.zeros_like(eigenvalues)
+    else:
+        probabilities = eigenvalues / total_variance
+
+    # Computing various effective dimensionalities
+    results['pca_explained_variance_95'] = pca_explained_variance(eigenvalues, threshold=0.95)
+    results['participation_ratio'] = participation_ratio(eigenvalues)
+    results['shannon_entropy'] = shannon_entropy(probabilities)
     
-    # Check if we need spectral computation at all
-    needs_spectral = False
-    for m in methods:
-        m_cleaned = m.lower()
-        if m_cleaned == 'pr': m_cleaned = 'participation_ratio'
-        if m_cleaned == 'entropy': m_cleaned = 'shannon'
-        
-        cfg = METHOD_CONFIG.get(m_cleaned)
-        if cfg and cfg['input_type'] in ['variance', 'singular']:
-            needs_spectral = True
-            break
-            
-    if needs_spectral:
-        s = adapters.get_singular_values(data)
-        s_sq = s**2
+    # Renyi effective dimensionalities for alpha = 2,3,4,5
+    for i in range(2, 6):
+        results[f'renyi_eff_dimensionality_alpha_{i}'] = renyi_eff_dimensionality(probabilities, alpha=i)
+
+    results['geometric_mean_eff_dimensionality'] = geometric_mean_eff_dimensionality(probabilities)
+
     
-    for method_name in methods:
-        orig_name = method_name
-        method_name = method_name.lower()
-        
-        config = METHOD_CONFIG.get(method_name)
-        if not config:
-            if method_name not in METHOD_CONFIG:
-                 results[orig_name] = np.nan
-                 continue
-            config = METHOD_CONFIG[method_name]
-        
-        input_type = config['input_type']
-        
-        if input_type == 'geometric':
-             val = config['func'](data, **kwargs)
-        elif input_type == 'variance':
-            val = config['func'](s_sq, **kwargs)
-        else: # singular
-            val = config['func'](s, **kwargs)
-            
-        results[orig_name] = val
-        
+
     return results
+
+
+def _do_svd(data: np.ndarray) -> np.ndarray:
+    """
+    Perform Singular Value Decomposition (SVD) on the input data.
+    Based on dimensions, use standard SVD or randomized SVD for efficiency.
+
+    Parameters:
+    -----------
+    data : np.ndarray
+        Input data array.
+
+    Returns:
+    --------
+    np.ndarray
+        Singular values of the input data.
+    """
+    n_samples, n_features = data.shape
+    if min(n_samples, n_features) < 1000:
+        _, s, _ = np.linalg.svd(data, full_matrices=False)
+    else:
+        
+        _, s, _ = randomized_svd(data, n_components=min(n_samples, n_features) - 1)
+
+    return s
+
+def _check_centered(data: np.ndarray, tol: float = 1e-5) -> bool:
+    """
+    Check if the data is centered around zero.
+
+    Parameters:
+    -----------
+    data : np.ndarray
+        Input data array.
+    tol : float
+        Tolerance level to consider the mean as zero.
+
+    Returns:
+    --------
+    bool
+        True if data is centered, False otherwise.
+    """
+    mean = np.mean(data, axis=0)
+    return np.all(np.abs(mean) < tol)
+
+def _ensure_centered(data: np.ndarray) -> np.ndarray:
+    """
+    Ensure that the data is centered around zero. If not, center it.
+
+    Parameters:
+    -----------
+    data : np.ndarray
+        Input data array.
+
+    Returns:
+    --------
+    np.ndarray
+        Centered data array.
+    """
+    if not _check_centered(data):
+        data = data - np.mean(data, axis=0)
+    return data

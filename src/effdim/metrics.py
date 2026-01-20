@@ -1,238 +1,119 @@
 import numpy as np
 
-def _normalize_spectrum(spectrum: np.ndarray) -> np.ndarray:
-    """Normalizes the spectrum to a probability distribution."""
-    # Ensure non-negative just in case
-    s = np.abs(spectrum)
-    total = np.sum(s)
-    if total == 0:
-        return np.ones_like(s) / len(s) # Uniform if all zero
-    return s / total
 
-def pca_explained_variance(spectrum: np.ndarray, threshold: float = 0.95) -> float:
+
+def pca_explained_variance(spectrum: np.ndarray, threshold: float = 0.95) -> int:
     """
-    Returns the number of components needed to explain `threshold` fraction of variance.
-    Note: For singular values s, variance is proportional to s^2.
+    Compute the number of principal components required to explain a given
+    threshold of variance.
+
+    Parameters:
+    -----------
+    spectrum : np.ndarray
+        Array of eigenvalues (explained variance) from PCA.
+    threshold : float
+        The cumulative variance threshold to reach (between 0 and 1).
+
+    Returns:
+    --------
+    int
+        Number of principal components needed to reach the threshold.
     """
-    # If input is singular values (from SVD), eigenvalues are s^2.
-    # If input is eigenvalues (from Covariance), they are variance already.
-    # The adapter returns singular values for data matrix, eigenvalues for covariance.
-    # This ambiguity needs handling.
-    # Assumption for v0.1: The 'spectrum' passed here is assumed to be the "importance" metric directly.
-    # HOWEVER, standard PCA explained variance is on Eigenvalues of Covariance (s^2 / (N-1)).
-    # If users pass singular values (s), we should square them to get variance.
-    # But if they pass eigenvalues, we shouldn't. 
-    # Let's assume the adapter output 's' or 'vals' is the "magnitude of the mode".
-    # For now, I will treat them as "magnitudes". If they are singular values, energy is s^2.
-    # If they are eigenvalues of covariance, energy is lambda.
-    # This is a tricky design point. 
-    # DECISION: I will assume the input to these functions is strictly the "Eigenvalues of the Correlation/Covariance Matrix" or equivalent "Power".
-    # So if we had singular values s, we should convert to s^2 before calling this if we want "Explained Variance".
-    # BUT, to keep it simple, I will modify `adapters.py` later to always return "Power/Variance" spectrum?
-    # No, SVD returns singular values. 
-    # Let's add a 'squared' argument or assume the user handles it? 
-    # No, ease of use.
-    # I'll implement a helper that treats them as singular values by default (squaring them) if they seem to be s-values? 
-    # Or I'll just document: "Expects eigenvalues (variance)".
-    
-    # Actually, for PR and Entropy, we often operate on eigenvalues of covariance matrix.
-    # So, I should probably enforce that `components are energies`.
-    
-    # Let's treat the input `spectrum` as strictly "Variance/Energy" distribution.
-    # I will update `adapters.py` to optionally return squared values, or I handle it here.
-    # Let's assume they are VARIANCES (Eigenvalues).
-    
-    total_var = np.sum(spectrum)
-    if total_var == 0:
-        return 0.0
-        
-    cumsum = np.cumsum(spectrum)
-    # Find index where cumsum >= threshold * total_var
-    idx = np.searchsorted(cumsum, threshold * total_var)
-    return float(idx + 1)
+    total_variance = np.sum(spectrum)
+    cumulative_variance = np.cumsum(spectrum)
+    explained_variance_ratio = cumulative_variance / total_variance
+
+    num_components = np.searchsorted(explained_variance_ratio, threshold) + 1
+    return num_components
 
 def participation_ratio(spectrum: np.ndarray) -> float:
     """
-    Computes the Participation Ratio (PR).
-    PR = (Sum lambda)^2 / Sum (lambda^2)
+    Compute the Participation Ratio (PR) of the given spectrum.
+
+    Parameters:
+    -----------
+    spectrum : np.ndarray
+        Array of eigenvalues.
+
+    Returns:
+    --------
+    float
+        Participation Ratio value.
+    """
+    numerator = (np.sum(spectrum)) ** 2
+    denominator = np.sum(spectrum ** 2)
+    if denominator == 0:
+        return 0.0
+    return numerator / denominator
+
+def shannon_entropy(probabilities: np.ndarray) -> float:
+    """
+    Compute the Shannon Entropy of the given probability distribution.
+
+    Parameters:
+    -----------
+    probabilities : np.ndarray
+        Array of probabilities.
+
+    Returns:
+    --------
+    float
+        Shannon Entropy value.
+    """
+    # Filter out zero probabilities to avoid log(0)
+    probabilities = probabilities[probabilities > 0]
+    entropy = -np.sum(probabilities * np.log(probabilities))
+    d_eff = np.exp(entropy)
+    return d_eff
     
-    Ref: Recanatesi et al.
+def renyi_eff_dimensionality(probabilities: np.ndarray, alpha: float) -> float:
     """
-    # PR is usually defined on the eigenvalues of the covariance matrix.
-    # If spectrum are these eigenvalues:
-    s_sum = np.sum(spectrum)
-    s_sq_sum = np.sum(spectrum**2)
-    if s_sq_sum == 0:
+    Compute the Rényi Effective Dimensionality of the given probability distribution.
+
+    Parameters:
+    -----------
+    probabilities : np.ndarray
+        Array of probabilities.
+    alpha : float
+        Order of the Rényi entropy (alpha > 0 and alpha != 1).
+
+    Returns:
+    --------
+    float
+        Rényi Effective Dimensionality value.
+    """
+    if alpha <= 0 or alpha == 1:
+        raise ValueError("Alpha must be greater than 0 and not equal to 1.")
+
+    sum_probs_alpha = np.sum(probabilities ** alpha)
+    if sum_probs_alpha == 0:
         return 0.0
-    return (s_sum**2) / s_sq_sum
 
-def shannon_effective_dimension(spectrum: np.ndarray) -> float:
-    """
-    Computes Shannon Effective Dimension: exp(Entropy).
-    H = - sum p_i log p_i
-    where p_i = lambda_i / sum(lambda)
-    """
-    p = _normalize_spectrum(spectrum)
-    # Filter zeros for log
-    p = p[p > 0]
-    entropy = -np.sum(p * np.log(p))
-    return np.exp(entropy)
+    d_eff = sum_probs_alpha ** (1 / (1 - alpha))
+    return d_eff
 
-def renyi_effective_dimension(spectrum: np.ndarray, alpha: float = 2.0) -> float:
+def geometric_mean_eff_dimensionality(spectrum: np.ndarray) -> float:
     """
-    Computes Rényi Effective Dimension (Generalized).
-    For alpha=1 -> Shannon.
-    For alpha=2 -> Connected to Participation Ratio?
-      R_2 = 1/(1-2) * log(sum p^2) = -log(sum p^2)
-      Exp(R_2) = 1 / sum p^2.
-      PR = (sum lambda)^2 / sum lambda^2 = 1 / sum (lambda/sum lambda)^2 = 1 / sum p^2.
-      So Exp(Renyi_2) is exactly Participation Ratio!
+    Compute the Geometric Mean Effective Dimensionality of the given spectrum.
+
+    Parameters:
+    -----------
+    spectrum : np.ndarray
+        Array of eigenvalues.
+
+    Returns:
+    --------
+    float
+        Geometric Mean Effective Dimensionality value.
     """
-    if alpha == 1:
-        return shannon_effective_dimension(spectrum)
-        
-    p = _normalize_spectrum(spectrum)
-    p_alpha = np.sum(p**alpha)
-    if p_alpha == 0:
+    positive_spectrum = spectrum[spectrum > 0]
+    if len(positive_spectrum) == 0:
         return 0.0
-        
-    entropy = (1 / (1 - alpha)) * np.log(p_alpha)
-    return np.exp(entropy)
 
-def effective_rank(spectrum: np.ndarray) -> float:
-    """
-    Computes Effective Rank (Roy & Vetterli, 2007).
-    This is effectively the Shannon Effective Dimension of the normalized spectrum.
-    Alias for shannon_effective_dimension.
-    """
-    return shannon_effective_dimension(spectrum)
-
-def geometric_mean_dimension(spectrum: np.ndarray) -> float:
-    """
-    Computes a dimension based on the ratio of arithmetic mean to geometric mean.
-    """
-    # Filter strict positives
-    s = spectrum[spectrum > 0]
-    if len(s) == 0:
-        return 0.0
-        
-    arithmetic = np.mean(s)
-    geometric = np.exp(np.mean(np.log(s)))
+    # Calculate the arthmetic mean of the positive spectrum
+    am = np.mean(positive_spectrum)
+    # Calculate the geometric mean of the positive spectrum
+    gm = np.exp(np.mean(np.log(positive_spectrum)))
+    d_eff = (am / gm)
     
-    # This ratio is 1 if all equal (max dim), and small if sparse.
-    # Not a standard 'dimension' count scalar like 5.4, but a ratio.
-    # However, some define a dimension proxy from it.
-    # For now, I'll return the raw ratio as a placeholder or looks for a specific 'Dimension' formula using it.
-    # Vardi's "The effective dimension..."?
-    # I will just return the ratio for now.
-    return arithmetic / geometric if geometric > 0 else 0.0
-
-def stable_rank(spectrum: np.ndarray) -> float:
-    """
-    Computes the Stable Rank of the matrix.
-
-    Formula:
-        Stable Rank = (sum lambda_i) / (max lambda_i)
-        where lambda_i are eigenvalues (variances).
-
-    Args:
-        spectrum: Array of eigenvalues or variances (lambda).
-
-    Returns:
-        float: The stable rank.
-
-    References:
-        Vershynin, R. (2018). High-Dimensional Probability.
-    """
-    # Contract: Input MUST be eigenvalues / variances
-    # No additional normalization
-    if len(spectrum) == 0:
-        return 0.0
-
-    # Ensure non-negative just in case, though variances should be >= 0
-    # But strictly speaking, formula is sum/max.
-    # We should probably use real part or abs if complex, but assuming variances are real >= 0
-    s_abs = np.abs(spectrum)
-    total = np.sum(s_abs)
-    mx = np.max(s_abs)
-
-    if mx == 0:
-        return 0.0
-
-    return float(total / mx)
-
-
-def numerical_rank(spectrum: np.ndarray, epsilon: float = None) -> float:
-    """
-    Computes the Numerical Rank (epsilon-rank).
-
-    Formula:
-        rank_epsilon(A) = | { i : sigma_i > epsilon } |
-        where sigma_i are singular values.
-
-    Args:
-        spectrum: Array of eigenvalues or variances (lambda).
-                  These are converted to singular values: sigma = sqrt(lambda).
-        epsilon: Threshold. If None, defaults to max(sigma) * machine_epsilon.
-
-    Returns:
-        float: The count of singular values above threshold.
-    """
-    if len(spectrum) == 0:
-        return 0.0
-
-    # Convert variances to singular values
-    # Ensure no negative values before sqrt (numerical noise)
-    spectrum_clean = np.maximum(spectrum, 0.0)
-    sigmas = np.sqrt(spectrum_clean)
-
-    if epsilon is None:
-        # Machine epsilon for the dtype
-        dtype = sigmas.dtype
-        # If integer or other, default to float64
-        if not np.issubdtype(dtype, np.floating):
-             sigmas = sigmas.astype(np.float64)
-             dtype = np.float64
-
-        eps_machine = np.finfo(dtype).eps
-        epsilon = np.max(sigmas) * eps_machine
-
-    return float(np.sum(sigmas > epsilon))
-
-
-def cumulative_eigenvalue_ratio(spectrum: np.ndarray) -> float:
-    """
-    Computes the Cumulative Eigenvalue Ratio.
-
-    Formula:
-        CER = sum(weights * p)
-        where p = lambda / sum(lambda)
-        and weights_i = 1 - (i-1)/d
-        (using 1-based indexing for formula, 0-based for code)
-
-    Args:
-        spectrum: Array of eigenvalues or variances.
-
-    Returns:
-        float: The cumulative eigenvalue ratio.
-    """
-    if len(spectrum) == 0:
-        return 0.0
-
-    # Ensure non-negative and handle complex if necessary (abs)
-    s_abs = np.abs(spectrum)
-    total = np.sum(s_abs)
-    if total == 0:
-        return 0.0
-
-    p = s_abs / total
-    d = len(p)
-
-    # weights = 1 - (i-1)/d for i=1..d
-    # in 0-based code: i code ranges 0..d-1.
-    # Formula i corresponds to code_i + 1.
-    # weights code = 1 - (code_i)/d
-    indices = np.arange(d)
-    weights = 1.0 - indices / d
-
-    return float(np.sum(weights * p))
+    return d_eff
