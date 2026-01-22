@@ -12,12 +12,10 @@ function compute(data) -> dictionary of results
 
 """
 
-from .api import compute
+from .api import compute_dim
 
 # Version
 __version__ = "0.1.0"
 
 # Public API
-__all__ = [
-    '__version__',
-]
+__all__ = ["__version__", "compute_dim"]

@@ -1,10 +1,23 @@
-from typing import Union, List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 from sklearn.utils.extmath import randomized_svd
 
-from .metrics import pca_explained_variance, participation_ratio, shannon_entropy,renyi_eff_dimensionality, geometric_mean_eff_dimensionality
+from .geometry import (
+    box_counting_dimensionality,
+    mle_dimensionality,
+    two_nn_dimensionality,
+)
+from .metrics import (
+    geometric_mean_eff_dimensionality,
+    participation_ratio,
+    pca_explained_variance,
+    renyi_eff_dimensionality,
+    shannon_entropy,
+)
 
-def compute(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
+
+def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
     """
     Compute the effective dimensionality of the given data using the specified method.
 
@@ -22,13 +35,13 @@ def compute(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
         data = np.vstack(data)
     elif not isinstance(data, np.ndarray):
         raise ValueError("Input data must be a numpy array or a list of numpy arrays.")
-    
-    # Ensure the data is centered after checking
+
+    # Ensure the data is centered
     data = _ensure_centered(data)
     s = _do_svd(data)
 
     # gettinf the eigenvalues from the singular values for the covariance matrix
-    eigenvalues = (s ** 2) / (data.shape[0] - 1)
+    eigenvalues = (s**2) / (data.shape[0] - 1)
 
     # Total variance
     total_variance = np.sum(eigenvalues)
@@ -40,17 +53,30 @@ def compute(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
         probabilities = eigenvalues / total_variance
 
     # Computing various effective dimensionalities
-    results['pca_explained_variance_95'] = pca_explained_variance(eigenvalues, threshold=0.95)
-    results['participation_ratio'] = participation_ratio(eigenvalues)
-    results['shannon_entropy'] = shannon_entropy(probabilities)
-    
+    results["pca_explained_variance_95"] = pca_explained_variance(
+        eigenvalues, threshold=0.95
+    )
+    results["participation_ratio"] = participation_ratio(eigenvalues)
+    results["shannon_entropy"] = shannon_entropy(probabilities)
+
     # Renyi effective dimensionalities for alpha = 2,3,4,5
     for i in range(2, 6):
-        results[f'renyi_eff_dimensionality_alpha_{i}'] = renyi_eff_dimensionality(probabilities, alpha=i)
+        results[f"renyi_eff_dimensionality_alpha_{i}"] = renyi_eff_dimensionality(
+            probabilities, alpha=i
+        )
 
-    results['geometric_mean_eff_dimensionality'] = geometric_mean_eff_dimensionality(probabilities)
+    # Geometric Dimensions
+    results["geometric_mean_eff_dimensionality"] = geometric_mean_eff_dimensionality(
+        probabilities
+    )
 
-    
+    results["mle_dimensionality"] = mle_dimensionality(data)
+    results["two_nn_dimensionality"] = two_nn_dimensionality(data)
+    # For box counting, you might want to define a range of box sizes
+    box_sizes = np.logspace(-2, 0, num=10)
+    results["box_counting_dimensionality"] = box_counting_dimensionality(
+        data, box_sizes
+    )
 
     return results
 
@@ -74,10 +100,10 @@ def _do_svd(data: np.ndarray) -> np.ndarray:
     if min(n_samples, n_features) < 1000:
         _, s, _ = np.linalg.svd(data, full_matrices=False)
     else:
-        
         _, s, _ = randomized_svd(data, n_components=min(n_samples, n_features) - 1)
 
     return s
+
 
 def _check_centered(data: np.ndarray, tol: float = 1e-5) -> bool:
     """
@@ -97,6 +123,7 @@ def _check_centered(data: np.ndarray, tol: float = 1e-5) -> bool:
     """
     mean = np.mean(data, axis=0)
     return np.all(np.abs(mean) < tol)
+
 
 def _ensure_centered(data: np.ndarray) -> np.ndarray:
     """
