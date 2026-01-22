@@ -1,0 +1,20 @@
+[package]
+name = "effdim-geometry"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "effdim_geometry"
+crate-type = ["cdylib"]
+path = "src_rust/lib.rs"
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module"] }
+numpy = "0.23"
+ndarray = "0.16"
+kiddo = "5.2"  # Latest version for efficient k-d tree / nearest neighbors
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
