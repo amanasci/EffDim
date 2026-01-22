@@ -12,7 +12,7 @@ path = "src_rust/lib.rs"
 pyo3 = { version = "0.23", features = ["extension-module"] }
 numpy = "0.23"
 ndarray = "0.16"
-kiddo = "5.2"  # Latest version for efficient k-d tree / nearest neighbors
+rayon = "1.10"  # For parallel processing
 
 [profile.release]
 opt-level = 3

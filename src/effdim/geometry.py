@@ -1,5 +1,12 @@
 import numpy as np
-from sklearn.neighbors import NearestNeighbors
+
+# Try to import Rust implementation, fallback to Python implementation
+try:
+    from effdim import _rust
+    _RUST_AVAILABLE = True
+except ImportError:
+    _RUST_AVAILABLE = False
+    from sklearn.neighbors import NearestNeighbors
 
 # ==========================================
 # 1. MLE (Levina-Bickel) - Robust Version
@@ -8,7 +15,13 @@ def mle_dimensionality(data: np.ndarray, k: int = 10) -> float:
     """
     Estimate intrinsic dimensionality using Levina-Bickel MLE.
     Includes protection against duplicate points (distance=0).
+    Uses fast Rust implementation when available.
     """
+    # Use Rust implementation if available for better performance
+    if _RUST_AVAILABLE:
+        return _rust.mle_dimensionality(data, k)
+    
+    # Python fallback implementation
     n_samples = data.shape[0]
     
     # Safety: We need k+1 neighbors because the 0th is the point itself.
@@ -52,7 +65,13 @@ def two_nn_dimensionality(data: np.ndarray) -> float:
     """
     Estimate intrinsic dimensionality using Two-NN.
     Corrects the regression target to -log(1 - F(mu)).
+    Uses fast Rust implementation when available.
     """
+    # Use Rust implementation if available for better performance
+    if _RUST_AVAILABLE:
+        return _rust.two_nn_dimensionality(data)
+    
+    # Python fallback implementation
     n_samples = data.shape[0]
     if n_samples < 3: return 0.0
 
@@ -108,12 +127,18 @@ def box_counting_dimensionality(data: np.ndarray, box_sizes: np.ndarray = None) 
     """
     Estimate Box-Counting Dimension.
     Optimized loop and bounds calculation.
+    Uses fast Rust implementation when available.
     """
     if box_sizes is None:
         # Auto-generate logarithmic box sizes if none provided
         range_max = np.max(data) - np.min(data)
         box_sizes = np.geomspace(range_max / 100, range_max / 5, num=10)
-
+    
+    # Use Rust implementation if available for better performance
+    if _RUST_AVAILABLE:
+        return _rust.box_counting_dimensionality(data, box_sizes)
+    
+    # Python fallback implementation
     counts = []
     
     # Optimization: Compute bounds once outside the loop

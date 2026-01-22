@@ -2,54 +2,79 @@ use pyo3::prelude::*;
 use numpy::{PyReadonlyArray2, PyReadonlyArray1};
 use ndarray::Axis;
 use std::collections::HashSet;
-use std::num::NonZero;
-use kiddo::immutable::float::kdtree::ImmutableKdTree;
-use kiddo::SquaredEuclidean;
+use rayon::prelude::*;
 
-fn mle_impl<const K: usize>(data_array: ndarray::ArrayView2<f64>, k_neighbors: usize, n_samples: usize) -> PyResult<f64> {
-    // Convert data to fixed-size arrays for kd-tree
-    let items: Vec<[f64; K]> = data_array.axis_iter(Axis(0))
-        .map(|row| {
-            let mut point = [0.0f64; K];
-            for (i, &val) in row.iter().enumerate().take(K) {
-                point[i] = val;
-            }
-            point
-        })
+/// Calculate squared Euclidean distance between two points
+#[inline]
+fn squared_distance(a: &[f64], b: &[f64]) -> f64 {
+    a.iter().zip(b.iter()).map(|(x, y)| (x - y).powi(2)).sum()
+}
+
+/// Find k nearest neighbors using optimized brute-force (parallel)
+fn find_k_nearest_brute(query: &[f64], all_points: &[Vec<f64>], k: usize) -> Vec<(usize, f64)> {
+    let mut distances: Vec<(usize, f64)> = all_points.par_iter()
+        .enumerate()
+        .map(|(idx, point)| (idx, squared_distance(query, point)))
         .collect();
     
-    // Build immutable k-d tree
-    let tree: ImmutableKdTree<f64, u32, K, 32> = ImmutableKdTree::new_from_slice(&items);
+    // Partial sort to find k smallest
+    distances.select_nth_unstable_by(k, |a, b| a.1.partial_cmp(&b.1).unwrap());
+    distances.truncate(k + 1);
+    distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
     
-    let mut inv_dim_estimates = Vec::with_capacity(n_samples);
-    let k_plus_1 = NonZero::new(k_neighbors + 1).unwrap();
+    distances
+}
+
+/// MLE (Levina-Bickel) dimensionality estimation - Brute Force
+#[pyfunction]
+fn mle_dimensionality(
+    _py: Python,
+    data: PyReadonlyArray2<f64>,
+    k: usize,
+) -> PyResult<f64> {
+    let data_array = data.as_array();
+    let n_samples = data_array.nrows();
     
-    for point in &items {
-        // Find k+1 nearest neighbors (including self)
-        let neighbors = tree.nearest_n::<SquaredEuclidean>(point, k_plus_1);
-        
-        // Extract distances (skip first which is self with distance ~0)
-        let distances: Vec<f64> = neighbors.iter()
-            .skip(1)
-            .map(|n| (n.distance.sqrt() + 1e-10))  // Add epsilon to avoid log(0)
-            .collect();
-        
-        if distances.len() < k_neighbors {
-            continue;
-        }
-        
-        let r_k = distances[k_neighbors - 1];
-        let r_j = &distances[..k_neighbors - 1];
-        
-        // Calculate sum of log ratios
-        let sum_log_ratios: f64 = r_j.iter()
-            .map(|&r| (r_k / r).ln())
-            .sum();
-        
-        // Inverse dimension estimate for this point
-        let inv_dim = (k_neighbors - 1) as f64 / (sum_log_ratios + 1e-10);
-        inv_dim_estimates.push(inv_dim);
+    // Safety check
+    let k = k.min(n_samples - 1);
+    if k < 2 {
+        return Ok(0.0);
     }
+    
+    // Convert to Vec<Vec<f64>> for easier processing
+    let points: Vec<Vec<f64>> = data_array.axis_iter(Axis(0))
+        .map(|row| row.to_vec())
+        .collect();
+    
+    // Parallel processing of all points
+    let inv_dim_estimates: Vec<f64> = points.par_iter()
+        .filter_map(|point| {
+            // Find k+1 nearest neighbors (including self)
+            let neighbors = find_k_nearest_brute(point, &points, k);
+            
+            // Extract distances (skip first which is self with distance ~0)
+            let distances: Vec<f64> = neighbors.iter()
+                .skip(1)
+                .map(|(_, d)| d.sqrt() + 1e-10)  // Add epsilon to avoid log(0)
+                .collect();
+            
+            if distances.len() < k {
+                return None;
+            }
+            
+            let r_k = distances[k - 1];
+            let r_j = &distances[..k - 1];
+            
+            // Calculate sum of log ratios
+            let sum_log_ratios: f64 = r_j.iter()
+                .map(|&r| (r_k / r).ln())
+                .sum();
+            
+            // Inverse dimension estimate for this point
+            let inv_dim = (k - 1) as f64 / (sum_log_ratios + 1e-10);
+            Some(inv_dim)
+        })
+        .collect();
     
     // Return mean of inverse dimension estimates
     if inv_dim_estimates.is_empty() {
@@ -59,51 +84,55 @@ fn mle_impl<const K: usize>(data_array: ndarray::ArrayView2<f64>, k_neighbors: u
     }
 }
 
-fn two_nn_impl<const K: usize>(data_array: ndarray::ArrayView2<f64>, n_samples: usize) -> PyResult<f64> {
-    // Convert data to fixed-size arrays for kd-tree
-    let items: Vec<[f64; K]> = data_array.axis_iter(Axis(0))
-        .map(|row| {
-            let mut point = [0.0f64; K];
-            for (i, &val) in row.iter().enumerate().take(K) {
-                point[i] = val;
-            }
-            point
-        })
+/// Two-NN dimensionality estimation (Facco et al.) - Brute Force
+#[pyfunction]
+fn two_nn_dimensionality(
+    _py: Python,
+    data: PyReadonlyArray2<f64>,
+) -> PyResult<f64> {
+    let data_array = data.as_array();
+    let n_samples = data_array.nrows();
+    
+    if n_samples < 3 {
+        return Ok(0.0);
+    }
+    
+    // Convert to Vec<Vec<f64>> for easier processing
+    let points: Vec<Vec<f64>> = data_array.axis_iter(Axis(0))
+        .map(|row| row.to_vec())
         .collect();
     
-    // Build immutable k-d tree
-    let tree: ImmutableKdTree<f64, u32, K, 32> = ImmutableKdTree::new_from_slice(&items);
-    
-    let mut mu_values: Vec<f64> = Vec::with_capacity(n_samples);
-    let three = NonZero::new(3usize).unwrap();
-    
-    for point in &items {
-        // Find 3 nearest neighbors (self + 2 neighbors)
-        let neighbors = tree.nearest_n::<SquaredEuclidean>(point, three);
-        
-        if neighbors.len() < 3 {
-            continue;
-        }
-        
-        // Extract distances (skip self)
-        let r1 = neighbors[1].distance.sqrt() + 1e-10;
-        let r2 = neighbors[2].distance.sqrt() + 1e-10;
-        
-        let mu = r2 / r1;
-        mu_values.push(mu);
-    }
+    // Parallel processing of all points
+    let mu_values: Vec<f64> = points.par_iter()
+        .filter_map(|point| {
+            // Find 3 nearest neighbors (self + 2 neighbors)
+            let neighbors = find_k_nearest_brute(point, &points, 2);
+            
+            if neighbors.len() < 3 {
+                return None;
+            }
+            
+            // Extract distances (skip self)
+            let r1 = neighbors[1].1.sqrt() + 1e-10;
+            let r2 = neighbors[2].1.sqrt() + 1e-10;
+            
+            let mu = r2 / r1;
+            Some(mu)
+        })
+        .collect();
     
     if mu_values.is_empty() {
         return Ok(0.0);
     }
     
     // Sort mu values
-    mu_values.sort_by(|a: &f64, b: &f64| a.partial_cmp(b).unwrap());
+    let mut mu_sorted = mu_values;
+    mu_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
     
     // Drop last point to avoid log(0)
-    mu_values.pop();
+    mu_sorted.pop();
     
-    let n_fit = mu_values.len();
+    let n_fit = mu_sorted.len();
     if n_fit == 0 {
         return Ok(0.0);
     }
@@ -111,9 +140,9 @@ fn two_nn_impl<const K: usize>(data_array: ndarray::ArrayView2<f64>, n_samples: 
     let mut x_values = Vec::with_capacity(n_fit);
     let mut y_values = Vec::with_capacity(n_fit);
     
-    for (i, &mu) in mu_values.iter().enumerate() {
-        let x: f64 = mu.ln();
-        let y: f64 = -(1.0 - (i + 1) as f64 / n_samples as f64).ln();
+    for (i, &mu) in mu_sorted.iter().enumerate() {
+        let x = mu.ln();
+        let y = -(1.0 - (i + 1) as f64 / n_samples as f64).ln();
         x_values.push(x);
         y_values.push(y);
     }
@@ -132,63 +161,6 @@ fn two_nn_impl<const K: usize>(data_array: ndarray::ArrayView2<f64>, n_samples: 
     
     let d = x_dot_y / x_dot_x;
     Ok(d)
-}
-
-/// MLE (Levina-Bickel) dimensionality estimation
-#[pyfunction]
-fn mle_dimensionality(
-    _py: Python,
-    data: PyReadonlyArray2<f64>,
-    k: usize,
-) -> PyResult<f64> {
-    let data_array = data.as_array();
-    let n_samples = data_array.nrows();
-    let n_features = data_array.ncols();
-    
-    // Safety check
-    let k = k.min(n_samples - 1);
-    if k < 2 {
-        return Ok(0.0);
-    }
-    
-    // Dispatch to the correct dimension-specific implementation
-    match n_features {
-        1..=16 => mle_impl::<16>(data_array, k, n_samples),
-        17..=32 => mle_impl::<32>(data_array, k, n_samples),
-        33..=64 => mle_impl::<64>(data_array, k, n_samples),
-        65..=128 => mle_impl::<128>(data_array, k, n_samples),
-        129..=256 => mle_impl::<256>(data_array, k, n_samples),
-        257..=512 => mle_impl::<512>(data_array, k, n_samples),
-        513..=1024 => mle_impl::<1024>(data_array, k, n_samples),
-        _ => mle_impl::<2048>(data_array, k, n_samples),
-    }
-}
-
-/// Two-NN dimensionality estimation (Facco et al.)
-#[pyfunction]
-fn two_nn_dimensionality(
-    _py: Python,
-    data: PyReadonlyArray2<f64>,
-) -> PyResult<f64> {
-    let data_array = data.as_array();
-    let n_samples = data_array.nrows();
-    let n_features = data_array.ncols();
-    
-    if n_samples < 3 {
-        return Ok(0.0);
-    }
-    
-    // Dispatch to the correct dimension-specific implementation
-    match n_features {
-        1..=16 => two_nn_impl::<16>(data_array, n_samples),
-        17..=32 => two_nn_impl::<32>(data_array, n_samples),
-        33..=64 => two_nn_impl::<64>(data_array, n_samples),
-        65..=128 => two_nn_impl::<128>(data_array, n_samples),
-        129..=256 => two_nn_impl::<256>(data_array, n_samples),
-        257..=512 => two_nn_impl::<512>(data_array, n_samples),
-        513..=1024 => two_nn_impl::<1024>(data_array, n_samples),
-        _ => two_nn_impl::<2048>(data_array, n_samples),
-    }
 }
 
 /// Box-counting dimensionality estimation
@@ -224,8 +196,8 @@ fn box_counting_dimensionality(
     }
     
     // Fit line: log(N) = -d * log(epsilon) + C
-    let log_box_sizes: Vec<f64> = box_sizes.iter().map(|&x: &f64| x.ln()).collect();
-    let log_counts: Vec<f64> = counts.iter().map(|&x: &f64| x.ln()).collect();
+    let log_box_sizes: Vec<f64> = box_sizes.iter().map(|x| x.ln()).collect();
+    let log_counts: Vec<f64> = counts.iter().map(|x| x.ln()).collect();
     
     let n = log_box_sizes.len() as f64;
     let sum_x: f64 = log_box_sizes.iter().sum();
