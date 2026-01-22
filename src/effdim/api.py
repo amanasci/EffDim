@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 from sklearn.utils.extmath import randomized_svd
@@ -105,7 +105,7 @@ def _do_svd(data: np.ndarray) -> np.ndarray:
     return s
 
 
-def _check_centered(data: np.ndarray, tol: float = 1e-5) -> bool:
+def _check_centered(data: np.ndarray, tol: float = 1e-5) -> Union[bool, np.bool_]:
     """
     Check if the data is centered around zero.
 
@@ -122,7 +122,7 @@ def _check_centered(data: np.ndarray, tol: float = 1e-5) -> bool:
         True if data is centered, False otherwise.
     """
     mean = np.mean(data, axis=0)
-    return np.all(np.abs(mean) < tol)
+    return np.all(np.abs(mean) < tol)  # This is np.bool_
 
 
 def _ensure_centered(data: np.ndarray) -> np.ndarray:
