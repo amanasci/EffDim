@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 path = "src_rust/lib.rs"
 
 [dependencies]
-pyo3 = { version = "0.23", features = ["extension-module"] }
+pyo3 = { version = "0.27", features = ["extension-module"] }
 numpy = "0.23"
 ndarray = "0.16"
 rayon = "1.10"  # For parallel processing
