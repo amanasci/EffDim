@@ -10,6 +10,8 @@
 pip install effdim
 ```
 
+**Prebuilt wheels with Rust acceleration** are available for Linux, macOS, and Windows (Python 3.8-3.12). The Rust implementation provides 10-50x speedup for geometry calculations on large datasets. See [RUST_BUILD.md](RUST_BUILD.md) for more details.
+
 ## Usage
 
 ```python

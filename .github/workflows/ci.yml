@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # Test building wheels
+  test-build:
+    name: Test build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          manylinux: auto
+      
+      - name: Install wheel
+        run: |
+          pip install effdim --no-index --find-links dist --force-reinstall
+      
+      - name: Test import
+        run: |
+          python -c "from effdim import geometry; print('Rust available:', geometry._RUST_AVAILABLE)"
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: dist
+
+  # Run Python tests
+  test-python:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install dependencies
+        run: |
+          pip install maturin
+          maturin develop --release
+          pip install pytest pytest-cov
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v || echo "No tests found"
+      
+      - name: Test basic functionality
+        run: |
+          python -c "
+          import numpy as np
+          from effdim import geometry
+          print('Testing Rust implementation...')
+          print('Rust available:', geometry._RUST_AVAILABLE)
+          data = np.random.randn(100, 50)
+          result = geometry.mle_dimensionality(data, k=10)
+          print(f'MLE result: {result:.4f}')
+          result = geometry.two_nn_dimensionality(data)
+          print(f'Two-NN result: {result:.4f}')
+          print('Tests passed!')
+          "

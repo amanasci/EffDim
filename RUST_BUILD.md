@@ -2,7 +2,25 @@
 
 EffDim now includes a Rust implementation of geometry functions for improved performance on large datasets.
 
-## Prerequisites
+## Installation
+
+### From PyPI (Recommended)
+
+Prebuilt wheels are available for Linux, macOS, and Windows:
+
+```bash
+pip install effdim
+```
+
+The Rust extension is automatically included in the prebuilt wheels. No additional setup required!
+
+### From Source
+
+If prebuilt wheels are not available for your platform, you can build from source.
+
+## Building from Source
+
+### Prerequisites
 
 1. **Rust toolchain** (1.70+):
    ```bash
@@ -16,7 +34,9 @@ EffDim now includes a Rust implementation of geometry functions for improved per
 
 ## Building
 
-To build the Rust extension:
+### Build and Install
+
+To build the Rust extension from source:
 
 ```bash
 # Build in release mode (optimized)
@@ -70,3 +90,57 @@ The Rust implementation uses:
 - **rayon** (1.10) - Data parallelism
 
 All dependencies are automatically fetched by Cargo during build.
+
+## CI/CD and Release Process
+
+### Automated Builds
+
+The project uses GitHub Actions to automatically build prebuilt wheels for multiple platforms:
+
+- **Platforms**: Linux (manylinux), macOS (x86_64 & ARM64), Windows
+- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **Trigger**: Pushing a version tag (e.g., `v0.1.1`)
+
+### Publishing a New Version
+
+To publish a new version to PyPI:
+
+1. Update the version in `pyproject.toml`:
+   ```toml
+   [project]
+   version = "0.1.1"  # Update this
+   ```
+
+2. Commit the change:
+   ```bash
+   git add pyproject.toml
+   git commit -m "Bump version to 0.1.1"
+   git push origin main
+   ```
+
+3. Create and push a version tag:
+   ```bash
+   git tag v0.1.1
+   git push origin v0.1.1
+   ```
+
+4. GitHub Actions will automatically:
+   - Build wheels for all platforms and Python versions
+   - Build source distribution (sdist)
+   - Upload all artifacts to PyPI
+
+### Manual Build Workflow
+
+You can also trigger builds manually from the GitHub Actions tab using the `workflow_dispatch` event.
+
+### Supported Platforms
+
+The prebuilt wheels support:
+
+| Platform | Architectures | Python Versions |
+|----------|---------------|-----------------|
+| Linux    | x86_64, aarch64 (manylinux) | 3.8-3.12 |
+| macOS    | x86_64, ARM64 (Apple Silicon) | 3.8-3.12 |
+| Windows  | x86_64 | 3.8-3.12 |
+
+If your platform is not listed, you can build from source (see above).
