@@ -10,6 +10,9 @@ Ensure `effdim` is installed:
 pip install effdim
 ```
 
+!!! success "Performance"
+    The installed package includes prebuilt Rust extensions for high-performance geometry calculations. No additional setup needed!
+
 ## Basic Concepts
 
 EffDim revolves around two main functions:
