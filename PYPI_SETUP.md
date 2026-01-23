@@ -33,10 +33,10 @@ This document explains how to set up automated publishing to PyPI for repository
 #### Option 1: Manual Trigger (Recommended for Testing)
 
 1. Go to Actions tab
-2. Select "Build and Publish to PyPI" workflow
+2. Select "CI" workflow
 3. Click "Run workflow"
 4. Check the build completes successfully
-5. Verify wheels are uploaded (they won't be published without a tag)
+5. Verify wheels are created (they won't be published without a tag)
 
 #### Option 2: Create a Test Release
 
@@ -73,9 +73,12 @@ This document explains how to set up automated publishing to PyPI for repository
 
 ### What Gets Built
 
-- **Platforms**: Linux (manylinux2014), macOS (x86_64 + ARM64), Windows (x86_64)
-- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
-- **Total artifacts**: ~15 wheels + 1 source distribution
+- **Platforms**: 
+  - Linux: x86_64, aarch64 (manylinux & musllinux)
+  - Windows: x64, x86
+  - macOS: x86_64 (Intel, macOS 13), aarch64 (Apple Silicon, macOS 14)
+- **Python versions**: 3.8-3.12 (auto-detected via `--find-interpreter`)
+- **Total artifacts**: ~40+ wheels + 1 source distribution
 
 ## Troubleshooting
 

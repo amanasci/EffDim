@@ -95,11 +95,14 @@ All dependencies are automatically fetched by Cargo during build.
 
 ### Automated Builds
 
-The project uses GitHub Actions to automatically build prebuilt wheels for multiple platforms:
+The project uses GitHub Actions with a maturin-generated CI workflow to automatically build prebuilt wheels for multiple platforms:
 
-- **Platforms**: Linux (manylinux), macOS (x86_64 & ARM64), Windows
-- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
-- **Trigger**: Pushing a version tag (e.g., `v0.1.1`)
+- **Platforms**: 
+  - Linux: x86_64, aarch64 (manylinux & musllinux)
+  - Windows: x64, x86
+  - macOS: x86_64 (Intel), aarch64 (Apple Silicon)
+- **Python versions**: 3.8-3.12 (via `--find-interpreter`)
+- **Trigger**: Automatic on pushes to main, PRs, and version tags
 
 ### Publishing a New Version
 
@@ -125,8 +128,9 @@ To publish a new version to PyPI:
    ```
 
 4. GitHub Actions will automatically:
-   - Build wheels for all platforms and Python versions
+   - Build wheels for all platforms and architectures
    - Build source distribution (sdist)
+   - Generate build attestations
    - Upload all artifacts to PyPI
 
 ### Manual Build Workflow
@@ -137,10 +141,12 @@ You can also trigger builds manually from the GitHub Actions tab using the `work
 
 The prebuilt wheels support:
 
-| Platform | Architectures | Python Versions |
-|----------|---------------|-----------------|
-| Linux    | x86_64, aarch64 (manylinux) | 3.8-3.12 |
-| macOS    | x86_64, ARM64 (Apple Silicon) | 3.8-3.12 |
-| Windows  | x86_64 | 3.8-3.12 |
+| Platform | Architectures | Notes |
+|----------|---------------|-------|
+| Linux    | x86_64, aarch64 | manylinux & musllinux |
+| macOS    | x86_64, aarch64 | macOS 13+ (Intel), macOS 14+ (Apple Silicon) |
+| Windows  | x64, x86 | Windows 10+ |
+
+Python versions 3.8-3.12 are automatically detected and built for each platform.
 
 If your platform is not listed, you can build from source (see above).

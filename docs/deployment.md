@@ -93,50 +93,51 @@ python -c "import effdim; print(effdim.__version__)"
 
 ## Build Matrix
 
-The workflow builds wheels for:
+The CI workflow builds wheels for:
 
-### Platforms
+### Platforms and Architectures
 
-- **Linux**: manylinux2014 (x86_64, aarch64)
-- **macOS**: 11.0+ (x86_64, ARM64)
-- **Windows**: 10+ (x86_64)
+#### Linux
+- **manylinux**: x86_64, aarch64
+- **musllinux**: x86_64, aarch64
+
+#### Windows
+- x64 (64-bit)
+- x86 (32-bit)
+
+#### macOS
+- x86_64 (Intel) - macOS 13+
+- aarch64 (Apple Silicon) - macOS 14+
 
 ### Python Versions
 
-- Python 3.8
-- Python 3.9
-- Python 3.10
-- Python 3.11
-- Python 3.12
+The workflow uses `--find-interpreter` to automatically build for all available Python versions (3.8-3.12) on each platform.
 
 ### Total Artifacts
 
-Approximately **15-20 wheels** + 1 source distribution per release.
+Approximately **40+ wheels** + 1 source distribution per release, covering all combinations of platforms, architectures, and Python versions.
 
 ## Workflow Files
 
-### `.github/workflows/publish.yml`
+### `.github/workflows/CI.yml`
 
-Handles building and publishing:
+The main CI/CD workflow based on maturin's recommended structure:
 
-- Triggered by: Version tags (`v*`)
-- Builds: Wheels for all platforms
-- Publishes: To PyPI automatically
+- Triggered by: Pushes to main/master, PRs, tags, or manual dispatch
+- Separate jobs for: linux, musllinux, windows, macos, sdist, release
+- Publishes: To PyPI on version tags (automatically)
 
 Key features:
 
 - Uses [PyO3/maturin-action](https://github.com/PyO3/maturin-action)
-- Enables sccache for faster builds
-- Builds manylinux wheels for maximum compatibility
-- Supports manual dispatch for testing
+- Enables sccache for faster builds (disabled on release tags)
+- Builds manylinux and musllinux for maximum compatibility
+- Unique artifact naming prevents conflicts
+- Includes build attestations for security
 
-### `.github/workflows/ci.yml`
+### `.github/workflows/publish_docs.yml`
 
-Tests builds on PRs:
-
-- Triggered by: Pushes and PRs to main/develop
-- Tests: Building on all platforms
-- Validates: Import and basic functionality
+Publishes documentation to GitHub Pages (unchanged).
 
 ## Testing Before Release
 
