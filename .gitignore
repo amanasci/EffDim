@@ -3,3 +3,9 @@
 .venv
 __pycache__
 tutorials/
+
+# Rust
+target/
+Cargo.lock
+*.so
+*.pyd

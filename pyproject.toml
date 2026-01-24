@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "effdim"
@@ -22,8 +22,10 @@ dependencies = ["numpy", "scipy"]
 dev = ["pytest", "pytest-cov", "black", "mypy"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/effdim"]
+[tool.maturin]
+python-source = "src"
+module-name = "effdim._rust"
+features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

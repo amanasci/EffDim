@@ -40,5 +40,9 @@ print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 
 ## Limitations
 
-*   **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$. `effdim` uses `scipy.spatial.cKDTree` for efficiency.
+*   **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$. 
+    
+    !!! tip "Performance"
+        `effdim` uses a **Rust-accelerated implementation** with parallel nearest neighbor search for 10-50x speedup on large datasets. See [Performance](../performance.md) for benchmarks.
+
 *   **Curse of Dimensionality**: In extremely high dimensions, distance concentration can make geometric estimation unstable.

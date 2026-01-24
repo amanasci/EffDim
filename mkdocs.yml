@@ -73,6 +73,10 @@ nav:
     - Comparing Estimators: tutorials/comparing_estimators.md
     - Geometric Analysis: tutorials/geometric_analysis.md
     - Advanced Geometric Analysis: tutorials/advanced_geometric_analysis.md
+  - Performance:
+    - Rust Implementation: performance.md
   - Reference:
     - Theory: theory.md
     - API Reference: api.md
+  - Development:
+    - Deployment Guide: deployment.md
