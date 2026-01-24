@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
-dependencies = ["numpy", "scipy"]
+dependencies = ["numpy", "scipy", "scikit-learn"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy"]

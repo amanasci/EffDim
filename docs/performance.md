@@ -161,5 +161,3 @@ Interested in improving performance? Contributions welcome!
 - Optimize existing code
 - Add GPU acceleration
 - Improve documentation
-
-See the [contribution guidelines](https://github.com/amanasci/EffDim/blob/main/CONTRIBUTING.md) to get started.

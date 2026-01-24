@@ -1,7 +1,7 @@
 site_name: EffDim
 site_description: A unified library for estimating effective dimensionality.
-site_url: https://username.github.io/effdim/
-repo_url: https://github.com/username/effdim
+site_url: https://amanasci.github.io/EffDim/
+repo_url: https://github.com/amanasci/EffDim
 repo_name: effdim
 
 theme:

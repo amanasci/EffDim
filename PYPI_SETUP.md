@@ -43,10 +43,12 @@ This document explains how to set up automated publishing to PyPI for repository
 1. Update version in `pyproject.toml` (e.g., `0.1.1-beta1`)
 2. Commit and push
 3. Create a tag:
+
    ```bash
    git tag v0.1.1-beta1
    git push origin v0.1.1-beta1
    ```
+
 4. Check Actions tab to see the workflow run
 5. Verify wheels are built and uploaded to PyPI (test.pypi.org recommended for testing)
 
@@ -56,16 +58,20 @@ This document explains how to set up automated publishing to PyPI for repository
 
 1. Update `version` in `pyproject.toml`
 2. Commit the change:
+
    ```bash
    git add pyproject.toml
    git commit -m "Bump version to X.Y.Z"
    git push origin main
    ```
+
 3. Create and push a version tag:
+
    ```bash
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
+
 4. The workflow will automatically:
    - Build wheels for all platforms (Linux, macOS, Windows)
    - Build source distribution
@@ -73,7 +79,7 @@ This document explains how to set up automated publishing to PyPI for repository
 
 ### What Gets Built
 
-- **Platforms**: 
+- **Platforms**:
   - Linux: x86_64, aarch64 (manylinux & musllinux)
   - Windows: x64, x86
   - macOS: x86_64 (Intel, macOS 13), aarch64 (Apple Silicon, macOS 14)

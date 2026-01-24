@@ -23,11 +23,13 @@ If prebuilt wheels are not available for your platform, you can build from sourc
 ### Prerequisites
 
 1. **Rust toolchain** (1.70+):
+
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
 2. **Maturin**:
+
    ```bash
    pip install maturin
    ```
@@ -64,11 +66,13 @@ The Rust implementation provides:
 ### Performance Characteristics
 
 The Rust implementation uses parallel brute-force nearest neighbor search, which:
+
 - Scales well with CPU cores
 - Works efficiently for high-dimensional data (where k-d trees perform poorly)
 - Provides 10-50x speedup over Python for medium datasets (1k-10k samples)
 
 **Benchmark results (on GitHub Actions runners):**
+
 - 1,000 samples × 100 dims: ~0.05s (MLE & Two-NN)
 - 5,000 samples × 200 dims: ~2.5s (MLE & Two-NN)
 - 10,000 samples × 700 dims: ~36s (MLE & Two-NN)
@@ -84,6 +88,7 @@ For very large datasets (100k+ samples), times scale roughly linearly with sampl
 ## Dependencies
 
 The Rust implementation uses:
+
 - **pyo3** (0.23) - Python bindings
 - **numpy** (0.23) - NumPy array interop
 - **ndarray** (0.16) - N-dimensional arrays
@@ -97,7 +102,7 @@ All dependencies are automatically fetched by Cargo during build.
 
 The project uses GitHub Actions with a maturin-generated CI workflow to automatically build prebuilt wheels for multiple platforms:
 
-- **Platforms**: 
+- **Platforms**:
   - Linux: x86_64, aarch64 (manylinux & musllinux)
   - Windows: x64, x86
   - macOS: x86_64 (Intel), aarch64 (Apple Silicon)
@@ -109,12 +114,14 @@ The project uses GitHub Actions with a maturin-generated CI workflow to automati
 To publish a new version to PyPI:
 
 1. Update the version in `pyproject.toml`:
+
    ```toml
    [project]
    version = "0.1.1"  # Update this
    ```
 
 2. Commit the change:
+
    ```bash
    git add pyproject.toml
    git commit -m "Bump version to 0.1.1"
@@ -122,6 +129,7 @@ To publish a new version to PyPI:
    ```
 
 3. Create and push a version tag:
+
    ```bash
    git tag v0.1.1
    git push origin v0.1.1
@@ -141,11 +149,11 @@ You can also trigger builds manually from the GitHub Actions tab using the `work
 
 The prebuilt wheels support:
 
-| Platform | Architectures | Notes |
-|----------|---------------|-------|
-| Linux    | x86_64, aarch64 | manylinux & musllinux |
-| macOS    | x86_64, aarch64 | macOS 13+ (Intel), macOS 14+ (Apple Silicon) |
-| Windows  | x64, x86 | Windows 10+ |
+| Platform | Architectures   | Notes                                          |
+| -------- | --------------- | ---------------------------------------------- |
+| Linux    | x86_64, aarch64 | manylinux & musllinux                          |
+| macOS    | x86_64, aarch64 | macOS 13+ (Intel), macOS 14+ (Apple Silicon)   |
+| Windows  | x64, x86        | Windows 10+                                    |
 
 Python versions 3.8-3.12 are automatically detected and built for each platform.
 
