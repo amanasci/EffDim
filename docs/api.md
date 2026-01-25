@@ -22,9 +22,3 @@
 ::: effdim.geometry
     options:
       heading_level: 3
-
-## Adapters
-
-::: effdim.adapters
-    options:
-      heading_level: 3

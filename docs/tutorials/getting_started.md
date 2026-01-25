@@ -66,6 +66,7 @@ print(f"PR of Structured Data: {pr:.2f}")
 You can check the available methods in the [Theory](../theory.md) section.
 
 **Spectral Methods:**
+
 *   `'pca'`: PCA Explained Variance
 *   `'participation_ratio'` (or `'pr'`)
 *   `'shannon'` (or `'entropy'`)
@@ -75,6 +76,7 @@ You can check the available methods in the [Theory](../theory.md) section.
 *   `'numerical_rank'`: Count of singular values > epsilon.
 
 **Geometric Methods:**
+
 *   `'knn'`: k-Nearest Neighbors
 *   `'twonn'`: Two-Nearest Neighbors
 *   `'danco'`: Angle and Norm Concentration
