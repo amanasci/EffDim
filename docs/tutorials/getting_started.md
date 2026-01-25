@@ -83,7 +83,7 @@ You can check the available methods in the [Theory](../theory.md) section.
 *   `'mind_mlk'`: MiND (Maximum Likelihood)
 *   `'ess'`: Expected Simplex Skewness
 
-## analyzing Multiple Metrics
+## Analyzing Multiple Metrics
 
 Use `effdim.analyze` to get a report.
 
