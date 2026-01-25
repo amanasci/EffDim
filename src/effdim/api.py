@@ -98,7 +98,7 @@ def _do_svd(data: np.ndarray) -> np.ndarray:
     """
     n_samples, n_features = data.shape
     if min(n_samples, n_features) < 1000:
-        _, s, _ = np.linalg.svd(data, full_matrices=False)
+        s = np.linalg.svd(data, full_matrices=False, compute_uv=False)
     else:
         _, s, _ = randomized_svd(data, n_components=min(n_samples, n_features) - 1)
 
