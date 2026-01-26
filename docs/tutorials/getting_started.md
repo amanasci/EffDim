@@ -17,8 +17,8 @@ pip install effdim
 
 EffDim revolves around two main functions:
 
-*   `effdim.compute(data, method=...)`: Calculates a single dimension metric.
-*   `effdim.analyze(data, methods=[...])`: Calculates multiple metrics at once.
+* `effdim.compute(data, method=...)`: Calculates a single dimension metric.
+* `effdim.analyze(data, methods=[...])`: Calculates multiple metrics at once.
 
 Data is typically passed as a **N x D** numpy array, where $N$ is the number of samples and $D$ is the number of features.
 
@@ -67,23 +67,23 @@ You can check the available methods in the [Theory](../theory.md) section.
 
 **Spectral Methods:**
 
-*   `'pca'`: PCA Explained Variance
-*   `'participation_ratio'` (or `'pr'`)
-*   `'shannon'` (or `'entropy'`)
-*   `'effective_rank'` (or `'erank'`): Alias for Shannon Effective Dimension (Trace Norm).
-*   `'renyi'`
-*   `'stable_rank'`: Ratio of sum/max eigenvalues.
-*   `'numerical_rank'`: Count of singular values > epsilon.
+* `'pca'`: PCA Explained Variance
+* `'participation_ratio'` (or `'pr'`)
+* `'shannon'` (or `'entropy'`)
+* `'effective_rank'` (or `'erank'`): Alias for Shannon Effective Dimension (Trace Norm).
+* `'renyi'`
+* `'stable_rank'`: Ratio of sum/max eigenvalues.
+* `'numerical_rank'`: Count of singular values > epsilon.
 
 **Geometric Methods:**
 
-*   `'knn'`: k-Nearest Neighbors
-*   `'twonn'`: Two-Nearest Neighbors
-*   `'danco'`: Angle and Norm Concentration
-*   `'mind_mlk'`: MiND (Maximum Likelihood)
-*   `'ess'`: Expected Simplex Skewness
+* `'knn'`: k-Nearest Neighbors
+* `'twonn'`: Two-Nearest Neighbors
+* `'danco'`: Angle and Norm Concentration
+* `'mind_mlk'`: MiND (Maximum Likelihood)
+* `'ess'`: Expected Simplex Skewness
 
-## analyzing Multiple Metrics
+## Analyzing Multiple Metrics
 
 Use `effdim.analyze` to get a report.
 
