@@ -4,8 +4,8 @@ Different fields use different definitions of "effective dimension". This tutori
 
 ## PCA vs Participation Ratio
 
-*   **PCA** relies on a hard threshold (e.g., 95% variance). It answers "how many axes do I need to keep?".
-*   **Participation Ratio (PR)** is a "soft" count. It answers "how spread out is the variance?".
+* **PCA** relies on a hard threshold (e.g., 95% variance). It answers "how many axes do I need to keep?".
+* **Participation Ratio (PR)** is a "soft" count. It answers "how spread out is the variance?".
 
 Consider a spectrum where eigenvalues decay slowly: $\lambda_i = 1/i$.
 
@@ -40,7 +40,7 @@ In heavy-tailed distributions, PCA might suggest a very high dimension (to captu
 
 Shannon Entropy weights probabilities logarithmically. Rényi entropy (with $\alpha=2$, which relates to PR) weights higher probabilities more heavily.
 
-*   **Shannon** is sensitive to the entire distribution.
-*   **PR (Rényi-2)** is more dominated by the largest eigenvalues.
+* **Shannon** is sensitive to the entire distribution.
+* **PR (Rényi-2)** is more dominated by the largest eigenvalues.
 
 If you have a dataset with many small noise directions, Shannon dimension might be higher than PR.

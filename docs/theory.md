@@ -34,8 +34,8 @@ A generalization of the Shannon dimension using Rényi entropy of order $\alpha$
 $$ H_\alpha = \frac{1}{1-\alpha} \ln (\sum_i p_i^\alpha) $$
 $$ ED_{\alpha} = \exp(H_\alpha) $$
 
-*   For $\alpha \to 1$, this converges to Shannon Effective Dimension.
-*   For $\alpha = 2$, this is equivalent to the Participation Ratio.
+* For $\alpha \to 1$, this converges to Shannon Effective Dimension.
+* For $\alpha = 2$, this is equivalent to the Participation Ratio.
 
 ### Effective Rank
 
@@ -96,8 +96,9 @@ It assumes that the ratio of distances $\mu_i = \frac{r_2(x_i)}{r_1(x_i)}$ follo
 ### MiND (Maximum Likelihood on Minimum Distances)
 
 A family of estimators based on the statistics of nearest neighbor distances.
-*   **MiND-MLi**: Uses the distribution of the distance to the nearest neighbor ($r_1$).
-*   **MiND-MLk**: Uses the joint distribution of distances to the first $k$ neighbors.
+
+* **MiND-MLi**: Uses the distribution of the distance to the nearest neighbor ($r_1$).
+* **MiND-MLk**: Uses the joint distribution of distances to the first $k$ neighbors.
 
 ### ESS (Expected Simplex Skewness)
 
