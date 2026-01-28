@@ -1,27 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://username.github.io/effdim/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
     <url>
-         <loc>https://username.github.io/effdim/api/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/api/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
     <url>
-         <loc>https://username.github.io/effdim/theory/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/deployment/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
     <url>
-         <loc>https://username.github.io/effdim/tutorials/comparing_estimators/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/performance/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
     <url>
-         <loc>https://username.github.io/effdim/tutorials/geometric_analysis/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/theory/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
     <url>
-         <loc>https://username.github.io/effdim/tutorials/getting_started/</loc>
-         <lastmod>2026-01-16</lastmod>
+         <loc>https://amanasci.github.io/EffDim/tutorials/advanced_geometric_analysis/</loc>
+         <lastmod>2026-01-28</lastmod>
+    </url>
+    <url>
+         <loc>https://amanasci.github.io/EffDim/tutorials/comparing_estimators/</loc>
+         <lastmod>2026-01-28</lastmod>
+    </url>
+    <url>
+         <loc>https://amanasci.github.io/EffDim/tutorials/geometric_analysis/</loc>
+         <lastmod>2026-01-28</lastmod>
+    </url>
+    <url>
+         <loc>https://amanasci.github.io/EffDim/tutorials/getting_started/</loc>
+         <lastmod>2026-01-28</lastmod>
     </url>
 </urlset>
