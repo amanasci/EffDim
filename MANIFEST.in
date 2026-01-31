@@ -1,14 +1,7 @@
-# Include Rust source files
-include Cargo.toml
-include Cargo.lock
-recursive-include src_rust *.rs
-
 # Include documentation
 include README.md
-include RUST_BUILD.md
 include LICENSE
 
 # Exclude build artifacts
 global-exclude *.pyc
 global-exclude __pycache__
-prune target

@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.utils.extmath import randomized_svd
 
 from .geometry import (
-    box_counting_dimensionality,
     mle_dimensionality,
     two_nn_dimensionality,
 )
@@ -72,11 +71,6 @@ def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
 
     results["mle_dimensionality"] = mle_dimensionality(data)
     results["two_nn_dimensionality"] = two_nn_dimensionality(data)
-    # For box counting, you might want to define a range of box sizes
-    box_sizes = np.logspace(-2, 0, num=10)
-    results["box_counting_dimensionality"] = box_counting_dimensionality(
-        data, box_sizes
-    )
 
     return results
 
