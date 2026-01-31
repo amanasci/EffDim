@@ -72,7 +72,6 @@ nav:
     - Getting Started: tutorials/getting_started.md
     - Comparing Estimators: tutorials/comparing_estimators.md
     - Geometric Analysis: tutorials/geometric_analysis.md
-    - Advanced Geometric Analysis: tutorials/advanced_geometric_analysis.md
   - Performance:
     - Rust Implementation: performance.md
   - Reference:

@@ -10,7 +10,7 @@ It aims to standardize the fragmented landscape of ED metrics found in statistic
 ## Key Features
 
 *   **Modality Agnostic**: Works with raw data, covariance matrices, and pre-computed spectra.
-*   **Unified Interface**: Simple `compute` and `analyze` functions.
+*   **Unified Interface**: Simple `compute_dim` function.
 *   **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
 *   **Research Ready**: Accurate implementations of metrics from literature.
 *   **High Performance**: Rust-accelerated geometry calculations for large-scale datasets.
@@ -39,13 +39,12 @@ import effdim
 # Generate random high-dimensional data
 data = np.random.randn(100, 50)
 
-# Compute Effective Dimension using PCA (95% variance)
-ed = effdim.compute(data, method='pca', threshold=0.95)
-print(f"Effective Dimension (PCA): {ed}")
+# Compute Effective Dimensionality metrics
+results = effdim.compute_dim(data)
 
-# Compute using Participation Ratio
-pr = effdim.compute(data, method='participation_ratio')
-print(f"Participation Ratio: {pr}")
+# Access specific metrics
+print(f"Effective Dimension (PCA): {results['pca_explained_variance_95']}")
+print(f"Participation Ratio: {results['participation_ratio']}")
 ```
 
 Explore the [User Guide](tutorials/getting_started.md) for more examples.

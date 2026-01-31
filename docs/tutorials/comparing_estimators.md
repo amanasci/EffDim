@@ -27,8 +27,9 @@ U, _ = np.linalg.qr(np.random.randn(N, D))
 
 X = U @ np.diag(s)
 
-pca_95 = effdim.compute(X, method='pca', threshold=0.95)
-pr = effdim.compute(X, method='pr')
+results = effdim.compute_dim(X)
+pca_95 = results['pca_explained_variance_95']
+pr = results['participation_ratio']
 
 print(f"PCA (95%): {pca_95}")
 print(f"Participation Ratio: {pr:.2f}")
