@@ -3,6 +3,7 @@
 .venv
 __pycache__
 tutorials/
+site/
 
 # Rust
 target/

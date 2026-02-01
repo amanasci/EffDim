@@ -8,7 +8,6 @@ The Rust implementation uses:
 
 - **Parallel brute-force nearest neighbor search** with [rayon](https://github.com/rayon-rs/rayon)
 - **Optimized for high-dimensional data** (100-1000+ dimensions)
-- **Automatic fallback** to Python implementation if unavailable
 - **Multi-core parallelization** for maximum performance
 
 ## Performance Benchmarks
@@ -68,19 +67,6 @@ pip install target/wheels/effdim-*.whl
 
 See the [repository README](https://github.com/amanasci/EffDim/blob/main/RUST_BUILD.md) for detailed build instructions.
 
-## Checking Rust Availability
-
-You can check if the Rust implementation is available:
-
-```python
-from effdim import geometry
-
-if geometry._RUST_AVAILABLE:
-    print("Using fast Rust implementation!")
-else:
-    print("Using Python fallback")
-```
-
 ## CPU Core Utilization
 
 The Rust implementation automatically uses all available CPU cores. Performance scales with:
@@ -139,9 +125,8 @@ If you see `ModuleNotFoundError: No module named 'effdim._rust'`:
 
 If performance is slower than expected:
 
-1. Verify Rust implementation is being used: `geometry._RUST_AVAILABLE`
-2. Check CPU usage - should use all cores
-3. Ensure release build (not debug)
+1. Check CPU usage - should use all cores
+2. Ensure release build (not debug)
 4. Monitor memory usage - swapping will slow everything down
 
 ### Build Failures

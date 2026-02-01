@@ -1,7 +1,7 @@
 # EffDim
 
-**EffDim** is a unified, research-oriented Python library designed to compute "effective dimensionality" (ED) across diverse data modalities.
-
+**EffDim** is a unified, research-oriented Python library designed to compute
+"effective dimensionality" (ED) across diverse data modalities.
 
 ## Installation
 

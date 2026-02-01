@@ -4,8 +4,8 @@ Different fields use different definitions of "effective dimension". This tutori
 
 ## PCA vs Participation Ratio
 
-*   **PCA** relies on a hard threshold (e.g., 95% variance). It answers "how many axes do I need to keep?".
-*   **Participation Ratio (PR)** is a "soft" count. It answers "how spread out is the variance?".
+* **PCA** relies on a hard threshold (e.g., 95% variance). It answers "how many axes do I need to keep?".
+* **Participation Ratio (PR)** is a "soft" count. It answers "how spread out is the variance?".
 
 Consider a spectrum where eigenvalues decay slowly: $\lambda_i = 1/i$.
 
@@ -27,11 +27,10 @@ U, _ = np.linalg.qr(np.random.randn(N, D))
 
 X = U @ np.diag(s)
 
-pca_95 = effdim.compute(X, method='pca', threshold=0.95)
-pr = effdim.compute(X, method='pr')
+results = effdim.compute_dim(X)
 
-print(f"PCA (95%): {pca_95}")
-print(f"Participation Ratio: {pr:.2f}")
+print(f"PCA (95%): {results['pca_explained_variance_95']}")
+print(f"Participation Ratio: {results['participation_ratio']:.2f}")
 ```
 
 In heavy-tailed distributions, PCA might suggest a very high dimension (to capture the tail), whereas PR might suggest a lower dimension because the mass is concentrated at the start.
@@ -40,7 +39,7 @@ In heavy-tailed distributions, PCA might suggest a very high dimension (to captu
 
 Shannon Entropy weights probabilities logarithmically. Rényi entropy (with $\alpha=2$, which relates to PR) weights higher probabilities more heavily.
 
-*   **Shannon** is sensitive to the entire distribution.
-*   **PR (Rényi-2)** is more dominated by the largest eigenvalues.
+* **Shannon** is sensitive to the entire distribution.
+* **PR (Rényi-2)** is more dominated by the largest eigenvalues.
 
 If you have a dataset with many small noise directions, Shannon dimension might be higher than PR.

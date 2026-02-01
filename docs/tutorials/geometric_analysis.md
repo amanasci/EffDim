@@ -1,6 +1,8 @@
 # Geometric Analysis
 
-Geometric estimators calculate the "Intrinsic Dimension" (ID) based on distances between points, rather than variance of global projections. This is crucial for manifolds that are non-linear (e.g., a Swiss Roll).
+Geometric estimators calculate the "Intrinsic Dimension" (ID) based on distances
+between points, rather than variance of global projections. This is crucial for
+manifolds that are non-linear (e.g., a Swiss Roll).
 
 ## The Swiss Roll Problem
 
@@ -17,18 +19,20 @@ from sklearn.datasets import make_swiss_roll
 # Generate Swiss Roll
 X, _ = make_swiss_roll(n_samples=2000, noise=0.01)
 
+results = effdim.compute_dim(X)
+
 # PCA
-pca_dim = effdim.compute(X, method='pca', threshold=0.95)
+pca_dim = results['pca_explained_variance_95']
 print(f"Global PCA Dimension: {pca_dim}")
 # Likely 3, because the roll occupies 3D volume globally.
 
-# kNN Intrinsic Dimension
-knn_dim = effdim.compute(X, method='knn', k=5)
+# kNN Intrinsic Dimension (MLE)
+knn_dim = results['mle_dimensionality']
 print(f"kNN Intrinsic Dimension: {knn_dim:.2f}")
 # Should be close to 2.0
 
 # Two-NN
-twonn_dim = effdim.compute(X, method='twonn')
+twonn_dim = results['two_nn_dimensionality']
 print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 # Should be close to 2.0
 ```
@@ -44,6 +48,9 @@ print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 * **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$.
 
     !!! tip "Performance"
-        `effdim` uses a **Rust-accelerated implementation** with parallel nearest neighbor search for 10-50x speedup on large datasets. See [Performance](../performance.md) for benchmarks.
+        `effdim` uses a **Rust-accelerated implementation** with parallel
+        nearest neighbor search for 10-50x speedup on large datasets. See
+        [Performance](../performance.md) for benchmarks.
 
-* **Curse of Dimensionality**: In extremely high dimensions, distance concentration can make geometric estimation unstable.
+* **Curse of Dimensionality**: In extremely high dimensions, distance
+  concentration can make geometric estimation unstable.
