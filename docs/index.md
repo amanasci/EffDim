@@ -9,11 +9,11 @@ It aims to standardize the fragmented landscape of ED metrics found in statistic
 
 ## Key Features
 
-*   **Modality Agnostic**: Works with raw data, covariance matrices, and pre-computed spectra.
-*   **Unified Interface**: Simple `compute` and `analyze` functions.
-*   **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
-*   **Research Ready**: Accurate implementations of metrics from literature.
-*   **High Performance**: Rust-accelerated geometry calculations for large-scale datasets.
+- **Modality Agnostic**: Works with raw data, covariance matrices, and pre-computed spectra.
+- **Unified Interface**: Simple `compute` and `analyze` functions.
+- **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
+- **Research Ready**: Accurate implementations of metrics from literature.
+- **High Performance**: Rust-accelerated geometry calculations for large-scale datasets.
 
 ## Installation
 

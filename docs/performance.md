@@ -16,10 +16,10 @@ The Rust implementation uses:
 Benchmark results on GitHub Actions runners (4 CPU cores):
 
 | Samples | Dimensions | MLE Time (Rust) | Two-NN Time (Rust) | Speedup vs Python |
-|---------|------------|-----------------|---------------------|-------------------|
-| 1,000   | 100        | 0.05s          | 0.05s               | ~10x             |
-| 5,000   | 200        | 2.5s           | 2.5s                | ~30x             |
-| 10,000  | 700        | 36s            | 36s                 | ~50x             |
+|---------|------------|-----------------|--------------------|-------------------|
+| 1,000   | 100        | 0.05s           | 0.05s              | ~10x              |
+| 5,000   | 200        | 2.5s            | 2.5s               | ~30x              |
+| 10,000  | 700        | 36s             | 36s                | ~50x              |
 
 !!! info "Scaling"
     Performance scales roughly linearly with sample count and quadratically with the number of nearest neighbors (k).

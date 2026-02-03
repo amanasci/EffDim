@@ -98,14 +98,17 @@ The CI workflow builds wheels for:
 ### Platforms and Architectures
 
 #### Linux
+
 - **manylinux**: x86_64, aarch64
 - **musllinux**: x86_64, aarch64
 
 #### Windows
+
 - x64 (64-bit)
 - x86 (32-bit)
 
 #### macOS
+
 - x86_64 (Intel) - macOS 13+
 - aarch64 (Apple Silicon) - macOS 14+
 
