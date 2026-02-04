@@ -8,4 +8,4 @@ tutorials/
 target/
 Cargo.lock
 *.so
-*.pyd
+*.pydsite/

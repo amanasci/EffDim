@@ -72,7 +72,7 @@ git push origin v0.1.1
 
 ### 5. Monitor Build
 
-1. Go to **Actions** tab in GitHub
+1. Go to [**Actions**](https://github.com/amanasci/EffDim/actions) tab in GitHub
 2. Watch the "Build and Publish to PyPI" workflow
 3. Verify all jobs complete successfully:
    - ✅ Build wheels (Linux, macOS, Windows)
