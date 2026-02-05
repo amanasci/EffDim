@@ -1,3 +1,4 @@
+---
 # This file is based on maturin v1.8.2 generated CI
 name: CI
 
@@ -138,7 +139,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    if: >-
+      ${{ startsWith(github.ref, 'refs/tags/') ||
+      github.event_name == 'workflow_dispatch' }}
     needs: [linux, musllinux, windows, macos, sdist]
     permissions:
       # Use to sign the release artifacts
@@ -160,4 +163,7 @@ jobs:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
           command: upload
-          args: --non-interactive --skip-existing wheels-*/*
+          args: >
+            --non-interactive
+            --skip-existing
+            wheels-*/*

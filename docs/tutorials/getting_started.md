@@ -15,10 +15,9 @@ pip install effdim
 
 ## Basic Concepts
 
-EffDim revolves around two main functions:
+EffDim revolves around the main function:
 
-*   `effdim.compute(data, method=...)`: Calculates a single dimension metric.
-*   `effdim.analyze(data, methods=[...])`: Calculates multiple metrics at once.
+* `effdim.compute_dim(data)`: Calculates a set of effective dimensionality metrics for the input data.
 
 Data is typically passed as a **N x D** numpy array, where $N$ is the number of samples and $D$ is the number of features.
 
@@ -37,9 +36,9 @@ import effdim
 # 1000 samples, 100 dimensions
 noise = np.random.randn(1000, 100)
 
-# Participation Ratio
-pr = effdim.compute(noise, method='participation_ratio')
-print(f"PR of Noise: {pr:.2f}")
+# Compute dimensions
+results = effdim.compute_dim(noise)
+print(f"PR of Noise: {results['participation_ratio']:.2f}")
 # Expected: close to 100 (or slightly less due to finite sampling)
 ```
 
@@ -56,39 +55,36 @@ structured_data = latent @ projection
 # Add a tiny bit of noise
 structured_data += 0.01 * np.random.randn(1000, 100)
 
-pr = effdim.compute(structured_data, method='participation_ratio')
-print(f"PR of Structured Data: {pr:.2f}")
+results = effdim.compute_dim(structured_data)
+print(f"PR of Structured Data: {results['participation_ratio']:.2f}")
 # Expected: close to 5
 ```
 
 ## Available Methods
 
-You can check the available methods in the [Theory](../theory.md) section.
+`compute_dim` returns a dictionary with the following keys:
 
 **Spectral Methods:**
 
-*   `'pca'`: PCA Explained Variance
-*   `'participation_ratio'` (or `'pr'`)
-*   `'shannon'` (or `'entropy'`)
-*   `'effective_rank'` (or `'erank'`): Alias for Shannon Effective Dimension (Trace Norm).
-*   `'renyi'`
-*   `'stable_rank'`: Ratio of sum/max eigenvalues.
-*   `'numerical_rank'`: Count of singular values > epsilon.
+* `'pca_explained_variance_95'`: PCA Explained Variance (95% threshold)
+* `'participation_ratio'`: Participation Ratio
+* `'shannon_entropy'`: Shannon Entropy
+* `'renyi_eff_dimensionality_alpha_X'`: Rényi Effective Dimension (alpha=2,3,4,5)
+* `'geometric_mean_eff_dimensionality'`: Geometric Mean Dimension
 
 **Geometric Methods:**
 
-*   `'knn'`: k-Nearest Neighbors
-*   `'twonn'`: Two-Nearest Neighbors
-*   `'danco'`: Angle and Norm Concentration
-*   `'mind_mlk'`: MiND (Maximum Likelihood)
-*   `'ess'`: Expected Simplex Skewness
+* `'mle_dimensionality'`: Maximum Likelihood Estimator (Levina-Bickel)
+* `'two_nn_dimensionality'`: Two-Nearest Neighbors
+* `'box_counting_dimensionality'`: Box-Counting Dimension
 
-## analyzing Multiple Metrics
+You can check the details of these methods in the [Theory](../theory.md) section.
 
-Use `effdim.analyze` to get a report.
+## Analyzing Multiple Metrics
+
+Since `effdim.compute_dim` returns all metrics, you can easily compare them:
 
 ```python
-report = effdim.analyze(structured_data, methods=['pr', 'pca', 'shannon', 'danco'])
-print(report)
-# {'participation_ratio': ..., 'pca': ..., 'shannon': ..., 'danco': ...}
+print(results)
+# {'pca_explained_variance_95': ..., 'participation_ratio': ..., ...}
 ```
