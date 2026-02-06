@@ -39,13 +39,12 @@ import effdim
 # Generate random high-dimensional data
 data = np.random.randn(100, 50)
 
-# Compute Effective Dimension using PCA (95% variance)
-ed = effdim.compute(data, method='pca', threshold=0.95)
-print(f"Effective Dimension (PCA): {ed}")
+# Compute Effective Dimension
+results = effdim.compute_dim(data)
 
-# Compute using Participation Ratio
-pr = effdim.compute(data, method='participation_ratio')
-print(f"Participation Ratio: {pr}")
+# Access results
+print(f"Effective Dimension (PCA 95%): {results['pca_explained_variance_95']}")
+print(f"Participation Ratio: {results['participation_ratio']}")
 ```
 
 Explore the [User Guide](tutorials/getting_started.md) for more examples.

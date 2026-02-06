@@ -10,13 +10,13 @@
 
 
 
-        <link rel="canonical" href="https://amanasci.github.io/EffDim/tutorials/comparing_estimators/">
+        <link rel="canonical" href="https://amanasci.github.io/EffDim/tutorials/advanced_geometric_analysis/">
 
 
-        <link rel="prev" href="../getting_started/">
+        <link rel="prev" href="../geometric_analysis/">
 
 
-        <link rel="next" href="../geometric_analysis/">
+        <link rel="next" href="../../performance/">
 
 
 
@@ -27,7 +27,7 @@
 
 
 
-        <title>Comparing Estimators - EffDim</title>
+        <title>Advanced Geometric Analysis - EffDim</title>
 
 
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
 
 
-        <a href="#comparing-estimators" class="md-skip">
+        <a href="#advanced-geometric-analysis" class="md-skip">
           Skip to content
         </a>
 
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
 
-              Comparing Estimators
+              Advanced Geometric Analysis
 
           </span>
         </div>
@@ -483,35 +483,8 @@
 
 
 
-
-
-    <li class="md-nav__item md-nav__item--active">
-
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-
-
-
-
-
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-
-
-
-  <span class="md-ellipsis">
-
-
-    Comparing Estimators
-
-
-
-  </span>
-
-
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../comparing_estimators/" class="md-nav__link">
 
 
 
@@ -527,48 +500,6 @@
 
 
       </a>
-
-
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-
-
-
-
-
-
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-
-        <li class="md-nav__item">
-  <a href="#pca-vs-participation-ratio" class="md-nav__link">
-    <span class="md-ellipsis">
-
-        PCA vs Participation Ratio
-
-    </span>
-  </a>
-
-</li>
-
-        <li class="md-nav__item">
-  <a href="#shannon-vs-renyi" class="md-nav__link">
-    <span class="md-ellipsis">
-
-        Shannon vs Rényi
-
-    </span>
-  </a>
-
-</li>
-
-    </ul>
-
-</nav>
-
     </li>
 
 
@@ -608,8 +539,35 @@
 
 
 
-    <li class="md-nav__item">
-      <a href="../advanced_geometric_analysis/" class="md-nav__link">
+
+
+    <li class="md-nav__item md-nav__item--active">
+
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+
+
+
+
+
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Advanced Geometric Analysis
+
+
+
+  </span>
+
+
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+
+      <a href="./" class="md-nav__link md-nav__link--active">
 
 
 
@@ -625,6 +583,131 @@
 
 
       </a>
+
+
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+
+        <li class="md-nav__item">
+  <a href="#methods-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Methods Overview
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Setup
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#running-estimators" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Running Estimators
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="Running Estimators">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#danco" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        DANCo
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#mind-mli-and-mlk" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        MiND (MLi and MLk)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#ess-expected-simplex-skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        ESS (Expected Simplex Skewness)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#gmst-geodesic-mst" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        GMST (Geodesic MST)
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#comparative-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Comparative Analysis
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Limitations
+
+    </span>
+  </a>
+
+</li>
+
+    </ul>
+
+</nav>
+
     </li>
 
 
@@ -959,10 +1042,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
 
         <li class="md-nav__item">
-  <a href="#pca-vs-participation-ratio" class="md-nav__link">
+  <a href="#methods-overview" class="md-nav__link">
     <span class="md-ellipsis">
 
-        PCA vs Participation Ratio
+        Methods Overview
 
     </span>
   </a>
@@ -970,10 +1053,93 @@
 </li>
 
         <li class="md-nav__item">
-  <a href="#shannon-vs-renyi" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
 
-        Shannon vs Rényi
+        Setup
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#running-estimators" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Running Estimators
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="Running Estimators">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#danco" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        DANCo
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#mind-mli-and-mlk" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        MiND (MLi and MLk)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#ess-expected-simplex-skewness" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        ESS (Expected Simplex Skewness)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#gmst-geodesic-mst" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        GMST (Geodesic MST)
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#comparative-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Comparative Analysis
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Limitations
 
     </span>
   </a>
@@ -1000,44 +1166,121 @@
 
 
 
-<h1 id="comparing-estimators">Comparing Estimators</h1>
-<p>Different fields use different definitions of "effective dimension". This tutorial highlights the differences.</p>
-<h2 id="pca-vs-participation-ratio">PCA vs Participation Ratio</h2>
-<ul>
-<li><strong>PCA</strong> relies on a hard threshold (e.g., 95% variance). It answers "how many axes do I need to keep?".</li>
-<li><strong>Participation Ratio (PR)</strong> is a "soft" count. It answers "how spread out is the variance?".</li>
-</ul>
-<p>Consider a spectrum where eigenvalues decay slowly: <span class="arithmatex">\(\lambda_i = 1/i\)</span>.</p>
+<h1 id="advanced-geometric-analysis">Advanced Geometric Analysis</h1>
+<div class="admonition warning">
+<p class="admonition-title">Not Implemented</p>
+<p>The advanced methods described in this tutorial (DANCo, MiND, ESS, TLE, GMST) are currently <strong>not implemented</strong> in the released version of <code>effdim</code>. The documentation below describes planned functionality.</p>
+</div>
+<p>EffDim provides a suite of advanced geometric estimators for Intrinsic Dimension (ID) estimation. These methods go beyond standard kNN/TwoNN approaches by exploiting additional statistical properties of high-dimensional space, such as the distribution of angles (DANCo) or simplex volumes (ESS).</p>
+<h2 id="methods-overview">Methods Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Full Name</th>
+<th>Key Idea</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DANCo</strong></td>
+<td>Dimensionality from Angle and Norm Concentration</td>
+<td>Uses both distances and angles to neighbors.</td>
+</tr>
+<tr>
+<td><strong>MiND</strong></td>
+<td>Minimum Neighbor Distance</td>
+<td>MLE based on min distances (MLi) or joint k-NN (MLk).</td>
+</tr>
+<tr>
+<td><strong>ESS</strong></td>
+<td>Expected Simplex Skewness</td>
+<td>Uses the volume of the simplex formed by neighbors.</td>
+</tr>
+<tr>
+<td><strong>TLE</strong></td>
+<td>Tight Localities Estimator</td>
+<td>Maximizes likelihood on scale-normalized distances.</td>
+</tr>
+<tr>
+<td><strong>GMST</strong></td>
+<td>Geodesic Minimum Spanning Tree</td>
+<td>Uses the scaling of MST length with sample size.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="setup">Setup</h2>
+<p>We will generate two datasets:
+1.  <strong>High-Dimensional Noise</strong>: 1000 points in 20D (ID should be ~20).
+2.  <strong>Low-Dimensional Manifold</strong>: A 5D hypercube embedded in 20D space (ID should be ~5).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">effdim</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Simulate a slow decay spectrum directly</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">D</span> <span class="o">=</span> <span class="mi">50</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">lambdas</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">D</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Generate data X (N=1000, D=50) that respects this spectrum</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># X = U * S * V.T</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Singular values s_i = sqrt(lambda_i * (N-1))</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">N</span> <span class="o">=</span> <span class="mi">1000</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">lambdas</span> <span class="o">*</span> <span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Random orthogonal matrix U (N x D)</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">U</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">D</span><span class="p">))</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">X</span> <span class="o">=</span> <span class="n">U</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">results</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute_dim</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PCA (95%): </span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;pca_explained_variance_95&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Participation Ratio: </span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;participation_ratio&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># 1. High-Dimensional Noise (ID = 20)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">N</span> <span class="o">=</span> <span class="mi">1000</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">D</span> <span class="o">=</span> <span class="mi">20</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">noise_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># 2. 5D Manifold embedded in 20D</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># Generate 5D data</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">latent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># Embed in 20D with a random rotation</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">projection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">5</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">manifold_data</span> <span class="o">=</span> <span class="n">latent</span> <span class="o">@</span> <span class="n">projection</span><span class="o">.</span><span class="n">T</span>
 </span></code></pre></div>
-<p>In heavy-tailed distributions, PCA might suggest a very high dimension (to capture the tail), whereas PR might suggest a lower dimension because the mass is concentrated at the start.</p>
-<h2 id="shannon-vs-renyi">Shannon vs Rényi</h2>
-<p>Shannon Entropy weights probabilities logarithmically. Rényi entropy (with <span class="arithmatex">\(\alpha=2\)</span>, which relates to PR) weights higher probabilities more heavily.</p>
+<h2 id="running-estimators">Running Estimators</h2>
+<h3 id="danco">DANCo</h3>
+<p>DANCo is often more accurate than kNN for high dimensions but is computationally more expensive due to angle computations.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Noise Data (Expect ~20)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">d_danco</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">noise_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;danco&#39;</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DANCo (Noise): </span><span class="si">{</span><span class="n">d_danco</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># Manifold Data (Expect ~5)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">d_danco_m</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;danco&#39;</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DANCo (Manifold): </span><span class="si">{</span><span class="n">d_danco_m</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="mind-mli-and-mlk">MiND (MLi and MLk)</h3>
+<p>MiND estimators are fast and robust Maximum Likelihood approaches.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># MiND-MLi (Uses 1st NN)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">d_mli</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mind_mli&#39;</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MiND-MLi: </span><span class="si">{</span><span class="n">d_mli</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># MiND-MLk (Uses k NNs)</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">d_mlk</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;mind_mlk&#39;</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MiND-MLk: </span><span class="si">{</span><span class="n">d_mlk</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="ess-expected-simplex-skewness">ESS (Expected Simplex Skewness)</h3>
+<p>ESS compares the volume of local simplices to theoretical expectations. It relies on precomputed constants (currently supported for d=1 to 20).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">d_ess</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;ess&#39;</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ESS: </span><span class="si">{</span><span class="n">d_ess</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="gmst-geodesic-mst">GMST (Geodesic MST)</h3>
+<p>GMST estimates dimension from the scaling of the Minimum Spanning Tree length. It is particularly useful for detecting the topology of the manifold.</p>
 <ul>
-<li><strong>Shannon</strong> is sensitive to the entire distribution.</li>
-<li><strong>PR (Rényi-2)</strong> is more dominated by the largest eigenvalues.</li>
+<li><code>mode='euclidean'</code> (default): Uses Euclidean distances. Good for flat manifolds.</li>
+<li><code>mode='geodesic'</code>: Uses graph geodesic distances. Better for curved manifolds (like Swiss Roll).</li>
 </ul>
-<p>If you have a dataset with many small noise directions, Shannon dimension might be higher than PR.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Euclidean MST</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">d_gmst</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;gmst&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;euclidean&#39;</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GMST (Euclidean): </span><span class="si">{</span><span class="n">d_gmst</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># For a curved manifold (e.g., Swiss Roll), use geodesic:</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># d_gmst_geo = effdim.compute(curved_data, method=&#39;gmst&#39;, mode=&#39;geodesic&#39;)</span>
+</span></code></pre></div>
+<h2 id="comparative-analysis">Comparative Analysis</h2>
+<p>You can analyze multiple methods at once to check for consistency.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">report</span> <span class="o">=</span> <span class="n">effdim</span><span class="o">.</span><span class="n">analyze</span><span class="p">(</span><span class="n">manifold_data</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;knn&#39;</span><span class="p">,</span> <span class="s1">&#39;twonn&#39;</span><span class="p">,</span> <span class="s1">&#39;danco&#39;</span><span class="p">,</span> <span class="s1">&#39;ess&#39;</span><span class="p">,</span> <span class="s1">&#39;mind_mlk&#39;</span><span class="p">])</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">method</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><strong>Computational Cost</strong>: DANCo and GMST (geodesic) can be slow for large <span class="arithmatex">\(N\)</span> (<span class="arithmatex">\(&gt;10,000\)</span>).</li>
+<li><strong>Sample Size</strong>: Geometric estimators generally require samples growing exponentially with dimension. For ID &gt; 20, estimates might degrade unless <span class="arithmatex">\(N\)</span> is very large.</li>
+<li><strong>ESS Constraints</strong>: ESS in <code>effdim</code> currently supports dimensions up to 20 due to precomputed constants.</li>
+</ul>
 
 
 

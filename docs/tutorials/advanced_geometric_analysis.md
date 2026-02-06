@@ -1,5 +1,8 @@
 # Advanced Geometric Analysis
 
+!!! warning "Not Implemented"
+    The advanced methods described in this tutorial (DANCo, MiND, ESS, TLE, GMST) are currently **not implemented** in the released version of `effdim`. The documentation below describes planned functionality.
+
 EffDim provides a suite of advanced geometric estimators for Intrinsic Dimension (ID) estimation. These methods go beyond standard kNN/TwoNN approaches by exploiting additional statistical properties of high-dimensional space, such as the distribution of angles (DANCo) or simplex volumes (ESS).
 
 ## Methods Overview

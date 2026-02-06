@@ -5,8 +5,7 @@
 ::: effdim.api
     options:
       members:
-        - compute
-        - analyze
+        - compute_dim
 
 ## Metrics (Spectral)
 

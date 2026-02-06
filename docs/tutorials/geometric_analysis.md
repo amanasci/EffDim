@@ -17,19 +17,18 @@ from sklearn.datasets import make_swiss_roll
 # Generate Swiss Roll
 X, _ = make_swiss_roll(n_samples=2000, noise=0.01)
 
+results = effdim.compute_dim(X)
+
 # PCA
-pca_dim = effdim.compute(X, method='pca', threshold=0.95)
-print(f"Global PCA Dimension: {pca_dim}")
+print(f"Global PCA Dimension: {results['pca_explained_variance_95']}")
 # Likely 3, because the roll occupies 3D volume globally.
 
-# kNN Intrinsic Dimension
-knn_dim = effdim.compute(X, method='knn', k=5)
-print(f"kNN Intrinsic Dimension: {knn_dim:.2f}")
+# MLE Intrinsic Dimension (kNN-based)
+print(f"MLE Intrinsic Dimension: {results['mle_dimensionality']:.2f}")
 # Should be close to 2.0
 
 # Two-NN
-twonn_dim = effdim.compute(X, method='twonn')
-print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
+print(f"Two-NN Intrinsic Dimension: {results['two_nn_dimensionality']:.2f}")
 # Should be close to 2.0
 ```
 
