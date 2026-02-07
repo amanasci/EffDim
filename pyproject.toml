@@ -1,6 +1,6 @@
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
-build-backend = "maturin"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "effdim"
@@ -8,7 +8,7 @@ version = "0.1.1"
 description = "A unified library for estimating effective dimensionality."
 readme = "README.md"
 requires-python = ">=3.8"
-license = "MIT"
+license = {file = "LICENSE"}
 authors = [{ name = "amanasci", email = "kumaramanasci@gmail.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -16,16 +16,19 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
-dependencies = ["numpy", "scipy", "scikit-learn"]
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "faiss-cpu"
+]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 
-[tool.maturin]
-python-source = "src"
-module-name = "effdim._rust"
-features = ["pyo3/extension-module"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

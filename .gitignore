@@ -3,8 +3,10 @@
 .venv
 __pycache__
 tutorials/
+*.egg-info/
+site/
 
-# Rust
+# Rust (Legacy)
 target/
 Cargo.lock
 *.so
