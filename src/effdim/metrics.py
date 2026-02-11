@@ -110,7 +110,7 @@ def geometric_mean_eff_dimensionality(spectrum: np.ndarray) -> float:
     if len(positive_spectrum) == 0:
         return 0.0
 
-    # Calculate the arthmetic mean of the positive spectrum
+    # Calculate the arithmetic mean of the positive spectrum
     am = np.mean(positive_spectrum)
     # Calculate the geometric mean of the positive spectrum
     gm = np.exp(np.mean(np.log(positive_spectrum)))
