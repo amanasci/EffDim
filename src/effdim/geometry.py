@@ -66,10 +66,10 @@ def mle_dimensionality(data: np.ndarray, k: int = 10) -> float:
 
     # Estimate for each point: d_i = (k - 1) / sum_log_ratios
     with np.errstate(divide='ignore', invalid='ignore'):
-        inv_dim = (k - 1) / (sum_log_ratios + 1e-10)
+        dim_estimates = (k - 1) / (sum_log_ratios + 1e-10)
 
     # Average over all points to get the estimate
-    return float(np.mean(inv_dim))
+    return float(np.mean(dim_estimates))
 
 
 def two_nn_dimensionality(data: np.ndarray) -> float:
