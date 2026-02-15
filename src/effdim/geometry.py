@@ -1,7 +1,8 @@
 import numpy as np
 import faiss
+from typing import Optional
 
-def _compute_knn_distances(data: np.ndarray, k: int) -> np.ndarray:
+def compute_knn_distances(data: np.ndarray, k: int) -> np.ndarray:
     """
     Compute k nearest neighbors distances for each point in data.
     Returns squared distances.
@@ -27,7 +28,11 @@ def _compute_knn_distances(data: np.ndarray, k: int) -> np.ndarray:
     return distances_sq[:, 1:]
 
 
-def mle_dimensionality(data: np.ndarray, k: int = 10) -> float:
+def mle_dimensionality(
+    data: np.ndarray,
+    k: int = 10,
+    precomputed_knn_dist_sq: Optional[np.ndarray] = None
+) -> float:
     """
     Estimate intrinsic dimensionality using Levina-Bickel MLE.
     Includes protection against duplicate points (distance=0).
@@ -37,13 +42,19 @@ def mle_dimensionality(data: np.ndarray, k: int = 10) -> float:
     if n_samples < 2:
         return 0.0
 
-    # Cap k to available neighbors
-    k = min(k, n_samples - 1)
-    if k < 2:
-        return 0.0
+    if precomputed_knn_dist_sq is None:
+        # Cap k to available neighbors
+        k = min(k, n_samples - 1)
+        if k < 2:
+            return 0.0
 
-    # Get squared distances to k neighbors
-    dist_sq = _compute_knn_distances(data, k)
+        # Get squared distances to k neighbors
+        dist_sq = compute_knn_distances(data, k)
+    else:
+        dist_sq = precomputed_knn_dist_sq
+        k = dist_sq.shape[1]
+        if k < 2:
+            return 0.0
 
     # Convert to Euclidean distances
     dist = np.sqrt(dist_sq)
@@ -72,7 +83,10 @@ def mle_dimensionality(data: np.ndarray, k: int = 10) -> float:
     return float(np.mean(dim_estimates))
 
 
-def two_nn_dimensionality(data: np.ndarray) -> float:
+def two_nn_dimensionality(
+    data: np.ndarray,
+    precomputed_knn_dist_sq: Optional[np.ndarray] = None
+) -> float:
     """
     Estimate intrinsic dimensionality using Two-NN.
     Corrects the regression target to -log(1 - F(mu)).
@@ -82,8 +96,11 @@ def two_nn_dimensionality(data: np.ndarray) -> float:
     if n_samples < 3:
         return 0.0
 
-    # Get squared distances to 2 neighbors (r1, r2)
-    dist_sq = _compute_knn_distances(data, 2)
+    if precomputed_knn_dist_sq is None:
+        # Get squared distances to 2 neighbors (r1, r2)
+        dist_sq = compute_knn_distances(data, 2)
+    else:
+        dist_sq = precomputed_knn_dist_sq
 
     if dist_sq.shape[1] < 2:
         return 0.0

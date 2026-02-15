@@ -23,7 +23,7 @@ def pca_explained_variance(spectrum: np.ndarray, threshold: float = 0.95) -> int
     cumulative_variance = np.cumsum(spectrum)
     explained_variance_ratio = cumulative_variance / total_variance
 
-    num_components = np.searchsorted(explained_variance_ratio, threshold) + 1
+    num_components = int(np.searchsorted(explained_variance_ratio, threshold) + 1)
     return num_components
 
 def participation_ratio(spectrum: np.ndarray) -> float:
