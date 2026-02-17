@@ -6,6 +6,7 @@ from sklearn.utils.extmath import randomized_svd
 from .geometry import (
     mle_dimensionality,
     two_nn_dimensionality,
+    compute_knn_distances,
 )
 from .metrics import (
     geometric_mean_eff_dimensionality,
@@ -27,7 +28,7 @@ def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
     Returns: dict
         A dictionary containing the results of the effective dimensionality computation.
     """
-    results = {}
+    results: Dict[str, Any] = {}
 
     # Getting the data and then converting to numpy array if it's a list
     if isinstance(data, list):
@@ -69,8 +70,16 @@ def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
         probabilities
     )
 
-    results["mle_dimensionality"] = mle_dimensionality(data)
-    results["two_nn_dimensionality"] = two_nn_dimensionality(data)
+    # Compute KNN distances once for the largest k needed (MLE uses k=10 by default)
+    # We use k=10 as a safe upper bound for default usage.
+    knn_dist_sq = compute_knn_distances(data, k=10)
+
+    results["mle_dimensionality"] = mle_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["two_nn_dimensionality"] = two_nn_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
 
     return results
 
