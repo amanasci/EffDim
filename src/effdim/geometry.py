@@ -383,12 +383,12 @@ def tle_dimensionality(
     # Normalized distances
     u_j = r_j / r_k
 
-    # Per-point estimate: d_i = -(k-1) / Σⱼ ln(u_j)
+    # Per-point estimate: d_i = -(k-1) / Σⱼ ln(u_j) = (k-1) / Σⱼ ln(1/u_j)
     log_u = np.log(u_j)
-    sum_log_u = np.sum(log_u, axis=1)
+    neg_sum_log_u = -np.sum(log_u, axis=1)
 
     with np.errstate(divide='ignore', invalid='ignore'):
-        dim_estimates = -(k - 1) / (sum_log_u - 1e-10)
+        dim_estimates = (k - 1) / (neg_sum_log_u + 1e-10)
 
     return float(np.mean(dim_estimates))
 
@@ -435,7 +435,10 @@ def gmst_dimensionality(
             graph = kneighbors_graph(subsample, k_geo, mode='distance')
             graph = graph + graph.T
             dist_matrix = shortest_path(graph, directed=False)
-            dist_matrix[np.isinf(dist_matrix)] = 0.0
+            finite_mask = np.isfinite(dist_matrix)
+            if not np.all(finite_mask):
+                max_dist = np.max(dist_matrix[finite_mask]) if np.any(finite_mask) else 1.0
+                dist_matrix[~finite_mask] = max_dist * 10
         else:
             dist_matrix = squareform(pdist(subsample))
 
