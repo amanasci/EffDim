@@ -17,18 +17,21 @@ from sklearn.datasets import make_swiss_roll
 # Generate Swiss Roll
 X, _ = make_swiss_roll(n_samples=2000, noise=0.01)
 
+# Compute dimensionalities
+results = effdim.compute_dim(X)
+
 # PCA
-pca_dim = effdim.compute(X, method='pca', threshold=0.95)
+pca_dim = results['pca_explained_variance_95']
 print(f"Global PCA Dimension: {pca_dim}")
 # Likely 3, because the roll occupies 3D volume globally.
 
-# kNN Intrinsic Dimension
-knn_dim = effdim.compute(X, method='knn', k=5)
+# kNN Intrinsic Dimension (MLE)
+knn_dim = results['mle_dimensionality']
 print(f"kNN Intrinsic Dimension: {knn_dim:.2f}")
 # Should be close to 2.0
 
 # Two-NN
-twonn_dim = effdim.compute(X, method='twonn')
+twonn_dim = results['two_nn_dimensionality']
 print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 # Should be close to 2.0
 ```
@@ -37,13 +40,9 @@ print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 
 1. **Non-linear manifolds**: Image datasets (digits, faces) often lie on low-dimensional non-linear manifolds.
 2. **Manifold Learning**: Checking if your autoencoder latent space has matched the intrinsic dimension of the data.
-3. **Local Analysis**: kNN can be computed per-point (though `effdim` currently returns the average).
+3. **Local Analysis**: Using pure geometry approaches can capture local variability better.
 
 ## Limitations
 
-* **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$.
-
-    !!! tip "Performance"
-        `effdim` uses a **Rust-accelerated implementation** with parallel nearest neighbor search for 10-50x speedup on large datasets. See [Performance](../performance.md) for benchmarks.
-
+* **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$. `effdim` utilizes the highly efficient CFaiss implementation under the hood to speed this up.
 * **Curse of Dimensionality**: In extremely high dimensions, distance concentration can make geometric estimation unstable.

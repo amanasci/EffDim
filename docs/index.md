@@ -4,31 +4,22 @@
 
 It aims to standardize the fragmented landscape of ED metrics found in statistics, physics, information theory, and machine learning into a single, cohesive interface.
 
-!!! success "Performance Enhancement"
-    EffDim now includes a **Rust-accelerated implementation** of geometry functions, providing **10-50x speedup** for large datasets! Prebuilt wheels are available for all major platforms.
-
 ## Key Features
 
-*   **Modality Agnostic**: Works with raw data, covariance matrices, and pre-computed spectra.
-*   **Unified Interface**: Simple `compute` and `analyze` functions.
+*   **Modality Agnostic**: Works robustly across different datasets.
+*   **Unified Interface**: Simple `compute_dim` function to get all estimates.
 *   **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
 *   **Research Ready**: Accurate implementations of metrics from literature.
-*   **High Performance**: Rust-accelerated geometry calculations for large-scale datasets.
 
 ## Installation
 
-Install via pip (includes prebuilt Rust extensions):
+Install via pip:
 
 ```bash
 pip install effdim
 ```
 
-Prebuilt wheels with Rust acceleration are available for:
-
-- **Linux** (manylinux, x86_64 & aarch64)
-- **macOS** (x86_64 & Apple Silicon ARM64)
-- **Windows** (x86_64)
-- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+*(EffDim relies on Faiss for fast kNN approximation under the hood).*
 
 ## Quick Start
 
@@ -39,12 +30,14 @@ import effdim
 # Generate random high-dimensional data
 data = np.random.randn(100, 50)
 
-# Compute Effective Dimension using PCA (95% variance)
-ed = effdim.compute(data, method='pca', threshold=0.95)
+# Compute all Effective Dimensions at once
+results = effdim.compute_dim(data)
+
+# Extract specific metrics
+ed = results['pca_explained_variance_95']
 print(f"Effective Dimension (PCA): {ed}")
 
-# Compute using Participation Ratio
-pr = effdim.compute(data, method='participation_ratio')
+pr = results['participation_ratio']
 print(f"Participation Ratio: {pr}")
 ```
 

@@ -263,29 +263,7 @@ $$ -\ln(1 - F(\mu)) = d \cdot \ln(\mu) $$
 - When sample size is limited
 - When you want parameter-free estimation
 
-### DANCo
 
-**Dimensionality from Angle and Norm Concentration**. This method jointly exploits the statistics of the norms of vectors to nearest neighbors and the angles between them. High-dimensional data exhibits specific concentration of measure properties for both angles and norms. DANCo estimates $d$ by minimizing the KL-divergence between the empirical distributions and the theoretical distributions derived for a d-dimensional ball.
-
-### MiND (Maximum Likelihood on Minimum Distances)
-
-A family of estimators based on the statistics of nearest neighbor distances.
-*   **MiND-MLi**: Uses the distribution of the distance to the nearest neighbor ($r_1$).
-*   **MiND-MLk**: Uses the joint distribution of distances to the first $k$ neighbors.
-
-### ESS (Expected Simplex Skewness)
-
-Estimates dimension by analyzing the "skewness" (volume) of the simplex formed by a point and its neighbors. In high dimensions, random simplices tend to be regular (perfectly "skewed"). The estimator compares the empirical volumes of local simplices to theoretical expected volumes.
-
-### TLE (Tight Localities Estimator)
-
-Estimates dimension by maximizing the likelihood of distances within small, "tight" neighborhoods. It is designed to be robust to scale variations.
-
-### GMST (Geodesic Minimum Spanning Tree)
-
-Estimates dimension based on the scaling law of the length of the Minimum Spanning Tree (MST) of a graph constructed from the data.
-$$ L(N) \propto N^{1 - 1/d} $$
-where $L(N)$ is the length of the MST on $N$ points. The dimension $d$ is estimated from the slope of $\log L(N)$ vs $\log N$ using subsampling. The graph can be constructed using Euclidean distances or Geodesic distances (approximated by k-NN graph paths).
 
 ---
 
