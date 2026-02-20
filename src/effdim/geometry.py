@@ -395,7 +395,8 @@ def tle_dimensionality(
 
 def gmst_dimensionality(
     data: np.ndarray,
-    geodesic: bool = False
+    geodesic: bool = False,
+    random_state: int = 42
 ) -> float:
     """
     Estimate intrinsic dimensionality using GMST
@@ -417,7 +418,7 @@ def gmst_dimensionality(
     if len(sizes) < 2:
         return 0.0
 
-    rng = np.random.RandomState(42)
+    rng = np.random.RandomState(random_state)
     log_n_list = []
     log_L_list = []
 

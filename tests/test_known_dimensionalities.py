@@ -28,6 +28,10 @@ class TestKnownDimensionalities:
         assert 2.0 < results["two_nn_dimensionality"] < 5.0
         assert 2.0 < results["mind_mlk_dimensionality"] < 5.0
         assert 2.0 < results["tle_dimensionality"] < 5.0
+        assert np.isfinite(results["danco_dimensionality"]) and results["danco_dimensionality"] > 0
+        assert np.isfinite(results["ess_dimensionality"]) and results["ess_dimensionality"] > 0
+        assert np.isfinite(results["mind_mli_dimensionality"]) and results["mind_mli_dimensionality"] > 0
+        assert np.isfinite(results["gmst_dimensionality"]) and results["gmst_dimensionality"] > 0
 
     def test_random_noise_10d(self):
         """Random 10D Gaussian noise should have intrinsic dimension ~10."""
