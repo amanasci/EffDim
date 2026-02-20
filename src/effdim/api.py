@@ -7,6 +7,12 @@ from .geometry import (
     mle_dimensionality,
     two_nn_dimensionality,
     compute_knn_distances,
+    danco_dimensionality,
+    mind_mli_dimensionality,
+    mind_mlk_dimensionality,
+    ess_dimensionality,
+    tle_dimensionality,
+    gmst_dimensionality,
 )
 from .metrics import (
     geometric_mean_eff_dimensionality,
@@ -80,6 +86,22 @@ def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
     results["two_nn_dimensionality"] = two_nn_dimensionality(
         data, precomputed_knn_dist_sq=knn_dist_sq
     )
+    results["danco_dimensionality"] = danco_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["mind_mli_dimensionality"] = mind_mli_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["mind_mlk_dimensionality"] = mind_mlk_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["ess_dimensionality"] = ess_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["tle_dimensionality"] = tle_dimensionality(
+        data, precomputed_knn_dist_sq=knn_dist_sq
+    )
+    results["gmst_dimensionality"] = gmst_dimensionality(data)
 
     return results
 

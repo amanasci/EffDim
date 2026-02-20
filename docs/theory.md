@@ -263,7 +263,138 @@ $$ -\ln(1 - F(\mu)) = d \cdot \ln(\mu) $$
 - When sample size is limited
 - When you want parameter-free estimation
 
+### DANCo (Dimensionality from Angle and Norm Concentration)
 
+Exploits the concentration of angles between nearest neighbor vectors to estimate intrinsic dimension.
+
+**Reference:** Ceruti, C., et al. (2012). DANCo: Dimensionality from Angle and Norm Concentration. *arXiv:1206.3881*.
+
+**Theory:**
+In a $d$-dimensional space, the angles between random vectors concentrate around $\pi/2$ as $d$ increases. Specifically, for two random unit vectors in $\mathbb{R}^d$, the expected value of $\cos^2(\theta) \approx 1/d$.
+
+**Formula:**
+1. For each point $x_i$, compute vectors $v_{ij} = x_j - x_i$ to its $k$ nearest neighbors.
+2. Normalize to unit vectors: $\hat{v}_{ij} = v_{ij} / \|v_{ij}\|$.
+3. Compute pairwise cosines: $\cos(\theta_{jl}) = \hat{v}_{ij} \cdot \hat{v}_{il}$.
+4. Estimate: $\hat{d} = 1 / \overline{\cos^2(\theta)}$ where the average is over all points and all pairs.
+
+**Implementation Details:**
+- Uses FAISS for efficient kNN search
+- Adds $\epsilon = 10^{-10}$ to norms to prevent division by zero
+- Default $k = 10$ neighbors
+- Uses `np.einsum` for efficient pairwise cosine computation
+
+**When to Use:**
+- When angle-based estimation is preferred over distance-based
+- For data with complex geometric structure
+
+### MiND-MLi (Minimum Distance — Single Neighbor)
+
+Maximum Likelihood Estimator based on the distribution of nearest neighbor distances only.
+
+**Reference:** Rozza, A., et al. (2012). Novel high intrinsic dimensionality estimators. *Machine Learning*, 89(1-2), 37-65.
+
+**Formula:**
+1. For each point $x_i$, compute the nearest neighbor distance $r_1(x_i)$.
+2. Let $r_{\max} = \max_i r_1(x_i)$.
+3. Estimate: $\hat{d} = n / \sum_{i=1}^n \ln(r_{\max} / r_1(x_i))$.
+
+**Implementation Details:**
+- Uses only the single nearest neighbor distance
+- Returns 0.0 if all distances are equal (degenerate case)
+- Requires at least 3 points
+
+**When to Use:**
+- When minimal neighborhood information is available
+- For quick estimates with low computational cost
+
+### MiND-MLk (Minimum Distance — k Neighbors)
+
+Extension of the Levina-Bickel MLE using the median of per-point estimates for robustness against outliers.
+
+**Reference:** Rozza, A., et al. (2012). Novel high intrinsic dimensionality estimators. *Machine Learning*, 89(1-2), 37-65.
+
+**Formula:**
+Same per-point estimates as kNN MLE:
+$$ \hat{d}_k(x_i) = \frac{k-1}{\sum_{j=1}^{k-1} \ln r_k(x_i) - \ln r_j(x_i)} $$
+
+Global estimate uses the **median** instead of the mean:
+$$ \hat{d}_k = \text{median}\left(\hat{d}_k(x_1), \dots, \hat{d}_k(x_n)\right) $$
+
+**Advantages over standard MLE:**
+- More robust to outliers and density inhomogeneities
+- The median is less sensitive to extreme per-point estimates
+
+### ESS (Expected Simplex Skewness)
+
+Estimates dimension by analyzing the skewness of local simplices formed by nearest neighbors.
+
+**Reference:** Johnsson, K., et al. (2015). Low bias local intrinsic dimension estimation from expected simplex skewness. *IEEE Trans. PAMI*, 37(1), 196-202.
+
+**Theory:**
+For each point, the $k$ nearest neighbors form a simplex. The "skewness" is measured as the squared norm of the mean of unit direction vectors. In $d$ dimensions, the expected squared norm of the mean of $k$ random unit vectors is approximately $1/(k \cdot d)$.
+
+**Formula:**
+1. For each point $x_i$, compute unit vectors $\hat{v}_{ij}$ to its $k$ neighbors.
+2. Compute centroid: $\bar{v}_i = \frac{1}{k}\sum_{j=1}^k \hat{v}_{ij}$.
+3. Compute skewness: $S_i = \|\bar{v}_i\|^2$.
+4. Average: $\bar{S} = \frac{1}{n}\sum_{i=1}^n S_i$.
+5. Estimate: $\hat{d} = 1 / (k \cdot \bar{S})$.
+
+**When to Use:**
+- When low-bias estimation is important
+- For manifolds with moderate curvature
+
+### TLE (Tight Localities Estimator)
+
+Maximizes likelihood on scale-normalized distances, making it more robust to density variations.
+
+**Reference:** Amsaleg, L., et al. (2019). Intrinsic dimensionality estimation within tight localities. *SDM 2019*.
+
+**Theory:**
+For each point, the distances to $k$ neighbors are normalized by the $k$-th neighbor distance: $u_j = r_j / r_k$. Under a $d$-dimensional uniform distribution, each $u_j$ follows a $\text{Beta}(d, 1)$ distribution with PDF $p(u) = d \cdot u^{d-1}$.
+
+**Formula:**
+$$ \hat{d}_i = \frac{-(k-1)}{\sum_{j=1}^{k-1} \ln u_j} = \frac{k-1}{\sum_{j=1}^{k-1} \ln(r_k / r_j)} $$
+
+The global estimate is $\hat{d} = \frac{1}{n}\sum_{i=1}^n \hat{d}_i$.
+
+**Implementation Details:**
+- Mathematically equivalent to the Levina-Bickel MLE
+- The per-point normalization by $r_k$ provides scale invariance
+
+### GMST (Geodesic Minimum Spanning Tree)
+
+Estimates dimension from how the total length of the Minimum Spanning Tree (MST) scales with the number of points.
+
+**Reference:** Costa, J. A., & Hero, A. O. (2004). Geodesic entropic graphs for dimension and entropy estimation in manifold learning. *IEEE Trans. Signal Processing*, 52(8), 2210-2221.
+
+**Theory:**
+For $n$ points sampled uniformly from a $d$-dimensional manifold ($d > 1$), the total MST edge weight scales as:
+$$ L_{\text{MST}} \propto n^{(d-1)/d} $$
+
+Taking logarithms: $\ln L_{\text{MST}} = \alpha \cdot \ln n + c$, where $\alpha = (d-1)/d$, giving $d = 1/(1-\alpha)$.
+
+**Formula:**
+1. Take subsamples of sizes $n_1, n_2, \dots$ from the data.
+2. For each subsample, compute the MST and its total edge weight $L_i$.
+3. Fit linear regression: $\ln L_i = \alpha \cdot \ln n_i + c$.
+4. Estimate: $\hat{d} = 1 / (1 - \alpha)$.
+
+**Geodesic Mode:**
+When `geodesic=True`, distances are computed along the data manifold using shortest paths on a $k$-NN graph, rather than straight-line Euclidean distances.
+
+**Implementation Details:**
+- Uses `scipy.sparse.csgraph.minimum_spanning_tree` for MST computation
+- Uses `scipy.spatial.distance.pdist` for Euclidean distances
+- Uses `sklearn.neighbors.kneighbors_graph` + `scipy.sparse.csgraph.shortest_path` for geodesic distances
+- Subsamples at sizes $[n/8, n/4, n/2, n]$ with a fixed random seed for reproducibility
+- Requires at least 10 points
+
+**When to Use:**
+- When data lies on a curved manifold (use geodesic mode)
+- When graph-based analysis is preferred
+- For datasets where local methods may be biased
 
 ---
 
@@ -351,6 +482,11 @@ $$ -\ln(1 - F(\mu)) = d \cdot \ln(\mu) $$
 **Geometric Methods:**
 - Levina, E., & Bickel, P. J. (2005). Maximum likelihood estimation of intrinsic dimension. *NIPS 2004*.
 - Facco, E., d'Errico, M., Rodriguez, A., & Laio, A. (2017). Estimating the intrinsic dimension of datasets by a minimal neighborhood information. *Scientific Reports*, 7(1), 12140. DOI: 10.1038/s41598-017-11873-y
+- Ceruti, C., et al. (2012). DANCo: Dimensionality from Angle and Norm Concentration. *arXiv:1206.3881*.
+- Rozza, A., et al. (2012). Novel high intrinsic dimensionality estimators. *Machine Learning*, 89(1-2), 37-65.
+- Johnsson, K., et al. (2015). Low bias local intrinsic dimension estimation from expected simplex skewness. *IEEE Trans. PAMI*, 37(1), 196-202.
+- Amsaleg, L., et al. (2019). Intrinsic dimensionality estimation within tight localities. *SDM 2019*.
+- Costa, J. A., & Hero, A. O. (2004). Geodesic entropic graphs for dimension and entropy estimation in manifold learning. *IEEE Trans. Signal Processing*, 52(8), 2210-2221.
 
 **Survey:**
 - Camastra, F., & Staiano, A. (2016). Intrinsic dimension estimation: Advances and open problems. *Information Sciences*, 328, 26-41.

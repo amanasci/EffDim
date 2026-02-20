@@ -2,7 +2,7 @@
 .pytest_cache
 .venv
 __pycache__
-tutorials/
+/tutorials/
 *.egg-info/
 site/
 
