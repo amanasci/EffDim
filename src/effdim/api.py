@@ -130,9 +130,9 @@ def _do_svd(data: np.ndarray) -> np.ndarray:
     return s
 
 
-def _check_centered(data: np.ndarray, tol: float = 1e-5) -> Union[bool, np.bool_]:
+def _ensure_centered(data: np.ndarray, tol: float = 1e-5) -> np.ndarray:
     """
-    Check if the data is centered around zero.
+    Ensure that the data is centered around zero. If not, center it.
 
     Parameters:
     -----------
@@ -143,27 +143,10 @@ def _check_centered(data: np.ndarray, tol: float = 1e-5) -> Union[bool, np.bool_
 
     Returns:
     --------
-    bool
-        True if data is centered, False otherwise.
-    """
-    mean = np.mean(data, axis=0)
-    return np.all(np.abs(mean) < tol)  # This is np.bool_
-
-
-def _ensure_centered(data: np.ndarray) -> np.ndarray:
-    """
-    Ensure that the data is centered around zero. If not, center it.
-
-    Parameters:
-    -----------
-    data : np.ndarray
-        Input data array.
-
-    Returns:
-    --------
     np.ndarray
         Centered data array.
     """
-    if not _check_centered(data):
-        data = data - np.mean(data, axis=0)
+    mean = np.mean(data, axis=0)
+    if not np.all(np.abs(mean) < tol):
+        data = data - mean
     return data
