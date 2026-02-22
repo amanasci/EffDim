@@ -78,30 +78,33 @@ def compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]:
 
     # Compute KNN distances once for the largest k needed (MLE uses k=10 by default)
     # We use k=10 as a safe upper bound for default usage.
-    knn_dist_sq = compute_knn_distances(data, k=10)
+    # Convert data to float32 contiguous array once for geometry functions
+    data_f32 = np.ascontiguousarray(data, dtype=np.float32)
+
+    knn_dist_sq = compute_knn_distances(data_f32, k=10)
 
     results["mle_dimensionality"] = mle_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["two_nn_dimensionality"] = two_nn_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["danco_dimensionality"] = danco_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["mind_mli_dimensionality"] = mind_mli_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["mind_mlk_dimensionality"] = mind_mlk_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["ess_dimensionality"] = ess_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
     results["tle_dimensionality"] = tle_dimensionality(
-        data, precomputed_knn_dist_sq=knn_dist_sq
+        data_f32, precomputed_knn_dist_sq=knn_dist_sq
     )
-    results["gmst_dimensionality"] = gmst_dimensionality(data)
+    results["gmst_dimensionality"] = gmst_dimensionality(data_f32)
 
     return results
 
