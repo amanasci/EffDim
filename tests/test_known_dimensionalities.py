@@ -36,6 +36,7 @@ class TestKnownDimensionalities:
 
     def test_random_noise_10d(self):
         """Random 10D Gaussian noise should have intrinsic dimension ~10."""
+        # SETUP (parity contract): seed=42, shape=(500, 10), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(500, 10)
         results = compute_dim(data)
@@ -47,6 +48,7 @@ class TestKnownDimensionalities:
 
     def test_swiss_roll_2d_manifold(self):
         """Swiss Roll is a 2D manifold in 3D space."""
+        # SETUP (parity contract): n_samples=1000, noise=0.01, random_state=42 (D-08 knobs)
         X, _ = make_swiss_roll(n_samples=1000, noise=0.01, random_state=42)
         results = compute_dim(X)
         # Geometric methods should detect ~2
@@ -57,6 +59,7 @@ class TestKnownDimensionalities:
 
     def test_linear_subspace_rank3_in_10d(self):
         """Rank-3 linear subspace in 10D should have intrinsic dim ~3."""
+        # SETUP (parity contract): seed=42, shape=(500, 10) via rank-3 (500,3)@(3,10), noise=1e-6
         np.random.seed(42)
         A = np.random.randn(500, 3)
         B = np.random.randn(3, 10)
@@ -68,6 +71,7 @@ class TestKnownDimensionalities:
 
     def test_1d_curve_in_3d(self):
         """A 1D curve (helix) in 3D space should have intrinsic dim ~1."""
+        # SETUP (parity contract): seed=42, shape=(500, 3) helix, noise=1e-6, mle k=5
         np.random.seed(42)
         t = np.linspace(0, 4 * np.pi, 500)
         data = np.column_stack([
@@ -80,6 +84,7 @@ class TestKnownDimensionalities:
 
     def test_2d_plane_in_5d(self):
         """2D plane embedded in 5D space."""
+        # SETUP (parity contract): seed=42, shape=(400, 5) via (400,2)@(2,5), noise=1e-6
         np.random.seed(42)
         coords_2d = np.random.randn(400, 2)
         embedding = np.random.randn(2, 5)
@@ -91,6 +96,7 @@ class TestKnownDimensionalities:
 
     def test_isotropic_gaussian_spectral(self):
         """For isotropic Gaussian, spectral dims should be close to D."""
+        # SETUP (parity contract): seed=42, shape=(400, 8), compute_dim defaults (k=10)
         np.random.seed(42)
         D = 8
         data = np.random.randn(400, D)
@@ -104,6 +110,7 @@ class TestEstimatorConsistency:
 
     def test_estimators_agree_on_isotropic(self):
         """On isotropic Gaussian, most estimators should agree approximately."""
+        # SETUP (parity contract): seed=42, shape=(300, 5), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(300, 5)
         results = compute_dim(data)
@@ -118,6 +125,7 @@ class TestEstimatorConsistency:
 
     def test_low_dim_data_all_estimators_low(self):
         """For truly low-dim data, all estimators should give low values."""
+        # SETUP (parity contract): seed=42, shape=(200, 10) via rank-1 (200,1)@(1,10), noise=1e-6
         np.random.seed(42)
         # 1D data in 10D
         t = np.random.randn(200, 1)
