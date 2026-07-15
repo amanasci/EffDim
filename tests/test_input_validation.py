@@ -56,6 +56,7 @@ class TestComputeDimInputValidation:
 
     def test_result_contains_all_expected_keys(self):
         """compute_dim result should contain all documented keys."""
+        # SETUP (parity contract): seed=0, shape=(50, 5)
         rng = np.random.default_rng(0)
         data = rng.standard_normal((50, 5))
         results = compute_dim(data)

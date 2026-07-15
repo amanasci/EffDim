@@ -45,6 +45,7 @@ class TestPackagePublicAPI:
     def test_compute_dim_returns_dict(self):
         """compute_dim should return a dict."""
         from effdim import compute_dim
+        # SETUP (parity contract): seed=1, shape=(50, 5)
         rng = np.random.default_rng(1)
         data = rng.standard_normal((50, 5))
         result = compute_dim(data)
@@ -56,6 +57,7 @@ class TestReproducibility:
 
     def test_same_input_same_output(self):
         """compute_dim with the same input should give identical results."""
+        # SETUP (parity contract): seed=7, shape=(80, 6)
         rng = np.random.default_rng(7)
         data = rng.standard_normal((80, 6))
         results1 = compute_dim(data)
@@ -67,6 +69,7 @@ class TestReproducibility:
 
     def test_copied_input_same_output(self):
         """compute_dim should produce same results for a copy of the data."""
+        # SETUP (parity contract): seed=7, shape=(60, 5)
         rng = np.random.default_rng(7)
         data = rng.standard_normal((60, 5))
         data_copy = data.copy()
@@ -79,6 +82,7 @@ class TestReproducibility:
 
     def test_list_vs_array_input(self):
         """compute_dim should give the same results for list-of-arrays and equivalent ndarray."""
+        # SETUP (parity contract): seed=7, chunks shape=(30, 5)+(30, 5)
         rng = np.random.default_rng(7)
         chunk1 = rng.standard_normal((30, 5))
         chunk2 = rng.standard_normal((30, 5))
@@ -98,6 +102,7 @@ class TestRenyiDimensionalitiesInComputeDim:
 
     def test_renyi_keys_alpha_2_through_5(self):
         """compute_dim should include Rényi keys for alpha 2, 3, 4, 5."""
+        # SETUP (parity contract): seed=0, shape=(50, 5)
         rng = np.random.default_rng(0)
         data = rng.standard_normal((50, 5))
         results = compute_dim(data)
@@ -109,6 +114,7 @@ class TestRenyiDimensionalitiesInComputeDim:
 
     def test_renyi_ordering_in_compute_dim(self):
         """Rényi dimensionalities should be non-increasing with alpha."""
+        # SETUP (parity contract): seed=0, shape=(100, 5) anisotropic scales [5,3,2,1,0.5]
         rng = np.random.default_rng(0)
         # Use anisotropic data so Rényi values are distinct
         data = rng.standard_normal((100, 5)) * np.array([5, 3, 2, 1, 0.5])
@@ -122,6 +128,7 @@ class TestRenyiDimensionalitiesInComputeDim:
 
     def test_renyi_alpha_2_matches_participation_ratio(self):
         """Rényi alpha=2 should equal Participation Ratio."""
+        # SETUP (parity contract): seed=0, shape=(50, 5)
         rng = np.random.default_rng(0)
         data = rng.standard_normal((50, 5))
         results = compute_dim(data)
