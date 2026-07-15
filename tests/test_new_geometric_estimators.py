@@ -20,6 +20,7 @@ class TestDANCo:
 
     def test_high_dimensional_gaussian(self):
         """DANCo should estimate dimension close to ambient for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), k=10
         np.random.seed(42)
         data = np.random.randn(200, 10)
         dim = danco_dimensionality(data, k=10)
@@ -27,6 +28,7 @@ class TestDANCo:
 
     def test_low_dimensional_manifold(self):
         """DANCo should detect low-dimensional structure."""
+        # SETUP (parity contract): seed=42, n=200 line in 3D, noise=1e-6, k=5
         np.random.seed(42)
         n = 200
         t = np.random.uniform(0, 10, n)
@@ -37,6 +39,7 @@ class TestDANCo:
 
     def test_small_dataset(self):
         """DANCo should return 0.0 for very small datasets."""
+        # SETUP (parity contract): fixed array shape=(2, 5), exact soft-fail sentinel == 0.0
         data = np.array([
             [1.0, 2.0, 3.0, 4.0, 5.0],
             [6.0, 7.0, 8.0, 9.0, 10.0],
@@ -68,6 +71,7 @@ class TestMiNDMLi:
 
     def test_high_dimensional_gaussian(self):
         """MiND-MLi should estimate dimension for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(200, 10)
         np.random.seed(42)
         data = np.random.randn(200, 10)
         dim = mind_mli_dimensionality(data)
@@ -78,6 +82,7 @@ class TestMiNDMLi:
         Note: MiND-MLi uses only single neighbor distances with r_max normalization,
         so it may overestimate for nearly-uniform spacing on a line (known limitation).
         """
+        # SETUP (parity contract): seed=42, shape=(200, 2) via linspace line, noise=1e-6
         np.random.seed(42)
         t = np.linspace(0, 10, 200).reshape(-1, 1)
         data = np.hstack([t, 2 * t])
@@ -87,6 +92,7 @@ class TestMiNDMLi:
 
     def test_small_dataset(self):
         """MiND-MLi should return 0.0 for very small datasets."""
+        # SETUP (parity contract): fixed array shape=(2, 5), exact soft-fail sentinel == 0.0
         data = np.array([
             [1.0, 2.0, 3.0, 4.0, 5.0],
             [6.0, 7.0, 8.0, 9.0, 10.0],
@@ -117,6 +123,7 @@ class TestMiNDMLk:
 
     def test_high_dimensional_gaussian(self):
         """MiND-MLk should estimate dimension for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), k=10
         np.random.seed(42)
         data = np.random.randn(200, 10)
         dim = mind_mlk_dimensionality(data, k=10)
@@ -124,6 +131,7 @@ class TestMiNDMLk:
 
     def test_2d_manifold(self):
         """MiND-MLk should detect 2D structure."""
+        # SETUP (parity contract): seed=42, n=200 plane z=x+y, noise=1e-6, k=5
         np.random.seed(42)
         n = 200
         x = np.random.uniform(-5, 5, n)
@@ -135,6 +143,7 @@ class TestMiNDMLk:
 
     def test_small_dataset(self):
         """MiND-MLk should return 0.0 for very small datasets."""
+        # SETUP (parity contract): fixed array shape=(1, 5), exact soft-fail sentinel == 0.0
         data = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
         assert mind_mlk_dimensionality(data) == 0.0
 
@@ -154,6 +163,7 @@ class TestESS:
 
     def test_high_dimensional_gaussian(self):
         """ESS should estimate dimension for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), k=10
         np.random.seed(42)
         data = np.random.randn(200, 10)
         dim = ess_dimensionality(data, k=10)
@@ -161,6 +171,7 @@ class TestESS:
 
     def test_low_dimensional_structure(self):
         """ESS should detect low-dimensional structure."""
+        # SETUP (parity contract): seed=42, shape=(200, 2) line, noise=1e-6, k=5
         np.random.seed(42)
         t = np.linspace(0, 10, 200).reshape(-1, 1)
         data = np.hstack([t, 2 * t])
@@ -170,6 +181,7 @@ class TestESS:
 
     def test_small_dataset(self):
         """ESS should return 0.0 for very small datasets."""
+        # SETUP (parity contract): fixed array shape=(2, 5), exact soft-fail sentinel == 0.0
         data = np.array([
             [1.0, 2.0, 3.0, 4.0, 5.0],
             [6.0, 7.0, 8.0, 9.0, 10.0],
@@ -191,6 +203,7 @@ class TestTLE:
 
     def test_high_dimensional_gaussian(self):
         """TLE should estimate dimension for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), k=10
         np.random.seed(42)
         data = np.random.randn(200, 10)
         dim = tle_dimensionality(data, k=10)
@@ -198,6 +211,7 @@ class TestTLE:
 
     def test_2d_manifold(self):
         """TLE should detect 2D structure."""
+        # SETUP (parity contract): seed=42, n=200 plane z=x+y, noise=1e-6, k=5
         np.random.seed(42)
         n = 200
         x = np.random.uniform(-5, 5, n)
@@ -209,6 +223,7 @@ class TestTLE:
 
     def test_small_dataset(self):
         """TLE should return 0.0 for very small datasets."""
+        # SETUP (parity contract): fixed array shape=(1, 5), exact soft-fail sentinel == 0.0
         data = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
         assert tle_dimensionality(data) == 0.0
 
@@ -228,6 +243,7 @@ class TestGMST:
 
     def test_high_dimensional_gaussian(self):
         """GMST should estimate dimension for isotropic data."""
+        # SETUP (parity contract): seed=42, shape=(100, 5)
         np.random.seed(42)
         data = np.random.randn(100, 5)
         dim = gmst_dimensionality(data)
@@ -235,6 +251,7 @@ class TestGMST:
 
     def test_2d_data(self):
         """GMST should estimate close to 2 for 2D data."""
+        # SETUP (parity contract): seed=42, shape=(100, 2)
         np.random.seed(42)
         data = np.random.randn(100, 2)
         dim = gmst_dimensionality(data)
@@ -242,6 +259,7 @@ class TestGMST:
 
     def test_small_dataset(self):
         """GMST should return 0.0 for small datasets."""
+        # SETUP (parity contract): fixed array shape=(5, 3), exact soft-fail sentinel == 0.0
         data = np.array([
             [1.0, 2.0, 3.0],
             [4.0, 5.0, 6.0],
@@ -272,6 +290,7 @@ class TestNewEstimatorsIntegration:
 
     def test_compute_dim_contains_new_keys(self):
         """compute_dim should contain all new estimator keys."""
+        # SETUP (parity contract): seed=42, shape=(100, 10), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(100, 10)
         results = compute_dim(data)
@@ -291,6 +310,7 @@ class TestNewEstimatorsIntegration:
 
     def test_all_results_finite(self):
         """All results including new estimators should be finite."""
+        # SETUP (parity contract): seed=42, shape=(50, 10), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(50, 10)
         results = compute_dim(data)
@@ -300,6 +320,7 @@ class TestNewEstimatorsIntegration:
 
     def test_known_dimensionality_gaussian(self):
         """All estimators should give reasonable results for 10D Gaussian."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(200, 10)
         results = compute_dim(data)
@@ -311,6 +332,7 @@ class TestNewEstimatorsIntegration:
 
     def test_swiss_roll_intrinsic_dim(self):
         """Geometric estimators should detect 2D intrinsic dim of Swiss Roll."""
+        # SETUP (parity contract): n_samples=500, noise=0.01, random_state=42 (D-08 knobs)
         from sklearn.datasets import make_swiss_roll
         X, _ = make_swiss_roll(n_samples=500, noise=0.01, random_state=42)
         results = compute_dim(X)

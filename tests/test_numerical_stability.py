@@ -139,6 +139,7 @@ class TestGeometricEstimatorsEdgeCases:
     
     def test_perfect_line_2d(self):
         """Test with data on a perfect 1D line in 2D space."""
+        # SETUP (parity contract): seed=42, shape=(100, 2) line y=2x, noise=1e-8, mle k=5
         # Points on a line: y = 2x
         t = np.linspace(0, 10, 100).reshape(-1, 1)
         data = np.hstack([t, 2*t])
@@ -158,6 +159,7 @@ class TestGeometricEstimatorsEdgeCases:
     
     def test_perfect_plane_3d(self):
         """Test with data on a perfect 2D plane in 3D space."""
+        # SETUP (parity contract): seed=42, n=100 plane z=x+y, noise=1e-8, mle k=5
         # Points on plane: z = x + y
         n = 100
         np.random.seed(42)
@@ -178,6 +180,7 @@ class TestGeometricEstimatorsEdgeCases:
     
     def test_very_small_dataset(self):
         """Test with very small datasets."""
+        # SETUP (parity contract): fixed shape=(2, 5) exact == 0.0; seed=42 shape=(3, 5) for n=3 path
         # 2 points - should return 0
         data = np.array([
             [1.0, 2.0, 3.0, 4.0, 5.0],
@@ -200,6 +203,7 @@ class TestGeometricEstimatorsEdgeCases:
     
     def test_identical_points(self):
         """Test with some identical points (distance = 0)."""
+        # SETUP (parity contract): fixed array shape=(6, 2) with duplicates, k=2
         # Create data with duplicates
         data = np.array([
             [1.0, 2.0],
@@ -219,6 +223,7 @@ class TestGeometricEstimatorsEdgeCases:
     
     def test_high_dimensional_gaussian(self):
         """Test with high-dimensional Gaussian (intrinsic dim = ambient dim)."""
+        # SETUP (parity contract): seed=42, shape=(200, 10), mle k=10
         n, d = 200, 10
         np.random.seed(42)
         data = np.random.randn(n, d)
@@ -237,6 +242,7 @@ class TestComputeDimIntegration:
     
     def test_low_rank_data(self):
         """Test with low-rank data (known effective dimension)."""
+        # SETUP (parity contract): seed=42, shape=(100, 50) via rank-5 A@B.T
         n, p, k = 100, 50, 5
         np.random.seed(42)
         
@@ -254,6 +260,7 @@ class TestComputeDimIntegration:
     
     def test_noisy_low_rank_data(self):
         """Test with noisy low-rank data."""
+        # SETUP (parity contract): seed=42, shape=(100, 50) rank-5 + noise=0.1
         n, p, k = 100, 50, 5
         np.random.seed(42)
         
@@ -269,6 +276,7 @@ class TestComputeDimIntegration:
     
     def test_isotropic_gaussian(self):
         """Test with isotropic Gaussian (all dimensions equally important)."""
+        # SETUP (parity contract): seed=42, shape=(100, 10), compute_dim defaults (k=10)
         n, p = 100, 10
         np.random.seed(42)
         data = np.random.randn(n, p)
@@ -281,6 +289,7 @@ class TestComputeDimIntegration:
     
     def test_all_results_finite(self):
         """Test that all results are finite numbers."""
+        # SETUP (parity contract): seed=42, shape=(50, 10), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(50, 10)
         
@@ -292,6 +301,7 @@ class TestComputeDimIntegration:
     
     def test_centered_vs_uncentered(self):
         """Test that centering is handled correctly."""
+        # SETUP (parity contract): seed=42, shape=(50, 10), shift=+100, rtol=1e-10
         np.random.seed(42)
         data_centered = np.random.randn(50, 10)
         data_shifted = data_centered + 100  # Large shift
@@ -313,6 +323,7 @@ class TestNumericalStability:
     
     def test_very_large_data_values(self):
         """Test with very large data values."""
+        # SETUP (parity contract): seed=42, shape=(50, 10), scale=1e6
         np.random.seed(42)
         data = 1e6 * np.random.randn(50, 10)
         
@@ -323,6 +334,7 @@ class TestNumericalStability:
     
     def test_very_small_data_values(self):
         """Test with very small data values."""
+        # SETUP (parity contract): seed=42, shape=(50, 10), scale=1e-6
         np.random.seed(42)
         data = 1e-6 * np.random.randn(50, 10)
         
@@ -333,6 +345,7 @@ class TestNumericalStability:
     
     def test_mixed_scale_features(self):
         """Test with features at very different scales."""
+        # SETUP (parity contract): seed=42, n=50, feature scales 1e6 / 1 / 1e-6
         np.random.seed(42)
         n = 50
         data = np.column_stack([
