@@ -21,6 +21,7 @@ class TestKnownDimensionalities:
 
     def test_random_noise_3d(self):
         """Random 3D Gaussian noise should have intrinsic dimension ~3."""
+        # SETUP (parity contract): seed=42, shape=(300, 3), compute_dim defaults (k=10)
         np.random.seed(42)
         data = np.random.randn(300, 3)
         results = compute_dim(data)
