@@ -37,7 +37,10 @@ class TestDANCo:
 
     def test_small_dataset(self):
         """DANCo should return 0.0 for very small datasets."""
-        data = np.random.randn(2, 5)
+        data = np.array([
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            [6.0, 7.0, 8.0, 9.0, 10.0],
+        ])
         assert danco_dimensionality(data) == 0.0
 
     def test_with_precomputed_knn(self):
@@ -84,7 +87,10 @@ class TestMiNDMLi:
 
     def test_small_dataset(self):
         """MiND-MLi should return 0.0 for very small datasets."""
-        data = np.random.randn(2, 5)
+        data = np.array([
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            [6.0, 7.0, 8.0, 9.0, 10.0],
+        ])
         assert mind_mli_dimensionality(data) == 0.0
 
     def test_identical_distances(self):
@@ -129,7 +135,7 @@ class TestMiNDMLk:
 
     def test_small_dataset(self):
         """MiND-MLk should return 0.0 for very small datasets."""
-        data = np.random.randn(1, 5)
+        data = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
         assert mind_mlk_dimensionality(data) == 0.0
 
     def test_robustness_vs_mle(self):
@@ -164,7 +170,10 @@ class TestESS:
 
     def test_small_dataset(self):
         """ESS should return 0.0 for very small datasets."""
-        data = np.random.randn(2, 5)
+        data = np.array([
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            [6.0, 7.0, 8.0, 9.0, 10.0],
+        ])
         assert ess_dimensionality(data) == 0.0
 
     def test_duplicate_points(self):
@@ -200,7 +209,7 @@ class TestTLE:
 
     def test_small_dataset(self):
         """TLE should return 0.0 for very small datasets."""
-        data = np.random.randn(1, 5)
+        data = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
         assert tle_dimensionality(data) == 0.0
 
     def test_equivalent_to_mle(self):
@@ -233,7 +242,13 @@ class TestGMST:
 
     def test_small_dataset(self):
         """GMST should return 0.0 for small datasets."""
-        data = np.random.randn(5, 3)
+        data = np.array([
+            [1.0, 2.0, 3.0],
+            [4.0, 5.0, 6.0],
+            [7.0, 8.0, 9.0],
+            [10.0, 11.0, 12.0],
+            [13.0, 14.0, 15.0],
+        ])
         assert gmst_dimensionality(data) == 0.0
 
     def test_geodesic_mode(self):

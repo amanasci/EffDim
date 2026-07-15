@@ -144,6 +144,7 @@ class TestGeometricEstimatorsEdgeCases:
         data = np.hstack([t, 2*t])
         
         # Add tiny noise to avoid identical points
+        np.random.seed(42)
         data += np.random.randn(*data.shape) * 1e-8
         
         mle_dim = mle_dimensionality(data, k=5)
@@ -159,6 +160,7 @@ class TestGeometricEstimatorsEdgeCases:
         """Test with data on a perfect 2D plane in 3D space."""
         # Points on plane: z = x + y
         n = 100
+        np.random.seed(42)
         x = np.random.uniform(-5, 5, n)
         y = np.random.uniform(-5, 5, n)
         z = x + y
@@ -177,7 +179,10 @@ class TestGeometricEstimatorsEdgeCases:
     def test_very_small_dataset(self):
         """Test with very small datasets."""
         # 2 points - should return 0
-        data = np.random.randn(2, 5)
+        data = np.array([
+            [1.0, 2.0, 3.0, 4.0, 5.0],
+            [6.0, 7.0, 8.0, 9.0, 10.0],
+        ])
         mle_dim = mle_dimensionality(data, k=5)
         assert mle_dim == 0.0, "MLE should return 0 for n<2"
         
@@ -185,6 +190,7 @@ class TestGeometricEstimatorsEdgeCases:
         assert two_nn_dim == 0.0, "Two-NN should return 0 for n<3"
         
         # 3 points - MLE should work, Two-NN should work
+        np.random.seed(42)
         data = np.random.randn(3, 5)
         mle_dim = mle_dimensionality(data, k=2)
         assert mle_dim >= 0, "MLE should work with n=3, k=2"
