@@ -6,8 +6,11 @@ __pycache__
 *.egg-info/
 site/
 
-# Rust (Legacy)
+# Local tooling / GSD (do not track)
+.planning/
+.agents/
+
+# Rust
 target/
-Cargo.lock
 *.so
 *.pyd

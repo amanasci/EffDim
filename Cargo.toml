@@ -1,0 +1,3 @@
+[workspace]
+resolver = "2"
+members = ["crates/effdim-core", "crates/effdim-py"]

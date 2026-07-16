@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "effdim"
 version = "0.1.1"
 description = "A unified library for estimating effective dimensionality."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 authors = [{ name = "amanasci", email = "kumaramanasci@gmail.com" }]
 classifiers = [
@@ -20,16 +20,41 @@ dependencies = [
     "numpy",
     "scipy",
     "scikit-learn",
-    "faiss-cpu"
+    "faiss-cpu",
+    "ipykernel>=6.29.5",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "black", "mypy"]
+dev = ["pytest", "pytest-cov", "black", "mypy", "maturin>=1.0,<2.0"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
+# CUDA PyTorch + Hugging Face for GPU embedding experiments (RTX 3060 / CUDA 13.0)
+gpu = [
+    "torch>=2.11.0",
+    "transformers>=4.46.0",
+    "accelerate>=1.0.0",
+    "safetensors>=0.4.0",
+    "sentencepiece>=0.2.0",
+    "protobuf>=4.25.0",
+    "datasets>=3.0.0",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.maturin]
+manifest-path = "crates/effdim-py/Cargo.toml"
+module-name = "effdim._native"
+python-source = "src"
+bindings = "pyo3"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+
+# Install CUDA-enabled torch on Linux/Windows; macOS falls back to PyPI (CPU).
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
