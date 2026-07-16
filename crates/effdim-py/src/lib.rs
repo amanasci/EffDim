@@ -1,6 +1,6 @@
-//! PyO3 bindings for `effdim._native` (round-trip stub + spectral partial dict).
+//! PyO3 bindings for `effdim._native` (round-trip stub + full compute_dim dict).
 
-use effdim_core::{compute_spectral as core_compute_spectral, identity_f64_slice};
+use effdim_core::{compute_dim as core_compute_dim, identity_f64_slice};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -21,15 +21,15 @@ fn roundtrip_array<'py>(
         .into_pyarray(py)
 }
 
-/// Spectral metrics only — partial flat dict (D-01, D-02). PCA key is a Python int.
+/// Full 16-key flat dict (spectral + geometry). PCA key is a Python int.
 #[pyfunction]
-fn compute_spectral<'py>(
+fn compute_dim<'py>(
     py: Python<'py>,
     data: PyReadonlyArray2<'py, f64>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let owned = data.as_array().to_owned();
     let results = py
-        .detach(|| core_compute_spectral(&owned))
+        .detach(|| core_compute_dim(&owned))
         .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
 
     let dict = PyDict::new(py);
@@ -59,6 +59,14 @@ fn compute_spectral<'py>(
         "geometric_mean_eff_dimensionality",
         results.geometric_mean_eff_dimensionality,
     )?;
+    dict.set_item("mle_dimensionality", results.mle_dimensionality)?;
+    dict.set_item("two_nn_dimensionality", results.two_nn_dimensionality)?;
+    dict.set_item("danco_dimensionality", results.danco_dimensionality)?;
+    dict.set_item("mind_mli_dimensionality", results.mind_mli_dimensionality)?;
+    dict.set_item("mind_mlk_dimensionality", results.mind_mlk_dimensionality)?;
+    dict.set_item("ess_dimensionality", results.ess_dimensionality)?;
+    dict.set_item("tle_dimensionality", results.tle_dimensionality)?;
+    dict.set_item("gmst_dimensionality", results.gmst_dimensionality)?;
     Ok(dict)
 }
 
@@ -66,6 +74,6 @@ fn compute_spectral<'py>(
 #[pyo3(name = "_native")]
 fn effdim_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(roundtrip_array, m)?)?;
-    m.add_function(wrap_pyfunction!(compute_spectral, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_dim, m)?)?;
     Ok(())
 }
