@@ -1,11 +1,11 @@
 """
-Phase 2/3 maturin/PyO3 native module tests (RUST-02 shell + RUST-03 spectral).
+Phase 4 maturin/PyO3 native module tests (full-dict compute_dim smoke).
 
 Covers importability of ``effdim._native``, float64 2-D NumPy round-trip via
-``roundtrip_array``, and Phase 3 ``compute_spectral`` partial-dict smoke.
+``roundtrip_array``, and Phase 4 ``compute_dim`` full 16-key dict smoke (D-03, D-04).
 
-Phase 3 allows ``api.py`` to call the private native module for spectral
-keys; public ``__all__`` and ``__init__.py`` still exclude it (D-16).
+Public ``__all__`` and ``__init__.py`` still exclude ``_native``. The full-dict
+smoke fails RED (AttributeError) until plan 04-03 registers ``_native.compute_dim``.
 """
 
 from pathlib import Path
@@ -17,7 +17,8 @@ _NATIVE_MODULE = "_native"
 
 _REPO_SRC = Path(__file__).resolve().parents[1] / "src" / "effdim"
 
-_SPECTRAL_KEYS = {
+# Full 16-key inventory matching tests/test_api.py / Phase 1 validation (D-03).
+_FULL_COMPUTE_DIM_KEYS = {
     "pca_explained_variance_95",
     "participation_ratio",
     "shannon_entropy",
@@ -26,6 +27,14 @@ _SPECTRAL_KEYS = {
     "renyi_eff_dimensionality_alpha_4",
     "renyi_eff_dimensionality_alpha_5",
     "geometric_mean_eff_dimensionality",
+    "mle_dimensionality",
+    "two_nn_dimensionality",
+    "danco_dimensionality",
+    "mind_mli_dimensionality",
+    "mind_mlk_dimensionality",
+    "ess_dimensionality",
+    "tle_dimensionality",
+    "gmst_dimensionality",
 }
 
 
@@ -63,20 +72,17 @@ def test_init_module_does_not_import_native():
     assert _NATIVE_MODULE not in init_src
 
 
-def test_compute_spectral_partial_dict_keys():
-    """``compute_spectral`` returns exactly the eight spectral keys (D-01, D-02)."""
+def test_compute_dim_full_dict_keys():
+    """``compute_dim`` returns the full 16-key flat dict (D-03, D-04).
+
+    RED until plan 04-03 lands ``effdim._native.compute_dim``.
+    """
     import effdim._native as native
 
     rng = np.random.default_rng(42)
     data = rng.standard_normal((20, 4)).astype(np.float64)
-    result = native.compute_spectral(data)
+    result = native.compute_dim(data)
 
     assert hasattr(result, "keys")
-    assert set(result.keys()) == _SPECTRAL_KEYS
+    assert set(result.keys()) == _FULL_COMPUTE_DIM_KEYS
     assert isinstance(result["pca_explained_variance_95"], int)
-    for geo_key in (
-        "mle_dimensionality",
-        "two_nn_dimensionality",
-        "gmst_dimensionality",
-    ):
-        assert geo_key not in result
