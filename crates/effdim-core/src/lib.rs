@@ -93,9 +93,8 @@ pub fn compute_spectral(data: &Array2<f64>) -> Result<SpectralResults, SpectralE
 }
 
 #[cfg(test)]
-mod compute_spectral_inventory_b {
-    //! Inventory B: spectral-only mirrors of compute_dim pytest SETUPs (D-14).
-    //! Geometry keys (MLE/TwoNN/…) are intentionally never asserted (D-02).
+mod compute_dim_inventory_b {
+    //! Inventory B: compute_dim pytest SETUP mirrors with geometry asserts (D-12).
 
     use super::*;
     use approx::assert_relative_eq;
@@ -135,18 +134,38 @@ mod compute_spectral_inventory_b {
         a.dot(b)
     }
 
-    fn assert_spectral_finite_nonneg(r: &SpectralResults) {
+    fn load_swiss_roll() -> Array2<f64> {
+        const BYTES: &[u8] =
+            include_bytes!("fixtures/swiss_roll_n1000_noise001_rs42.f64bin");
+        assert_eq!(BYTES.len(), 1000 * 3 * 8);
+        let mut vals = Vec::with_capacity(3000);
+        for chunk in BYTES.chunks_exact(8) {
+            vals.push(f64::from_le_bytes(chunk.try_into().unwrap()));
+        }
+        Array2::from_shape_vec((1000, 3), vals).unwrap()
+    }
+
+    /// All 16 compute_dim fields finite and non-negative (geometry included).
+    fn assert_all_finite_nonneg(r: &ComputeDimResults) {
         assert!(r.pca_explained_variance_95 >= 1 || r.pca_explained_variance_95 == 0);
-        for v in [
-            r.participation_ratio,
-            r.shannon_entropy,
-            r.renyi_eff_dimensionality_alpha_2,
-            r.renyi_eff_dimensionality_alpha_3,
-            r.renyi_eff_dimensionality_alpha_4,
-            r.renyi_eff_dimensionality_alpha_5,
-            r.geometric_mean_eff_dimensionality,
+        for (name, v) in [
+            ("participation_ratio", r.participation_ratio),
+            ("shannon_entropy", r.shannon_entropy),
+            ("renyi_2", r.renyi_eff_dimensionality_alpha_2),
+            ("renyi_3", r.renyi_eff_dimensionality_alpha_3),
+            ("renyi_4", r.renyi_eff_dimensionality_alpha_4),
+            ("renyi_5", r.renyi_eff_dimensionality_alpha_5),
+            ("geo_mean", r.geometric_mean_eff_dimensionality),
+            ("mle", r.mle_dimensionality),
+            ("two_nn", r.two_nn_dimensionality),
+            ("danco", r.danco_dimensionality),
+            ("mind_mli", r.mind_mli_dimensionality),
+            ("mind_mlk", r.mind_mlk_dimensionality),
+            ("ess", r.ess_dimensionality),
+            ("tle", r.tle_dimensionality),
+            ("gmst", r.gmst_dimensionality),
         ] {
-            assert!(v.is_finite() && v >= 0.0, "non-finite or negative spectral value: {v}");
+            assert!(v.is_finite() && v >= 0.0, "{name} non-finite or negative: {v}");
         }
     }
 
@@ -154,22 +173,16 @@ mod compute_spectral_inventory_b {
 
     /// SETUP: test_api::test_compute_dim_small_data — seed=42, shape=(100, 10)
     #[test]
-    fn test_compute_dim_small_data_spectral_keys() {
+    fn test_compute_dim_small_data() {
         let data = seeded_randn(42, 100, 10);
-        let r = compute_spectral(&data).unwrap();
-        assert!(r.participation_ratio.is_finite());
-        assert!(r.shannon_entropy.is_finite());
-        assert!(r.geometric_mean_eff_dimensionality.is_finite());
-        assert!(r.renyi_eff_dimensionality_alpha_2.is_finite());
-        assert!(r.renyi_eff_dimensionality_alpha_3.is_finite());
-        assert!(r.renyi_eff_dimensionality_alpha_4.is_finite());
-        assert!(r.renyi_eff_dimensionality_alpha_5.is_finite());
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
         assert!(r.pca_explained_variance_95 >= 1);
     }
 
     /// SETUP: test_api::test_compute_dim_list_input — five chunks (10,5), seed=42
     #[test]
-    fn test_compute_dim_list_input_spectral() {
+    fn test_compute_dim_list_input() {
         let mut chunks = Vec::new();
         let mut seed = 42u64;
         for _ in 0..5 {
@@ -181,15 +194,16 @@ mod compute_spectral_inventory_b {
             &chunks.iter().map(|c| c.view()).collect::<Vec<_>>(),
         )
         .unwrap();
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(r.participation_ratio > 0.0);
+        assert_all_finite_nonneg(&r);
     }
 
     /// SETUP: test_api::test_compute_dim_centered — seed=42, shape=(50,5), +100 mean
     #[test]
     fn test_compute_dim_centered_pr_positive() {
         let data = seeded_randn(42, 50, 5) + 100.0;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(r.participation_ratio > 0.0);
     }
 
@@ -200,7 +214,7 @@ mod compute_spectral_inventory_b {
     #[test]
     fn test_renyi_keys_alpha_2_through_5() {
         let data = seeded_randn(0, 50, 5);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         for v in [
             r.renyi_eff_dimensionality_alpha_2,
             r.renyi_eff_dimensionality_alpha_3,
@@ -221,7 +235,7 @@ mod compute_spectral_inventory_b {
         )
         .unwrap();
         let data = seeded_randn(0, 100, 5) * &scales;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         let values = [
             r.renyi_eff_dimensionality_alpha_2,
             r.renyi_eff_dimensionality_alpha_3,
@@ -243,7 +257,7 @@ mod compute_spectral_inventory_b {
     #[test]
     fn test_renyi_alpha_2_matches_participation_ratio() {
         let data = seeded_randn(0, 50, 5);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert_relative_eq!(
             r.renyi_eff_dimensionality_alpha_2,
             r.participation_ratio,
@@ -253,10 +267,10 @@ mod compute_spectral_inventory_b {
 
     /// SETUP: TestReproducibility::test_same_input_same_output — seed=7, shape=(80, 6)
     #[test]
-    fn test_same_input_same_spectral_output() {
+    fn test_same_input_same_compute_dim_output() {
         let data = seeded_randn(7, 80, 6);
-        let r1 = compute_spectral(&data).unwrap();
-        let r2 = compute_spectral(&data).unwrap();
+        let r1 = compute_dim(&data).unwrap();
+        let r2 = compute_dim(&data).unwrap();
         assert_eq!(r1, r2);
     }
 
@@ -264,33 +278,35 @@ mod compute_spectral_inventory_b {
 
     /// SETUP: TestComputeDimInputValidation::test_list_of_arrays_input — three (20,5), seed=0
     #[test]
-    fn test_list_of_arrays_input_spectral() {
+    fn test_list_of_arrays_input() {
         let c0 = seeded_randn(0, 20, 5);
         let c1 = seeded_randn(1, 20, 5);
         let c2 = seeded_randn(2, 20, 5);
         let data = ndarray::concatenate(Axis(0), &[c0.view(), c1.view(), c2.view()]).unwrap();
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(r.participation_ratio > 0.0);
     }
 
     /// SETUP: TestComputeDimInputValidation::test_result_contains_all_expected_keys
-    /// seed=0, shape=(50, 5) — spectral subset only
+    /// seed=0, shape=(50, 5) — full 16-key inventory (D-12)
     #[test]
-    fn test_spectral_key_inventory_present() {
+    fn test_full_16_key_inventory() {
         let data = seeded_randn(0, 50, 5);
-        let r = compute_spectral(&data).unwrap();
-        assert_spectral_finite_nonneg(&r);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
         assert!(r.pca_explained_variance_95 >= 1);
         assert!(r.participation_ratio > 0.0);
         assert!(r.shannon_entropy > 0.0);
         assert!(r.geometric_mean_eff_dimensionality > 0.0);
+        assert!(r.mle_dimensionality > 0.0);
+        assert!(r.two_nn_dimensionality > 0.0);
     }
 
     /// SETUP: TestComputeDimInputValidation::test_single_feature_column — seed=0, shape=(50, 1)
     #[test]
     fn test_single_feature_column() {
         let data = seeded_randn(0, 50, 1);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert_eq!(r.pca_explained_variance_95, 1);
         assert!(r.participation_ratio > 0.0);
     }
@@ -299,16 +315,16 @@ mod compute_spectral_inventory_b {
     #[test]
     fn test_square_matrix() {
         let data = seeded_randn(0, 20, 20);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(r.participation_ratio > 0.0);
     }
 
     /// SETUP: TestComputeDimInputValidation::test_uncentered_data_handled — seed=42, +1000
     #[test]
-    fn test_uncentered_data_handled_spectral() {
+    fn test_uncentered_data_handled() {
         let data = seeded_randn(42, 50, 5) + 1000.0;
-        let r = compute_spectral(&data).unwrap();
-        assert_spectral_finite_nonneg(&r);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
     }
 
     // --- tests/test_numerical_stability.py::TestComputeDimIntegration ---
@@ -322,7 +338,7 @@ mod compute_spectral_inventory_b {
         let a = seeded_randn(42, n, k);
         let b = seeded_randn(43, p, k);
         let data = matmul(&a, &b.t().to_owned());
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.participation_ratio < (k as f64) + 2.0,
             "PR={}",
@@ -350,7 +366,7 @@ mod compute_spectral_inventory_b {
         let b = seeded_randn(43, p, k);
         let noise = seeded_randn(44, n, p) * 0.1;
         let data = matmul(&a, &b.t().to_owned()) + noise;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.participation_ratio < (k as f64) + 5.0,
             "PR={}",
@@ -363,7 +379,7 @@ mod compute_spectral_inventory_b {
     fn test_isotropic_gaussian() {
         let p = 10usize;
         let data = seeded_randn(42, 100, p);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.participation_ratio > 0.7 * (p as f64),
             "PR={}",
@@ -378,19 +394,19 @@ mod compute_spectral_inventory_b {
 
     /// SETUP: TestComputeDimIntegration::test_all_results_finite — seed=42, shape=(50, 10)
     #[test]
-    fn test_all_spectral_results_finite() {
+    fn test_all_results_finite() {
         let data = seeded_randn(42, 50, 10);
-        let r = compute_spectral(&data).unwrap();
-        assert_spectral_finite_nonneg(&r);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
     }
 
     /// SETUP: TestComputeDimIntegration::test_centered_vs_uncentered — seed=42, shift=+100
     #[test]
-    fn test_centered_vs_uncentered_spectral() {
+    fn test_centered_vs_uncentered() {
         let data_centered = seeded_randn(42, 50, 10);
         let data_shifted = &data_centered + 100.0;
-        let r0 = compute_spectral(&data_centered).unwrap();
-        let r1 = compute_spectral(&data_shifted).unwrap();
+        let r0 = compute_dim(&data_centered).unwrap();
+        let r1 = compute_dim(&data_shifted).unwrap();
         assert_eq!(r0.pca_explained_variance_95, r1.pca_explained_variance_95);
         assert_relative_eq!(
             r0.participation_ratio,
@@ -412,47 +428,68 @@ mod compute_spectral_inventory_b {
             r1.geometric_mean_eff_dimensionality,
             max_relative = 1e-10
         );
+        // Geometry also shift-invariant after centering
+        assert_relative_eq!(r0.mle_dimensionality, r1.mle_dimensionality, max_relative = 1e-5);
+        assert_relative_eq!(
+            r0.two_nn_dimensionality,
+            r1.two_nn_dimensionality,
+            max_relative = 1e-5
+        );
     }
 
     /// SETUP: TestNumericalStability::test_very_large_data_values — seed=42, scale=1e6
     #[test]
-    fn test_very_large_data_values_spectral() {
+    fn test_very_large_data_values() {
         let data = seeded_randn(42, 50, 10) * 1e6;
-        let r = compute_spectral(&data).unwrap();
-        assert_spectral_finite_nonneg(&r);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
     }
 
     /// SETUP: TestNumericalStability::test_very_small_data_values — seed=42, scale=1e-6
     #[test]
-    fn test_very_small_data_values_spectral() {
+    fn test_very_small_data_values() {
         let data = seeded_randn(42, 50, 10) * 1e-6;
-        let r = compute_spectral(&data).unwrap();
-        assert_spectral_finite_nonneg(&r);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
     }
 
-    // --- tests/test_known_dimensionalities.py (spectral asserts only) ---
+    // --- tests/test_known_dimensionalities.py (geometry + spectral bands) ---
+
+    /// SETUP: TestKnownDimensionalities::test_random_noise_3d — seed=42, shape=(300, 3)
+    #[test]
+    fn test_random_noise_3d() {
+        let data = seeded_randn(42, 300, 3);
+        let r = compute_dim(&data).unwrap();
+        assert!(2.0 < r.mle_dimensionality && r.mle_dimensionality < 5.0);
+        assert!(2.0 < r.two_nn_dimensionality && r.two_nn_dimensionality < 5.0);
+        assert!(2.0 < r.mind_mlk_dimensionality && r.mind_mlk_dimensionality < 5.0);
+        assert!(2.0 < r.tle_dimensionality && r.tle_dimensionality < 5.0);
+        assert!(r.danco_dimensionality.is_finite() && r.danco_dimensionality > 0.0);
+        assert!(r.ess_dimensionality.is_finite() && r.ess_dimensionality > 0.0);
+        assert!(r.mind_mli_dimensionality.is_finite() && r.mind_mli_dimensionality > 0.0);
+        assert!(r.gmst_dimensionality.is_finite() && r.gmst_dimensionality > 0.0);
+    }
 
     /// SETUP: TestKnownDimensionalities::test_random_noise_10d — seed=42, shape=(500, 10)
     #[test]
-    fn test_random_noise_10d_pr() {
+    fn test_random_noise_10d() {
         let data = seeded_randn(42, 500, 10);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
+        assert!(7.0 < r.mle_dimensionality && r.mle_dimensionality < 14.0);
+        assert!(7.0 < r.two_nn_dimensionality && r.two_nn_dimensionality < 14.0);
+        assert!(7.0 < r.mind_mlk_dimensionality && r.mind_mlk_dimensionality < 14.0);
+        assert!(7.0 < r.tle_dimensionality && r.tle_dimensionality < 14.0);
         assert!(r.participation_ratio > 7.0, "PR={}", r.participation_ratio);
     }
 
     /// SETUP: TestKnownDimensionalities::test_swiss_roll_2d_manifold
-    /// Embedded float64 from sklearn.datasets.make_swiss_roll(n=1000, noise=0.01, random_state=42)
+    /// Embedded float64 from sklearn make_swiss_roll(n=1000, noise=0.01, random_state=42)
     #[test]
-    fn test_swiss_roll_2d_manifold_pca() {
-        const BYTES: &[u8] =
-            include_bytes!("fixtures/swiss_roll_n1000_noise001_rs42.f64bin");
-        assert_eq!(BYTES.len(), 1000 * 3 * 8);
-        let mut vals = Vec::with_capacity(3000);
-        for chunk in BYTES.chunks_exact(8) {
-            vals.push(f64::from_le_bytes(chunk.try_into().unwrap()));
-        }
-        let data = Array2::from_shape_vec((1000, 3), vals).unwrap();
-        let r = compute_spectral(&data).unwrap();
+    fn test_swiss_roll_2d_manifold() {
+        let data = load_swiss_roll();
+        let r = compute_dim(&data).unwrap();
+        assert!(1.5 < r.mle_dimensionality && r.mle_dimensionality < 3.5);
+        assert!(1.5 < r.two_nn_dimensionality && r.two_nn_dimensionality < 3.5);
         assert!(
             r.pca_explained_variance_95 >= 2,
             "PCA={}",
@@ -468,28 +505,31 @@ mod compute_spectral_inventory_b {
         let b = seeded_randn(43, 3, 10);
         let noise = seeded_randn(44, 500, 10) * 1e-6;
         let data = matmul(&a, &b) + noise;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.pca_explained_variance_95 <= 4,
             "PCA={}",
             r.pca_explained_variance_95
         );
         assert!(r.participation_ratio < 5.0, "PR={}", r.participation_ratio);
+        assert!(2.0 < r.mle_dimensionality && r.mle_dimensionality < 5.0);
     }
 
     /// SETUP: TestKnownDimensionalities::test_2d_plane_in_5d — seed=42, (400,2)@(2,5)
     #[test]
-    fn test_2d_plane_in_5d_pca() {
+    fn test_2d_plane_in_5d() {
         let coords = seeded_randn(42, 400, 2);
         let emb = seeded_randn(43, 2, 5);
         let noise = seeded_randn(44, 400, 5) * 1e-6;
         let data = matmul(&coords, &emb) + noise;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.pca_explained_variance_95 <= 3,
             "PCA={}",
             r.pca_explained_variance_95
         );
+        assert!(1.0 < r.mle_dimensionality && r.mle_dimensionality < 4.0);
+        assert!(1.0 < r.mind_mlk_dimensionality && r.mind_mlk_dimensionality < 4.0);
     }
 
     /// SETUP: TestKnownDimensionalities::test_isotropic_gaussian_spectral — seed=42, (400, 8)
@@ -497,7 +537,7 @@ mod compute_spectral_inventory_b {
     fn test_isotropic_gaussian_spectral() {
         let d = 8usize;
         let data = seeded_randn(42, 400, d);
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.participation_ratio > 0.6 * (d as f64),
             "PR={}",
@@ -510,20 +550,84 @@ mod compute_spectral_inventory_b {
         );
     }
 
+    /// SETUP: TestEstimatorConsistency::test_estimators_agree_on_isotropic — seed=42, (300,5)
+    #[test]
+    fn test_estimators_agree_on_isotropic() {
+        let data = seeded_randn(42, 300, 5);
+        let r = compute_dim(&data).unwrap();
+        for (name, val) in [
+            ("mle", r.mle_dimensionality),
+            ("mind_mlk", r.mind_mlk_dimensionality),
+            ("tle", r.tle_dimensionality),
+        ] {
+            assert!(3.0 < val && val < 8.0, "{name} returned {val} for 5D Gaussian");
+        }
+    }
+
     /// SETUP: TestEstimatorConsistency::test_low_dim_data_all_estimators_low
     /// seed=42, rank-1 (200,1)@(1,10) + 1e-6 noise
     #[test]
-    fn test_low_dim_data_spectral_low() {
+    fn test_low_dim_data_all_estimators_low() {
         let t = seeded_randn(42, 200, 1);
         let emb = seeded_randn(43, 1, 10);
         let noise = seeded_randn(44, 200, 10) * 1e-6;
         let data = matmul(&t, &emb) + noise;
-        let r = compute_spectral(&data).unwrap();
+        let r = compute_dim(&data).unwrap();
         assert!(
             r.pca_explained_variance_95 <= 2,
             "PCA={}",
             r.pca_explained_variance_95
         );
         assert!(r.participation_ratio < 3.0, "PR={}", r.participation_ratio);
+    }
+
+    // --- tests/test_new_geometric_estimators.py::TestNewEstimatorsIntegration ---
+
+    /// SETUP: TestNewEstimatorsIntegration::test_compute_dim_contains_new_keys
+    /// seed=42, shape=(100, 10)
+    #[test]
+    fn test_compute_dim_contains_new_keys() {
+        let data = seeded_randn(42, 100, 10);
+        let r = compute_dim(&data).unwrap();
+        for (name, v) in [
+            ("danco", r.danco_dimensionality),
+            ("mind_mli", r.mind_mli_dimensionality),
+            ("mind_mlk", r.mind_mlk_dimensionality),
+            ("ess", r.ess_dimensionality),
+            ("tle", r.tle_dimensionality),
+            ("gmst", r.gmst_dimensionality),
+        ] {
+            assert!(v.is_finite(), "{name} not finite: {v}");
+        }
+    }
+
+    /// SETUP: TestNewEstimatorsIntegration::test_all_results_finite — seed=42, shape=(50, 10)
+    #[test]
+    fn test_new_estimators_all_results_finite() {
+        let data = seeded_randn(42, 50, 10);
+        let r = compute_dim(&data).unwrap();
+        assert_all_finite_nonneg(&r);
+    }
+
+    /// SETUP: TestNewEstimatorsIntegration::test_known_dimensionality_gaussian
+    /// seed=42, shape=(200, 10)
+    #[test]
+    fn test_known_dimensionality_gaussian() {
+        let data = seeded_randn(42, 200, 10);
+        let r = compute_dim(&data).unwrap();
+        assert!(r.mle_dimensionality > 5.0);
+        assert!(r.two_nn_dimensionality > 5.0);
+        assert!(r.mind_mlk_dimensionality > 5.0);
+        assert!(r.tle_dimensionality > 5.0);
+    }
+
+    /// SETUP: TestNewEstimatorsIntegration::test_swiss_roll_intrinsic_dim
+    /// Reuses n=1000 sklearn fixture (pytest uses n=500; bands 1..4 still apply)
+    #[test]
+    fn test_swiss_roll_intrinsic_dim() {
+        let data = load_swiss_roll();
+        let r = compute_dim(&data).unwrap();
+        assert!(1.0 < r.mle_dimensionality && r.mle_dimensionality < 4.0);
+        assert!(1.0 < r.two_nn_dimensionality && r.two_nn_dimensionality < 4.0);
     }
 }
