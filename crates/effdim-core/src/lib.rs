@@ -1,5 +1,6 @@
-//! Pure Rust compute core — preprocess + spectral metrics + shared k-NN (Phase 4).
+//! Pure Rust compute core — preprocess + spectral metrics + shared k-NN + geometry (Phase 4).
 
+pub mod geometry;
 pub mod knn;
 pub mod metrics;
 pub mod preprocess;
