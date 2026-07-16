@@ -6,3 +6,7 @@ edition = "2021"
 [lib]
 name = "effdim_core"
 crate-type = ["rlib"]
+
+[dependencies]
+ndarray = "0.17"
+faer = "0.24"
