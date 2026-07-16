@@ -10,3 +10,6 @@ crate-type = ["rlib"]
 [dependencies]
 ndarray = "0.17"
 faer = "0.24"
+
+[dev-dependencies]
+approx = "0.5.1"
