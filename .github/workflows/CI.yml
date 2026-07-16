@@ -19,19 +19,26 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        # D-16: drop 3.9 — align with requires-python >=3.10 and abi3-py310
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      # D-13: Rust + maturin develop then full pytest (incl. test_native_skeleton)
+      # D-15: OS × Python matrix only — no Phase 5 maturin-action wheel publish
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install "maturin>=1.0,<2.0"
+          maturin develop --release
+          pip install -e ".[dev]"
 
       - name: Run tests
         run: |
