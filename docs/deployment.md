@@ -1,6 +1,21 @@
 # Deployment and Publishing
 
-This guide is for maintainers who publish releases to PyPI.
+This guide is for maintainers who publish releases to PyPI, and for contributors who build the Rust extension locally.
+
+## Contributor develop (Phase 2+)
+
+Package builds use maturin (Rust + PyO3). Contributors and CI need a Rust toolchain; end users must not once prebuilt wheels exist (tokenizers-style UX).
+
+**Requirements:** [rustup](https://rustup.rs/) stable (`rust-toolchain.toml`) and `maturin` (`pip install -e ".[dev]"` or the build-system pin).
+
+**Canonical workflow (D-10):**
+
+```bash
+maturin develop --release
+pytest
+```
+
+Multi-OS wheel artifact publish and clean-env install→pytest remain **Phase 5** (PACK-*). This phase does not ship a PyPI wheel matrix for end users.
 
 ## Overview
 

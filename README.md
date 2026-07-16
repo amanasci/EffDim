@@ -9,6 +9,8 @@
 pip install effdim
 ```
 
+End users install from wheels (no Rust toolchain). Contributors building from source need Rust stable + maturin — see **Contributor develop** in [`docs/deployment.md`](docs/deployment.md) (`maturin develop --release`, then `pytest`). Multi-OS wheel publish CI is Phase 5.
+
 ## Usage
 
 ```python
