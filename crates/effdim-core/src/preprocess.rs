@@ -42,3 +42,29 @@ pub fn singular_values_exact(data: &Array2<f64>) -> Result<Vec<f64>, faer::linal
     let mat = Mat::<f64>::from_fn(nrows, ncols, |i, j| data[(i, j)]);
     mat.singular_values()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::assert_relative_eq;
+    use ndarray::array;
+
+    /// SETUP support: centering invariance used by TestComputeDimIntegration::test_centered_vs_uncentered
+    #[test]
+    fn ensure_centered_subtracts_large_mean() {
+        let data = array![[100.0, 200.0], [102.0, 198.0], [101.0, 201.0]];
+        let centered = ensure_centered(data, 1e-5);
+        let means: Vec<f64> = (0..2)
+            .map(|j| centered.column(j).mean().unwrap())
+            .collect();
+        assert_relative_eq!(means[0], 0.0, epsilon = 1e-12);
+        assert_relative_eq!(means[1], 0.0, epsilon = 1e-12);
+    }
+
+    #[test]
+    fn ensure_centered_skips_when_within_tol() {
+        let data = array![[1e-6, -1e-6], [-1e-6, 1e-6]];
+        let centered = ensure_centered(data.clone(), 1e-5);
+        assert_eq!(centered, data);
+    }
+}
