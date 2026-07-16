@@ -1,9 +1,12 @@
 //! Pure Rust compute core — preprocess + spectral metrics + shared k-NN + geometry (Phase 4).
 
+pub mod api;
 pub mod geometry;
 pub mod knn;
 pub mod metrics;
 pub mod preprocess;
+
+pub use api::{compute_dim, ComputeDimResults};
 
 use ndarray::Array2;
 
