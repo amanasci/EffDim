@@ -4,6 +4,9 @@
 //! avoid a second search for DANCo/ESS (D-08, D-09).
 
 use ndarray::Array2;
+use rand::rngs::StdRng;
+use rand::seq::index::sample;
+use rand::SeedableRng;
 
 use crate::knn::exact_knn_l2_sq;
 
@@ -375,6 +378,232 @@ pub fn tle_dimensionality(
     sum_estimates / n_samples as f64
 }
 
+/// Dense pairwise Euclidean distance matrix (squareform(pdist)).
+fn pairwise_euclidean(data: &Array2<f32>) -> Array2<f64> {
+    let n = data.nrows();
+    let d = data.ncols();
+    let mut dist = Array2::<f64>::zeros((n, n));
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let mut s = 0.0f64;
+            for t in 0..d {
+                let diff = data[[i, t]] as f64 - data[[j, t]] as f64;
+                s += diff * diff;
+            }
+            let e = s.sqrt();
+            dist[[i, j]] = e;
+            dist[[j, i]] = e;
+        }
+    }
+    dist
+}
+
+/// k-NN graph in distance mode, then sum-symmetrize (graph + graph.T) — D-11/D-13.
+fn knn_graph_sum_symmetrize(data: &Array2<f32>, k_geo: usize) -> Array2<f64> {
+    let n = data.nrows();
+    let d = data.ncols();
+    let mut graph = Array2::<f64>::zeros((n, n));
+    if n == 0 || k_geo == 0 {
+        return graph;
+    }
+    let (_dist_sq, indices) = exact_knn_l2_sq(data, k_geo);
+    for i in 0..n {
+        for r in 0..indices.ncols() {
+            let j = indices[[i, r]];
+            let mut s = 0.0f64;
+            for t in 0..d {
+                let diff = data[[i, t]] as f64 - data[[j, t]] as f64;
+                s += diff * diff;
+            }
+            graph[[i, j]] = s.sqrt();
+        }
+    }
+    // Sum-symmetrize: graph + graph.T (not min)
+    let mut sym = Array2::<f64>::zeros((n, n));
+    for i in 0..n {
+        for j in 0..n {
+            sym[[i, j]] = graph[[i, j]] + graph[[j, i]];
+        }
+    }
+    sym
+}
+
+/// Floyd–Warshall on a dense graph. Missing edges (0 off-diagonal) treated as ∞.
+fn floyd_warshall(graph: &Array2<f64>) -> Array2<f64> {
+    let n = graph.nrows();
+    let mut dist = Array2::<f64>::from_elem((n, n), f64::INFINITY);
+    for i in 0..n {
+        dist[[i, i]] = 0.0;
+        for j in 0..n {
+            if i != j && graph[[i, j]] > 0.0 {
+                dist[[i, j]] = graph[[i, j]];
+            }
+        }
+    }
+    for k in 0..n {
+        for i in 0..n {
+            let dik = dist[[i, k]];
+            if !dik.is_finite() {
+                continue;
+            }
+            for j in 0..n {
+                let cand = dik + dist[[k, j]];
+                if cand < dist[[i, j]] {
+                    dist[[i, j]] = cand;
+                }
+            }
+        }
+    }
+    // Replace remaining inf with max_finite * 10 (Python geodesic path)
+    let mut max_finite = 0.0f64;
+    let mut any_finite = false;
+    for i in 0..n {
+        for j in 0..n {
+            let v = dist[[i, j]];
+            if v.is_finite() {
+                any_finite = true;
+                if v > max_finite {
+                    max_finite = v;
+                }
+            }
+        }
+    }
+    let fill = if any_finite { max_finite * 10.0 } else { 1.0 * 10.0 };
+    for i in 0..n {
+        for j in 0..n {
+            if !dist[[i, j]].is_finite() {
+                dist[[i, j]] = fill;
+            }
+        }
+    }
+    dist
+}
+
+/// Dense Prim MST total edge weight (matches SciPy minimum_spanning_tree(...).sum()).
+fn prim_mst_length(dist: &Array2<f64>) -> f64 {
+    let n = dist.nrows();
+    if n < 2 {
+        return 0.0;
+    }
+    let mut in_tree = vec![false; n];
+    let mut min_edge = vec![f64::INFINITY; n];
+    min_edge[0] = 0.0;
+    let mut total = 0.0f64;
+
+    for _ in 0..n {
+        let mut u = None;
+        let mut best = f64::INFINITY;
+        for i in 0..n {
+            if !in_tree[i] && min_edge[i] < best {
+                best = min_edge[i];
+                u = Some(i);
+            }
+        }
+        let u = match u {
+            Some(u) => u,
+            None => break,
+        };
+        in_tree[u] = true;
+        if best.is_finite() {
+            total += best;
+        }
+        for v in 0..n {
+            if !in_tree[v] {
+                let w = dist[[u, v]];
+                if w < min_edge[v] {
+                    min_edge[v] = w;
+                }
+            }
+        }
+    }
+    total
+}
+
+/// GMST intrinsic dimensionality (Euclidean or geodesic).
+///
+/// `random_state` knobs match Python (default 42); bands are the gate (D-14).
+pub fn gmst_dimensionality(
+    data: &Array2<f32>,
+    geodesic: bool,
+    random_state: u64,
+) -> f64 {
+    let n_samples = data.nrows();
+    if n_samples < 10 {
+        return 0.0;
+    }
+
+    let mut sizes: Vec<usize> = [
+        (n_samples / 8).max(4),
+        (n_samples / 4).max(4),
+        (n_samples / 2).max(4),
+        n_samples,
+    ]
+    .into_iter()
+    .collect();
+    sizes.sort_unstable();
+    sizes.dedup();
+
+    if sizes.len() < 2 {
+        return 0.0;
+    }
+
+    let mut rng = StdRng::seed_from_u64(random_state);
+    let mut log_n_list: Vec<f64> = Vec::new();
+    let mut log_l_list: Vec<f64> = Vec::new();
+
+    for &size_raw in &sizes {
+        let size = size_raw.min(n_samples);
+        let idx: Vec<usize> = if size == n_samples {
+            (0..n_samples).collect()
+        } else {
+            sample(&mut rng, n_samples, size).into_vec()
+        };
+
+        let mut subsample = Array2::<f32>::zeros((size, data.ncols()));
+        for (row, &i) in idx.iter().enumerate() {
+            for c in 0..data.ncols() {
+                subsample[[row, c]] = data[[i, c]];
+            }
+        }
+
+        let dist_matrix = if geodesic {
+            let k_geo = 10.min(size.saturating_sub(1));
+            let graph = knn_graph_sum_symmetrize(&subsample, k_geo);
+            floyd_warshall(&graph)
+        } else {
+            pairwise_euclidean(&subsample)
+        };
+
+        let l = prim_mst_length(&dist_matrix);
+        if l > 0.0 {
+            log_n_list.push((size as f64).ln());
+            log_l_list.push(l.ln());
+        }
+    }
+
+    if log_n_list.len() < 2 {
+        return 0.0;
+    }
+
+    let m = log_n_list.len() as f64;
+    let mean_x: f64 = log_n_list.iter().sum::<f64>() / m;
+    let mean_y: f64 = log_l_list.iter().sum::<f64>() / m;
+    let mut num = 0.0f64;
+    let mut den = 0.0f64;
+    for i in 0..log_n_list.len() {
+        let dx = log_n_list[i] - mean_x;
+        let dy = log_l_list[i] - mean_y;
+        num += dx * dy;
+        den += dx * dx;
+    }
+    let alpha = num / (den + EPS);
+
+    if (1.0 - alpha).abs() < EPS {
+        return 0.0;
+    }
+    1.0 / (1.0 - alpha)
+}
+
 #[cfg(test)]
 mod soft_zero_tests {
     //! Soft-zero sentinels matching test_input_validation.py geometric edge cases.
@@ -445,5 +674,44 @@ mod soft_zero_tests {
         // TLE≈MLE: same algebraic form on these inputs → relative band
         let rel = (mle - tle).abs() / mle.max(tle);
         assert!(rel < 0.05, "mle={mle} tle={tle} rel={rel}");
+    }
+
+    /// SETUP: test_input_validation::test_gmst_small_dataset_returns_zero — n=9
+    #[test]
+    fn test_gmst_small_dataset_returns_zero() {
+        let mut data = Array2::<f32>::zeros((9, 3));
+        // Deterministic fill (seeded-ish)
+        for i in 0..9 {
+            for j in 0..3 {
+                data[[i, j]] = (i * 3 + j) as f32 * 0.1;
+            }
+        }
+        assert_eq!(gmst_dimensionality(&data, false, 42), 0.0);
+    }
+
+    /// Smoke: Euclidean GMST finite and non-negative on (50, 3).
+    #[test]
+    fn test_gmst_euclidean_smoke_finite() {
+        let mut data = Array2::<f32>::zeros((50, 3));
+        for i in 0..50 {
+            for j in 0..3 {
+                data[[i, j]] = ((i * 7 + j * 13) % 97) as f32 * 0.01;
+            }
+        }
+        let d = gmst_dimensionality(&data, false, 42);
+        assert!(d.is_finite() && d >= 0.0, "gmst={d}");
+    }
+
+    /// Smoke: geodesic GMST path exists and returns finite non-negative.
+    #[test]
+    fn test_gmst_geodesic_smoke_finite() {
+        let mut data = Array2::<f32>::zeros((40, 3));
+        for i in 0..40 {
+            for j in 0..3 {
+                data[[i, j]] = ((i * 11 + j * 5) % 89) as f32 * 0.02;
+            }
+        }
+        let d = gmst_dimensionality(&data, true, 42);
+        assert!(d.is_finite() && d >= 0.0, "gmst_geodesic={d}");
     }
 }
