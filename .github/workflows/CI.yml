@@ -26,6 +26,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      # D-15: Rust unit mirrors for spectral metrics (inventory A) before Python path
+      - name: Cargo test effdim-core
+        run: cargo test -p effdim-core
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
