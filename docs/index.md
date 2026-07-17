@@ -10,6 +10,7 @@ It aims to standardize the fragmented landscape of ED metrics found in statistic
 *   **Unified Interface**: Simple `compute_dim` function to get all estimates.
 *   **Extensive Estimators**: PCA, Participation Ratio, Shannon Entropy, and more.
 *   **Research Ready**: Accurate implementations of metrics from literature.
+*   **Rust core, NumPy-only install**: Compute runs in a Rust extension (`effdim._native`); `pip install effdim` needs NumPy only (no FAISS / SciPy / sklearn at runtime).
 
 ## Installation
 
@@ -19,7 +20,7 @@ Install via pip:
 pip install effdim
 ```
 
-*(EffDim relies on Faiss for fast kNN approximation under the hood).*
+Prebuilt maturin wheels ship the Rust extension so end users do not need a Rust toolchain. Contributors building from source use `maturin develop` (see [Deployment](deployment.md)).
 
 ## Quick Start
 

@@ -15,15 +15,19 @@ This tutorial showcases the advanced geometric estimators available in EffDim: D
 
 ## Example: Swiss Roll Analysis
 
-The Swiss Roll is a classic benchmark — a 2D manifold embedded in 3D space.
+The Swiss Roll is a classic benchmark — a 2D manifold embedded in 3D space. Prefer `compute_dim` as the primary API; individual `effdim.geometry` helpers are Rust-backed compatibility shims.
 
 ```python
 import numpy as np
 import effdim
-from sklearn.datasets import make_swiss_roll
 
-# Generate Swiss Roll (intrinsic dimension = 2)
-X, _ = make_swiss_roll(n_samples=2000, noise=0.01, random_state=42)
+# Synthetic Swiss-roll-like manifold (intrinsic dimension ≈ 2)
+# Shared fixture used by pytest: tests/fixtures/swiss_roll_n1000_noise001_rs42.f64bin
+rng = np.random.default_rng(42)
+t = 1.5 * np.pi * (1 + 2 * rng.random(2000))
+height = 21 * rng.random(2000)
+X = np.column_stack([t * np.cos(t), height, t * np.sin(t)])
+X = X + 0.01 * rng.standard_normal(X.shape)
 
 results = effdim.compute_dim(X)
 
@@ -80,9 +84,12 @@ The GMST estimator supports geodesic distances, which follow the manifold surfac
 ```python
 import numpy as np
 from effdim.geometry import gmst_dimensionality
-from sklearn.datasets import make_swiss_roll
 
-X, _ = make_swiss_roll(n_samples=500, noise=0.01, random_state=42)
+rng = np.random.default_rng(42)
+t = 1.5 * np.pi * (1 + 2 * rng.random(500))
+height = 21 * rng.random(500)
+X = np.column_stack([t * np.cos(t), height, t * np.sin(t)])
+X = X + 0.01 * rng.standard_normal(X.shape)
 
 # Euclidean mode
 dim_euclidean = gmst_dimensionality(X, geodesic=False)
@@ -95,7 +102,7 @@ print(f"GMST (Geodesic):  {dim_geodesic:.2f}")
 
 ## Using Individual Estimators
 
-Each estimator can be called directly for fine-grained control:
+Each estimator can be called via `effdim.geometry` (Rust-backed shim) for fine-grained control. Prefer `compute_dim` when you want the full suite.
 
 ```python
 import numpy as np

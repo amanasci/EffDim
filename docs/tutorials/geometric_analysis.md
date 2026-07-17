@@ -12,10 +12,14 @@ A "Swiss Roll" is a 2D plane rolled up in 3D.
 ```python
 import numpy as np
 import effdim
-from sklearn.datasets import make_swiss_roll
 
-# Generate Swiss Roll
-X, _ = make_swiss_roll(n_samples=2000, noise=0.01)
+# Synthetic Swiss-roll-like manifold (2D intrinsic, 3D ambient)
+# For bit-identical pytest data, see tests/fixtures/swiss_roll_n1000_noise001_rs42.f64bin
+rng = np.random.default_rng(42)
+t = 1.5 * np.pi * (1 + 2 * rng.random(2000))
+height = 21 * rng.random(2000)
+X = np.column_stack([t * np.cos(t), height, t * np.sin(t)])
+X = X + 0.01 * rng.standard_normal(X.shape)
 
 # Compute dimensionalities
 results = effdim.compute_dim(X)
@@ -44,5 +48,5 @@ print(f"Two-NN Intrinsic Dimension: {twonn_dim:.2f}")
 
 ## Limitations
 
-* **Computational Cost**: Requires computing nearest neighbors, which can be slow for large $N$. `effdim` utilizes the highly efficient CFaiss implementation under the hood to speed this up.
+* **Computational Cost**: Exact nearest-neighbor search in the Rust core scales with sample size; large $N$ is slower than approximate indexes.
 * **Curse of Dimensionality**: In extremely high dimensions, distance concentration can make geometric estimation unstable.

@@ -1,27 +1,36 @@
 # Deployment and Publishing
 
-This guide is for maintainers who publish releases to PyPI, and for contributors who build the Rust extension locally.
+This guide is for maintainers who verify wheel builds in CI, and for contributors who build the Rust extension locally.
 
-## Contributor develop (Phase 2+)
+## Contributor develop
 
-Package builds use maturin (Rust + PyO3). Contributors and CI need a Rust toolchain; end users must not once prebuilt wheels exist (tokenizers-style UX).
+Package builds use maturin (Rust + PyO3). Contributors and CI need a Rust toolchain; end users installing a prebuilt wheel do not (tokenizers-style UX).
 
 **Requirements:** [rustup](https://rustup.rs/) stable (`rust-toolchain.toml`) and `maturin` (`pip install -e ".[dev]"` or the build-system pin).
 
-**Canonical workflow (D-10):**
+**Canonical contributor workflow:**
 
 ```bash
 maturin develop --release
 pytest
 ```
 
-Multi-OS wheel artifact publish and clean-env install→pytest remain **Phase 5** (PACK-*). This phase does not ship a PyPI wheel matrix for end users.
+## Verify-only wheel CI (current)
 
-## Overview
+CI builds **maturin wheels** on native GitHub runners for **linux, macOS, and Windows** (`PyO3/maturin-action`), uploads wheel artifacts, then installs each OS-matched `.whl` into a **fresh virtualenv** (not editable) and runs the full pytest suite. That path proves what end users install (PACK-01..03).
 
-EffDim uses GitHub Actions to automatically build and publish prebuilt wheels for multiple platforms and Python versions.
+- **Wheels only** this phase — no sdist artifact requirement (an sdist install would push users toward compiling with a Rust toolchain).
+- **One build Python per OS** (3.12) with `abi3-py310`, so one wheel covers Python ≥3.10.
+- Architectures = **native runner arches only** (no expanded manylinux/universal2 matrix yet).
+- Tag → **PyPI publish remains intentionally disabled** (`release` job `if: false`) until a later deliberate publish decision. CI artifacts are for verification, not a production release gate.
 
-## Prerequisites
+See `.github/workflows/CI.yml`: `test` (develop matrix), `wheels`, `test-wheel`, and hard-skipped `release`.
+
+## Overview (future publish)
+
+When publish is re-enabled, EffDim will use GitHub Actions to upload verified multi-OS wheels to PyPI. Until then, treat the sections below as **planned** maintainer setup — not an active tag→PyPI requirement.
+
+## Prerequisites (when publishing)
 
 ### PyPI Account Setup
 
@@ -41,7 +50,9 @@ EffDim uses GitHub Actions to automatically build and publish prebuilt wheels fo
 4. Value: [paste PyPI token]
 5. Click **Add secret**
 
-## Release Process
+Trusted publishing / attestations can replace a long-lived token when the release job is re-enabled.
+
+## Release Process (disabled until publish decision)
 
 ### 1. Update Version
 
@@ -54,18 +65,7 @@ version = "0.1.1"  # Update this line
 
 ### 2. Update Changelog
 
-Document changes in `CHANGELOG.md` or release notes:
-
-```markdown
-## [0.1.1] - 2024-01-23
-
-### Added
-- New feature X
-- Performance improvements
-
-### Fixed
-- Bug in function Y
-```
+Document changes in `CHANGELOG.md` or release notes.
 
 ### 3. Commit Changes
 
@@ -78,110 +78,45 @@ git push origin main
 ### 4. Create and Push Tag
 
 ```bash
-# Create annotated tag
 git tag -a v0.1.1 -m "Release version 0.1.1"
-
-# Push tag to trigger workflow
 git push origin v0.1.1
 ```
 
-### 5. Monitor Build
+Publish only after the `release` job is deliberately re-enabled and wired to the multi-OS wheel artifacts.
 
-1. Go to **Actions** tab in GitHub
-2. Watch the "Build and Publish to PyPI" workflow
-3. Verify all jobs complete successfully:
-   - ✅ Build wheels (Linux, macOS, Windows)
-   - ✅ Build source distribution
-   - ✅ Publish to PyPI
+### 5. Verify Release
 
-### 6. Verify Release
-
-After successful workflow:
+After a successful publish:
 
 ```bash
-# Wait a few minutes for PyPI to update
 pip install --upgrade effdim
-
-# Verify version
 python -c "import effdim; print(effdim.__version__)"
 ```
 
-## Build Matrix
+## Build Matrix (verify-only today)
 
-The CI workflow builds wheels for:
+Current CI builds **one release wheel per OS** on:
 
-### Platforms and Architectures
+| Platform | Runner | Build Python |
+|----------|--------|--------------|
+| Linux | `ubuntu-latest` | 3.12 (abi3 ≥3.10) |
+| macOS | `macos-latest` | 3.12 (abi3 ≥3.10) |
+| Windows | `windows-latest` | 3.12 (abi3 ≥3.10) |
 
-#### Linux
-- **manylinux**: x86_64, aarch64
-- **musllinux**: x86_64, aarch64
-
-#### Windows
-- x64 (64-bit)
-- x86 (32-bit)
-
-#### macOS
-- x86_64 (Intel) - macOS 13+
-- aarch64 (Apple Silicon) - macOS 14+
-
-### Python Versions
-
-The workflow uses `--find-interpreter` to automatically build for all available Python versions (3.8-3.12) on each platform.
-
-### Total Artifacts
-
-Approximately **40+ wheels** + 1 source distribution per release, covering all combinations of platforms, architectures, and Python versions.
+No sdist is produced in the verify-only pipeline. Broader arch matrices (extra manylinux tags, universal2, win_arm64) are deferred.
 
 ## Workflow Files
 
 ### `.github/workflows/CI.yml`
 
-The main CI/CD workflow based on maturin's recommended structure:
-
-- Triggered by: Pushes to main/master, PRs, tags, or manual dispatch
-- Separate jobs for: linux, musllinux, windows, macos, sdist, release
-- Publishes: To PyPI on version tags (automatically)
-
-Key features:
-
-- Uses [PyO3/maturin-action](https://github.com/PyO3/maturin-action)
-- Enables sccache for faster builds (disabled on release tags)
-- Builds manylinux and musllinux for maximum compatibility
-- Unique artifact naming prevents conflicts
-- Includes build attestations for security
+- **test** — `maturin develop` + pytest on ubuntu/macos × Python 3.10–3.12, plus `cargo test`
+- **wheels** — `PyO3/maturin-action@v1` `command: build` with `--release --out dist` on three OS
+- **test-wheel** — download artifact → fresh venv → `pip install` wheel + pytest
+- **release** — hard-skipped (`if: false`)
 
 ### `.github/workflows/publish_docs.yml`
 
 Publishes documentation to GitHub Pages (unchanged).
-
-## Testing Before Release
-
-### Option 1: Manual Workflow Trigger
-
-1. Go to **Actions** → **Build and Publish to PyPI**
-2. Click **Run workflow**
-3. Select branch
-4. Review artifacts (won't publish without tag)
-
-### Option 2: Test with TestPyPI
-
-Modify workflow temporarily to use TestPyPI:
-
-```yaml
-- name: Publish to TestPyPI
-  uses: PyO3/maturin-action@v1
-  env:
-    MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-  with:
-    command: upload
-    args: --non-interactive --repository-url https://test.pypi.org/legacy/ dist/*
-```
-
-Then install from TestPyPI:
-
-```bash
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple effdim
-```
 
 ## Versioning Strategy
 
@@ -191,130 +126,32 @@ EffDim follows [Semantic Versioning](https://semver.org/):
 - **MINOR** (x.1.x → x.2.x): New features, backwards compatible
 - **PATCH** (x.x.1 → x.x.2): Bug fixes, backwards compatible
 
-### Pre-releases
-
-For beta/RC versions:
-
-```toml
-version = "0.2.0b1"  # Beta 1
-version = "0.2.0rc1" # Release Candidate 1
-```
-
-Tag as: `v0.2.0b1`, `v0.2.0rc1`
-
 ## Troubleshooting
 
 ### Build Failures
 
-**Rust compilation errors:**
+**Rust compilation errors (contributor path):**
 
 ```bash
-# Check locally
 maturin build --release
-
-# View logs in GitHub Actions
 ```
 
-**Python compatibility issues:**
-
-- Ensure `requires-python` in `pyproject.toml` matches tested versions
-- Check minimum Rust version in `Cargo.toml`
-
-### Upload Failures
-
-**Invalid token:**
-
-- Regenerate PyPI token
-- Update `PYPI_API_TOKEN` secret in GitHub
-
-**Package name conflict:**
-
-- First release must be manually created on PyPI
-- Or use different package name
-
-**File already exists:**
-
-- Can't re-upload same version
-- Bump version and retry
-- Use `--skip-existing` flag (already in workflow)
+**Clean-env wheel install fails in CI:** Inspect the `wheels` / `test-wheel` jobs and the uploaded `wheels-<os>` artifacts.
 
 ### Workflow Not Triggering
 
-**Tag format issues:**
-
-```bash
-# Correct
-git tag v0.1.1
-
-# Incorrect
-git tag 0.1.1  # Missing 'v' prefix
-```
-
-**Branch protection:**
-
-- Ensure tags can be pushed to repository
-- Check branch protection rules
-
-## Rollback Procedure
-
-If a bad release is published:
-
-### Option 1: Yank Release (Recommended)
-
-On PyPI:
-
-1. Go to project page
-2. Click on problematic version
-3. Click "Options" → "Yank release"
-4. Publish fixed version
-
-### Option 2: Delete Release
-
-⚠️ **Not recommended** - breaks existing installations
-
-```bash
-# Delete tag locally
-git tag -d v0.1.1
-
-# Delete tag remotely
-git push origin :refs/tags/v0.1.1
-```
-
-Then publish corrected version.
+Ensure tags use a `v` prefix when publish is eventually re-enabled (`v0.1.1`).
 
 ## Security
 
-### API Token Management
-
-- **Rotate tokens** periodically (every 6-12 months)
-- **Use project-scoped tokens** (not account-wide)
-- **Never commit tokens** to repository
-- **Store in GitHub Secrets** only
-
-### Dependency Security
-
-Automated security scanning:
-
-- Dependabot alerts (GitHub)
-- `cargo audit` for Rust dependencies
-- `pip-audit` for Python dependencies
-
-## Maintenance Checklist
-
-Before each release:
-
-- [ ] All tests passing
-- [ ] Documentation updated
-- [ ] Changelog updated
-- [ ] Version bumped
-- [ ] Dependencies updated
-- [ ] Security audit clean
-- [ ] Performance benchmarks run
-- [ ] Breaking changes documented
+- Never commit tokens to the repository
+- Prefer project-scoped PyPI tokens or trusted publishing when release is enabled
+- Dependabot / `cargo audit` / `pip-audit` for dependency scanning
 
 ## Additional Resources
 
 - [Maturin Documentation](https://www.maturin.rs/)
+- [PyO3/maturin-action](https://github.com/PyO3/maturin-action)
 - [PyPI Help](https://pypi.org/help/)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Semantic Versioning](https://semver.org/)

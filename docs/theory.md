@@ -196,11 +196,10 @@ The global estimate is the average over all points:
 $$ \hat{d}_k = \frac{1}{n} \sum_{i=1}^n \hat{d}_k(x_i) $$
 
 **Implementation Details:**
-- Uses FAISS library for efficient kNN search with L2 distance
+- Exact L2 k-NN in the Rust core (`effdim._native`); no FAISS/SciPy at install time
 - Adds $\epsilon = 10^{-10}$ to distances to prevent $\ln(0)$
-- Uses `np.errstate` to handle potential numerical issues
 - Default $k = 10$ neighbors
-- Complexity: $O(n^2)$ naive, $O(n \log n)$ with FAISS indexing
+- Complexity: $O(n^2)$ exact pairwise search in the shipped path
 
 **Numerical Stability:**
 - $\ln(r_k/r_j) = \ln r_k - \ln r_j$ computed in log-space for stability
@@ -241,11 +240,10 @@ $$ -\ln(1 - F(\mu)) = d \cdot \ln(\mu) $$
 5. Estimate: $\hat{d} = \frac{\sum_i x_i y_i}{\sum_i x_i^2}$
 
 **Implementation Details:**
-- Uses FAISS for kNN search (k=2)
+- Exact k-NN (k=2) in the Rust core
 - Adds $\epsilon = 10^{-10}$ to distances
 - Drops last point to avoid $F=1$ causing $\ln(0)$
 - Linear regression uses dot product formula (no intercept)
-- Complexity: $O(n \log n)$ with FAISS
 
 **Numerical Stability:**
 - Epsilon prevents division by zero in $\mu = r_2/r_1$
@@ -279,10 +277,10 @@ In a $d$-dimensional space, the angles between random vectors concentrate around
 4. Estimate: $\hat{d} = 1 / \overline{\cos^2(\theta)}$ where the average is over all points and all pairs.
 
 **Implementation Details:**
-- Uses FAISS for efficient kNN search
+- Exact k-NN in the Rust core
 - Adds $\epsilon = 10^{-10}$ to norms to prevent division by zero
 - Default $k = 10$ neighbors
-- Uses `np.einsum` for efficient pairwise cosine computation
+- Pairwise cosines over neighbor direction vectors
 
 **When to Use:**
 - When angle-based estimation is preferred over distance-based
@@ -385,9 +383,7 @@ Taking logarithms: $\ln L_{\text{MST}} = \alpha \cdot \ln n + c$, where $\alpha 
 When `geodesic=True`, distances are computed along the data manifold using shortest paths on a $k$-NN graph, rather than straight-line Euclidean distances.
 
 **Implementation Details:**
-- Uses `scipy.sparse.csgraph.minimum_spanning_tree` for MST computation
-- Uses `scipy.spatial.distance.pdist` for Euclidean distances
-- Uses `sklearn.neighbors.kneighbors_graph` + `scipy.sparse.csgraph.shortest_path` for geodesic distances
+- MST / geodesic path lengths are computed in the Rust core (no SciPy/sklearn runtime dependency)
 - Subsamples at sizes $[n/8, n/4, n/2, n]$ with a fixed random seed for reproducibility
 - Requires at least 10 points
 
@@ -425,9 +421,8 @@ When `geodesic=True`, distances are computed along the data manifold using short
 ### Known Limitations
 
 **Computational Complexity:**
-- SVD: $O(\min(n^2p, np^2))$ for full SVD, $O(npk)$ for randomized SVD
-- MLE: $O(n^2)$ for exact kNN, $O(n \log n)$ with FAISS indexing
-- Two-NN: $O(n \log n)$ with FAISS
+- SVD: $O(\min(n^2p, np^2))$ for full SVD (Rust spectral path)
+- MLE / Two-NN: $O(n^2)$ exact k-NN in the shipped Rust path
 
 **Sample Size Dependencies:**
 - Spectral methods: Eigenvalues stabilize when $n \ge 5d$ (rule of thumb)
