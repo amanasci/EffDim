@@ -5,7 +5,6 @@ approximate their intrinsic dimension.
 """
 import numpy as np
 import pytest
-from sklearn.datasets import make_swiss_roll
 from effdim.api import compute_dim
 from effdim.geometry import (
     mle_dimensionality,
@@ -46,10 +45,11 @@ class TestKnownDimensionalities:
         assert 7 < results["tle_dimensionality"] < 14
         assert results["participation_ratio"] > 7
 
-    def test_swiss_roll_2d_manifold(self):
+    def test_swiss_roll_2d_manifold(self, swiss_roll_n1000):
         """Swiss Roll is a 2D manifold in 3D space."""
-        # SETUP (parity contract): n_samples=1000, noise=0.01, random_state=42 (D-08 knobs)
-        X, _ = make_swiss_roll(n_samples=1000, noise=0.01, random_state=42)
+        # SETUP (parity contract): n_samples=1000, noise=0.01, random_state=42
+        # Inventory B f64bin fixture (D-07); no third-party manifold generator
+        X = swiss_roll_n1000
         results = compute_dim(X)
         # Geometric methods should detect ~2
         assert 1.5 < results["mle_dimensionality"] < 3.5

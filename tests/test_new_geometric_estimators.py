@@ -330,11 +330,11 @@ class TestNewEstimatorsIntegration:
         assert results["mind_mlk_dimensionality"] > 5
         assert results["tle_dimensionality"] > 5
 
-    def test_swiss_roll_intrinsic_dim(self):
+    def test_swiss_roll_intrinsic_dim(self, swiss_roll_n1000):
         """Geometric estimators should detect 2D intrinsic dim of Swiss Roll."""
-        # SETUP (parity contract): n_samples=500, noise=0.01, random_state=42 (D-08 knobs)
-        from sklearn.datasets import make_swiss_roll
-        X, _ = make_swiss_roll(n_samples=500, noise=0.01, random_state=42)
+        # SETUP (parity contract): n_samples=1000, noise=0.01, random_state=42
+        # Inventory B f64bin fixture (D-07); prefer full n=1000 (aligned with Rust)
+        X = swiss_roll_n1000
         results = compute_dim(X)
         # MLE and Two-NN are well-known to detect ~2 for Swiss Roll
         assert 1.0 < results["mle_dimensionality"] < 4.0
