@@ -1,8 +1,11 @@
-//! PyO3 bindings for `effdim._native` (round-trip stub + full compute_dim dict).
+//! PyO3 bindings for `effdim._native` (round-trip, compute_dim, granular estimators/metrics).
 
+use effdim_core::geometry;
+use effdim_core::knn;
+use effdim_core::metrics;
 use effdim_core::{compute_dim as core_compute_dim, identity_f64_slice};
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
-use pyo3::exceptions::PyRuntimeError;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -70,10 +73,194 @@ fn compute_dim<'py>(
     Ok(dict)
 }
 
+fn owned_f64_1d(arr: PyReadonlyArray1<'_, f64>) -> Vec<f64> {
+    arr.as_array().iter().copied().collect()
+}
+
+fn data_f32(data: PyReadonlyArray2<'_, f64>) -> ndarray::Array2<f32> {
+    data.as_array().mapv(|x| x as f32)
+}
+
+fn precomputed_f32(
+    precomputed: Option<PyReadonlyArray2<'_, f32>>,
+) -> Option<ndarray::Array2<f32>> {
+    precomputed.map(|a| a.as_array().to_owned())
+}
+
+// --- Metrics (1-D f64 spectra / probabilities) ---
+
+#[pyfunction]
+#[pyo3(signature = (spectrum, threshold=0.95))]
+fn pca_explained_variance(
+    py: Python<'_>,
+    spectrum: PyReadonlyArray1<'_, f64>,
+    threshold: f64,
+) -> u32 {
+    let owned = owned_f64_1d(spectrum);
+    py.detach(|| metrics::pca_explained_variance(&owned, threshold))
+}
+
+#[pyfunction]
+fn participation_ratio(py: Python<'_>, spectrum: PyReadonlyArray1<'_, f64>) -> f64 {
+    let owned = owned_f64_1d(spectrum);
+    py.detach(|| metrics::participation_ratio(&owned))
+}
+
+#[pyfunction]
+fn shannon_entropy(py: Python<'_>, probabilities: PyReadonlyArray1<'_, f64>) -> f64 {
+    let owned = owned_f64_1d(probabilities);
+    py.detach(|| metrics::shannon_entropy(&owned))
+}
+
+#[pyfunction]
+fn renyi_eff_dimensionality(
+    py: Python<'_>,
+    probabilities: PyReadonlyArray1<'_, f64>,
+    alpha: f64,
+) -> PyResult<f64> {
+    let owned = owned_f64_1d(probabilities);
+    py.detach(|| metrics::renyi_eff_dimensionality(&owned, alpha))
+        .map_err(PyValueError::new_err)
+}
+
+#[pyfunction]
+fn geometric_mean_eff_dimensionality(py: Python<'_>, spectrum: PyReadonlyArray1<'_, f64>) -> f64 {
+    let owned = owned_f64_1d(spectrum);
+    py.detach(|| metrics::geometric_mean_eff_dimensionality(&owned))
+}
+
+// --- Geometry / k-NN ---
+
+#[pyfunction]
+fn compute_knn_distances<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, f64>,
+    k: usize,
+) -> Bound<'py, PyArray2<f32>> {
+    let data_f32 = data_f32(data);
+    let dist = py.detach(|| knn::exact_knn_l2_sq(&data_f32, k).0);
+    dist.into_pyarray(py)
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+fn mle_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    k: usize,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::mle_dimensionality(&data_f32, k, pre.as_ref()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, precomputed_knn_dist_sq=None))]
+fn two_nn_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::two_nn_dimensionality(&data_f32, pre.as_ref()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+fn danco_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    k: usize,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::danco_dimensionality(&data_f32, k, pre.as_ref(), None))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, precomputed_knn_dist_sq=None))]
+fn mind_mli_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::mind_mli_dimensionality(&data_f32, pre.as_ref()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+fn mind_mlk_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    k: usize,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::mind_mlk_dimensionality(&data_f32, k, pre.as_ref()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+fn ess_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    k: usize,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::ess_dimensionality(&data_f32, k, pre.as_ref(), None))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+fn tle_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    k: usize,
+    precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    let pre = precomputed_f32(precomputed_knn_dist_sq);
+    py.detach(|| geometry::tle_dimensionality(&data_f32, k, pre.as_ref()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (data, geodesic=false, random_state=42))]
+fn gmst_dimensionality(
+    py: Python<'_>,
+    data: PyReadonlyArray2<'_, f64>,
+    geodesic: bool,
+    random_state: u64,
+) -> f64 {
+    let data_f32 = data_f32(data);
+    py.detach(|| geometry::gmst_dimensionality(&data_f32, geodesic, random_state))
+}
+
 #[pymodule]
 #[pyo3(name = "_native")]
 fn effdim_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(roundtrip_array, m)?)?;
     m.add_function(wrap_pyfunction!(compute_dim, m)?)?;
+    m.add_function(wrap_pyfunction!(pca_explained_variance, m)?)?;
+    m.add_function(wrap_pyfunction!(participation_ratio, m)?)?;
+    m.add_function(wrap_pyfunction!(shannon_entropy, m)?)?;
+    m.add_function(wrap_pyfunction!(renyi_eff_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(geometric_mean_eff_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_knn_distances, m)?)?;
+    m.add_function(wrap_pyfunction!(mle_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(two_nn_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(danco_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(mind_mli_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(mind_mlk_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(ess_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(tle_dimensionality, m)?)?;
+    m.add_function(wrap_pyfunction!(gmst_dimensionality, m)?)?;
     Ok(())
 }
