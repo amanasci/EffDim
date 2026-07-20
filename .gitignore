@@ -6,11 +6,19 @@ __pycache__
 *.egg-info/
 site/
 
+# Secrets
+.env
+.env.*
+
 # Local tooling / GSD (do not track)
 .planning/
 .agents/
+skills-lock.json
 
 # Rust
 target/
 *.so
 *.pyd
+
+# Local notebooks (do not track)
+notebooks/
