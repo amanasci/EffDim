@@ -10,6 +10,8 @@ Then score held-out **mKNN** between true basis codes and the mapped codes (plus
 
 The result that worked well on Physics ViT↔DINOv3 was **Ridge** (not Lasso): ~**0.22** mKNN vs ~0.13 dense / ~0.17 SAE-IDF.
 
+For the full research arc (geometry → topology → SAE shared basis), see [`CONTEXT.md`](CONTEXT.md).
+
 | Experiment | Script | Role |
 |---|---|---|
 | `ridge` | `sae_affine_basis_mknn_gpu.py` | **Primary** — dense Ridge \(W,b\) |
