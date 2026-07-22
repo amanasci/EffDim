@@ -3,8 +3,8 @@
 
 Fit global SAE FISTA Lasso  basis ≈ other @ W + b, save W, then:
 
-  A) Project both raw codes into paired singular charts (C_basis @ U_r vs
-     C_other @ V_r) — no applying the map; mKNN on test + shuffle/randn controls.
+  A) Project *standardized* codes into paired singular charts of W_std
+     (basis_std @ V_r vs other_std @ U_r); mKNN on test + shuffle/randn controls.
   B) Low-rank transfer ŷ = other @ W_r + b; mKNN vs full W / Ridge.
   C) Local-ball Ridge W + SVD variants with matched vs random-ball controls.
 """
@@ -18,32 +18,27 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pyarrow.parquet as pq
 import torch
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
-_SAE_CANDIDATES = [
-    Path(__file__).resolve().parent / "sae",
-    Path(__file__).resolve().parents[1] / "sae",
-    Path("/home/angus/platonic-universe/experiments/sae"),
-]
-_SAE = next((p for p in _SAE_CANDIDATES if (p / "sae_model.py").is_file()), None)
-if _SAE is None:
-    raise FileNotFoundError("sae_model.py not found")
-sys.path.insert(0, str(_SAE))
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
+
+from _common import (  # noqa: E402
+    ensure_sae_import,
+    load_aligned_pair,
+    load_col,
+    platonic_root,
+    resolve_path,
+    singular_chart_coords,
+)
+
+ensure_sae_import()
 from sae_model import TopKSAE  # noqa: E402
-
-
-def load_col(path: Path, column: str, l2: bool = False) -> np.ndarray:
-    table = pq.read_table(path, columns=[column])
-    X = np.vstack(table.column(0).to_pylist()).astype(np.float32)
-    if l2:
-        n = np.linalg.norm(X, axis=1, keepdims=True)
-        X = X / np.maximum(n, 1e-12)
-    return X
 
 
 def l2n(X: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
@@ -323,15 +318,32 @@ def ball_mknn_np(A: np.ndarray, B: np.ndarray, k: int, device: torch.device) -> 
     )
 
 
-def fit_local_ridge_ambient(Xv: np.ndarray, Xd: np.ndarray, alpha: float = 1.0) -> dict:
-    x_scaler = StandardScaler().fit(Xd)
-    y_scaler = StandardScaler().fit(Xv)
+def fit_local_ridge_ambient(
+    Xv: np.ndarray,
+    Xd: np.ndarray,
+    alpha: float = 1.0,
+    *,
+    fit_idx: np.ndarray | None = None,
+    eval_idx: np.ndarray | None = None,
+) -> dict:
+    """Fit Ridge on fit_idx (default: all); map/eval on eval_idx (default: all).
+
+    Using the same points for fit and mKNN is interpolation — prefer a split.
+    """
+    if fit_idx is None:
+        fit_idx = np.arange(len(Xv))
+    if eval_idx is None:
+        eval_idx = np.arange(len(Xv))
+    Xd_f, Xv_f = Xd[fit_idx], Xv[fit_idx]
+    Xd_e, Xv_e = Xd[eval_idx], Xv[eval_idx]
+    x_scaler = StandardScaler().fit(Xd_f)
+    y_scaler = StandardScaler().fit(Xv_f)
     model = Ridge(alpha=alpha, fit_intercept=True)
-    model.fit(x_scaler.transform(Xd), y_scaler.transform(Xv))
+    model.fit(x_scaler.transform(Xd_f), y_scaler.transform(Xv_f))
     W_std = model.coef_.T.astype(np.float32)
     b_std = model.intercept_.astype(np.float32)
-    mapped = y_scaler.inverse_transform(
-        model.predict(x_scaler.transform(Xd))
+    mapped_eval = y_scaler.inverse_transform(
+        model.predict(x_scaler.transform(Xd_e))
     ).astype(np.float32)
     return {
         "W_std": W_std,
@@ -340,7 +352,11 @@ def fit_local_ridge_ambient(Xv: np.ndarray, Xd: np.ndarray, alpha: float = 1.0) 
         "x_scale": x_scaler.scale_.astype(np.float32),
         "y_mean": y_scaler.mean_.astype(np.float32),
         "y_scale": y_scaler.scale_.astype(np.float32),
-        "mapped": mapped,
+        "mapped": mapped_eval,
+        "Xv_eval": Xv_e.astype(np.float32),
+        "Xd_eval": Xd_e.astype(np.float32),
+        "fit_idx": np.asarray(fit_idx),
+        "eval_idx": np.asarray(eval_idx),
     }
 
 
@@ -375,30 +391,36 @@ def main() -> None:
     p.add_argument("--n-spheres", type=int, default=150)
     p.add_argument("--ball-knn", type=int, default=256)
     p.add_argument("--skip-C", action="store_true")
+    p.add_argument("--platonic-root", default=None)
+    p.add_argument("--allow-truncate", action="store_true")
+    p.add_argument("--val-frac", type=float, default=0.2)
     p.add_argument(
         "--output-dir",
         default="outputs/sae_lasso_eigenbasis/physics_vit_dino_n16k_F2048_k64",
     )
     args = p.parse_args()
 
-    root = Path("/home/angus/platonic-universe")
+    root = platonic_root(args.platonic_root)
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA required")
 
     def R(path: str) -> Path:
-        pp = Path(path)
-        return pp if pp.is_absolute() else root / path
+        return resolve_path(root, path)
 
     out_dir = R(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(args.seed)
 
     # ---- load + encode ----
-    X1 = load_col(R(args.parquet1), args.col1, l2=False)
-    X2 = load_col(R(args.parquet2), args.col2, l2=False)
-    n = min(len(X1), len(X2))
-    X1, X2 = X1[:n], X2[:n]
+    X1, X2 = load_aligned_pair(
+        R(args.parquet1),
+        args.col1,
+        R(args.parquet2),
+        args.col2,
+        allow_truncate=args.allow_truncate,
+    )
+    n = len(X1)
     if args.max_n and n > args.max_n:
         sel = np.sort(rng.choice(n, size=args.max_n, replace=False))
         X1, X2 = X1[sel], X2[sel]
@@ -412,14 +434,28 @@ def main() -> None:
     print("Encoding SAE...", flush=True)
     C1 = encode(b1, X1, device)
     C2 = encode(b2, X2, device)
-    print(f"n={n} codes {C1.shape}", flush=True)
+    print(f"n={n} codes {C1.shape} / {C2.shape}", flush=True)
 
     idx = np.arange(n)
-    train_idx, test_idx = train_test_split(
+    train_val_idx, test_idx = train_test_split(
         idx, test_size=args.test_size, random_state=args.seed, shuffle=True
     )
-    train_idx, test_idx = np.sort(train_idx), np.sort(test_idx)
+    train_idx, val_idx = train_test_split(
+        train_val_idx,
+        test_size=args.val_frac,
+        random_state=args.seed + 7,
+        shuffle=True,
+    )
+    train_idx, val_idx, test_idx = (
+        np.sort(train_idx),
+        np.sort(val_idx),
+        np.sort(test_idx),
+    )
     te = torch.as_tensor(test_idx, device=device, dtype=torch.long)
+    print(
+        f"train={len(train_idx)} val={len(val_idx)} test={len(test_idx)}",
+        flush=True,
+    )
 
     # ---- fit Ridge + FISTA both dirs, save W ----
     fits: dict[str, dict] = {}
@@ -473,12 +509,33 @@ def main() -> None:
             flush=True,
         )
 
-    # pick primary Lasso by prior best λ=0.003 vit_in_dino for mKNN; also keep both dirs
-    primary_lam = 0.003 if 0.003 in args.lams else args.lams[len(args.lams) // 2]
-    primary_keys = [
-        f"fista_{primary_lam:g}_dino_in_vit",
-        f"fista_{primary_lam:g}_vit_in_dino",
-    ]
+    # Select primary λ per direction by validation cosine (not test).
+    primary_keys = []
+    primary_lams = {}
+    for direction, basis, other in [
+        ("dino_in_vit", C1, C2),
+        ("vit_in_dino", C2, C1),
+    ]:
+        best_lam, best_score = None, -1e9
+        for lam in args.lams:
+            key = f"fista_{lam:g}_{direction}"
+            fit = fits[key]
+            yhat = apply_std_affine(other, fit)
+            bs = basis[val_idx]
+            ys = yhat[val_idx]
+            bn = bs / np.maximum(np.linalg.norm(bs, axis=1, keepdims=True), 1e-12)
+            yn = ys / np.maximum(np.linalg.norm(ys, axis=1, keepdims=True), 1e-12)
+            score = float((bn * yn).sum(axis=1).mean())
+            fit["val_cos"] = score
+            if score > best_score:
+                best_score, best_lam = score, lam
+        primary_lams[direction] = best_lam
+        primary_keys.append(f"fista_{best_lam:g}_{direction}")
+        print(
+            f"Val-selected {direction}: lam={best_lam:g} (val cos={best_score:.4f})",
+            flush=True,
+        )
+    primary_lam = primary_lams.get("vit_in_dino", args.lams[0])
 
     # save W packs
     w_dir = out_dir / "weights"
@@ -501,12 +558,16 @@ def main() -> None:
         U, S, Vt = svd_W(fit["W_std"])
         np.savez_compressed(w_dir / f"{key}_svd.npz", U=U, S=S, Vt=Vt)
         fit["U"], fit["S"], fit["Vt"] = U, S, Vt
-        # symmetrized eig secondary
-        Ws = 0.5 * (fit["W_std"] + fit["W_std"].T)
-        evals, evecs = np.linalg.eigh(Ws)
-        order = np.argsort(np.abs(evals))[::-1]
-        fit["sym_evals"] = evals[order].astype(np.float32)
-        fit["sym_evecs"] = evecs[:, order].astype(np.float32)
+        Wstd = fit["W_std"]
+        if Wstd.shape[0] == Wstd.shape[1]:
+            Ws = 0.5 * (Wstd + Wstd.T)
+            evals, evecs = np.linalg.eigh(Ws)
+            order = np.argsort(np.abs(evals))[::-1]
+            fit["sym_evals"] = evals[order].astype(np.float32)
+            fit["sym_evecs"] = evecs[:, order].astype(np.float32)
+        else:
+            fit["sym_evals"] = None
+            fit["sym_evecs"] = None
 
     # ---- baselines + helpers ----
     X1n = X1 / np.maximum(np.linalg.norm(X1, axis=1, keepdims=True), 1e-12)
@@ -576,14 +637,31 @@ def main() -> None:
             Uu, Ss, Vvt = svd_W(W_use)
             for r in args.ranks:
                 r = min(r, Uu.shape[1], Vvt.shape[0])
-                # Vt is (f_out, k); basis coords = C_basis @ Vt[:r].T = C_basis @ V_r
-                Zb = C_basis @ Vvt[:r].T
-                Zo = C_other @ Uu[:, :r]
+                # W_std SVD must be applied in the *standardized* code spaces.
+                Zb, Zo = singular_chart_coords(
+                    C_basis, C_other, fit, Uu, Vvt, r
+                )
                 s = add_mknn(
                     rows_A,
                     f"A/{key}/{tag}/r{r}",
                     torch.as_tensor(Zb, device=device),
                     torch.as_tensor(Zo, device=device),
+                )
+                zb_all, zo_all = singular_chart_coords(
+                    C_basis, C_other, fit, Uu, Vvt, r
+                )
+                val_s = mknn(
+                    knn_cos(
+                        torch.as_tensor(zb_all[val_idx], device=device),
+                        args.k,
+                        args.row_batch,
+                    ),
+                    knn_cos(
+                        torch.as_tensor(zo_all[val_idx], device=device),
+                        args.k,
+                        args.row_batch,
+                    ),
+                    args.k,
                 )
                 rows_A[-1].update(
                     {
@@ -591,6 +669,7 @@ def main() -> None:
                         "control": tag,
                         "r": r,
                         "direction": f"{name_other}_to_{name_basis}",
+                        "val_mknn": val_s,
                     }
                 )
             # secondary: symmetrized eig projection of both in basis space only makes
@@ -713,52 +792,73 @@ def main() -> None:
             idx_v = neigh(nn1, X1_full, c)
             Xv = X1_full[idx_v]
 
-            # matched
+            # matched — fit on half the ball, evaluate mKNN on held-out half
             Xd_m = X2_full[idx_v]
-            fit_m = fit_local_ridge_ambient(Xv, Xd_m, alpha=args.ridge_alpha)
+            m_ball = len(Xv)
+            if m_ball < 40:
+                continue
+            perm = rng.permutation(m_ball)
+            n_fit = max(20, int(0.7 * m_ball))
+            fit_ix, eval_ix = perm[:n_fit], perm[n_fit:]
+            if len(eval_ix) < 10:
+                continue
+            fit_m = fit_local_ridge_ambient(
+                Xv, Xd_m, alpha=args.ridge_alpha, fit_idx=fit_ix, eval_idx=eval_ix
+            )
             Um, Sm, Vtm = svd_W(fit_m["W_std"])
-            acc["native_matched"].append(ball_mknn_np(Xv, Xd_m, args.k, device))
+            Xv_e, Xd_e = fit_m["Xv_eval"], fit_m["Xd_eval"]
+            acc["native_matched"].append(ball_mknn_np(Xv_e, Xd_e, args.k, device))
             acc["full_affine_matched"].append(
-                ball_mknn_np(Xv, fit_m["mapped"], args.k, device)
+                ball_mknn_np(Xv_e, fit_m["mapped"], args.k, device)
             )
             for r in local_ranks:
                 rr = min(r, Um.shape[1], Vtm.shape[0])
-                Zb = Xv @ Vtm[:rr].T
-                Zo = Xd_m @ Um[:, :rr]
+                Zb, Zo = singular_chart_coords(Xv_e, Xd_e, fit_m, Um, Vtm, rr)
                 acc["A_local_matched"][r].append(ball_mknn_np(Zb, Zo, args.k, device))
                 Wr = low_rank_W(Um, Sm, Vtm, rr)
-                # apply low-rank in std space
-                xs = (Xd_m - fit_m["x_mean"]) / fit_m["x_scale"]
+                xs = (Xd_e - fit_m["x_mean"]) / fit_m["x_scale"]
                 ys = xs @ Wr + fit_m["b_std"]
                 mapped_r = (ys * fit_m["y_scale"] + fit_m["y_mean"]).astype(np.float32)
                 acc["B_local_matched"][r].append(
-                    ball_mknn_np(Xv, mapped_r, args.k, device)
+                    ball_mknn_np(Xv_e, mapped_r, args.k, device)
                 )
 
             # random DINO centre, rank-paired
             c2 = int(rand_dino_centres[i])
             idx_d = neigh(nn2, X2_full, c2)
             Xd_r = X2_full[idx_d]
-            # align lengths
             m = min(len(Xv), len(Xd_r))
             Xv_r, Xd_rr = Xv[:m], Xd_r[:m]
-            fit_r = fit_local_ridge_ambient(Xv_r, Xd_rr, alpha=args.ridge_alpha)
+            if m < 40:
+                continue
+            perm = rng.permutation(m)
+            n_fit = max(20, int(0.7 * m))
+            fit_ix, eval_ix = perm[:n_fit], perm[n_fit:]
+            if len(eval_ix) < 10:
+                continue
+            fit_r = fit_local_ridge_ambient(
+                Xv_r,
+                Xd_rr,
+                alpha=args.ridge_alpha,
+                fit_idx=fit_ix,
+                eval_idx=eval_ix,
+            )
             Ur, Sr, Vtr = svd_W(fit_r["W_std"])
-            acc["native_random"].append(ball_mknn_np(Xv_r, Xd_rr, args.k, device))
+            Xv_e, Xd_e = fit_r["Xv_eval"], fit_r["Xd_eval"]
+            acc["native_random"].append(ball_mknn_np(Xv_e, Xd_e, args.k, device))
             acc["full_affine_random"].append(
-                ball_mknn_np(Xv_r, fit_r["mapped"], args.k, device)
+                ball_mknn_np(Xv_e, fit_r["mapped"], args.k, device)
             )
             for r in local_ranks:
                 rr = min(r, Ur.shape[1], Vtr.shape[0])
-                Zb = Xv_r @ Vtr[:rr].T
-                Zo = Xd_rr @ Ur[:, :rr]
+                Zb, Zo = singular_chart_coords(Xv_e, Xd_e, fit_r, Ur, Vtr, rr)
                 acc["A_local_random"][r].append(ball_mknn_np(Zb, Zo, args.k, device))
                 Wr = low_rank_W(Ur, Sr, Vtr, rr)
-                xs = (Xd_rr - fit_r["x_mean"]) / fit_r["x_scale"]
+                xs = (Xd_e - fit_r["x_mean"]) / fit_r["x_scale"]
                 ys = xs @ Wr + fit_r["b_std"]
                 mapped_r = (ys * fit_r["y_scale"] + fit_r["y_mean"]).astype(np.float32)
                 acc["B_local_random"][r].append(
-                    ball_mknn_np(Xv_r, mapped_r, args.k, device)
+                    ball_mknn_np(Xv_e, mapped_r, args.k, device)
                 )
 
             if (i + 1) % 25 == 0 or i + 1 == len(vit_centres):
@@ -887,32 +987,49 @@ def main() -> None:
 
     # verdict A
     def best_true_A(fit_key):
-        xs = [
-            r["mknn"]
+        # Select rank on validation; report that config's *test* mKNN.
+        cands = [
+            r
             for r in rows_A
             if r.get("fit") == fit_key
             and r.get("control") == "true"
             and r.get("mknn") is not None
+            and r.get("val_mknn") is not None
         ]
-        return max(xs) if xs else float("nan")
+        if not cands:
+            return float("nan"), None
+        best = max(cands, key=lambda r: r["val_mknn"])
+        return float(best["mknn"]), best.get("r")
 
-    def best_ctrl_A(fit_key, ctrl):
+    def best_ctrl_A(fit_key, ctrl, r_star):
         xs = [
             r["mknn"]
             for r in rows_A
             if r.get("fit") == fit_key
             and r.get("control") == ctrl
+            and r.get("r") == r_star
             and r.get("mknn") is not None
         ]
-        return max(xs) if xs else float("nan")
+        return float(xs[0]) if xs else float("nan")
 
     lines.append("")
+    lines.append(
+        "Rank for verdict selected by **validation** mKNN; scores below are test."
+    )
     for key in primary_keys:
-        bt, bs, br = best_true_A(key), best_ctrl_A(key, "shuffle"), best_ctrl_A(key, "randn")
+        bt, r_star = best_true_A(key)
+        bs = best_ctrl_A(key, "shuffle", r_star)
+        br = best_ctrl_A(key, "randn", r_star)
         if bt > max(bs, br) + 0.02:
-            verd = f"**A/{key}:** true singular chart beats controls ({bt:.3f} vs shuffle {bs:.3f} / randn {br:.3f})."
+            verd = (
+                f"**A/{key}:** true singular chart beats controls at val-selected r={r_star} "
+                f"(test {bt:.3f} vs shuffle {bs:.3f} / randn {br:.3f})."
+            )
         else:
-            verd = f"**A/{key}:** no clear edge over controls (true {bt:.3f}, shuffle {bs:.3f}, randn {br:.3f}) — likely artifact."
+            verd = (
+                f"**A/{key}:** no clear edge over controls at r={r_star} "
+                f"(true {bt:.3f}, shuffle {bs:.3f}, randn {br:.3f}) — likely artifact."
+            )
         lines.append(verd)
 
     lines += ["", "## B — Low-rank transfer `W_r`", ""]
@@ -939,28 +1056,16 @@ def main() -> None:
             float("nan"),
         )
         # best true low-rank
-        best_r = max(
-            (
-                r
-                for r in rows_B
-                if r.get("fit") == key
-                and r.get("control") == "true"
-                and "_idf" not in r["method"]
-                and "full" not in r["method"]
-            ),
-            key=lambda r: r["mknn"],
-            default=None,
+        lines.append(
+            f"**B/{key}:** full={true_full:.3f}; shuffle-full={sh_full:.3f}. "
+            f"(Low-rank grid on test is diagnostic only — do not select r on test.)"
         )
-        if best_r:
-            lines.append(
-                f"**B/{key}:** full={true_full:.3f}, best low-rank r={best_r['r']} → {best_r['mknn']:.3f}; "
-                f"shuffle-full={sh_full:.3f}."
-            )
 
     if rows_C:
         lines += ["", "## C — Local ball + random control", ""]
         lines.append(
-            f"knn-ball={args.ball_knn}, n_spheres={args.n_spheres}, local ambient Ridge + SVD."
+            f"knn-ball={args.ball_knn}, n_spheres={args.n_spheres}, local ambient Ridge + SVD "
+            f"(fit 70% of ball, evaluate mKNN on held-out 30%; singular charts in standardized coords)."
         )
         lines += ["", "| method | mean mknn | std |", "|---|---:|---:|"]
         for r in rows_C:

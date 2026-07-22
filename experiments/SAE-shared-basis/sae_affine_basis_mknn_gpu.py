@@ -18,29 +18,26 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pyarrow.parquet as pq
 import torch
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-_SAE_CANDIDATES = [
-    Path(__file__).resolve().parent / "sae",
-    Path(__file__).resolve().parents[1] / "sae",
-    Path("/home/angus/platonic-universe/experiments/sae"),
-]
-_SAE = next((p for p in _SAE_CANDIDATES if (p / "sae_model.py").is_file()), None)
-if _SAE is None:
-    raise FileNotFoundError("sae_model.py not found")
-sys.path.insert(0, str(_SAE))
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
+from _common import (  # noqa: E402
+    binary_metrics_topk,
+    ensure_sae_import,
+    load_aligned_pair,
+    platonic_root,
+    resolve_path,
+)
+
+ensure_sae_import()
 from sae_model import TopKSAE  # noqa: E402
-
-
-def load_col(path: Path, column: str) -> np.ndarray:
-    table = pq.read_table(path, columns=[column])
-    return np.vstack(table.column(0).to_pylist()).astype(np.float32)
 
 
 def l2n(X: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
@@ -103,23 +100,7 @@ def cosine_rowwise(a: np.ndarray, b: np.ndarray, eps: float = 1e-12) -> float:
 
 
 def binary_metrics(y_true: np.ndarray, y_pred: np.ndarray, k: int) -> dict:
-    true_a = y_true > 0
-    # top-k of prediction magnitudes
-    kk = min(k, y_pred.shape[1])
-    top = np.argpartition(-y_pred, kk - 1, axis=1)[:, :kk]
-    pred_a = np.zeros_like(true_a)
-    for i in range(len(y_pred)):
-        pred_a[i, top[i]] = True
-    tp = (true_a & pred_a).sum(axis=1).astype(np.float64)
-    prec = tp / np.maximum(pred_a.sum(axis=1), 1)
-    rec = tp / np.maximum(true_a.sum(axis=1), 1)
-    union = (true_a | pred_a).sum(axis=1).astype(np.float64)
-    jacc = tp / np.maximum(union, 1)
-    return {
-        "precision_at_k": float(prec.mean()),
-        "recall_at_k": float(rec.mean()),
-        "jaccard_at_k": float(jacc.mean()),
-    }
+    return binary_metrics_topk(y_true, y_pred, k)
 
 
 def fit_affine_express_in_basis(
@@ -208,25 +189,34 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device", default="cuda")
     p.add_argument("--row-batch", type=int, default=256)
+    p.add_argument("--platonic-root", default=None)
+    p.add_argument(
+        "--allow-truncate",
+        action="store_true",
+        help="If parquet lengths differ, truncate to min (default: error)",
+    )
     p.add_argument(
         "--output-dir",
         default="outputs/sae_affine_basis/physics_vit_dino_n16k_F2048_k64",
     )
     args = p.parse_args()
 
-    root = Path("/home/angus/platonic-universe")
+    root = platonic_root(args.platonic_root)
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA required")
 
     def R(p: str) -> Path:
-        path = Path(p)
-        return path if path.is_absolute() else root / path
+        return resolve_path(root, p)
 
-    X1 = load_col(R(args.parquet1), args.col1)
-    X2 = load_col(R(args.parquet2), args.col2)
-    n = min(len(X1), len(X2))
-    X1, X2 = X1[:n], X2[:n]
+    X1, X2 = load_aligned_pair(
+        R(args.parquet1),
+        args.col1,
+        R(args.parquet2),
+        args.col2,
+        allow_truncate=args.allow_truncate,
+    )
+    n = len(X1)
     rng = np.random.default_rng(args.seed)
     if args.max_n and n > args.max_n:
         sel = np.sort(rng.choice(n, size=args.max_n, replace=False))
@@ -342,6 +332,10 @@ def main() -> None:
             "alpha": args.alpha,
             "k": args.k,
             "seed": args.seed,
+            "col1": args.col1,
+            "col2": args.col2,
+            "parquet1": args.parquet1,
+            "parquet2": args.parquet2,
             "sae_k": b1["k"],
             "feature_dim": b1["feature_dim"],
             "protocol": "basis ≈ other @ W + b  (Ridge on standardized codes)",

@@ -1,0 +1,74 @@
+# Named cross-matched pairs for SAE shared-basis experiments.
+# Paths are relative to --platonic-root (default: ~/platonic-universe).
+#
+# SAE dirs follow: outputs/sae/<parquet_stem>/<column>/<sae_tag>
+# Override per entry or pass --sae-tag / --sae1 / --sae2 on the CLI.
+
+physics_vit_dino:
+  description: "Physics galaxies (Smith42) — ViT-B ↔ DINOv3 ViT-B (row-aligned parquets)"
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/dinov3_vitb16_test.parquet
+  col2: dinov3_vitb16_galaxies
+  sae_tag: F2048_k64_seed0
+  default_max_n: 16384
+
+physics_vit_clip:
+  description: "Physics galaxies — ViT-B ↔ CLIP-B"
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/clip_base_test.parquet
+  col2: clip_base_galaxies
+  sae_tag: F2048_k64_seed0
+  default_max_n: 16384
+  note: "Requires a trained CLIP TopK SAE under outputs/sae/clip_base_test/..."
+
+physics_vit_convnext:
+  description: "Physics galaxies — ViT-B ↔ ConvNeXt-B"
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/convnext_base_test.parquet
+  col2: convnext_base_galaxies
+  sae_tag: F2048_k64_seed0
+  default_max_n: 16384
+  note: "Requires a trained ConvNeXt TopK SAE"
+
+jwst_vit_dino:
+  description: "JWST cross-match — ViT-B JWST ↔ DINOv3 ViT-B JWST"
+  parquet1: data_hf/jwst/jwst_vit_base.parquet
+  col1: vit_base_jwst
+  parquet2: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_jwst
+  sae_tag: F2048_k32_seed0
+  default_max_n: 0
+  note: "Small N (~1.5k). SAE dirs may only exist for DINOv3; train ViT SAE if missing."
+
+jwst_hsc_jwst_dino:
+  description: "JWST parquet — DINOv3 HSC ↔ DINOv3 JWST (same encoder, two surveys)"
+  parquet1: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col1: dinov3_vitb16_hsc
+  parquet2: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_jwst
+  sae1: outputs/sae/jwst_dinov3_vitb16/dinov3_vitb16_hsc/F2048_k32_seed0
+  sae2: outputs/sae/jwst_dinov3_vitb16/dinov3_vitb16_jwst/F2048_k32_seed0
+  default_max_n: 0
+
+desi_vit_dino:
+  description: "DESI cross-match — ViT-B DESI ↔ DINO-B DESI"
+  parquet1: data_hf/desi/desi_vit_base.parquet
+  col1: vit_base_desi
+  parquet2: data_hf/desi/desi_dino_base.parquet
+  col2: dino_base_desi
+  sae_tag: F2048_k64_seed0
+  default_max_n: 16384
+  note: "Requires trained SAEs for these columns"
+
+legacy_vit_dino:
+  description: "Legacy Survey — ViT-B ↔ DINOv3 ViT-B"
+  parquet1: data_hf/legacysurvey/legacysurvey_vit_base.parquet
+  col1: vit_base_legacysurvey
+  parquet2: data_hf/legacysurvey/legacysurvey_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_legacysurvey
+  sae_tag: F2048_k64_seed0
+  default_max_n: 16384
+  note: "Requires trained SAEs for these columns"

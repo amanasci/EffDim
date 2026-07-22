@@ -15,28 +15,26 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pyarrow.parquet as pq
 import torch
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-_SAE_CANDIDATES = [
-    Path(__file__).resolve().parent / "sae",
-    Path(__file__).resolve().parents[1] / "sae",
-    Path("/home/angus/platonic-universe/experiments/sae"),
-]
-_SAE = next((p for p in _SAE_CANDIDATES if (p / "sae_model.py").is_file()), None)
-if _SAE is None:
-    raise FileNotFoundError("sae_model.py not found")
-sys.path.insert(0, str(_SAE))
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
+from _common import (  # noqa: E402
+    binary_metrics_topk,
+    ensure_sae_import,
+    load_aligned_pair,
+    platonic_root,
+    resolve_path,
+    ridge_ref_compatible,
+)
+
+ensure_sae_import()
 from sae_model import TopKSAE  # noqa: E402
-
-
-def load_col(path: Path, column: str) -> np.ndarray:
-    table = pq.read_table(path, columns=[column])
-    return np.vstack(table.column(0).to_pylist()).astype(np.float32)
 
 
 def l2n(X: torch.Tensor, eps: float = 1e-12) -> torch.Tensor:
@@ -99,19 +97,7 @@ def cosine_rowwise(a: np.ndarray, b: np.ndarray, eps: float = 1e-12) -> float:
 
 
 def binary_metrics(y_true: np.ndarray, y_pred: np.ndarray, k: int) -> dict:
-    true_a = y_true > 0
-    kk = min(k, y_pred.shape[1])
-    top = np.argpartition(-np.abs(y_pred), kk - 1, axis=1)[:, :kk]
-    pred_a = np.zeros_like(true_a)
-    for i in range(len(y_pred)):
-        pred_a[i, top[i]] = True
-    tp = (true_a & pred_a).sum(axis=1).astype(np.float64)
-    union = (true_a | pred_a).sum(axis=1).astype(np.float64)
-    return {
-        "precision_at_k": float((tp / np.maximum(pred_a.sum(axis=1), 1)).mean()),
-        "recall_at_k": float((tp / np.maximum(true_a.sum(axis=1), 1)).mean()),
-        "jaccard_at_k": float((tp / np.maximum(union, 1)).mean()),
-    }
+    return binary_metrics_topk(y_true, y_pred, k)
 
 
 def pack_metrics(y: np.ndarray, yhat: np.ndarray, split: str) -> dict:
@@ -136,6 +122,7 @@ def fit_lasso_affine_gpu(
     batch_size: int,
     device: torch.device,
     seed: int,
+    val_idx: np.ndarray | None = None,
 ) -> dict:
     """basis ≈ other @ W + b with L1 on W (Adam on MSE + l1*|W|)."""
     torch.manual_seed(seed)
@@ -162,7 +149,6 @@ def fit_lasso_affine_gpu(
         idx = torch.randint(0, n, (min(batch_size, n),), device=device)
         pred = xs_tr[idx] @ W + b
         mse = torch.mean((pred - ys_tr[idx]) ** 2)
-        # scale l1 like sklearn: alpha * ||W||_1 / (n_features) roughly
         loss = mse + l1 * W.abs().mean()
         loss.backward()
         opt.step()
@@ -184,7 +170,6 @@ def fit_lasso_affine_gpu(
             )
 
     with torch.no_grad():
-        # soft-threshold tiny weights for reporting sparsity
         W_final = W.detach().clone()
         b_final = b.detach().clone()
         ys_hat_te = xs_te @ W_final + b_final
@@ -198,7 +183,6 @@ def fit_lasso_affine_gpu(
         nnz_frac = float((np.abs(W_np) > 1e-4).mean())
         row_nnz = float((np.abs(W_np).max(axis=1) > 1e-4).mean())
         col_nnz = float((np.abs(W_np).max(axis=0) > 1e-4).mean())
-        # Cheap rank proxy: Frobenius / operator-norm estimate via a few power iters
         v = np.random.default_rng(0).standard_normal(W_np.shape[1])
         for _ in range(8):
             v = W_np.T @ (W_np @ v)
@@ -207,7 +191,7 @@ def fit_lasso_affine_gpu(
         fro = float(np.linalg.norm(W_np))
         eff_rank_proxy = float((fro / max(op_norm, 1e-12)) ** 2)
 
-    return {
+    out = {
         "y_hat_all": y_hat_all.astype(np.float32),
         "train": pack_metrics(y_tr, y_hat_tr, "train"),
         "test": pack_metrics(y_te, y_hat_te, "test"),
@@ -221,6 +205,16 @@ def fit_lasso_affine_gpu(
         "curve": curve,
         "method": "gpu_l1_adam",
     }
+    if val_idx is not None and len(val_idx):
+        x_va = codes_other[val_idx]
+        y_va = codes_basis[val_idx]
+        y_hat_va = y_scaler.inverse_transform(
+            (torch.as_tensor(x_scaler.transform(x_va), device=device) @ W_final + b_final)
+            .cpu()
+            .numpy()
+        )
+        out["val"] = pack_metrics(y_va, y_hat_va, "val")
+    return out
 
 
 def fit_multitask_lasso(
@@ -318,25 +312,36 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device", default="cuda")
     p.add_argument("--row-batch", type=int, default=256)
+    p.add_argument("--platonic-root", default=None)
+    p.add_argument("--allow-truncate", action="store_true")
+    p.add_argument("--val-frac", type=float, default=0.2, help="Fraction of train used as val for λ selection")
+    p.add_argument(
+        "--ridge-ref",
+        default=None,
+        help="Optional prior Ridge results.json; only used if meta matches this run",
+    )
     p.add_argument(
         "--output-dir",
         default="outputs/sae_affine_lasso_basis/physics_vit_dino_n16k_F2048_k64",
     )
     args = p.parse_args()
 
-    root = Path("/home/angus/platonic-universe")
+    root = platonic_root(args.platonic_root)
     device = torch.device(args.device)
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("CUDA required")
 
     def R(p: str) -> Path:
-        path = Path(p)
-        return path if path.is_absolute() else root / path
+        return resolve_path(root, p)
 
-    X1 = load_col(R(args.parquet1), args.col1)
-    X2 = load_col(R(args.parquet2), args.col2)
-    n = min(len(X1), len(X2))
-    X1, X2 = X1[:n], X2[:n]
+    X1, X2 = load_aligned_pair(
+        R(args.parquet1),
+        args.col1,
+        R(args.parquet2),
+        args.col2,
+        allow_truncate=args.allow_truncate,
+    )
+    n = len(X1)
     rng = np.random.default_rng(args.seed)
     if args.max_n and n > args.max_n:
         sel = np.sort(rng.choice(n, size=args.max_n, replace=False))
@@ -349,19 +354,44 @@ def main() -> None:
     C1 = encode(b1, X1, device)
     C2 = encode(b2, X2, device)
     idx = np.arange(n)
-    train_idx, test_idx = train_test_split(
+    train_val_idx, test_idx = train_test_split(
         idx, test_size=args.test_size, random_state=args.seed, shuffle=True
     )
-    train_idx, test_idx = np.sort(train_idx), np.sort(test_idx)
-    print(f"n={n} train={len(train_idx)} test={len(test_idx)}", flush=True)
+    train_idx, val_idx = train_test_split(
+        train_val_idx,
+        test_size=args.val_frac,
+        random_state=args.seed + 7,
+        shuffle=True,
+    )
+    train_idx, val_idx, test_idx = (
+        np.sort(train_idx),
+        np.sort(val_idx),
+        np.sort(test_idx),
+    )
+    print(
+        f"n={n} train={len(train_idx)} val={len(val_idx)} test={len(test_idx)}",
+        flush=True,
+    )
 
-    # Load Ridge baseline numbers if present
-    ridge_path = root / "outputs/sae_affine_basis/physics_vit_dino_n16k_F2048_k64/results.json"
-    ridge_ref = json.loads(ridge_path.read_text()) if ridge_path.is_file() else None
+    ridge_ref = None
+    if args.ridge_ref:
+        ridge_path = R(args.ridge_ref)
+        if ridge_path.is_file():
+            cand = json.loads(ridge_path.read_text())
+            if ridge_ref_compatible(
+                cand, n=n, col1=args.col1, col2=args.col2, seed=args.seed
+            ):
+                ridge_ref = cand
+                print(f"Using compatible Ridge ref: {ridge_path}", flush=True)
+            else:
+                print(
+                    f"Ignoring Ridge ref {ridge_path}: meta does not match "
+                    f"(n/col1/col2/seed).",
+                    flush=True,
+                )
 
     fits = []  # list of (tag, direction, block)
 
-    # GPU Lasso: both directions for each l1
     for l1 in args.l1_coefs:
         print(f"\n=== GPU L1 Adam  l1={l1}  DINO→ViT ===", flush=True)
         d2v = fit_lasso_affine_gpu(
@@ -369,6 +399,7 @@ def main() -> None:
             C2,
             train_idx=train_idx,
             test_idx=test_idx,
+            val_idx=val_idx,
             l1=l1,
             steps=args.steps,
             lr=args.lr,
@@ -377,8 +408,8 @@ def main() -> None:
             seed=args.seed,
         )
         print(
-            f"  test cos={d2v['test']['cosine']:.4f} jacc={d2v['test']['binary']['jaccard_at_k']:.4f} "
-            f"nnz={d2v['nnz_frac']:.4f} rank~{d2v.get('effective_rank_proxy', float('nan')):.1f}",
+            f"  val cos={d2v['val']['cosine']:.4f} test cos={d2v['test']['cosine']:.4f} "
+            f"jacc={d2v['test']['binary']['jaccard_at_k']:.4f} nnz={d2v['nnz_frac']:.4f}",
             flush=True,
         )
         fits.append((f"gpu_l1_{l1:g}", "dino_in_vit", d2v))
@@ -389,6 +420,7 @@ def main() -> None:
             C1,
             train_idx=train_idx,
             test_idx=test_idx,
+            val_idx=val_idx,
             l1=l1,
             steps=args.steps,
             lr=args.lr,
@@ -397,8 +429,8 @@ def main() -> None:
             seed=args.seed + 1,
         )
         print(
-            f"  test cos={v2d['test']['cosine']:.4f} jacc={v2d['test']['binary']['jaccard_at_k']:.4f} "
-            f"nnz={v2d['nnz_frac']:.4f} rank~{v2d.get('effective_rank_proxy', float('nan')):.1f}",
+            f"  val cos={v2d['val']['cosine']:.4f} test cos={v2d['test']['cosine']:.4f} "
+            f"jacc={v2d['test']['binary']['jaccard_at_k']:.4f} nnz={v2d['nnz_frac']:.4f}",
             flush=True,
         )
         fits.append((f"gpu_l1_{l1:g}", "vit_in_dino", v2d))
@@ -418,7 +450,23 @@ def main() -> None:
             except Exception as exc:  # noqa: BLE001
                 print(f"  MTL failed: {exc}", flush=True)
 
-    # mKNN for each fit on test
+    # Select best L1 per direction on validation cosine (GPU fits only)
+    selected = {}
+    for direction in ("dino_in_vit", "vit_in_dino"):
+        cands = [
+            (tag, block)
+            for tag, d, block in fits
+            if d == direction and block.get("val") is not None
+        ]
+        if cands:
+            tag, block = max(cands, key=lambda tb: tb[1]["val"]["cosine"])
+            selected[direction] = tag
+            print(
+                f"Val-selected {direction}: {tag} "
+                f"(val cos={block['val']['cosine']:.4f})",
+                flush=True,
+            )
+
     Z1 = torch.as_tensor(X1, device=device)
     Z2 = torch.as_tensor(X2, device=device)
     Z1n = Z1 / Z1.norm(dim=1, keepdim=True).clamp_min(1e-12)
@@ -431,29 +479,49 @@ def main() -> None:
 
     mknn_rows = []
 
-    def add(method: str, A: torch.Tensor, B: torch.Tensor) -> None:
+    def add(method: str, A: torch.Tensor, B: torch.Tensor, *, selected_flag: bool = False) -> None:
         s = mknn(
             knn_cos(A[te], args.k, args.row_batch),
             knn_cos(B[te], args.k, args.row_batch),
             args.k,
         )
-        mknn_rows.append({"method": method, "mknn": s})
+        mknn_rows.append({"method": method, "mknn": s, "val_selected": selected_flag})
         print(f"  mknn {method:<48} {s:.4f}", flush=True)
 
-    print("\n=== mKNN ===", flush=True)
+    print("\n=== mKNN (test; λ selected on val) ===", flush=True)
     add("dense_cosine", Z1n, Z2n)
     add("sae_codes_cosine", C1_t, C2_t)
     add("sae_idf_cosine", C1_t * idf1[None], C2_t * idf2[None])
 
-    # pick best l1 per direction by test cosine for primary report; score all
     for tag, direction, block in fits:
         mapped = torch.as_tensor(block["y_hat_all"], device=device)
+        is_sel = selected.get(direction) == tag
         if direction == "dino_in_vit":
-            add(f"{tag}/shared_vit_basis", C1_t, mapped)
-            add(f"{tag}/shared_vit_basis_idf", C1_t * idf1[None], mapped * idf1[None])
+            add(
+                f"{tag}/shared_vit_basis",
+                C1_t,
+                mapped,
+                selected_flag=is_sel,
+            )
+            add(
+                f"{tag}/shared_vit_basis_idf",
+                C1_t * idf1[None],
+                mapped * idf1[None],
+                selected_flag=is_sel,
+            )
         else:
-            add(f"{tag}/shared_dino_basis", C2_t, mapped)
-            add(f"{tag}/shared_dino_basis_idf", C2_t * idf2[None], mapped * idf2[None])
+            add(
+                f"{tag}/shared_dino_basis",
+                C2_t,
+                mapped,
+                selected_flag=is_sel,
+            )
+            add(
+                f"{tag}/shared_dino_basis_idf",
+                C2_t * idf2[None],
+                mapped * idf2[None],
+                selected_flag=is_sel,
+            )
 
     out_dir = R(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -461,6 +529,7 @@ def main() -> None:
         "meta": {
             "n": n,
             "n_train": int(len(train_idx)),
+            "n_val": int(len(val_idx)),
             "n_test": int(len(test_idx)),
             "l1_coefs": args.l1_coefs,
             "mtl_alphas": args.mtl_alphas if not args.skip_mtl else [],
@@ -468,11 +537,13 @@ def main() -> None:
             "lr": args.lr,
             "k": args.k,
             "seed": args.seed,
+            "col1": args.col1,
+            "col2": args.col2,
             "sae_k": b1["k"],
+            "val_selected": selected,
+            "selection_rule": "max val cosine per direction",
         },
-        "ridge_ref_mknn": (
-            ridge_ref.get("mknn_rows") if ridge_ref else None
-        ),
+        "ridge_ref_mknn": (ridge_ref.get("mknn_rows") if ridge_ref else None),
         "fits": [
             {
                 "tag": tag,
@@ -489,25 +560,27 @@ def main() -> None:
     lines = [
         "# Affine Lasso SAE-code basis transfer",
         "",
-        f"- n={n}, train/test={len(train_idx)}/{len(test_idx)}, TopK k={b1['k']}",
+        f"- n={n}, train/val/test={len(train_idx)}/{len(val_idx)}/{len(test_idx)}, TopK k={b1['k']}",
         f"- GPU L1 Adam l1∈{args.l1_coefs}, steps={args.steps}",
+        "- Hyperparameter selection: **max validation cosine** per direction",
         "",
-        "## Code prediction (test)",
+        "## Code prediction",
         "",
-        "| fit | direction | cos | Jaccard | nnz(W) | rank~ |",
+        "| fit | direction | val cos | test cos | Jaccard | nnz(W) |",
         "|---|---|---:|---:|---:|---:|",
     ]
     for tag, direction, block in fits:
-        te = block["test"]
+        vc = block.get("val", {}).get("cosine", float("nan"))
+        teb = block["test"]
+        mark = " ★" if selected.get(direction) == tag else ""
         lines.append(
-            f"| {tag} | {direction} | {te['cosine']:.4f} | "
-            f"{te['binary']['jaccard_at_k']:.4f} | {block['nnz_frac']:.4f} | "
-            f"{block.get('effective_rank_proxy', float('nan')):.1f} |"
+            f"| {tag}{mark} | {direction} | {vc:.4f} | {teb['cosine']:.4f} | "
+            f"{teb['binary']['jaccard_at_k']:.4f} | {block['nnz_frac']:.4f} |"
         )
     if ridge_ref:
         lines += [
             "",
-            "Ridge ref (prior run): "
+            "Compatible Ridge ref: "
             f"DINO→ViT cos={ridge_ref['dino_in_vit']['test']['cosine']:.4f}, "
             f"ViT→DINO cos={ridge_ref['vit_in_dino']['test']['cosine']:.4f}",
         ]
@@ -515,17 +588,25 @@ def main() -> None:
         "",
         "## mKNN (test)",
         "",
-        "| method | mknn |",
-        "|---|---:|",
+        "| method | mknn | val_selected |",
+        "|---|---:|:---:|",
     ]
     for r in mknn_rows:
-        lines.append(f"| {r['method']} | {r['mknn']:.4f} |")
-    best = max(mknn_rows, key=lambda r: r["mknn"])
-    lines += ["", f"Best: `{best['method']}` mknn={best['mknn']:.4f}.", ""]
+        star = "yes" if r.get("val_selected") else ""
+        lines.append(f"| {r['method']} | {r['mknn']:.4f} | {star} |")
+    sel_rows = [r for r in mknn_rows if r.get("val_selected")]
+    if sel_rows:
+        best = max(sel_rows, key=lambda r: r["mknn"])
+        lines += [
+            "",
+            f"Best **val-selected** shared-basis: `{best['method']}` mknn={best['mknn']:.4f}.",
+            "(Full table includes non-selected λ for diagnostics; do not pick Best from it.)",
+            "",
+        ]
     if ridge_ref:
         rb = max(ridge_ref["mknn_rows"], key=lambda r: r["mknn"])
         lines.append(
-            f"Best Ridge (prior): `{rb['method']}` mknn={rb['mknn']:.4f}."
+            f"Compatible Ridge ref best: `{rb['method']}` mknn={rb['mknn']:.4f}."
         )
     (out_dir / "results.md").write_text("\n".join(lines) + "\n")
     print(f"\nWrote {out_dir}", flush=True)
