@@ -47,7 +47,6 @@ def default_platonic_root() -> Path:
     if env:
         return Path(env).expanduser().resolve()
     candidates = [
-        Path("/home/angus/platonic-universe"),
         Path.home() / "platonic-universe",
     ]
     for c in candidates:

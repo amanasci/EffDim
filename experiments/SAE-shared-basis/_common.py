@@ -17,7 +17,6 @@ def platonic_root(cli_value: str | None = None) -> Path:
     if env:
         return Path(env).expanduser().resolve()
     candidates = [
-        Path("/home/angus/platonic-universe"),
         Path.home() / "platonic-universe",
     ]
     for c in candidates:
@@ -36,7 +35,6 @@ def ensure_sae_import() -> Path:
     candidates = [
         Path(__file__).resolve().parent / "sae",
         Path(__file__).resolve().parents[1] / "sae",
-        Path("/home/angus/platonic-universe/experiments/sae"),
         Path.home() / "platonic-universe" / "experiments" / "sae",
     ]
     for p in candidates:

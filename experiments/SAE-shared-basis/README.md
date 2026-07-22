@@ -16,15 +16,42 @@ The result that worked well on Physics ViT↔DINOv3 was **Ridge** (not Lasso): ~
 | `lasso` | `sae_affine_lasso_basis_mknn_gpu.py` | Sparse / L1 maps (weaker here) |
 | `eigenbasis` | `sae_lasso_eigenbasis_mknn_gpu.py` | Singular charts of \(W\) + controls |
 
+## Data
+
+Primary images / metadata:
+
+- [Smith42/galaxies](https://huggingface.co/datasets/Smith42/galaxies) (DESI Legacy Survey galaxy cutouts; use revision `v2.0` where applicable)
+
+Related embedding / project resources:
+
+- [Smith42/galaxies_embeddings](https://huggingface.co/datasets/Smith42/galaxies_embeddings) (AstroPT embeddings aligned to the same rows)
+- [UniverseTBD/platonic-universe](https://github.com/UniverseTBD/platonic-universe) (cross-model embedding export / mKNN tooling used to produce the ViT / DINOv3 / … parquets under `data_hf/`)
+
+These runners expect **row-aligned** embedding parquets (same index = same object), typically under `$PLATONIC_ROOT/data_hf/`, plus pretrained TopK SAE checkpoints under `$PLATONIC_ROOT/outputs/sae/`.
+
+## Recommended system
+
+| | Minimum (Ridge smoke, `max-n` ≤ 2k) | Recommended (full Ridge / suite, `max-n` = 16k) |
+|---|---|---|
+| GPU | CUDA GPU, ≥ 8 GB VRAM | CUDA GPU, **≥ 16–24 GB** VRAM (e.g. RTX 3090 / 4090 / A5000-class) |
+| Driver / runtime | Recent NVIDIA driver + CUDA-capable PyTorch | Same |
+| CPU / RAM | 8+ cores, ≥ 32 GB RAM | 16+ cores, **≥ 64 GB** RAM (parquet load + sklearn Ridge on \(F{=}2048\) codes) |
+| Disk | ≥ 20 GB free for one pair + SAE | ≥ 100 GB if keeping multiple surveys / SAE runs |
+| OS | Linux x86_64 | Linux x86_64 |
+
+Notes:
+
+- Scripts default to `--device cuda`. CPU is not supported for the GPU runners.
+- Ridge at \(n{=}16384\), \(F{=}2048\) is dominated by code encoding + a dense multi-output Ridge; Lasso / eigenbasis (FISTA + rank sweeps) need more wall-clock time on the same GPU.
+- Set `PLATONIC_ROOT` to your data/outputs tree (or pass `--platonic-root`).
+
 ## Requirements
 
 - Python deps: see [`requirements.txt`](requirements.txt) (`torch`, `pyarrow`, `scikit-learn`, `PyYAML`, …).
 - Vendored `sae/sae_model.py` ships with this folder so a clean EffDim checkout can import TopKSAE.
-- Data/checkpoints live under `PLATONIC_ROOT` (default `~/platonic-universe` or `/home/angus/platonic-universe`). Override with `--platonic-root` / env `PLATONIC_ROOT`.
 - Cross-matched embeddings must have **equal row counts** (positional alignment). Length mismatch errors unless `--allow-truncate`.
-- Pretrained TopK SAEs for both sides under `outputs/sae/...`.
 
-### Review fixes (methods)
+### Method notes (review fixes)
 
 - Singular charts (A/C) apply SVD of `W_std` in **standardized** code/embedding space.
 - Local Ridge (C) fits on 70% of each ball and evaluates mKNN on the held-out 30%.
@@ -35,12 +62,11 @@ The result that worked well on Physics ViT↔DINOv3 was **Ridge** (not Lasso): ~
 
 ## Quick start (CLI)
 
-From this worktree (or with paths adjusted):
+From the EffDim repo root (this worktree or a clone of the `sae-shared-basis` branch), with `PLATONIC_ROOT` pointing at your platonic-universe-style data tree:
 
 ```bash
-ssh -F /dev/null -i ~/.ssh/id_ed25519_cursor -o IdentitiesOnly=yes angus@100.97.36.119
-source ~/platonic-universe/.venv/bin/activate
-cd /path/to/EffDim-worktrees/SAE-shared-basis   # or sync this folder onto the host
+export PLATONIC_ROOT=/path/to/platonic-universe   # data_hf/ + outputs/sae/
+source "$PLATONIC_ROOT/.venv/bin/activate"        # or any env with requirements.txt
 
 # list named cross-matched pairs
 python experiments/SAE-shared-basis/run_shared_basis.py list
@@ -126,24 +152,6 @@ Forward extra script flags after `--`:
 python experiments/SAE-shared-basis/run_shared_basis.py run \
   --dataset physics_vit_dino --experiment eigenbasis -- \
   --ranks 64 128 256 --fista-steps 400
-```
-
-## Syncing this folder to the GPU host
-
-The runners expect SAE helpers at `~/platonic-universe/experiments/sae/`. Sync the EffDim worktree scripts as needed:
-
-```bash
-rsync -e 'ssh -F /dev/null -i ~/.ssh/id_ed25519_cursor -o IdentitiesOnly=yes' -av \
-  experiments/SAE-shared-basis/ \
-  angus@100.97.36.119:~/platonic-universe/experiments/SAE-shared-basis/
-```
-
-Then on the host:
-
-```bash
-cd ~/platonic-universe
-source .venv/bin/activate
-python experiments/SAE-shared-basis/run_shared_basis.py run --dataset physics_vit_dino
 ```
 
 ## Interpreting results
