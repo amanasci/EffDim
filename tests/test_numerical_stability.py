@@ -9,6 +9,9 @@ from effdim.metrics import (
     renyi_eff_dimensionality,
     geometric_mean_eff_dimensionality,
     pca_explained_variance,
+    stable_rank,
+    numerical_rank,
+    cumulative_eigenvalue_ratio,
 )
 from effdim.geometry import (
     mle_dimensionality,
@@ -31,6 +34,10 @@ class TestSpectralEstimatorsEdgeCases:
         probs = spectrum / np.sum(spectrum)
         shannon = shannon_entropy(probs)
         assert 1.0 < shannon < 1.5, "Shannon ED should be close to 1"
+        
+        assert 1.0 <= stable_rank(spectrum) < 1.5
+        assert numerical_rank(spectrum, epsilon=0.1) == 1
+        assert cumulative_eigenvalue_ratio(probs) > 0.9
     
     def test_equal_eigenvalues(self):
         """Test when all eigenvalues are equal (maximum effective dimension)."""
@@ -43,6 +50,10 @@ class TestSpectralEstimatorsEdgeCases:
         probs = spectrum / np.sum(spectrum)
         shannon = shannon_entropy(probs)
         assert np.isclose(shannon, D), "Shannon ED should equal D"
+        
+        assert np.isclose(stable_rank(spectrum), D)
+        assert numerical_rank(spectrum) == D
+        assert np.isclose(cumulative_eigenvalue_ratio(probs), 0.5)
     
     def test_zero_eigenvalues(self):
         """Test handling of zero eigenvalues."""
@@ -60,6 +71,10 @@ class TestSpectralEstimatorsEdgeCases:
         # Geometric mean should filter zeros
         gm = geometric_mean_eff_dimensionality(spectrum)
         assert gm > 0, "Geometric mean should handle zero eigenvalues"
+        
+        assert stable_rank(spectrum) > 0
+        assert numerical_rank(spectrum) == 3
+        assert cumulative_eigenvalue_ratio(probs) > 0
     
     def test_all_zero_spectrum(self):
         """Test with all-zero spectrum."""
@@ -70,6 +85,10 @@ class TestSpectralEstimatorsEdgeCases:
         
         gm = geometric_mean_eff_dimensionality(spectrum)
         assert gm == 0.0, "GM should be 0 for all-zero spectrum"
+        
+        assert stable_rank(spectrum) == 0.0
+        assert numerical_rank(spectrum) == 0
+        assert cumulative_eigenvalue_ratio(spectrum) == 0.0
     
     def test_very_small_eigenvalues(self):
         """Test numerical stability with very small eigenvalues."""
@@ -81,10 +100,13 @@ class TestSpectralEstimatorsEdgeCases:
         probs = spectrum / np.sum(spectrum)
         shannon = shannon_entropy(probs)
         assert np.isfinite(shannon), "Shannon should handle very small probabilities"
+        
+        assert np.isfinite(stable_rank(spectrum))
+        assert numerical_rank(spectrum) >= 1
     
     def test_very_large_eigenvalue_range(self):
         """Test with large range in eigenvalues (ill-conditioned)."""
-        spectrum = np.array([1e10, 1e5, 1e0, 1e-5])
+        spectrum = np.array([1e10, 1e5, 1e0, 1e-10])
         
         pr = participation_ratio(spectrum)
         assert np.isfinite(pr), "PR should handle large eigenvalue range"
@@ -92,6 +114,9 @@ class TestSpectralEstimatorsEdgeCases:
         probs = spectrum / np.sum(spectrum)
         shannon = shannon_entropy(probs)
         assert np.isfinite(shannon), "Shannon should handle large eigenvalue range"
+        
+        assert np.isfinite(stable_rank(spectrum))
+        assert numerical_rank(spectrum) < len(spectrum)
     
     def test_renyi_alpha_2_equals_pr(self):
         """Test that Rényi with alpha=2 equals Participation Ratio."""
@@ -260,6 +285,35 @@ class TestComputeDimIntegration:
         
         # Should still detect approximate low rank
         assert results['participation_ratio'] < k + 5, "PR should reflect approximate rank"
+        
+    def test_duplicate_features(self):
+        """Test with exactly duplicated features to ensure geometric methods don't crash."""
+        np.random.seed(42)
+        n = 100
+        # 5 unique features
+        base_data = np.random.randn(n, 5)
+        # Duplicate the 5 features 3 times (15 total features)
+        data = np.hstack([base_data, base_data, base_data])
+        
+        results = compute_dim(data)
+        
+        # All geometric dimensionalities should successfully compute and be finite
+        for key in ["mle_dimensionality", "two_nn_dimensionality", "mind_mlk_dimensionality", "tle_dimensionality"]:
+            assert np.isfinite(results[key]), f"{key} failed on duplicated features"
+            
+    def test_highly_correlated_features(self):
+        """Test with highly correlated features (r > 0.999)."""
+        np.random.seed(42)
+        n = 100
+        base_feature = np.random.randn(n, 1)
+        # Add tiny noise to create highly correlated features
+        data = np.hstack([base_feature + 1e-4 * np.random.randn(n, 1) for _ in range(5)])
+        
+        results = compute_dim(data)
+        
+        # All geometric dimensionalities should successfully compute and be finite
+        for key in ["mle_dimensionality", "two_nn_dimensionality", "mind_mlk_dimensionality", "tle_dimensionality"]:
+            assert np.isfinite(results[key]), f"{key} failed on highly correlated features"
     
     def test_isotropic_gaussian(self):
         """Test with isotropic Gaussian (all dimensions equally important)."""

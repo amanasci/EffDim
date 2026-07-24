@@ -92,6 +92,38 @@ class TestReproducibility:
                 f"list={results_list[key]}"
             )
 
+    def test_input_data_is_not_mutated(self):
+        """compute_dim should not modify the input array in-place."""
+        rng = np.random.default_rng(42)
+        # Shifted to force centering
+        original_data = rng.standard_normal((50, 5)) + 100  
+        data_copy = original_data.copy()
+        
+        _ = compute_dim(original_data)
+        
+        # Verify the original array is completely untouched
+        np.testing.assert_array_equal(original_data, data_copy)
+
+    def test_global_random_state_not_mutated_large_data(self):
+        """compute_dim should not consume global random state for large datasets (N > 1000)."""
+        rng = np.random.default_rng(42)
+        # Create a dataset large enough to trigger randomized_svd
+        data = rng.standard_normal((1005, 5)) 
+        
+        # Snapshot the global random state
+        state_before = np.random.get_state()
+        
+        # Run compute_dim
+        _ = compute_dim(data)
+        
+        # Verify global state is unchanged
+        state_after = np.random.get_state()
+        
+        # get_state returns a tuple where the second element is an array of random uint32s
+        assert state_before[0] == state_after[0]
+        np.testing.assert_array_equal(state_before[1], state_after[1])
+        assert state_before[2:] == state_after[2:]
+
 
 class TestRenyiDimensionalitiesInComputeDim:
     """Test that Rényi dimensionalities are computed correctly by compute_dim."""

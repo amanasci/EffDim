@@ -33,6 +33,14 @@ class TestKnownDimensionalities:
         assert np.isfinite(results["mind_mli_dimensionality"]) and results["mind_mli_dimensionality"] > 0
         assert np.isfinite(results["gmst_dimensionality"]) and results["gmst_dimensionality"] > 0
 
+        # Spectral methods should correctly identify 3D isotropic variance
+        assert results["pca_explained_variance_95"] == 3
+        assert 2.5 < results["participation_ratio"] <= 3.0
+        assert 2.5 < results["shannon_entropy"] <= 3.0
+        assert results["numerical_rank"] == 3
+        assert 2.5 < results["stable_rank"] <= 3.0
+        assert results["cumulative_eigenvalue_ratio"] > 0
+
     def test_random_noise_10d(self):
         """Random 10D Gaussian noise should have intrinsic dimension ~10."""
         np.random.seed(42)
@@ -44,6 +52,12 @@ class TestKnownDimensionalities:
         assert 7 < results["tle_dimensionality"] < 14
         assert results["participation_ratio"] > 7
 
+        # Spectral methods should correctly identify 10D isotropic variance
+        assert results["pca_explained_variance_95"] == 10
+        assert 8.0 < results["shannon_entropy"] <= 10.0
+        assert results["numerical_rank"] == 10
+        assert 7.0 < results["stable_rank"] <= 10.0
+
     def test_swiss_roll_2d_manifold(self):
         """Swiss Roll is a 2D manifold in 3D space."""
         X, _ = make_swiss_roll(n_samples=1000, noise=0.01, random_state=42)
@@ -53,6 +67,10 @@ class TestKnownDimensionalities:
         assert 1.5 < results["two_nn_dimensionality"] < 3.5
         # PCA should see 3 (global structure fills 3D)
         assert results["pca_explained_variance_95"] >= 2
+        
+        # Global spectral methods will see the filled 3D embedding space
+        assert results["numerical_rank"] == 3
+        assert 1.5 < results["stable_rank"] <= 3.0
 
     def test_linear_subspace_rank3_in_10d(self):
         """Rank-3 linear subspace in 10D should have intrinsic dim ~3."""
@@ -63,6 +81,11 @@ class TestKnownDimensionalities:
         results = compute_dim(data)
         assert results["pca_explained_variance_95"] <= 4
         assert results["participation_ratio"] < 5
+
+        # Stable rank robustly ignores the 1e-6 noise floor and sees ~3 dominant eigenvalues
+        assert 1.5 < results["stable_rank"] < 4.0
+        # Numerical rank strictly counts anything > machine epsilon, which includes the 1e-6 noise
+        assert results["numerical_rank"] == 10
         assert 2.0 < results["mle_dimensionality"] < 5.0
 
     def test_1d_curve_in_3d(self):

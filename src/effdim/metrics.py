@@ -20,6 +20,8 @@ def pca_explained_variance(spectrum: np.ndarray, threshold: float = 0.95) -> int
         Number of principal components needed to reach the threshold.
     """
     total_variance = np.sum(spectrum)
+    if total_variance == 0:
+        return 1
     cumulative_variance = np.cumsum(spectrum)
     explained_variance_ratio = cumulative_variance / total_variance
 
@@ -117,3 +119,70 @@ def geometric_mean_eff_dimensionality(spectrum: np.ndarray) -> float:
     d_eff = (am / gm)
     
     return d_eff
+
+def stable_rank(spectrum: np.ndarray) -> float:
+    """
+    Compute the Stable Rank of the given spectrum.
+
+    Parameters:
+    -----------
+    spectrum : np.ndarray
+        Array of eigenvalues.
+
+    Returns:
+    --------
+    float
+        Stable Rank value.
+    """
+    if len(spectrum) == 0:
+        return 0.0
+    max_eig = np.max(spectrum)
+    if max_eig == 0:
+        return 0.0
+    return float(np.sum(spectrum) / max_eig)
+
+def numerical_rank(singular_values: np.ndarray, epsilon: float = None) -> int:
+    """
+    Compute the Numerical Rank (Epsilon-Rank) of the given singular values.
+
+    Parameters:
+    -----------
+    singular_values : np.ndarray
+        Array of singular values.
+    epsilon : float, optional
+        Threshold. If None, defaults to machine precision times the largest
+        singular value.
+
+    Returns:
+    --------
+    int
+        Numerical rank.
+    """
+    if len(singular_values) == 0:
+        return 0
+    if epsilon is None:
+        epsilon = float(np.finfo(singular_values.dtype).eps * np.max(singular_values) * len(singular_values))
+    return int(np.sum(singular_values > epsilon))
+
+def cumulative_eigenvalue_ratio(probabilities: np.ndarray) -> float:
+    """
+    Compute the Cumulative Eigenvalue Ratio (CER) of the given spectrum.
+
+    Parameters:
+    -----------
+    probabilities : np.ndarray
+        Array of probabilities (normalized eigenvalues).
+
+    Returns:
+    --------
+    float
+        CER value.
+    """
+    D = len(probabilities)
+    if D == 0:
+        return 0.0
+    elif D == 1:
+        return float(probabilities[0])
+    
+    weights = (D - 1 - np.arange(D)) / (D - 1)
+    return float(np.sum(weights * probabilities))
