@@ -158,6 +158,7 @@ def numerical_rank(singular_values: np.ndarray, epsilon: float = None) -> int:
     int
         Numerical rank.
     """
+    singular_values = np.asarray(singular_values, dtype=float)
     if len(singular_values) == 0:
         return 0
     if epsilon is None:
@@ -178,6 +179,16 @@ def cumulative_eigenvalue_ratio(probabilities: np.ndarray) -> float:
     float
         CER value.
     """
+    probabilities = np.asarray(probabilities)
+    probabilities = np.maximum(probabilities, 0)
+    total = np.sum(probabilities)
+    if total > 0:
+        probabilities = probabilities / total
+    else:
+        return 0.0
+        
+    probabilities = np.sort(probabilities)[::-1]
+    
     D = len(probabilities)
     if D == 0:
         return 0.0
