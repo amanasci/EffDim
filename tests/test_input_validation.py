@@ -11,6 +11,9 @@ from effdim.metrics import (
     renyi_eff_dimensionality,
     geometric_mean_eff_dimensionality,
     pca_explained_variance,
+    stable_rank,
+    numerical_rank,
+    cumulative_eigenvalue_ratio,
 )
 from effdim.geometry import (
     mle_dimensionality,
@@ -54,6 +57,52 @@ class TestComputeDimInputValidation:
         assert isinstance(results, dict)
         assert len(results) > 0
 
+    def test_empty_array_raises(self):
+        """compute_dim should raise ValueError for empty array."""
+        with pytest.raises(ValueError, match="at least 2 samples"):
+            compute_dim(np.empty((0, 5)))
+        with pytest.raises(ValueError, match="empty list"):
+            compute_dim([])
+            
+    def test_nan_values_raises(self):
+        """compute_dim should raise ValueError if data contains NaN."""
+        data = np.ones((50, 5))
+        data[0, 0] = np.nan
+        with pytest.raises(ValueError, match="NaN or infinity"):
+            compute_dim(data)
+            
+    def test_inf_values_raises(self):
+        """compute_dim should raise ValueError if data contains Inf."""
+        data = np.ones((50, 5))
+        data[0, 0] = np.inf
+        with pytest.raises(ValueError, match="NaN or infinity"):
+            compute_dim(data)
+
+    def test_invalid_dimension_raises(self):
+        """compute_dim should raise ValueError for 1D or 3D arrays."""
+        with pytest.raises(ValueError, match="2D array"):
+            compute_dim(np.array([1.0, 2.0, 3.0]))
+        with pytest.raises(ValueError, match="2D array"):
+            compute_dim(np.ones((10, 5, 2)))
+
+    def test_single_sample_raises(self):
+        """compute_dim should raise ValueError if there is only 1 sample."""
+        with pytest.raises(ValueError, match="at least 2 samples"):
+            compute_dim(np.ones((1, 5)))
+
+    def test_all_zeros_handled(self):
+        """compute_dim should handle completely zeroed data without crashing."""
+        data = np.zeros((50, 5))
+        results = compute_dim(data)
+        assert results["participation_ratio"] == 0.0
+
+    def test_all_ones_handled(self):
+        """compute_dim should handle uniform data without crashing."""
+        data = np.ones((50, 5))
+        results = compute_dim(data)
+        # All ones means zero variance after centering
+        assert results["participation_ratio"] == 0.0
+
     def test_result_contains_all_expected_keys(self):
         """compute_dim result should contain all documented keys."""
         rng = np.random.default_rng(0)
@@ -72,6 +121,9 @@ class TestComputeDimInputValidation:
             "ess_dimensionality",
             "tle_dimensionality",
             "gmst_dimensionality",
+            "stable_rank",
+            "numerical_rank",
+            "cumulative_eigenvalue_ratio",
             "renyi_eff_dimensionality_alpha_2",
             "renyi_eff_dimensionality_alpha_3",
             "renyi_eff_dimensionality_alpha_4",
@@ -206,6 +258,28 @@ class TestMetricsInputEdgeCases:
         spectrum = np.array([4.0, 2.0, 1.0, 1.0])
         result = pca_explained_variance(spectrum, threshold=0.75)
         assert result == 2
+
+    def test_stable_rank_edge_cases(self):
+        """Stable rank should handle all zeros, uniform, empty array, and single non-zero."""
+        assert stable_rank(np.array([])) == 0.0
+        assert stable_rank(np.array([0.0, 0.0])) == 0.0
+        assert stable_rank(np.array([5.0, 0.0])) == 1.0
+        assert np.isclose(stable_rank(np.array([2.0, 2.0, 2.0])), 3.0)
+
+    def test_numerical_rank_edge_cases(self):
+        """Numerical rank should handle values exactly on, above, or below epsilon, and empty arrays."""
+        assert numerical_rank(np.array([])) == 0
+        s = np.array([1.0, 1e-16, 0.0])
+        assert numerical_rank(s) == 1
+        assert numerical_rank(s, epsilon=1e-10) == 1
+        assert numerical_rank(s, epsilon=1e-17) == 2
+
+    def test_cumulative_eigenvalue_ratio_edge_cases(self):
+        """CER should handle D=1, all zeros, empty array, and uniform probabilities."""
+        assert cumulative_eigenvalue_ratio(np.array([])) == 0.0
+        assert cumulative_eigenvalue_ratio(np.array([1.0])) == 1.0
+        assert cumulative_eigenvalue_ratio(np.array([0.0, 0.0])) == 0.0
+        assert np.isclose(cumulative_eigenvalue_ratio(np.array([0.5, 0.5])), 0.5)
 
 
 class TestGeometricEstimatorsInputEdgeCases:

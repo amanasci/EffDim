@@ -5,6 +5,7 @@ __pycache__
 /tutorials/
 *.egg-info/
 site/
+.DS_Store
 
 # Rust (Legacy)
 target/
