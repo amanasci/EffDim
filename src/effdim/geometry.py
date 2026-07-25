@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 
 from effdim._native import (
+    compute_knn as _compute_knn,
     compute_knn_distances as _compute_knn_distances,
     danco_dimensionality as _danco_dimensionality,
     ess_dimensionality as _ess_dimensionality,
@@ -27,9 +28,24 @@ def _as_precomputed(precomputed_knn_dist_sq: Optional[np.ndarray]) -> Optional[n
     return np.asarray(precomputed_knn_dist_sq, dtype=np.float32)
 
 
+def _as_indices(precomputed_indices: Optional[np.ndarray]) -> Optional[np.ndarray]:
+    if precomputed_indices is None:
+        return None
+    return np.asarray(precomputed_indices, dtype=np.int64)
+
+
 def compute_knn_distances(data: np.ndarray, k: int) -> np.ndarray:
     """Compute k nearest neighbors squared distances for each point."""
     return _compute_knn_distances(_as_f64(data), int(k))
+
+
+def compute_knn(data: np.ndarray, k: int) -> tuple:
+    """Squared k-NN distances and neighbor indices (int64) in one pass.
+
+    Pass both to :func:`danco_dimensionality` / :func:`ess_dimensionality`
+    to skip their internal k-NN recompute.
+    """
+    return _compute_knn(_as_f64(data), int(k))
 
 
 def mle_dimensionality(
@@ -55,10 +71,16 @@ def danco_dimensionality(
     data: np.ndarray,
     k: int = 10,
     precomputed_knn_dist_sq: Optional[np.ndarray] = None,
+    precomputed_indices: Optional[np.ndarray] = None,
 ) -> float:
     """Estimate intrinsic dimensionality using DANCo."""
     return float(
-        _danco_dimensionality(_as_f64(data), int(k), _as_precomputed(precomputed_knn_dist_sq))
+        _danco_dimensionality(
+            _as_f64(data),
+            int(k),
+            _as_precomputed(precomputed_knn_dist_sq),
+            _as_indices(precomputed_indices),
+        )
     )
 
 
@@ -85,10 +107,16 @@ def ess_dimensionality(
     data: np.ndarray,
     k: int = 10,
     precomputed_knn_dist_sq: Optional[np.ndarray] = None,
+    precomputed_indices: Optional[np.ndarray] = None,
 ) -> float:
     """Estimate intrinsic dimensionality using ESS."""
     return float(
-        _ess_dimensionality(_as_f64(data), int(k), _as_precomputed(precomputed_knn_dist_sq))
+        _ess_dimensionality(
+            _as_f64(data),
+            int(k),
+            _as_precomputed(precomputed_knn_dist_sq),
+            _as_indices(precomputed_indices),
+        )
     )
 
 
