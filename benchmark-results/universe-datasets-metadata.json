@@ -1,0 +1,35 @@
+[
+  {
+    "name": "jwst_dinov3_vitl16",
+    "source": "UniverseTBD/pu-embeddings:jwst/jwst_dinov3_vitl16.parquet",
+    "column": "dinov3_vitl16_jwst",
+    "shape": [
+      1496,
+      1024
+    ],
+    "dtype": "float64",
+    "path": "/home/angus/EffDim-benchmark-data/jwst_dinov3_vitl16.npy"
+  },
+  {
+    "name": "desi_dinov3_small_vitl16",
+    "source": "UniverseTBD/pu-embeddings:desi/desi_dinov3_small_vitl16.parquet",
+    "column": "dinov3_small_vitl16_desi",
+    "shape": [
+      20465,
+      768
+    ],
+    "dtype": "float64",
+    "path": "/home/angus/EffDim-benchmark-data/desi_dinov3_small_vitl16.npy"
+  },
+  {
+    "name": "legacysurvey_dinov3_vitl16",
+    "source": "UniverseTBD/pu-embeddings:legacysurvey/legacysurvey_dinov3_vitl16.parquet",
+    "column": "dinov3_vitl16_legacysurvey",
+    "shape": [
+      100000,
+      1024
+    ],
+    "dtype": "float64",
+    "path": "/home/angus/EffDim-benchmark-data/legacysurvey_dinov3_vitl16.npy"
+  }
+]

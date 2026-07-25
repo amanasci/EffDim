@@ -1,0 +1,41 @@
+[
+  {
+    "dataset": "synthetic_gaussian_1m_x_768",
+    "n_samples": 1000000,
+    "n_features": 768,
+    "method": "python_numpy_blas",
+    "threads": 16,
+    "best_time_s": 3.4365164960036054,
+    "samples_per_s": 290992.3468032004,
+    "pca_95_dimension": 728,
+    "peak_rss_mib": 5961.63671875,
+    "max_abs_error": 0.0,
+    "max_relative_to_leading_eigenvalue": 0.0
+  },
+  {
+    "dataset": "synthetic_gaussian_1m_x_768",
+    "n_samples": 1000000,
+    "n_features": 768,
+    "method": "rust_ndarray_openblas",
+    "threads": 16,
+    "best_time_s": 4.154423310013954,
+    "samples_per_s": 240707.295664736,
+    "pca_95_dimension": 728,
+    "peak_rss_mib": 5937.57421875,
+    "max_abs_error": 6.661338147750939e-15,
+    "max_relative_to_leading_eigenvalue": 6.308063957801837e-15
+  },
+  {
+    "dataset": "synthetic_gaussian_1m_x_768",
+    "n_samples": 1000000,
+    "n_features": 768,
+    "method": "rust_faer_gemm",
+    "threads": 16,
+    "best_time_s": 6.354037062032148,
+    "samples_per_s": 157380.25923320313,
+    "pca_95_dimension": 728,
+    "peak_rss_mib": 5946.1171875,
+    "max_abs_error": 7.993605777301127e-15,
+    "max_relative_to_leading_eigenvalue": 7.569676749362205e-15
+  }
+]

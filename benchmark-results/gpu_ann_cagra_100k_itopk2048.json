@@ -1,0 +1,27 @@
+[
+  {
+    "algorithm": "cuVS CAGRA",
+    "n_samples": 100000,
+    "n_features": 768,
+    "k": 10,
+    "exact_validation_search_s": 0.018874421017244458,
+    "build_s": 0.9746550170239061,
+    "peak_gpu_memory_mib": 11061.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "itopk_size": 2048,
+        "recall_at_k": 0.9819,
+        "mean_distance_ratio": 1.000150442123413,
+        "validation_queries": 1000,
+        "validation_search_s": 0.1651300800149329,
+        "all_points_search_trials_s": [
+          15.901881969999522,
+          15.882019912009127
+        ],
+        "all_points_search_s": 15.882019912009127,
+        "all_points_per_second": 6296.428322973288
+      }
+    ]
+  }
+]

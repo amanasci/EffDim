@@ -1,0 +1,54 @@
+[
+  {
+    "algorithm": "cuVS IVF-Flat",
+    "n_samples": 100000,
+    "n_features": 768,
+    "k": 10,
+    "n_lists": 316,
+    "exact_validation_search_s": 0.019249242963269353,
+    "build_s": 0.20187142200302333,
+    "peak_gpu_memory_mib": 2287.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "n_probes": 192,
+        "recall_at_k": 0.7624,
+        "mean_distance_ratio": 1.0030092000961304,
+        "validation_queries": 1000,
+        "validation_search_s": 0.08737698697950691,
+        "all_points_search_trials_s": [
+          7.048211788001936,
+          7.119862849009223
+        ],
+        "all_points_search_s": 7.048211788001936,
+        "all_points_per_second": 14187.995907022612
+      },
+      {
+        "n_probes": 256,
+        "recall_at_k": 0.91,
+        "mean_distance_ratio": 1.0010426044464111,
+        "validation_queries": 1000,
+        "validation_search_s": 0.09853516501607373,
+        "all_points_search_trials_s": [
+          9.50762594799744,
+          9.592796910030302
+        ],
+        "all_points_search_s": 9.50762594799744,
+        "all_points_per_second": 10517.872763080533
+      },
+      {
+        "n_probes": 316,
+        "recall_at_k": 1.0,
+        "mean_distance_ratio": 1.0,
+        "validation_queries": 1000,
+        "validation_search_s": 0.06205723900347948,
+        "all_points_search_trials_s": [
+          6.86021776200505,
+          6.952267738000955
+        ],
+        "all_points_search_s": 6.86021776200505,
+        "all_points_per_second": 14576.796753281604
+      }
+    ]
+  }
+]

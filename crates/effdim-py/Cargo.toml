@@ -12,3 +12,4 @@ effdim-core = { path = "../effdim-core" }
 pyo3 = { version = "0.29", features = ["abi3-py310"] }
 numpy = "0.29"
 ndarray = "0.17"
+openblas-src = { version = "0.10.16", default-features = false, features = ["cblas", "rustls"] }

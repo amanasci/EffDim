@@ -8,9 +8,10 @@ name = "effdim_core"
 crate-type = ["rlib"]
 
 [dependencies]
-ndarray = "0.17"
+ndarray = { version = "0.17", features = ["blas"] }
 faer = "0.24"
 rand = "0.8"
+openblas-src = { version = "0.10.16", default-features = false, features = ["cblas", "rustls"] }
 
 [dev-dependencies]
 approx = "0.5.1"

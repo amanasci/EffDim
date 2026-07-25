@@ -1,0 +1,236 @@
+[
+  {
+    "algorithm": "cuVS IVF-Flat",
+    "n_samples": 10000,
+    "n_features": 768,
+    "k": 10,
+    "n_lists": 100,
+    "exact_validation_search_s": 0.0026234820252284408,
+    "build_s": 0.1423292940016836,
+    "peak_gpu_memory_mib": 1309.0,
+    "peak_gpu_utilization_percent": 13.0,
+    "searches": [
+      {
+        "n_probes": 8,
+        "recall_at_k": 0.1494,
+        "mean_distance_ratio": 1.0277554988861084,
+        "validation_queries": 1000,
+        "validation_search_s": 0.2663752200314775,
+        "all_points_search_trials_s": [
+          0.00532671099063009,
+          0.004482923017349094
+        ],
+        "all_points_search_s": 0.004482923017349094,
+        "all_points_per_second": 2230687.424544119
+      },
+      {
+        "n_probes": 16,
+        "recall_at_k": 0.2668,
+        "mean_distance_ratio": 1.0185238122940063,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0012414500233717263,
+        "all_points_search_trials_s": [
+          0.008019789995159954,
+          0.007999241992365569
+        ],
+        "all_points_search_s": 0.007999241992365569,
+        "all_points_per_second": 1250118.4499161225
+      },
+      {
+        "n_probes": 32,
+        "recall_at_k": 0.4586,
+        "mean_distance_ratio": 1.010495901107788,
+        "validation_queries": 1000,
+        "validation_search_s": 0.002128527034074068,
+        "all_points_search_trials_s": [
+          0.01567279896698892,
+          0.015617632016073912
+        ],
+        "all_points_search_s": 0.015617632016073912,
+        "all_points_per_second": 640301.9349993548
+      },
+      {
+        "n_probes": 64,
+        "recall_at_k": 0.7639,
+        "mean_distance_ratio": 1.0035196542739868,
+        "validation_queries": 1000,
+        "validation_search_s": 0.004103700979612768,
+        "all_points_search_trials_s": [
+          0.030041290970984846,
+          0.030071479035541415
+        ],
+        "all_points_search_s": 0.030041290970984846,
+        "all_points_per_second": 332875.1753597548
+      },
+      {
+        "n_probes": 100,
+        "recall_at_k": 1.0,
+        "mean_distance_ratio": 1.0,
+        "validation_queries": 1000,
+        "validation_search_s": 0.00612121302401647,
+        "all_points_search_trials_s": [
+          0.045918180025182664,
+          0.04594102897681296
+        ],
+        "all_points_search_s": 0.045918180025182664,
+        "all_points_per_second": 217778.66619530114
+      }
+    ]
+  },
+  {
+    "algorithm": "cuVS IVF-Flat",
+    "n_samples": 50000,
+    "n_features": 768,
+    "k": 10,
+    "n_lists": 224,
+    "exact_validation_search_s": 0.009114326967392117,
+    "build_s": 0.05904151301365346,
+    "peak_gpu_memory_mib": 1757.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "n_probes": 8,
+        "recall_at_k": 0.0813,
+        "mean_distance_ratio": 1.0340642929077148,
+        "validation_queries": 1000,
+        "validation_search_s": 0.001649638987146318,
+        "all_points_search_trials_s": [
+          0.050315777014475316,
+          0.05012251698644832
+        ],
+        "all_points_search_s": 0.05012251698644832,
+        "all_points_per_second": 997555.6497595394
+      },
+      {
+        "n_probes": 16,
+        "recall_at_k": 0.1447,
+        "mean_distance_ratio": 1.025441288948059,
+        "validation_queries": 1000,
+        "validation_search_s": 0.002601013984531164,
+        "all_points_search_trials_s": [
+          0.09991842997260392,
+          0.10885475599206984
+        ],
+        "all_points_search_s": 0.09991842997260392,
+        "all_points_per_second": 500408.1830920404
+      },
+      {
+        "n_probes": 32,
+        "recall_at_k": 0.2525,
+        "mean_distance_ratio": 1.0175541639328003,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0051090019987896085,
+        "all_points_search_trials_s": [
+          0.21644919400569052,
+          0.220442810037639
+        ],
+        "all_points_search_s": 0.21644919400569052,
+        "all_points_per_second": 231001.09117840137
+      },
+      {
+        "n_probes": 64,
+        "recall_at_k": 0.4302,
+        "mean_distance_ratio": 1.010378360748291,
+        "validation_queries": 1000,
+        "validation_search_s": 0.01005401200382039,
+        "all_points_search_trials_s": [
+          0.43886194401420653,
+          0.4414953429950401
+        ],
+        "all_points_search_s": 0.43886194401420653,
+        "all_points_per_second": 113931.04524547573
+      },
+      {
+        "n_probes": 128,
+        "recall_at_k": 0.7232,
+        "mean_distance_ratio": 1.0038151741027832,
+        "validation_queries": 1000,
+        "validation_search_s": 0.019747741986066103,
+        "all_points_search_trials_s": [
+          0.8817886000033468,
+          0.8854291860479861
+        ],
+        "all_points_search_s": 0.8817886000033468,
+        "all_points_per_second": 56702.93310642735
+      }
+    ]
+  },
+  {
+    "algorithm": "cuVS IVF-Flat",
+    "n_samples": 100000,
+    "n_features": 768,
+    "k": 10,
+    "n_lists": 316,
+    "exact_validation_search_s": 0.01822728698607534,
+    "build_s": 0.09350481297587976,
+    "peak_gpu_memory_mib": 2509.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "n_probes": 8,
+        "recall_at_k": 0.061,
+        "mean_distance_ratio": 1.0369099378585815,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0027466469909995794,
+        "all_points_search_trials_s": [
+          0.26313772797584534,
+          0.2893206300213933
+        ],
+        "all_points_search_s": 0.26313772797584534,
+        "all_points_per_second": 380029.123034685
+      },
+      {
+        "n_probes": 16,
+        "recall_at_k": 0.1084,
+        "mean_distance_ratio": 1.0282256603240967,
+        "validation_queries": 1000,
+        "validation_search_s": 0.005997669999487698,
+        "all_points_search_trials_s": [
+          0.577448554977309,
+          0.5817072230274789
+        ],
+        "all_points_search_s": 0.577448554977309,
+        "all_points_per_second": 173175.60003926157
+      },
+      {
+        "n_probes": 32,
+        "recall_at_k": 0.1914,
+        "mean_distance_ratio": 1.0202641487121582,
+        "validation_queries": 1000,
+        "validation_search_s": 0.012135522963944823,
+        "all_points_search_trials_s": [
+          1.1585399660398252,
+          1.1643450330011547
+        ],
+        "all_points_search_s": 1.1585399660398252,
+        "all_points_per_second": 86315.53760016119
+      },
+      {
+        "n_probes": 64,
+        "recall_at_k": 0.342,
+        "mean_distance_ratio": 1.0128576755523682,
+        "validation_queries": 1000,
+        "validation_search_s": 0.024140033987350762,
+        "all_points_search_trials_s": [
+          2.3202357399859466,
+          2.3267489899881184
+        ],
+        "all_points_search_s": 2.3202357399859466,
+        "all_points_per_second": 43099.06889056268
+      },
+      {
+        "n_probes": 128,
+        "recall_at_k": 0.5758,
+        "mean_distance_ratio": 1.0062681436538696,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0487833900260739,
+        "all_points_search_trials_s": [
+          4.671266010031104,
+          4.694373644015286
+        ],
+        "all_points_search_s": 4.671266010031104,
+        "all_points_per_second": 21407.472789016814
+      }
+    ]
+  }
+]

@@ -1,0 +1,155 @@
+[
+  {
+    "algorithm": "cuVS CAGRA",
+    "n_samples": 10000,
+    "n_features": 768,
+    "k": 10,
+    "exact_validation_search_s": 0.0026225110050290823,
+    "build_s": 1.2409075559698977,
+    "peak_gpu_memory_mib": 1291.0,
+    "peak_gpu_utilization_percent": 0.0,
+    "searches": [
+      {
+        "itopk_size": 32,
+        "recall_at_k": 0.8153,
+        "mean_distance_ratio": 1.0019251108169556,
+        "validation_queries": 1000,
+        "validation_search_s": 2.4168340750038624,
+        "all_points_search_trials_s": [
+          0.01262647204566747,
+          0.012731865979731083
+        ],
+        "all_points_search_s": 0.01262647204566747,
+        "all_points_per_second": 791986.8640925165
+      },
+      {
+        "itopk_size": 64,
+        "recall_at_k": 0.8914,
+        "mean_distance_ratio": 1.0010160207748413,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0028380780131556094,
+        "all_points_search_trials_s": [
+          0.02290233800886199,
+          0.022956144995987415
+        ],
+        "all_points_search_s": 0.02290233800886199,
+        "all_points_per_second": 436636.64365317335
+      },
+      {
+        "itopk_size": 128,
+        "recall_at_k": 0.9569,
+        "mean_distance_ratio": 1.000352382659912,
+        "validation_queries": 1000,
+        "validation_search_s": 0.005217143043410033,
+        "all_points_search_trials_s": [
+          0.04534465097822249,
+          0.04529834300046787
+        ],
+        "all_points_search_s": 0.04529834300046787,
+        "all_points_per_second": 220758.62686404918
+      }
+    ]
+  },
+  {
+    "algorithm": "cuVS CAGRA",
+    "n_samples": 50000,
+    "n_features": 768,
+    "k": 10,
+    "exact_validation_search_s": 0.00890373403672129,
+    "build_s": 0.5310967389959842,
+    "peak_gpu_memory_mib": 1649.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "itopk_size": 32,
+        "recall_at_k": 0.3537,
+        "mean_distance_ratio": 1.0138416290283203,
+        "validation_queries": 1000,
+        "validation_search_s": 0.002016725018620491,
+        "all_points_search_trials_s": [
+          0.06782074604416266,
+          0.0679574390524067
+        ],
+        "all_points_search_s": 0.06782074604416266,
+        "all_points_per_second": 737237.5403750591
+      },
+      {
+        "itopk_size": 64,
+        "recall_at_k": 0.4635,
+        "mean_distance_ratio": 1.009495735168457,
+        "validation_queries": 1000,
+        "validation_search_s": 0.003290042979642749,
+        "all_points_search_trials_s": [
+          0.1357607450336218,
+          0.1442123150336556
+        ],
+        "all_points_search_s": 0.1357607450336218,
+        "all_points_per_second": 368294.9735405272
+      },
+      {
+        "itopk_size": 128,
+        "recall_at_k": 0.5963,
+        "mean_distance_ratio": 1.0060621500015259,
+        "validation_queries": 1000,
+        "validation_search_s": 0.00642853497993201,
+        "all_points_search_trials_s": [
+          0.28153233195189387,
+          0.28579318296397105
+        ],
+        "all_points_search_s": 0.28153233195189387,
+        "all_points_per_second": 177599.4950680962
+      }
+    ]
+  },
+  {
+    "algorithm": "cuVS CAGRA",
+    "n_samples": 100000,
+    "n_features": 768,
+    "k": 10,
+    "exact_validation_search_s": 0.01828281203052029,
+    "build_s": 0.6718020659754984,
+    "peak_gpu_memory_mib": 1763.0,
+    "peak_gpu_utilization_percent": 100.0,
+    "searches": [
+      {
+        "itopk_size": 32,
+        "recall_at_k": 0.1915,
+        "mean_distance_ratio": 1.0225160121917725,
+        "validation_queries": 1000,
+        "validation_search_s": 0.0027290150173939764,
+        "all_points_search_trials_s": [
+          0.21957998897414654,
+          0.23927439498947933
+        ],
+        "all_points_search_s": 0.21957998897414654,
+        "all_points_per_second": 455414.9058262957
+      },
+      {
+        "itopk_size": 64,
+        "recall_at_k": 0.2854,
+        "mean_distance_ratio": 1.015618085861206,
+        "validation_queries": 1000,
+        "validation_search_s": 0.00508899096166715,
+        "all_points_search_trials_s": [
+          0.4648567370022647,
+          0.46910675102844834
+        ],
+        "all_points_search_s": 0.4648567370022647,
+        "all_points_per_second": 215120.04030504738
+      },
+      {
+        "itopk_size": 128,
+        "recall_at_k": 0.4022,
+        "mean_distance_ratio": 1.0107592344284058,
+        "validation_queries": 1000,
+        "validation_search_s": 0.00967311201384291,
+        "all_points_search_trials_s": [
+          0.8990909719723277,
+          0.9016330739832483
+        ],
+        "all_points_search_s": 0.8990909719723277,
+        "all_points_per_second": 111223.4502595782
+      }
+    ]
+  }
+]

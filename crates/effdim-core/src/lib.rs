@@ -1,5 +1,10 @@
 //! Pure Rust compute core — preprocess + spectral metrics + shared k-NN + geometry (Phase 4).
 
+extern crate openblas_src;
+
+#[link(name = "openblas")]
+unsafe extern "C" {}
+
 pub mod api;
 pub mod geometry;
 pub mod knn;
@@ -8,13 +13,16 @@ pub mod preprocess;
 
 pub use api::{compute_dim, ComputeDimResults};
 
-use ndarray::Array2;
+use ndarray::{Array2, ArrayView2};
 
 use metrics::{
     geometric_mean_eff_dimensionality, participation_ratio, pca_explained_variance,
     renyi_eff_dimensionality, shannon_entropy,
 };
-use preprocess::{ensure_centered, singular_values_exact};
+use preprocess::{
+    covariance_eigenvalues_streaming, covariance_eigenvalues_streaming_faer, ensure_centered,
+    singular_values_exact,
+};
 
 /// Identity over an `f64` slice — keeps the path dependency live from the PyO3 stub.
 pub fn identity_f64_slice(xs: &[f64]) -> Vec<f64> {
@@ -62,13 +70,41 @@ impl std::error::Error for SpectralError {}
 ///
 /// Geometry keys are intentionally omitted (D-02). Geo-mean uses probabilities (api.py fidelity).
 pub fn compute_spectral(data: &Array2<f64>) -> Result<SpectralResults, SpectralError> {
+    let eigenvalues = spectral_eigenvalues_exact(data)?;
+    spectral_from_eigenvalues(&eigenvalues)
+}
+
+/// Center → exact SVD → covariance eigenvalues in descending order.
+pub fn spectral_eigenvalues_exact(data: &Array2<f64>) -> Result<Vec<f64>, SpectralError> {
     let centered = ensure_centered(data.clone(), 1e-5);
-    let n_samples = centered.nrows();
-    let s = singular_values_exact(&centered)?;
+    let denom = (centered.nrows().saturating_sub(1)) as f64;
+    let singular_values = singular_values_exact(&centered)?;
+    Ok(singular_values
+        .iter()
+        .map(|&value| (value * value) / denom)
+        .collect())
+}
 
-    let denom = (n_samples.saturating_sub(1)) as f64;
-    let eigenvalues: Vec<f64> = s.iter().map(|&si| (si * si) / denom).collect();
+/// Chunked covariance accumulation → covariance eigenvalues in descending order.
+pub fn spectral_eigenvalues_streaming(
+    data: ArrayView2<'_, f64>,
+    chunk_size: usize,
+) -> Result<Vec<f64>, SpectralError> {
+    Ok(covariance_eigenvalues_streaming(data, chunk_size)?)
+}
 
+/// Chunked covariance using faer GEMM → covariance eigenvalues.
+pub fn spectral_eigenvalues_streaming_faer(
+    data: ArrayView2<'_, f64>,
+    chunk_size: usize,
+    threads: usize,
+) -> Result<Vec<f64>, SpectralError> {
+    Ok(covariance_eigenvalues_streaming_faer(
+        data, chunk_size, threads,
+    )?)
+}
+
+fn spectral_from_eigenvalues(eigenvalues: &[f64]) -> Result<SpectralResults, SpectralError> {
     let total_variance: f64 = eigenvalues.iter().sum();
     let probabilities: Vec<f64> = if total_variance == 0.0 {
         vec![0.0; eigenvalues.len()]
