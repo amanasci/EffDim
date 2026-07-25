@@ -3,7 +3,8 @@
 //! Soft-return `0.0` on undersized inputs (D-13). Shared k-NN distances/indices
 //! avoid a second search for DANCo/ESS (D-08, D-09).
 
-use ndarray::Array2;
+use ndarray::{Array2, CowArray, Ix2};
+use rayon::prelude::*;
 use rand::rngs::StdRng;
 use rand::seq::index::sample;
 use rand::SeedableRng;
@@ -12,29 +13,51 @@ use crate::knn::exact_knn_l2_sq;
 
 const EPS: f64 = 1e-10;
 
-/// Resolve squared k-NN distances: use precomputed or compute via exact float32 L2.
-fn resolve_dist_sq(
+/// Resolve squared k-NN distances: borrow precomputed or compute via exact float32 L2.
+fn resolve_dist_sq<'a>(
     data: &Array2<f32>,
     k: usize,
-    precomputed: Option<&Array2<f32>>,
-) -> Array2<f32> {
-    if let Some(d) = precomputed {
-        d.clone()
-    } else {
-        exact_knn_l2_sq(data, k).0
+    precomputed: Option<&'a Array2<f32>>,
+) -> CowArray<'a, f32, Ix2> {
+    match precomputed {
+        Some(d) => d.into(),
+        None => exact_knn_l2_sq(data, k).0.into(),
     }
 }
 
-/// Resolve neighbor indices: use shared precomputed or run exact k-NN.
-fn resolve_indices(
+/// Resolve neighbor indices: borrow shared precomputed or run exact k-NN.
+fn resolve_indices<'a>(
     data: &Array2<f32>,
     k: usize,
-    precomputed_indices: Option<&Array2<usize>>,
-) -> Array2<usize> {
-    if let Some(idx) = precomputed_indices {
-        idx.clone()
+    precomputed_indices: Option<&'a Array2<usize>>,
+) -> CowArray<'a, usize, Ix2> {
+    match precomputed_indices {
+        Some(idx) => idx.into(),
+        None => exact_knn_l2_sq(data, k).1.into(),
+    }
+}
+
+/// Distances + effective k for MLE-family estimators: borrow precomputed
+/// (k_eff = its column count) or compute k-NN with `k` capped at `n - 1`.
+/// Returns `None` when the resolved `k_eff < 2`.
+fn resolve_dist_sq_k_eff<'a>(
+    data: &Array2<f32>,
+    k: usize,
+    precomputed: Option<&'a Array2<f32>>,
+) -> Option<(CowArray<'a, f32, Ix2>, usize)> {
+    let n_samples = data.nrows();
+    if let Some(pre) = precomputed {
+        let k_eff = pre.ncols();
+        if k_eff < 2 {
+            return None;
+        }
+        Some((pre.into(), k_eff))
     } else {
-        exact_knn_l2_sq(data, k).1
+        let k_eff = k.min(n_samples.saturating_sub(1));
+        if k_eff < 2 {
+            return None;
+        }
+        Some((exact_knn_l2_sq(data, k_eff).0.into(), k_eff))
     }
 }
 
@@ -49,18 +72,8 @@ pub fn mle_dimensionality(
         return 0.0;
     }
 
-    let (dist_sq, k_eff) = if let Some(pre) = precomputed_knn_dist_sq {
-        let k_eff = pre.ncols();
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (pre.clone(), k_eff)
-    } else {
-        let k_eff = k.min(n_samples - 1);
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (exact_knn_l2_sq(data, k_eff).0, k_eff)
+    let Some((dist_sq, k_eff)) = resolve_dist_sq_k_eff(data, k, precomputed_knn_dist_sq) else {
+        return 0.0;
     };
 
     let mut sum_estimates = 0.0f64;
@@ -151,43 +164,54 @@ pub fn danco_dimensionality(
         return 0.0;
     }
 
-    let mut sum_cos_sq = 0.0f64;
-    let mut n_cos = 0usize;
+    let data_std = data.as_standard_layout();
+    let flat = data_std
+        .as_slice()
+        .expect("standard-layout 2-D array is contiguous");
+    let row = |i: usize| &flat[i * n_features..(i + 1) * n_features];
 
-    for i in 0..n_samples {
-        // unit vectors to neighbors
-        let mut units: Vec<Vec<f64>> = Vec::with_capacity(k_actual);
-        for r in 0..k_actual {
-            let j = neighbor_indices[[i, r]];
-            let mut v = Vec::with_capacity(n_features);
-            let mut norm_sq = 0.0f64;
-            for t in 0..n_features {
-                let d = data[[j, t]] as f64 - data[[i, t]] as f64;
-                v.push(d);
-                norm_sq += d * d;
-            }
-            let norm = norm_sq.sqrt() + EPS;
-            for x in &mut v {
-                *x /= norm;
-            }
-            units.push(v);
-        }
-
-        for a in 0..k_actual {
-            for b in (a + 1)..k_actual {
-                let mut cos = 0.0f64;
+    // Per-sample cos² sums collected into a Vec, then summed sequentially —
+    // keeps float summation order deterministic under rayon scheduling.
+    let per_sample: Vec<f64> = (0..n_samples)
+        .into_par_iter()
+        .map(|i| {
+            let ri = row(i);
+            // Flat (k_actual, n_features) unit vectors to neighbors.
+            let mut units = vec![0.0f64; k_actual * n_features];
+            for r in 0..k_actual {
+                let j = neighbor_indices[[i, r]];
+                let rj = row(j);
+                let u = &mut units[r * n_features..(r + 1) * n_features];
+                let mut norm_sq = 0.0f64;
                 for t in 0..n_features {
-                    cos += units[a][t] * units[b][t];
+                    let d = rj[t] as f64 - ri[t] as f64;
+                    u[t] = d;
+                    norm_sq += d * d;
                 }
-                sum_cos_sq += cos * cos;
-                n_cos += 1;
+                let norm = norm_sq.sqrt() + EPS;
+                for x in u.iter_mut() {
+                    *x /= norm;
+                }
             }
-        }
-    }
 
+            let mut local = 0.0f64;
+            for a in 0..k_actual {
+                let ua = &units[a * n_features..(a + 1) * n_features];
+                for b in (a + 1)..k_actual {
+                    let ub = &units[b * n_features..(b + 1) * n_features];
+                    let cos: f64 = ua.iter().zip(ub).map(|(x, y)| x * y).sum();
+                    local += cos * cos;
+                }
+            }
+            local
+        })
+        .collect();
+
+    let n_cos = n_samples * k_actual * (k_actual - 1) / 2;
     if n_cos == 0 {
         return 0.0;
     }
+    let sum_cos_sq: f64 = per_sample.iter().sum();
     let mean_cos_sq = sum_cos_sq / n_cos as f64;
     if mean_cos_sq < EPS {
         return 0.0;
@@ -239,18 +263,8 @@ pub fn mind_mlk_dimensionality(
         return 0.0;
     }
 
-    let (dist_sq, k_eff) = if let Some(pre) = precomputed_knn_dist_sq {
-        let k_eff = pre.ncols();
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (pre.clone(), k_eff)
-    } else {
-        let k_eff = k.min(n_samples - 1);
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (exact_knn_l2_sq(data, k_eff).0, k_eff)
+    let Some((dist_sq, k_eff)) = resolve_dist_sq_k_eff(data, k, precomputed_knn_dist_sq) else {
+        return 0.0;
     };
 
     let mut estimates: Vec<f64> = Vec::with_capacity(n_samples);
@@ -308,30 +322,41 @@ pub fn ess_dimensionality(
         return 0.0;
     }
 
-    let mut sum_s = 0.0f64;
-    for i in 0..n_samples {
-        let mut centroid = vec![0.0f64; n_features];
-        for r in 0..k_actual {
-            let j = neighbor_indices[[i, r]];
-            let mut v = vec![0.0f64; n_features];
-            let mut norm_sq = 0.0f64;
-            for t in 0..n_features {
-                let d = data[[j, t]] as f64 - data[[i, t]] as f64;
-                v[t] = d;
-                norm_sq += d * d;
-            }
-            let norm = norm_sq.sqrt() + EPS;
-            for t in 0..n_features {
-                centroid[t] += v[t] / norm;
-            }
-        }
-        for t in 0..n_features {
-            centroid[t] /= k_actual as f64;
-        }
-        let s: f64 = centroid.iter().map(|c| c * c).sum();
-        sum_s += s;
-    }
+    let data_std = data.as_standard_layout();
+    let flat = data_std
+        .as_slice()
+        .expect("standard-layout 2-D array is contiguous");
+    let row = |i: usize| &flat[i * n_features..(i + 1) * n_features];
 
+    // Per-sample values collected, then summed sequentially (deterministic).
+    let per_sample: Vec<f64> = (0..n_samples)
+        .into_par_iter()
+        .map(|i| {
+            let ri = row(i);
+            let mut centroid = vec![0.0f64; n_features];
+            let mut diff = vec![0.0f64; n_features];
+            for r in 0..k_actual {
+                let j = neighbor_indices[[i, r]];
+                let rj = row(j);
+                let mut norm_sq = 0.0f64;
+                for t in 0..n_features {
+                    let d = rj[t] as f64 - ri[t] as f64;
+                    diff[t] = d;
+                    norm_sq += d * d;
+                }
+                let norm = norm_sq.sqrt() + EPS;
+                for t in 0..n_features {
+                    centroid[t] += diff[t] / norm;
+                }
+            }
+            for c in centroid.iter_mut() {
+                *c /= k_actual as f64;
+            }
+            centroid.iter().map(|c| c * c).sum()
+        })
+        .collect();
+
+    let sum_s: f64 = per_sample.iter().sum();
     let s_avg = sum_s / n_samples as f64;
     if s_avg < EPS {
         return 0.0;
@@ -350,18 +375,8 @@ pub fn tle_dimensionality(
         return 0.0;
     }
 
-    let (dist_sq, k_eff) = if let Some(pre) = precomputed_knn_dist_sq {
-        let k_eff = pre.ncols();
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (pre.clone(), k_eff)
-    } else {
-        let k_eff = k.min(n_samples - 1);
-        if k_eff < 2 {
-            return 0.0;
-        }
-        (exact_knn_l2_sq(data, k_eff).0, k_eff)
+    let Some((dist_sq, k_eff)) = resolve_dist_sq_k_eff(data, k, precomputed_knn_dist_sq) else {
+        return 0.0;
     };
 
     let mut sum_estimates = 0.0f64;
@@ -382,15 +397,37 @@ pub fn tle_dimensionality(
 fn pairwise_euclidean(data: &Array2<f32>) -> Array2<f64> {
     let n = data.nrows();
     let d = data.ncols();
+    let data_std = data.as_standard_layout();
+    let flat = data_std
+        .as_slice()
+        .expect("standard-layout 2-D array is contiguous");
+    let row = |i: usize| &flat[i * d..(i + 1) * d];
+
+    // Upper-triangle rows in parallel, mirrored after.
+    let upper: Vec<Vec<f64>> = (0..n)
+        .into_par_iter()
+        .map(|i| {
+            let ri = row(i);
+            ((i + 1)..n)
+                .map(|j| {
+                    let s: f64 = ri
+                        .iter()
+                        .zip(row(j))
+                        .map(|(&a, &b)| {
+                            let diff = a as f64 - b as f64;
+                            diff * diff
+                        })
+                        .sum();
+                    s.sqrt()
+                })
+                .collect()
+        })
+        .collect();
+
     let mut dist = Array2::<f64>::zeros((n, n));
-    for i in 0..n {
-        for j in (i + 1)..n {
-            let mut s = 0.0f64;
-            for t in 0..d {
-                let diff = data[[i, t]] as f64 - data[[j, t]] as f64;
-                s += diff * diff;
-            }
-            let e = s.sqrt();
+    for (i, row_vals) in upper.iter().enumerate() {
+        for (offset, &e) in row_vals.iter().enumerate() {
+            let j = i + 1 + offset;
             dist[[i, j]] = e;
             dist[[j, i]] = e;
         }
@@ -398,68 +435,100 @@ fn pairwise_euclidean(data: &Array2<f32>) -> Array2<f64> {
     dist
 }
 
-/// k-NN graph in distance mode, then sum-symmetrize (graph + graph.T) — D-11/D-13.
-fn knn_graph_sum_symmetrize(data: &Array2<f32>, k_geo: usize) -> Array2<f64> {
+/// Sum-symmetrized k-NN adjacency list — same graph as the previous dense
+/// `graph + graph.T` construction (D-11/D-13): each directed k-NN edge adds
+/// its Euclidean weight to both orientations, and zero-weight edges
+/// (duplicate points) are dropped, matching the old `> 0.0` missing-edge rule.
+fn knn_graph_adjacency(data: &Array2<f32>, k_geo: usize) -> Vec<Vec<(usize, f64)>> {
     let n = data.nrows();
     let d = data.ncols();
-    let mut graph = Array2::<f64>::zeros((n, n));
     if n == 0 || k_geo == 0 {
-        return graph;
+        return vec![Vec::new(); n];
     }
+
     let (_dist_sq, indices) = exact_knn_l2_sq(data, k_geo);
+    let mut sym: Vec<std::collections::HashMap<usize, f64>> =
+        vec![std::collections::HashMap::new(); n];
     for i in 0..n {
         for r in 0..indices.ncols() {
             let j = indices[[i, r]];
+            // Recompute in f64 from data (matches the old dense construction).
             let mut s = 0.0f64;
             for t in 0..d {
                 let diff = data[[i, t]] as f64 - data[[j, t]] as f64;
                 s += diff * diff;
             }
-            graph[[i, j]] = s.sqrt();
+            let w = s.sqrt();
+            *sym[i].entry(j).or_insert(0.0) += w;
+            *sym[j].entry(i).or_insert(0.0) += w;
         }
     }
-    // Sum-symmetrize: graph + graph.T (not min)
-    let mut sym = Array2::<f64>::zeros((n, n));
-    for i in 0..n {
-        for j in 0..n {
-            sym[[i, j]] = graph[[i, j]] + graph[[j, i]];
-        }
-    }
-    sym
+
+    sym.into_iter()
+        .map(|m| m.into_iter().filter(|&(_, w)| w > 0.0).collect())
+        .collect()
 }
 
-/// Floyd–Warshall on a dense graph. Missing edges (0 off-diagonal) treated as ∞.
-fn floyd_warshall(graph: &Array2<f64>) -> Array2<f64> {
-    let n = graph.nrows();
-    let mut dist = Array2::<f64>::from_elem((n, n), f64::INFINITY);
-    for i in 0..n {
-        dist[[i, i]] = 0.0;
-        for j in 0..n {
-            if i != j && graph[[i, j]] > 0.0 {
-                dist[[i, j]] = graph[[i, j]];
+/// Dijkstra from one source over an adjacency list. Unreachable stays ∞.
+fn dijkstra(adjacency: &[Vec<(usize, f64)>], source: usize) -> Vec<f64> {
+    use std::cmp::Reverse;
+    use std::collections::BinaryHeap;
+
+    /// f64 heap key via total_cmp (weights are never NaN).
+    #[derive(PartialEq)]
+    struct Key(f64);
+    impl Eq for Key {}
+    impl PartialOrd for Key {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+    impl Ord for Key {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.0.total_cmp(&other.0)
+        }
+    }
+
+    let n = adjacency.len();
+    let mut dist = vec![f64::INFINITY; n];
+    dist[source] = 0.0;
+    let mut heap = BinaryHeap::new();
+    heap.push(Reverse((Key(0.0), source)));
+
+    while let Some(Reverse((Key(du), u))) = heap.pop() {
+        if du > dist[u] {
+            continue;
+        }
+        for &(v, w) in &adjacency[u] {
+            let cand = du + w;
+            if cand < dist[v] {
+                dist[v] = cand;
+                heap.push(Reverse((Key(cand), v)));
             }
         }
     }
-    for k in 0..n {
-        for i in 0..n {
-            let dik = dist[[i, k]];
-            if !dik.is_finite() {
-                continue;
-            }
-            for j in 0..n {
-                let cand = dik + dist[[k, j]];
-                if cand < dist[[i, j]] {
-                    dist[[i, j]] = cand;
-                }
-            }
-        }
-    }
-    // Replace remaining inf with max_finite * 10 (Python geodesic path)
+    dist
+}
+
+/// Geodesic all-pairs distances on the sum-symmetrized k-NN graph.
+///
+/// Replaces the previous dense Floyd–Warshall (O(n³)) with per-source
+/// Dijkstra on the sparse graph — O(n·k·log n) per source, sources in
+/// parallel. Identical semantics: missing edges ∞, remaining ∞ after the
+/// search filled with `max_finite * 10` (Python geodesic path).
+fn geodesic_distances(data: &Array2<f32>, k_geo: usize) -> Array2<f64> {
+    let n = data.nrows();
+    let adjacency = knn_graph_adjacency(data, k_geo);
+
+    let rows: Vec<Vec<f64>> = (0..n)
+        .into_par_iter()
+        .map(|src| dijkstra(&adjacency, src))
+        .collect();
+
     let mut max_finite = 0.0f64;
     let mut any_finite = false;
-    for i in 0..n {
-        for j in 0..n {
-            let v = dist[[i, j]];
+    for row in &rows {
+        for &v in row {
             if v.is_finite() {
                 any_finite = true;
                 if v > max_finite {
@@ -469,11 +538,11 @@ fn floyd_warshall(graph: &Array2<f64>) -> Array2<f64> {
         }
     }
     let fill = if any_finite { max_finite * 10.0 } else { 1.0 * 10.0 };
-    for i in 0..n {
-        for j in 0..n {
-            if !dist[[i, j]].is_finite() {
-                dist[[i, j]] = fill;
-            }
+
+    let mut dist = Array2::<f64>::zeros((n, n));
+    for (i, row) in rows.iter().enumerate() {
+        for (j, &v) in row.iter().enumerate() {
+            dist[[i, j]] = if v.is_finite() { v } else { fill };
         }
     }
     dist
@@ -568,8 +637,7 @@ pub fn gmst_dimensionality(
 
         let dist_matrix = if geodesic {
             let k_geo = 10.min(size.saturating_sub(1));
-            let graph = knn_graph_sum_symmetrize(&subsample, k_geo);
-            floyd_warshall(&graph)
+            geodesic_distances(&subsample, k_geo)
         } else {
             pairwise_euclidean(&subsample)
         };

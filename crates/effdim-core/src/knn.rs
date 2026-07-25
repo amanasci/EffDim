@@ -4,6 +4,15 @@
 //! Equal-distance ties prefer the smaller index (D-10).
 
 use ndarray::Array2;
+use rayon::prelude::*;
+
+/// Rank ascending by f32 dist_sq; equal distances prefer smaller index (D-10).
+#[inline]
+fn cmp_neighbor(a: &(f32, usize), b: &(f32, usize)) -> std::cmp::Ordering {
+    a.0.partial_cmp(&b.0)
+        .unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| a.1.cmp(&b.1))
+}
 
 /// Exact brute-force k-NN with squared L2 distances.
 ///
@@ -11,10 +20,15 @@ use ndarray::Array2;
 /// `(dist_sq ascending, index ascending)`. Effective `k` is capped at
 /// `min(k, n_samples - 1)`. Output shape is `(n, k_eff)` for both matrices.
 ///
+/// Distances are accumulated in f64 and cast to f32 at the end (limits
+/// precision loss in high dimensions); ranking happens on the final f32
+/// values, so the D-10 tie contract is unchanged. Query rows run in
+/// parallel via rayon; per row, `select_nth_unstable_by` isolates the
+/// `k_eff` smallest before sorting only those.
+///
 /// Does **not** return Euclidean (sqrt) distances.
 pub fn exact_knn_l2_sq(data: &Array2<f32>, k: usize) -> (Array2<f32>, Array2<usize>) {
     let n = data.nrows();
-    let dims = data.ncols();
     let k_eff = k.min(n.saturating_sub(1));
 
     if n == 0 || k_eff == 0 {
@@ -24,32 +38,47 @@ pub fn exact_knn_l2_sq(data: &Array2<f32>, k: usize) -> (Array2<f32>, Array2<usi
         );
     }
 
+    // Guarantee contiguous rows so the inner loop works on slices.
+    let data = data.as_standard_layout();
+    let flat = data
+        .as_slice()
+        .expect("standard-layout 2-D array is contiguous");
+    let dims = data.ncols();
+    let row = |i: usize| &flat[i * dims..(i + 1) * dims];
+
+    let per_row: Vec<Vec<(f32, usize)>> = (0..n)
+        .into_par_iter()
+        .map(|i| {
+            let ri = row(i);
+            let mut neighbors: Vec<(f32, usize)> = Vec::with_capacity(n - 1);
+            for j in 0..n {
+                if j == i {
+                    continue;
+                }
+                let mut dsq = 0.0f64;
+                for (&a, &b) in ri.iter().zip(row(j)) {
+                    let diff = a as f64 - b as f64;
+                    dsq += diff * diff;
+                }
+                neighbors.push((dsq as f32, j));
+            }
+
+            // Partial selection: the k_eff smallest land in front (unordered),
+            // then sort only those. Comparator is a total order, so the result
+            // is identical to a full sort.
+            if k_eff < neighbors.len() {
+                neighbors.select_nth_unstable_by(k_eff - 1, cmp_neighbor);
+                neighbors.truncate(k_eff);
+            }
+            neighbors.sort_unstable_by(cmp_neighbor);
+            neighbors
+        })
+        .collect();
+
     let mut dist_out = Array2::<f32>::zeros((n, k_eff));
     let mut idx_out = Array2::<usize>::zeros((n, k_eff));
-
-    for i in 0..n {
-        // (dist_sq, neighbor_index) — exclude self
-        let mut neighbors: Vec<(f32, usize)> = Vec::with_capacity(n - 1);
-        for j in 0..n {
-            if j == i {
-                continue;
-            }
-            let mut dsq = 0.0f32;
-            for t in 0..dims {
-                let diff = data[[i, t]] - data[[j, t]];
-                dsq += diff * diff;
-            }
-            neighbors.push((dsq, j));
-        }
-
-        // Ascending dist_sq; on ties prefer smaller index (D-10)
-        neighbors.sort_by(|a, b| {
-            a.0.partial_cmp(&b.0)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.1.cmp(&b.1))
-        });
-
-        for (rank, &(dsq, j)) in neighbors.iter().take(k_eff).enumerate() {
+    for (i, neighbors) in per_row.iter().enumerate() {
+        for (rank, &(dsq, j)) in neighbors.iter().enumerate() {
             dist_out[[i, rank]] = dsq;
             idx_out[[i, rank]] = j;
         }

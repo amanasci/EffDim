@@ -70,8 +70,8 @@ impl std::error::Error for SpectralError {}
 ///
 /// Geometry keys are intentionally omitted (D-02). Geo-mean uses probabilities (api.py fidelity).
 pub fn compute_spectral(data: &Array2<f64>) -> Result<SpectralResults, SpectralError> {
-    let eigenvalues = spectral_eigenvalues_exact(data)?;
-    spectral_from_eigenvalues(&eigenvalues)
+    let centered = ensure_centered(data.clone(), 1e-5);
+    compute_spectral_centered(&centered)
 }
 
 /// Center → exact SVD → covariance eigenvalues in descending order.
@@ -83,6 +83,18 @@ pub fn spectral_eigenvalues_exact(data: &Array2<f64>) -> Result<Vec<f64>, Spectr
         .iter()
         .map(|&value| (value * value) / denom)
         .collect())
+}
+
+/// Spectral keys for data already centered by `ensure_centered` (skips the
+/// duplicate center + clone when the caller shares the centered matrix).
+pub(crate) fn compute_spectral_centered(
+    centered: &Array2<f64>,
+) -> Result<SpectralResults, SpectralError> {
+    let n_samples = centered.nrows();
+    let s = singular_values_exact(centered)?;
+    let denom = (n_samples.saturating_sub(1)) as f64;
+    let eigenvalues: Vec<f64> = s.iter().map(|&value| (value * value) / denom).collect();
+    spectral_from_eigenvalues(&eigenvalues)
 }
 
 /// Chunked covariance accumulation → covariance eigenvalues in descending order.
