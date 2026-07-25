@@ -63,8 +63,16 @@ impl std::error::Error for SpectralError {}
 /// Geometry keys are intentionally omitted (D-02). Geo-mean uses probabilities (api.py fidelity).
 pub fn compute_spectral(data: &Array2<f64>) -> Result<SpectralResults, SpectralError> {
     let centered = ensure_centered(data.clone(), 1e-5);
+    compute_spectral_centered(&centered)
+}
+
+/// Spectral keys for data already centered by `ensure_centered` (skips the
+/// duplicate center + clone when the caller shares the centered matrix).
+pub(crate) fn compute_spectral_centered(
+    centered: &Array2<f64>,
+) -> Result<SpectralResults, SpectralError> {
     let n_samples = centered.nrows();
-    let s = singular_values_exact(&centered)?;
+    let s = singular_values_exact(centered)?;
 
     let denom = (n_samples.saturating_sub(1)) as f64;
     let eigenvalues: Vec<f64> = s.iter().map(|&si| (si * si) / denom).collect();

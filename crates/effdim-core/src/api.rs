@@ -8,7 +8,7 @@ use crate::geometry::{
 };
 use crate::knn::exact_knn_l2_sq;
 use crate::preprocess::ensure_centered;
-use crate::{compute_spectral, SpectralError, SpectralResults};
+use crate::{compute_spectral_centered, SpectralError, SpectralResults};
 
 /// Full 16-key result bundle (8 spectral + 8 geometry).
 #[derive(Debug, Clone, PartialEq)]
@@ -56,11 +56,12 @@ fn from_spectral(s: SpectralResults) -> ComputeDimResults {
 ///
 /// Geometry soft-fails return `0.0` (never panic on tiny `n`). Euclidean GMST only (D-11).
 pub fn compute_dim(data: &Array2<f64>) -> Result<ComputeDimResults, SpectralError> {
-    let spectral = compute_spectral(data)?;
+    // Center once; spectral and geometry paths share the same centered matrix
+    // (centering is idempotent, so single-center matches api.py's duplicate-center D-04).
+    let centered = ensure_centered(data.clone(), 1e-5);
+    let spectral = compute_spectral_centered(&centered)?;
     let mut results = from_spectral(spectral);
 
-    // Duplicate center for geometry path (matches api.py D-04 duplicate-center OK).
-    let centered = ensure_centered(data.clone(), 1e-5);
     let data_f32 = centered.mapv(|x| x as f32);
 
     let (dist_sq, indices) = exact_knn_l2_sq(&data_f32, 10);

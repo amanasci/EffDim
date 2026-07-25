@@ -87,6 +87,12 @@ fn precomputed_f32(
     precomputed.map(|a| a.as_array().to_owned())
 }
 
+fn precomputed_indices_usize(
+    precomputed: Option<PyReadonlyArray2<'_, i64>>,
+) -> Option<ndarray::Array2<usize>> {
+    precomputed.map(|a| a.as_array().mapv(|x| x as usize))
+}
+
 // --- Metrics (1-D f64 spectra / probabilities) ---
 
 #[pyfunction]
@@ -142,6 +148,21 @@ fn compute_knn_distances<'py>(
     dist.into_pyarray(py)
 }
 
+/// Squared k-NN distances **and** neighbor indices (int64) in one pass.
+/// Feed both to `danco_dimensionality` / `ess_dimensionality` to skip
+/// their internal k-NN recompute.
+#[pyfunction]
+fn compute_knn<'py>(
+    py: Python<'py>,
+    data: PyReadonlyArray2<'py, f64>,
+    k: usize,
+) -> (Bound<'py, PyArray2<f32>>, Bound<'py, PyArray2<i64>>) {
+    let data_f32 = data_f32(data);
+    let (dist, idx) = py.detach(|| knn::exact_knn_l2_sq(&data_f32, k));
+    let idx_i64 = idx.mapv(|x| x as i64);
+    (dist.into_pyarray(py), idx_i64.into_pyarray(py))
+}
+
 #[pyfunction]
 #[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
 fn mle_dimensionality(
@@ -168,16 +189,18 @@ fn two_nn_dimensionality(
 }
 
 #[pyfunction]
-#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None, precomputed_indices=None))]
 fn danco_dimensionality(
     py: Python<'_>,
     data: PyReadonlyArray2<'_, f64>,
     k: usize,
     precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+    precomputed_indices: Option<PyReadonlyArray2<'_, i64>>,
 ) -> f64 {
     let data_f32 = data_f32(data);
     let pre = precomputed_f32(precomputed_knn_dist_sq);
-    py.detach(|| geometry::danco_dimensionality(&data_f32, k, pre.as_ref(), None))
+    let pre_idx = precomputed_indices_usize(precomputed_indices);
+    py.detach(|| geometry::danco_dimensionality(&data_f32, k, pre.as_ref(), pre_idx.as_ref()))
 }
 
 #[pyfunction]
@@ -206,16 +229,18 @@ fn mind_mlk_dimensionality(
 }
 
 #[pyfunction]
-#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None))]
+#[pyo3(signature = (data, k=10, precomputed_knn_dist_sq=None, precomputed_indices=None))]
 fn ess_dimensionality(
     py: Python<'_>,
     data: PyReadonlyArray2<'_, f64>,
     k: usize,
     precomputed_knn_dist_sq: Option<PyReadonlyArray2<'_, f32>>,
+    precomputed_indices: Option<PyReadonlyArray2<'_, i64>>,
 ) -> f64 {
     let data_f32 = data_f32(data);
     let pre = precomputed_f32(precomputed_knn_dist_sq);
-    py.detach(|| geometry::ess_dimensionality(&data_f32, k, pre.as_ref(), None))
+    let pre_idx = precomputed_indices_usize(precomputed_indices);
+    py.detach(|| geometry::ess_dimensionality(&data_f32, k, pre.as_ref(), pre_idx.as_ref()))
 }
 
 #[pyfunction]
@@ -254,6 +279,7 @@ fn effdim_native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(renyi_eff_dimensionality, m)?)?;
     m.add_function(wrap_pyfunction!(geometric_mean_eff_dimensionality, m)?)?;
     m.add_function(wrap_pyfunction!(compute_knn_distances, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_knn, m)?)?;
     m.add_function(wrap_pyfunction!(mle_dimensionality, m)?)?;
     m.add_function(wrap_pyfunction!(two_nn_dimensionality, m)?)?;
     m.add_function(wrap_pyfunction!(danco_dimensionality, m)?)?;
