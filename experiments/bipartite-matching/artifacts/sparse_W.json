@@ -1,0 +1,94 @@
+{
+  "dino_to_vit/full": {
+    "mknn": 0.2122253864930838,
+    "nnz": 2594166,
+    "mass_frac": 1.0
+  },
+  "dino_to_vit/hungarian_1to1": {
+    "mknn": 0.13315703824247355,
+    "nnz": 1479,
+    "mass_frac": 0.015639481951091737
+  },
+  "dino_to_vit/hungarian_agrees_rowargmax": 0.4130859375,
+  "dino_to_vit/random_1to1": {
+    "mknn": 0.06049633848657445,
+    "nnz": 1279,
+    "mass_frac": 0.00050361574288364
+  },
+  "dino_to_vit/topk_1": {
+    "mknn": 0.13193653376729048,
+    "nnz": 1479,
+    "mass_frac": 0.016913606701174495
+  },
+  "dino_to_vit/topk_2": {
+    "mknn": 0.14511798209926768,
+    "nnz": 2958,
+    "mass_frac": 0.028298999158083742
+  },
+  "dino_to_vit/topk_4": {
+    "mknn": 0.15640764849471114,
+    "nnz": 5916,
+    "mass_frac": 0.04546277736991048
+  },
+  "dino_to_vit/topk_8": {
+    "mknn": 0.16842961757526445,
+    "nnz": 11832,
+    "mass_frac": 0.07152273396388183
+  },
+  "dino_to_vit/topk_16": {
+    "mknn": 0.18091944670463792,
+    "nnz": 23664,
+    "mass_frac": 0.11046525250167703
+  },
+  "dino_to_vit/topk_64": {
+    "mknn": 0.1998372660699756,
+    "nnz": 94656,
+    "mass_frac": 0.25034077459007315
+  },
+  "vit_to_dino/full": {
+    "mknn": 0.22113506916192027,
+    "nnz": 2594166,
+    "mass_frac": 1.0
+  },
+  "vit_to_dino/hungarian_1to1": {
+    "mknn": 0.1283767290480065,
+    "nnz": 1479,
+    "mass_frac": 0.015850081640710924
+  },
+  "vit_to_dino/hungarian_agrees_rowargmax": 0.384765625,
+  "vit_to_dino/random_1to1": {
+    "mknn": 0.0638527257933279,
+    "nnz": 1258,
+    "mass_frac": 0.0004585903167432636
+  },
+  "vit_to_dino/topk_1": {
+    "mknn": 0.13061432058584216,
+    "nnz": 1754,
+    "mass_frac": 0.018837959000912046
+  },
+  "vit_to_dino/topk_2": {
+    "mknn": 0.1449552481692433,
+    "nnz": 3508,
+    "mass_frac": 0.0314827928096612
+  },
+  "vit_to_dino/topk_4": {
+    "mknn": 0.1619812855980472,
+    "nnz": 7016,
+    "mass_frac": 0.0502792698870671
+  },
+  "vit_to_dino/topk_8": {
+    "mknn": 0.1770951993490643,
+    "nnz": 14032,
+    "mass_frac": 0.07819570614302576
+  },
+  "vit_to_dino/topk_16": {
+    "mknn": 0.19243287225386493,
+    "nnz": 28064,
+    "mass_frac": 0.11965323936365108
+  },
+  "vit_to_dino/topk_64": {
+    "mknn": 0.21133034987794955,
+    "nnz": 112256,
+    "mass_frac": 0.26909903073020325
+  }
+}
