@@ -1,0 +1,720 @@
+{
+  "configuration": {
+    "dimensions": [
+      5,
+      10,
+      20,
+      50,
+      100
+    ],
+    "samples": 10000,
+    "ambient_dimension": 256,
+    "repeats": 5,
+    "distribution": "isotropic standard Gaussian in a random linear subspace",
+    "knn_backend": "exact cuVS brute force",
+    "k": 10,
+    "seed": 73
+  },
+  "trials": [
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 5.0,
+        "participation_ratio": 4.997348393522758,
+        "shannon_entropy": 4.998673422004506,
+        "renyi_eff_dimensionality_alpha_2": 4.997348393522765,
+        "renyi_eff_dimensionality_alpha_3": 4.996025388262125,
+        "renyi_eff_dimensionality_alpha_4": 4.994704877354198,
+        "renyi_eff_dimensionality_alpha_5": 4.993387328336727,
+        "geometric_mean_eff_dimensionality": 664453487192689.0,
+        "mle_dimensionality": 5.732548578507951,
+        "two_nn_dimensionality": 5.01641819671461,
+        "danco_dimensionality": 4.807926928104499,
+        "mind_mli_dimensionality": 0.5754480261277422,
+        "mind_mlk_dimensionality": 5.270644058427814,
+        "ess_dimensionality": 0.5546474131058945,
+        "tle_dimensionality": 5.732548578507951
+      },
+      "timing_s": {
+        "spectral": 0.13793923996854573,
+        "knn": 0.039131227997131646,
+        "geometry": 0.021214563050307333,
+        "total": 0.19828503101598471
+      },
+      "true_dimension": 5,
+      "repeat": 0
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 5.0,
+        "participation_ratio": 4.998515966631598,
+        "shannon_entropy": 4.999258140968786,
+        "renyi_eff_dimensionality_alpha_2": 4.9985159666316,
+        "renyi_eff_dimensionality_alpha_3": 4.9977736363363405,
+        "renyi_eff_dimensionality_alpha_4": 4.997031309969009,
+        "renyi_eff_dimensionality_alpha_5": 4.9962891477481515,
+        "geometric_mean_eff_dimensionality": 638633909180000.0,
+        "mle_dimensionality": 5.711615403007408,
+        "two_nn_dimensionality": 4.9680456949881915,
+        "danco_dimensionality": 4.784974518172409,
+        "mind_mli_dimensionality": 0.6525817416641589,
+        "mind_mlk_dimensionality": 5.230798703010592,
+        "ess_dimensionality": 0.5543121567396211,
+        "tle_dimensionality": 5.711615403007409
+      },
+      "timing_s": {
+        "spectral": 0.11857392499223351,
+        "knn": 0.005444847978651524,
+        "geometry": 0.023176393005996943,
+        "total": 0.14719516597688198
+      },
+      "true_dimension": 5,
+      "repeat": 1
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 5.0,
+        "participation_ratio": 4.9967548822299355,
+        "shannon_entropy": 4.998376463679403,
+        "renyi_eff_dimensionality_alpha_2": 4.996754882229942,
+        "renyi_eff_dimensionality_alpha_3": 4.995136094136643,
+        "renyi_eff_dimensionality_alpha_4": 4.993520932446451,
+        "renyi_eff_dimensionality_alpha_5": 4.991910222291167,
+        "geometric_mean_eff_dimensionality": 668899590406411.9,
+        "mle_dimensionality": 5.734933275743789,
+        "two_nn_dimensionality": 5.087406872033949,
+        "danco_dimensionality": 4.775040736316698,
+        "mind_mli_dimensionality": 0.5843299190463447,
+        "mind_mlk_dimensionality": 5.2443594560441475,
+        "ess_dimensionality": 0.5509743542347588,
+        "tle_dimensionality": 5.7349332757437885
+      },
+      "timing_s": {
+        "spectral": 0.14549812604673207,
+        "knn": 0.005353198968805373,
+        "geometry": 0.04687361605465412,
+        "total": 0.19772494107019156
+      },
+      "true_dimension": 5,
+      "repeat": 2
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 5.0,
+        "participation_ratio": 4.998189249237859,
+        "shannon_entropy": 4.999094286940274,
+        "renyi_eff_dimensionality_alpha_2": 4.9981892492378615,
+        "renyi_eff_dimensionality_alpha_3": 4.997285137234534,
+        "renyi_eff_dimensionality_alpha_4": 4.9963822005225005,
+        "renyi_eff_dimensionality_alpha_5": 4.995480687540158,
+        "geometric_mean_eff_dimensionality": 630019176478900.9,
+        "mle_dimensionality": 5.721902276123992,
+        "two_nn_dimensionality": 5.205264854878548,
+        "danco_dimensionality": 4.801868861013337,
+        "mind_mli_dimensionality": 0.6576338690904852,
+        "mind_mlk_dimensionality": 5.257158131410635,
+        "ess_dimensionality": 0.5551220494362885,
+        "tle_dimensionality": 5.721902276123992
+      },
+      "timing_s": {
+        "spectral": 0.14788853598292917,
+        "knn": 0.005337898968718946,
+        "geometry": 0.040145838051103055,
+        "total": 0.19337227300275117
+      },
+      "true_dimension": 5,
+      "repeat": 3
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 5.0,
+        "participation_ratio": 4.997904270584929,
+        "shannon_entropy": 4.998959447078671,
+        "renyi_eff_dimensionality_alpha_2": 4.997904270584932,
+        "renyi_eff_dimensionality_alpha_3": 4.996834587097398,
+        "renyi_eff_dimensionality_alpha_4": 4.995750536311961,
+        "renyi_eff_dimensionality_alpha_5": 4.994652281603842,
+        "geometric_mean_eff_dimensionality": 634059267317275.0,
+        "mle_dimensionality": 5.679283039507684,
+        "two_nn_dimensionality": 4.94999980162162,
+        "danco_dimensionality": 4.797576368491666,
+        "mind_mli_dimensionality": 0.5542668005547898,
+        "mind_mlk_dimensionality": 5.234666164821061,
+        "ess_dimensionality": 0.5612591638310951,
+        "tle_dimensionality": 5.679283039507685
+      },
+      "timing_s": {
+        "spectral": 0.1409325780114159,
+        "knn": 0.0053412989946082234,
+        "geometry": 0.04253744799643755,
+        "total": 0.18881132500246167
+      },
+      "true_dimension": 5,
+      "repeat": 4
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 10.0,
+        "participation_ratio": 9.992646340528239,
+        "shannon_entropy": 9.996311263671828,
+        "renyi_eff_dimensionality_alpha_2": 9.99264634052825,
+        "renyi_eff_dimensionality_alpha_3": 9.989006612958248,
+        "renyi_eff_dimensionality_alpha_4": 9.9853934005816,
+        "renyi_eff_dimensionality_alpha_5": 9.981807958086224,
+        "geometric_mean_eff_dimensionality": 329174693683891.8,
+        "mle_dimensionality": 10.890969021499577,
+        "two_nn_dimensionality": 10.269117868692458,
+        "danco_dimensionality": 7.230777932981364,
+        "mind_mli_dimensionality": 1.2287561187062905,
+        "mind_mlk_dimensionality": 10.063219762468638,
+        "ess_dimensionality": 0.3533323843705329,
+        "tle_dimensionality": 10.890969021499581
+      },
+      "timing_s": {
+        "spectral": 0.11874122405424714,
+        "knn": 0.005348699050955474,
+        "geometry": 0.05563463398721069,
+        "total": 0.1797245570924133
+      },
+      "true_dimension": 10,
+      "repeat": 0
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 10.0,
+        "participation_ratio": 9.988508355666957,
+        "shannon_entropy": 9.99424361839519,
+        "renyi_eff_dimensionality_alpha_2": 9.98850835566697,
+        "renyi_eff_dimensionality_alpha_3": 9.982797913991552,
+        "renyi_eff_dimensionality_alpha_4": 9.97711588636637,
+        "renyi_eff_dimensionality_alpha_5": 9.971465743344835,
+        "geometric_mean_eff_dimensionality": 329488320045159.3,
+        "mle_dimensionality": 10.780664530932563,
+        "two_nn_dimensionality": 9.992014884260747,
+        "danco_dimensionality": 7.219733433115916,
+        "mind_mli_dimensionality": 1.1990453453309708,
+        "mind_mlk_dimensionality": 9.96337224517004,
+        "ess_dimensionality": 0.35156846559932575,
+        "tle_dimensionality": 10.78066453093256
+      },
+      "timing_s": {
+        "spectral": 0.12467406201176345,
+        "knn": 0.005339827970601618,
+        "geometry": 0.05320791306439787,
+        "total": 0.18322180304676294
+      },
+      "true_dimension": 10,
+      "repeat": 1
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 10.0,
+        "participation_ratio": 9.990171007069387,
+        "shannon_entropy": 9.995079310129627,
+        "renyi_eff_dimensionality_alpha_2": 9.990171007069403,
+        "renyi_eff_dimensionality_alpha_3": 9.98527849833728,
+        "renyi_eff_dimensionality_alpha_4": 9.980405131448844,
+        "renyi_eff_dimensionality_alpha_5": 9.975554180262053,
+        "geometric_mean_eff_dimensionality": 316641384377663.56,
+        "mle_dimensionality": 10.87509406424646,
+        "two_nn_dimensionality": 9.87691965397879,
+        "danco_dimensionality": 7.229419510995446,
+        "mind_mli_dimensionality": 1.0722320760043904,
+        "mind_mlk_dimensionality": 10.00901151369155,
+        "ess_dimensionality": 0.3518541532371766,
+        "tle_dimensionality": 10.875094064246458
+      },
+      "timing_s": {
+        "spectral": 0.12985381903126836,
+        "knn": 0.005343828001059592,
+        "geometry": 0.052149954019114375,
+        "total": 0.18734760105144233
+      },
+      "true_dimension": 10,
+      "repeat": 2
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 10.0,
+        "participation_ratio": 9.98918876152919,
+        "shannon_entropy": 9.994582728123975,
+        "renyi_eff_dimensionality_alpha_2": 9.989188761529205,
+        "renyi_eff_dimensionality_alpha_3": 9.983820113881736,
+        "renyi_eff_dimensionality_alpha_4": 9.978478725933824,
+        "renyi_eff_dimensionality_alpha_5": 9.973166462219528,
+        "geometric_mean_eff_dimensionality": 320709480146987.6,
+        "mle_dimensionality": 10.915127757318777,
+        "two_nn_dimensionality": 9.97629413107854,
+        "danco_dimensionality": 7.232327165755052,
+        "mind_mli_dimensionality": 1.0390881818381503,
+        "mind_mlk_dimensionality": 10.07751384398956,
+        "ess_dimensionality": 0.35276742703717984,
+        "tle_dimensionality": 10.915127757318778
+      },
+      "timing_s": {
+        "spectral": 0.1420763359637931,
+        "knn": 0.005344267934560776,
+        "geometry": 0.04373031703289598,
+        "total": 0.19115092093124986
+      },
+      "true_dimension": 10,
+      "repeat": 3
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 10.0,
+        "participation_ratio": 9.991894687595593,
+        "shannon_entropy": 9.995939955166193,
+        "renyi_eff_dimensionality_alpha_2": 9.99189468759561,
+        "renyi_eff_dimensionality_alpha_3": 9.987866224579903,
+        "renyi_eff_dimensionality_alpha_4": 9.983856541333912,
+        "renyi_eff_dimensionality_alpha_5": 9.979867555311566,
+        "geometric_mean_eff_dimensionality": 328212759141717.6,
+        "mle_dimensionality": 10.84732931825799,
+        "two_nn_dimensionality": 9.721779022442155,
+        "danco_dimensionality": 7.296696682400879,
+        "mind_mli_dimensionality": 1.1703440171815291,
+        "mind_mlk_dimensionality": 10.003200006621494,
+        "ess_dimensionality": 0.3557528876836854,
+        "tle_dimensionality": 10.847329318257989
+      },
+      "timing_s": {
+        "spectral": 0.12357117200735956,
+        "knn": 0.005342817981727421,
+        "geometry": 0.053447082987986505,
+        "total": 0.1823610729770735
+      },
+      "true_dimension": 10,
+      "repeat": 4
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 19.0,
+        "participation_ratio": 19.956701906601953,
+        "shannon_entropy": 19.978299846714446,
+        "renyi_eff_dimensionality_alpha_2": 19.956701906601968,
+        "renyi_eff_dimensionality_alpha_3": 19.93523127747327,
+        "renyi_eff_dimensionality_alpha_4": 19.913912297058523,
+        "renyi_eff_dimensionality_alpha_5": 19.892768372354404,
+        "geometric_mean_eff_dimensionality": 80373548355038.17,
+        "mle_dimensionality": 18.86692516317567,
+        "two_nn_dimensionality": 17.704552503353952,
+        "danco_dimensionality": 7.467483286761554,
+        "mind_mli_dimensionality": 1.8368537613625229,
+        "mind_mlk_dimensionality": 17.459299726621808,
+        "ess_dimensionality": 0.27010034449404163,
+        "tle_dimensionality": 18.866925163175672
+      },
+      "timing_s": {
+        "spectral": 0.13294425792992115,
+        "knn": 0.005341068026609719,
+        "geometry": 0.04313066601753235,
+        "total": 0.18141599197406322
+      },
+      "true_dimension": 20,
+      "repeat": 0
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 19.0,
+        "participation_ratio": 19.961838654349908,
+        "shannon_entropy": 19.980861582935205,
+        "renyi_eff_dimensionality_alpha_2": 19.96183865434993,
+        "renyi_eff_dimensionality_alpha_3": 19.942951395603565,
+        "renyi_eff_dimensionality_alpha_4": 19.92421929229911,
+        "renyi_eff_dimensionality_alpha_5": 19.90566100757091,
+        "geometric_mean_eff_dimensionality": 80134171436485.45,
+        "mle_dimensionality": 18.88231662676709,
+        "two_nn_dimensionality": 17.845208256726796,
+        "danco_dimensionality": 7.437747404642348,
+        "mind_mli_dimensionality": 2.0694090630212707,
+        "mind_mlk_dimensionality": 17.55123670768735,
+        "ess_dimensionality": 0.2695468702635291,
+        "tle_dimensionality": 18.88231662676709
+      },
+      "timing_s": {
+        "spectral": 0.12755901098717004,
+        "knn": 0.005343819037079811,
+        "geometry": 0.050227444036863744,
+        "total": 0.1831302740611136
+      },
+      "true_dimension": 20,
+      "repeat": 1
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 19.0,
+        "participation_ratio": 19.964533189676953,
+        "shannon_entropy": 19.982258563247786,
+        "renyi_eff_dimensionality_alpha_2": 19.964533189676967,
+        "renyi_eff_dimensionality_alpha_3": 19.946842015067254,
+        "renyi_eff_dimensionality_alpha_4": 19.929203050447022,
+        "renyi_eff_dimensionality_alpha_5": 19.911634065768737,
+        "geometric_mean_eff_dimensionality": 80768264442057.47,
+        "mle_dimensionality": 19.137474190529566,
+        "two_nn_dimensionality": 18.077827920968033,
+        "danco_dimensionality": 7.462816186272109,
+        "mind_mli_dimensionality": 2.036389443145768,
+        "mind_mlk_dimensionality": 17.678489979124848,
+        "ess_dimensionality": 0.26951551002712576,
+        "tle_dimensionality": 19.137474190529577
+      },
+      "timing_s": {
+        "spectral": 0.1400645059766248,
+        "knn": 0.005337198963388801,
+        "geometry": 0.04575638601090759,
+        "total": 0.19115809095092118
+      },
+      "true_dimension": 20,
+      "repeat": 2
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 19.0,
+        "participation_ratio": 19.96392230806126,
+        "shannon_entropy": 19.98196181953521,
+        "renyi_eff_dimensionality_alpha_2": 19.96392230806127,
+        "renyi_eff_dimensionality_alpha_3": 19.945898956979473,
+        "renyi_eff_dimensionality_alpha_4": 19.927909235144053,
+        "renyi_eff_dimensionality_alpha_5": 19.90997047544059,
+        "geometric_mean_eff_dimensionality": 81060898414824.69,
+        "mle_dimensionality": 19.014407141177053,
+        "two_nn_dimensionality": 18.099755856661844,
+        "danco_dimensionality": 7.446763840736677,
+        "mind_mli_dimensionality": 1.8552847543651998,
+        "mind_mlk_dimensionality": 17.66005835766279,
+        "ess_dimensionality": 0.26944878487089574,
+        "tle_dimensionality": 19.01440714117705
+      },
+      "timing_s": {
+        "spectral": 0.13919544592499733,
+        "knn": 0.0053361180471256375,
+        "geometry": 0.0521271739853546,
+        "total": 0.19665873795747757
+      },
+      "true_dimension": 20,
+      "repeat": 3
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 19.0,
+        "participation_ratio": 19.955443245593145,
+        "shannon_entropy": 19.977734582390188,
+        "renyi_eff_dimensionality_alpha_2": 19.955443245593163,
+        "renyi_eff_dimensionality_alpha_3": 19.933152854791384,
+        "renyi_eff_dimensionality_alpha_4": 19.910890364793328,
+        "renyi_eff_dimensionality_alpha_5": 19.88868260999457,
+        "geometric_mean_eff_dimensionality": 80450669000841.94,
+        "mle_dimensionality": 19.15639685327649,
+        "two_nn_dimensionality": 17.933217845337243,
+        "danco_dimensionality": 7.429047209018718,
+        "mind_mli_dimensionality": 1.9289862572949517,
+        "mind_mlk_dimensionality": 17.717843919094058,
+        "ess_dimensionality": 0.2693789468475863,
+        "tle_dimensionality": 19.15639685327648
+      },
+      "timing_s": {
+        "spectral": 0.12209186097607017,
+        "knn": 0.005338079063221812,
+        "geometry": 0.05395519302692264,
+        "total": 0.18138513306621462
+      },
+      "true_dimension": 20,
+      "repeat": 4
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 48.0,
+        "participation_ratio": 49.75253547459557,
+        "shannon_entropy": 49.87572348515872,
+        "renyi_eff_dimensionality_alpha_2": 49.75253547459565,
+        "renyi_eff_dimensionality_alpha_3": 49.63071336899171,
+        "renyi_eff_dimensionality_alpha_4": 49.510515323335255,
+        "renyi_eff_dimensionality_alpha_5": 49.39217696545057,
+        "geometric_mean_eff_dimensionality": 1229158824691.3088,
+        "mle_dimensionality": 35.92356457752955,
+        "two_nn_dimensionality": 35.402109312263605,
+        "danco_dimensionality": 6.103140805988271,
+        "mind_mli_dimensionality": 3.1988942154249416,
+        "mind_mlk_dimensionality": 33.296357973909124,
+        "ess_dimensionality": 0.22356045968852636,
+        "tle_dimensionality": 35.92356457752954
+      },
+      "timing_s": {
+        "spectral": 0.1662991470657289,
+        "knn": 0.005353308981284499,
+        "geometry": 0.020164433983154595,
+        "total": 0.191816890030168
+      },
+      "true_dimension": 50,
+      "repeat": 0
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 48.0,
+        "participation_ratio": 49.73657312427743,
+        "shannon_entropy": 49.86763965612017,
+        "renyi_eff_dimensionality_alpha_2": 49.73657312427748,
+        "renyi_eff_dimensionality_alpha_3": 49.60711354648035,
+        "renyi_eff_dimensionality_alpha_4": 49.47955040545112,
+        "renyi_eff_dimensionality_alpha_5": 49.35414574411789,
+        "geometric_mean_eff_dimensionality": 1222676524350.2327,
+        "mle_dimensionality": 35.96035537463269,
+        "two_nn_dimensionality": 34.47260570778299,
+        "danco_dimensionality": 6.194683239067576,
+        "mind_mli_dimensionality": 3.5115992810283565,
+        "mind_mlk_dimensionality": 33.276906435057356,
+        "ess_dimensionality": 0.22496325335374875,
+        "tle_dimensionality": 35.96035537463269
+      },
+      "timing_s": {
+        "spectral": 0.11936026206240058,
+        "knn": 0.005339887924492359,
+        "geometry": 0.05669240094721317,
+        "total": 0.1813925509341061
+      },
+      "true_dimension": 50,
+      "repeat": 1
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 48.0,
+        "participation_ratio": 49.73883293100582,
+        "shannon_entropy": 49.86903623963526,
+        "renyi_eff_dimensionality_alpha_2": 49.738832931005916,
+        "renyi_eff_dimensionality_alpha_3": 49.60973461219698,
+        "renyi_eff_dimensionality_alpha_4": 49.48207069351594,
+        "renyi_eff_dimensionality_alpha_5": 49.35615018956358,
+        "geometric_mean_eff_dimensionality": 1213120480682.1794,
+        "mle_dimensionality": 35.75538120447635,
+        "two_nn_dimensionality": 35.600024554008634,
+        "danco_dimensionality": 6.152155720936867,
+        "mind_mli_dimensionality": 3.7269836068781204,
+        "mind_mlk_dimensionality": 33.16684753017793,
+        "ess_dimensionality": 0.2243255419702632,
+        "tle_dimensionality": 35.755381204476315
+      },
+      "timing_s": {
+        "spectral": 0.11439199303276837,
+        "knn": 0.0053372380789369345,
+        "geometry": 0.034165699034929276,
+        "total": 0.15389493014663458
+      },
+      "true_dimension": 50,
+      "repeat": 2
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 48.0,
+        "participation_ratio": 49.72485430477078,
+        "shannon_entropy": 49.86182574835083,
+        "renyi_eff_dimensionality_alpha_2": 49.72485430477093,
+        "renyi_eff_dimensionality_alpha_3": 49.589440362913024,
+        "renyi_eff_dimensionality_alpha_4": 49.455915877584445,
+        "renyi_eff_dimensionality_alpha_5": 49.32458513512021,
+        "geometric_mean_eff_dimensionality": 1217462994329.3484,
+        "mle_dimensionality": 35.72142143114909,
+        "two_nn_dimensionality": 35.31375546849263,
+        "danco_dimensionality": 5.99643579648522,
+        "mind_mli_dimensionality": 3.41144715432249,
+        "mind_mlk_dimensionality": 33.02250570387615,
+        "ess_dimensionality": 0.22192657722660353,
+        "tle_dimensionality": 35.7214214311491
+      },
+      "timing_s": {
+        "spectral": 0.12776729802135378,
+        "knn": 0.005336728994734585,
+        "geometry": 0.046832964988425374,
+        "total": 0.17993699200451374
+      },
+      "true_dimension": 50,
+      "repeat": 3
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 48.0,
+        "participation_ratio": 49.72578402674998,
+        "shannon_entropy": 49.862147728032376,
+        "renyi_eff_dimensionality_alpha_2": 49.72578402675005,
+        "renyi_eff_dimensionality_alpha_3": 49.591247995629196,
+        "renyi_eff_dimensionality_alpha_4": 49.458852121900385,
+        "renyi_eff_dimensionality_alpha_5": 49.32887804303057,
+        "geometric_mean_eff_dimensionality": 1222712003981.3816,
+        "mle_dimensionality": 35.68077303360963,
+        "two_nn_dimensionality": 35.52808542471993,
+        "danco_dimensionality": 6.052135537716551,
+        "mind_mli_dimensionality": 3.843294224604494,
+        "mind_mlk_dimensionality": 32.97270950977125,
+        "ess_dimensionality": 0.22282132679919586,
+        "tle_dimensionality": 35.68077303360964
+      },
+      "timing_s": {
+        "spectral": 0.12885078799445182,
+        "knn": 0.005346707999706268,
+        "geometry": 0.043840095051564276,
+        "total": 0.17803759104572237
+      },
+      "true_dimension": 50,
+      "repeat": 4
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 95.0,
+        "participation_ratio": 99.01458482360991,
+        "shannon_entropy": 99.50387548280085,
+        "renyi_eff_dimensionality_alpha_2": 99.0145848236099,
+        "renyi_eff_dimensionality_alpha_3": 98.53442507347614,
+        "renyi_eff_dimensionality_alpha_4": 98.06545672377761,
+        "renyi_eff_dimensionality_alpha_5": 97.60945158722343,
+        "geometric_mean_eff_dimensionality": 1316057563.4489584,
+        "mle_dimensionality": 54.99703034215345,
+        "two_nn_dimensionality": 55.47590442672346,
+        "danco_dimensionality": 5.345022095952911,
+        "mind_mli_dimensionality": 6.073515786129661,
+        "mind_mlk_dimensionality": 51.140458761259495,
+        "ess_dimensionality": 0.20743687730809476,
+        "tle_dimensionality": 54.99703034215347
+      },
+      "timing_s": {
+        "spectral": 0.14806344103999436,
+        "knn": 0.005381898023188114,
+        "geometry": 0.034177198889665306,
+        "total": 0.18762253795284778
+      },
+      "true_dimension": 100,
+      "repeat": 0
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 94.0,
+        "participation_ratio": 99.03844207665514,
+        "shannon_entropy": 99.51526444619824,
+        "renyi_eff_dimensionality_alpha_2": 99.03844207665513,
+        "renyi_eff_dimensionality_alpha_3": 98.57146841993607,
+        "renyi_eff_dimensionality_alpha_4": 98.11602822339741,
+        "renyi_eff_dimensionality_alpha_5": 97.67352519905877,
+        "geometric_mean_eff_dimensionality": 1293085766.5749385,
+        "mle_dimensionality": 54.970366511272964,
+        "two_nn_dimensionality": 54.45403311103767,
+        "danco_dimensionality": 5.39981590715285,
+        "mind_mli_dimensionality": 5.514446398864504,
+        "mind_mlk_dimensionality": 50.964509264976044,
+        "ess_dimensionality": 0.2082794046988764,
+        "tle_dimensionality": 54.97036651127293
+      },
+      "timing_s": {
+        "spectral": 0.12229947105515748,
+        "knn": 0.005438958061859012,
+        "geometry": 0.055441621923819184,
+        "total": 0.18318005104083568
+      },
+      "true_dimension": 100,
+      "repeat": 1
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 94.0,
+        "participation_ratio": 98.99276362784508,
+        "shannon_entropy": 99.49143444144086,
+        "renyi_eff_dimensionality_alpha_2": 98.99276362784519,
+        "renyi_eff_dimensionality_alpha_3": 98.50600226454246,
+        "renyi_eff_dimensionality_alpha_4": 98.03287734070445,
+        "renyi_eff_dimensionality_alpha_5": 97.5747970846143,
+        "geometric_mean_eff_dimensionality": 1274519880.9999766,
+        "mle_dimensionality": 55.082833552889376,
+        "two_nn_dimensionality": 55.7419687148217,
+        "danco_dimensionality": 5.382744292957634,
+        "mind_mli_dimensionality": 5.720019506828786,
+        "mind_mlk_dimensionality": 51.13011757529301,
+        "ess_dimensionality": 0.2080062864082458,
+        "tle_dimensionality": 55.082833552889355
+      },
+      "timing_s": {
+        "spectral": 0.14016211300622672,
+        "knn": 0.00535467907320708,
+        "geometry": 0.03688837797380984,
+        "total": 0.18240517005324364
+      },
+      "true_dimension": 100,
+      "repeat": 2
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 94.0,
+        "participation_ratio": 98.98695269713592,
+        "shannon_entropy": 99.4889021105426,
+        "renyi_eff_dimensionality_alpha_2": 98.98695269713595,
+        "renyi_eff_dimensionality_alpha_3": 98.4962752271599,
+        "renyi_eff_dimensionality_alpha_4": 98.018698511446,
+        "renyi_eff_dimensionality_alpha_5": 97.55572401196342,
+        "geometric_mean_eff_dimensionality": 1289254672.9662464,
+        "mle_dimensionality": 55.29447816444404,
+        "two_nn_dimensionality": 55.512687564563954,
+        "danco_dimensionality": 5.423036599328658,
+        "mind_mli_dimensionality": 5.839013199644704,
+        "mind_mlk_dimensionality": 50.98097383634622,
+        "ess_dimensionality": 0.20862254113138315,
+        "tle_dimensionality": 55.29447816444402
+      },
+      "timing_s": {
+        "spectral": 0.11202471191063523,
+        "knn": 0.0053639080142602324,
+        "geometry": 0.06375582795590162,
+        "total": 0.1811444478807971
+      },
+      "true_dimension": 100,
+      "repeat": 3
+    },
+    {
+      "n_samples": 10000,
+      "values": {
+        "pca_explained_variance_95": 94.0,
+        "participation_ratio": 99.00297279494895,
+        "shannon_entropy": 99.49744911507656,
+        "renyi_eff_dimensionality_alpha_2": 99.002972794949,
+        "renyi_eff_dimensionality_alpha_3": 98.51880423611614,
+        "renyi_eff_dimensionality_alpha_4": 98.0469085456122,
+        "renyi_eff_dimensionality_alpha_5": 97.58893859220211,
+        "geometric_mean_eff_dimensionality": 1265688841.5999606,
+        "mle_dimensionality": 54.76563601752815,
+        "two_nn_dimensionality": 54.80867734554492,
+        "danco_dimensionality": 5.379219350522862,
+        "mind_mli_dimensionality": 5.866619443342796,
+        "mind_mlk_dimensionality": 50.868026623053666,
+        "ess_dimensionality": 0.20794822799086582,
+        "tle_dimensionality": 54.76563601752812
+      },
+      "timing_s": {
+        "spectral": 0.1130469519412145,
+        "knn": 0.005358507973141968,
+        "geometry": 0.06587091903202236,
+        "total": 0.18427637894637883
+      },
+      "true_dimension": 100,
+      "repeat": 4
+    }
+  ]
+}

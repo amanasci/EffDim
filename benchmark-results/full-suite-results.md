@@ -8,7 +8,8 @@ EffDim was benchmarked on seeded standard-normal arrays with 768 features at
 The original CPU implementation took 2h 50m and peaked at 78 GiB for 100,000
 samples. Most of this cost came from exact CPU nearest-neighbor work and GMST's
 independent dense N×N distance matrix. After excluding GMST and moving k-NN to
-cuVS, the remaining 15 metrics completed in 12.9 seconds with exact neighbors.
+cuVS, the optimized remaining 15 metrics completed in 6.8 seconds with exact
+neighbors.
 
 For this all-points query workload, exact GPU k-NN was faster than either
 approximate backend. CAGRA and IVF-Flat remain candidates for much larger
@@ -16,11 +17,17 @@ datasets, but their indexing and traversal overhead did not pay off through
 100,000 samples.
 
 On three real UniverseTBD embedding datasets, CAGRA achieved 99.04–99.99%
-recall. Rust regular PCA was 4.52× faster than Python on the 100k × 1024
-Legacy Survey matrix, while Python streaming covariance was 5.37× faster than
-the current Rust streaming implementation. The fastest end-to-end non-GMST
-configuration on that dataset was Python streaming PCA plus shared CAGRA at
-23.49 seconds.
+recall. Rust regular PCA was 4.45× faster than Python on the 100k × 1024
+Legacy Survey matrix, while Python streaming covariance was 1.47× faster than
+Rust. After the new geometry and PyO3 optimizations, the fastest end-to-end
+non-GMST configuration was Rust streaming PCA plus shared CAGRA at 18.32
+seconds, versus 23.47 seconds for Python.
+
+Relative to the previous Rust build, the new `rust-migration` optimizations
+reduced the 100k exact-GPU 15-metric suite from 12.91 s to 6.80 s (1.90×) and
+the Legacy Survey Rust streaming pipeline from 30.29 s to 18.32 s (1.65×).
+On that real dataset, Rust DANCo improved from 7.34 s to 0.63 s and ESS from
+1.93 s to 0.39 s.
 
 ## Benchmark environment
 
@@ -130,19 +137,19 @@ coarse lists and achieved approximately 90% recall.
 
 | Samples | Backend | Total time | k-NN time | Recall@10 | Peak RSS | Peak VRAM |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 10,000 | Exact cuVS | 1.71 s | 0.015 s | 100% | 0.89 GiB | 1.10 GiB |
-| 10,000 | CAGRA | 2.54 s | 0.107 s | 99.34% | 1.37 GiB | 1.72 GiB |
-| 10,000 | IVF-Flat | 1.92 s | 0.059 s | 89.44% | 1.11 GiB | 1.30 GiB |
-| 50,000 | Exact cuVS | 6.16 s | 0.318 s | 100% | 2.78 GiB | 1.22 GiB |
-| 50,000 | CAGRA | 9.10 s | 2.394 s | 97.98% | 3.18 GiB | 5.02 GiB |
-| 50,000 | IVF-Flat | 7.30 s | 1.218 s | 89.71% | 2.86 GiB | 1.68 GiB |
-| 100,000 | Exact cuVS | 12.91 s | 1.379 s | 100% | 5.26 GiB | 1.37 GiB |
-| 100,000 | CAGRA | 28.48 s | 15.910 s | 98.26% | 5.44 GiB | 10.80 GiB |
-| 100,000 | IVF-Flat | 20.97 s | 9.206 s | 89.91% | 5.29 GiB | 2.22 GiB |
+| 10,000 | Exact cuVS | 1.59 s | 0.015 s | 100% | 0.90 GiB | 1.10 GiB |
+| 10,000 | CAGRA | 2.14 s | 0.107 s | 99.35% | 1.37 GiB | 1.35 GiB |
+| 10,000 | IVF-Flat | 1.84 s | 0.059 s | 89.44% | 1.11 GiB | 1.26 GiB |
+| 50,000 | Exact cuVS | 3.19 s | 0.317 s | 100% | 2.78 GiB | 1.22 GiB |
+| 50,000 | CAGRA | 6.10 s | 2.361 s | 98.05% | 3.24 GiB | 5.02 GiB |
+| 50,000 | IVF-Flat | 4.20 s | 1.212 s | 89.71% | 3.09 GiB | 1.68 GiB |
+| 100,000 | Exact cuVS | 6.80 s | 1.373 s | 100% | 4.98 GiB | 1.37 GiB |
+| 100,000 | CAGRA | 22.31 s | 15.816 s | 98.33% | 5.63 GiB | 10.80 GiB |
+| 100,000 | IVF-Flat | 14.78 s | 9.127 s | 90.56% | 5.29 GiB | 2.23 GiB |
 
 ![GPU-backed suite memory](gpu_suite_no_gmst_10k_50k_100k_memory.svg)
 
-At 100,000 samples, the CAGRA estimates remained close to exact despite 98.26%
+At 100,000 samples, the CAGRA estimates remained close to exact despite 98.33%
 neighbor recall. For example, MLE dimensionality differed by 0.46% and
 Two-NN differed by 0.21%. IVF-Flat's approximately 90% recall produced MLE and
 Two-NN differences below 1% on this synthetic dataset.
@@ -198,22 +205,21 @@ repository was not downloaded.
 
 | Dataset | Python regular | Rust regular | Advantage | Python streaming | Rust streaming | Advantage |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| JWST | 1.817 s | 0.175 s | 10.37× Rust | 0.061 s | 0.220 s | 3.59× Python |
-| DESI | 0.436 s | 1.057 s | 2.42× Python | 0.106 s | 0.593 s | 5.61× Python |
-| Legacy Survey | 23.163 s | 5.119 s | 4.52× Rust | 0.932 s | 5.003 s | 5.37× Python |
+| JWST | 1.629 s | 0.233 s | 6.99× Rust | 0.075 s | 0.233 s | 3.09× Python |
+| DESI | 0.432 s | 0.878 s | 2.03× Python | 0.107 s | 0.250 s | 2.34× Python |
+| Legacy Survey | 23.314 s | 5.240 s | 4.45× Rust | 0.895 s | 1.312 s | 1.47× Python |
 
 | Dataset | Python PCA-95 | Rust PCA-95 | Python peak RSS | Rust peak RSS |
 |:---:|:---:|:---:|:---:|:---:|
-| JWST | 145 | 145 | 0.27 GiB | 0.09 GiB |
-| DESI | 64 | 64 | 1.56 GiB | 0.82 GiB |
-| Legacy Survey | 110 | 110 | 9.54 GiB | 5.15 GiB |
+| JWST | 145 | 145 | 0.29 GiB | 0.10 GiB |
+| DESI | 64 | 64 | 1.56 GiB | 0.85 GiB |
+| Legacy Survey | 110 | 110 | 9.54 GiB | 5.25 GiB |
 
 > **PCA result:** Rust regular SVD wins decisively on the small JWST
 > and large Legacy Survey matrices, but NumPy wins on the medium DESI
 > shape. Python streaming covariance is currently faster on all three
-> datasets in this table. That run predates the OpenBLAS follow-up:
-> linking `ndarray::dot` to OpenBLAS later reduced the 100k × 1,024
-> Rust streaming result from 5.00 s to 1.30 s, versus 0.74 s for Python.
+> datasets. On the 100k × 1,024 matrix, the OpenBLAS-backed Rust path
+> completed in 1.31 s versus 0.90 s for Python.
 
 Python `main` switches to randomized SVD when both matrix dimensions
 are at least 1,000, while Rust regular PCA remains exact. Streaming
@@ -224,9 +230,9 @@ difference.
 
 | Dataset | Python regular vs streaming | Rust regular vs streaming | Python vs Rust streaming |
 |:---:|:---:|:---:|:---:|
-| JWST | 2.50e-14 | 4.93e-05 | 3.42e-02 |
-| DESI | 1.48e-10 | 2.89e-10 | 4.38e-10 |
-| Legacy Survey | 3.25e-02 | 1.89e-05 | 1.89e-04 |
+| JWST | 2.51e-14 | 9.34e-05 | 3.42e-02 |
+| DESI | 1.48e-10 | 1.71e-10 | 3.19e-10 |
+| Legacy Survey | 3.25e-02 | 1.90e-05 | 1.89e-04 |
 
 Values are the maximum relative difference across the eight spectral
 dimensionality outputs. The larger Python regular-path differences on
@@ -241,9 +247,9 @@ geometry path so data conversion and neighbor arrays are shared once.
 
 | Dataset | Python regular total | Rust regular total | Python streaming total | Rust streaming total |
 |:---:|:---:|:---:|:---:|:---:|
-| `jwst_dinov3_vitl16` | 2.824 s | 1.175 s | 1.068 s | 1.220 s |
-| `desi_dinov3_small_vitl16` | 2.765 s | 3.784 s | 2.435 s | 3.321 s |
-| `legacysurvey_dinov3_vitl16` | 45.724 s | 30.411 s | 23.493 s | 30.294 s |
+| `jwst_dinov3_vitl16` | 2.593 s | 1.110 s | 1.040 s | 1.111 s |
+| `desi_dinov3_small_vitl16` | 2.758 s | 2.354 s | 2.433 s | 1.726 s |
+| `legacysurvey_dinov3_vitl16` | 45.884 s | 22.250 s | 23.465 s | 18.321 s |
 
 ### Per-estimator comparison
 
@@ -251,61 +257,61 @@ geometry path so data conversion and neighbor arrays are shared once.
 
 | Estimator | Python | Rust | Speed advantage | Relative value difference |
 |:---:|:---:|:---:|:---:|:---:|
-| PCA explained variance (95%) | 44.8 µs | 7.7 µs | 5.82× Rust | 0.00e+00 |
-| Participation ratio | 14.5 µs | 3.2 µs | 4.52× Rust | 3.48e-15 |
-| Shannon entropy | 33.2 µs | 10.8 µs | 3.09× Rust | 5.31e-15 |
-| Rényi α=2 | 7.7 µs | 17.5 µs | 2.27× Python | 6.05e-16 |
-| Rényi α=3 | 34.4 µs | 12.2 µs | 2.82× Rust | 3.62e-15 |
-| Rényi α=4 | 23.7 µs | 12.2 µs | 1.94× Rust | 5.67e-15 |
-| Rényi α=5 | 23.5 µs | 12.1 µs | 1.94× Rust | 4.73e-15 |
-| Geometric mean | 48.2 µs | 8.2 µs | 5.87× Rust | 3.43e-02 |
-| MLE | 202.7 µs | 445.3 µs | 2.20× Python | 8.21e-08 |
-| Two-NN | 121.9 µs | 248.6 µs | 2.04× Python | 3.14e-08 |
-| DANCo | 91.02 ms | 107.33 ms | 1.18× Python | 9.27e-10 |
-| MiND-MLi | 74.8 µs | 205.3 µs | 2.74× Python | 2.62e-08 |
-| MiND-MLk | 198.6 µs | 300.4 µs | 1.51× Python | 2.42e-07 |
-| ESS | 45.36 ms | 24.63 ms | 1.84× Rust | 1.96e-08 |
-| TLE | 138.8 µs | 303.0 µs | 2.18× Python | 1.46e-07 |
+| PCA explained variance (95%) | 41.2 µs | 8.1 µs | 5.11× Rust | 0.00e+00 |
+| Participation ratio | 14.1 µs | 3.7 µs | 3.84× Rust | 4.53e-15 |
+| Shannon entropy | 31.7 µs | 8.1 µs | 3.91× Rust | 5.31e-15 |
+| Rényi α=2 | 7.5 µs | 14.6 µs | 1.95× Python | 1.51e-16 |
+| Rényi α=3 | 33.7 µs | 12.5 µs | 2.68× Rust | 4.48e-15 |
+| Rényi α=4 | 23.5 µs | 12.4 µs | 1.89× Rust | 6.42e-15 |
+| Rényi α=5 | 23.1 µs | 12.5 µs | 1.85× Rust | 5.42e-15 |
+| Geometric mean | 40.1 µs | 9.1 µs | 4.38× Rust | 3.43e-02 |
+| MLE | 188.9 µs | 378.3 µs | 2.00× Python | 8.21e-08 |
+| Two-NN | 120.1 µs | 257.9 µs | 2.15× Python | 3.14e-08 |
+| DANCo | 62.50 ms | 6.56 ms | 9.52× Rust | 9.27e-10 |
+| MiND-MLi | 91.0 µs | 343.8 µs | 3.78× Python | 2.62e-08 |
+| MiND-MLk | 243.0 µs | 298.0 µs | 1.23× Python | 2.42e-07 |
+| ESS | 31.35 ms | 2.38 ms | 13.15× Rust | 1.96e-08 |
+| TLE | 154.9 µs | 461.8 µs | 2.98× Python | 1.46e-07 |
 
 #### `desi_dinov3_small_vitl16`
 
 | Estimator | Python | Rust | Speed advantage | Relative value difference |
 |:---:|:---:|:---:|:---:|:---:|
-| PCA explained variance (95%) | 43.2 µs | 8.9 µs | 4.83× Rust | 0.00e+00 |
-| Participation ratio | 14.4 µs | 3.5 µs | 4.10× Rust | 2.87e-15 |
-| Shannon entropy | 27.9 µs | 12.2 µs | 2.28× Rust | 3.53e-15 |
-| Rényi α=2 | 7.1 µs | 15.1 µs | 2.12× Python | 6.56e-15 |
-| Rényi α=3 | 29.6 µs | 11.4 µs | 2.60× Rust | 3.74e-15 |
-| Rényi α=4 | 19.1 µs | 11.3 µs | 1.69× Rust | 3.39e-15 |
-| Rényi α=5 | 19.0 µs | 11.3 µs | 1.69× Rust | 2.83e-15 |
-| Geometric mean | 37.6 µs | 9.0 µs | 4.18× Rust | 4.83e-15 |
-| MLE | 1.36 ms | 35.37 ms | 26.04× Python | 3.20e-10 |
-| Two-NN | 483.2 µs | 34.45 ms | 71.29× Python | 4.27e-08 |
-| DANCo | 590.44 ms | 1.114 s | 1.89× Python | 4.41e-08 |
-| MiND-MLi | 157.0 µs | 33.26 ms | 211.84× Python | 7.91e-08 |
-| MiND-MLk | 1.23 ms | 33.21 ms | 27.07× Python | 4.04e-07 |
-| ESS | 366.98 ms | 286.98 ms | 1.28× Rust | 1.09e-07 |
-| TLE | 1.02 ms | 32.83 ms | 32.24× Python | 3.20e-10 |
+| PCA explained variance (95%) | 44.6 µs | 8.5 µs | 5.25× Rust | 0.00e+00 |
+| Participation ratio | 14.0 µs | 3.5 µs | 3.97× Rust | 2.87e-15 |
+| Shannon entropy | 26.3 µs | 6.6 µs | 3.97× Rust | 3.53e-15 |
+| Rényi α=2 | 7.0 µs | 13.1 µs | 1.86× Python | 6.56e-15 |
+| Rényi α=3 | 29.0 µs | 9.6 µs | 3.00× Rust | 3.74e-15 |
+| Rényi α=4 | 19.0 µs | 9.6 µs | 1.98× Rust | 3.39e-15 |
+| Rényi α=5 | 18.6 µs | 9.6 µs | 1.93× Rust | 2.83e-15 |
+| Geometric mean | 37.2 µs | 8.1 µs | 4.58× Rust | 4.83e-15 |
+| MLE | 1.35 ms | 36.67 ms | 27.15× Python | 3.20e-10 |
+| Two-NN | 477.9 µs | 34.54 ms | 72.28× Python | 4.27e-08 |
+| DANCo | 588.17 ms | 92.48 ms | 6.36× Rust | 4.41e-08 |
+| MiND-MLi | 180.7 µs | 32.58 ms | 180.36× Python | 7.91e-08 |
+| MiND-MLk | 1.23 ms | 34.09 ms | 27.78× Python | 4.04e-07 |
+| ESS | 366.59 ms | 54.65 ms | 6.71× Rust | 1.09e-07 |
+| TLE | 1.01 ms | 34.57 ms | 34.19× Python | 3.20e-10 |
 
 #### `legacysurvey_dinov3_vitl16`
 
 | Estimator | Python | Rust | Speed advantage | Relative value difference |
 |:---:|:---:|:---:|:---:|:---:|
-| PCA explained variance (95%) | 42.4 µs | 9.2 µs | 4.61× Rust | 0.00e+00 |
-| Participation ratio | 13.3 µs | 3.6 µs | 3.74× Rust | 3.65e-15 |
-| Shannon entropy | 28.9 µs | 14.7 µs | 1.96× Rust | 6.70e-15 |
-| Rényi α=2 | 6.9 µs | 15.4 µs | 2.22× Python | 2.11e-15 |
-| Rényi α=3 | 34.8 µs | 12.2 µs | 2.84× Rust | 1.91e-15 |
-| Rényi α=4 | 24.1 µs | 12.6 µs | 1.92× Rust | 1.31e-15 |
-| Rényi α=5 | 23.2 µs | 12.1 µs | 1.91× Rust | 1.26e-15 |
-| Geometric mean | 39.2 µs | 8.9 µs | 4.42× Rust | 3.27e-02 |
-| MLE | 9.40 ms | 236.33 ms | 25.15× Python | 4.38e-08 |
-| Two-NN | 1.95 ms | 220.57 ms | 113.39× Python | 7.01e-08 |
-| DANCo | 3.859 s | 7.344 s | 1.90× Python | 2.09e-09 |
-| MiND-MLi | 602.8 µs | 218.40 ms | 362.31× Python | 8.25e-08 |
-| MiND-MLk | 6.00 ms | 228.30 ms | 38.07× Python | 3.31e-07 |
-| ESS | 2.402 s | 1.929 s | 1.25× Rust | 9.85e-08 |
-| TLE | 4.82 ms | 230.40 ms | 47.81× Python | 4.38e-08 |
+| PCA explained variance (95%) | 41.7 µs | 9.6 µs | 4.34× Rust | 0.00e+00 |
+| Participation ratio | 13.7 µs | 3.7 µs | 3.66× Rust | 4.23e-15 |
+| Shannon entropy | 29.7 µs | 12.2 µs | 2.42× Rust | 7.11e-15 |
+| Rényi α=2 | 6.8 µs | 19.3 µs | 2.82× Python | 1.35e-15 |
+| Rényi α=3 | 33.8 µs | 12.9 µs | 2.61× Rust | 1.02e-15 |
+| Rényi α=4 | 23.6 µs | 12.5 µs | 1.89× Rust | 4.36e-16 |
+| Rényi α=5 | 23.2 µs | 12.6 µs | 1.84× Rust | 4.73e-16 |
+| Geometric mean | 39.7 µs | 9.2 µs | 4.33× Rust | 3.27e-02 |
+| MLE | 9.40 ms | 233.41 ms | 24.83× Python | 4.38e-08 |
+| Two-NN | 1.95 ms | 224.67 ms | 114.95× Python | 7.01e-08 |
+| DANCo | 3.863 s | 630.36 ms | 6.13× Rust | 2.09e-09 |
+| MiND-MLi | 617.1 µs | 229.77 ms | 372.37× Python | 8.25e-08 |
+| MiND-MLk | 6.03 ms | 231.55 ms | 38.43× Python | 3.31e-07 |
+| ESS | 2.404 s | 385.04 ms | 6.24× Rust | 9.85e-08 |
+| TLE | 4.90 ms | 238.28 ms | 48.66× Python | 4.38e-08 |
 
 ### Interpretation
 
@@ -315,10 +321,10 @@ geometry path so data conversion and neighbor arrays are shared once.
 2. **Rust regular PCA is shape-dependent but strong at scale.** It is
    about 4.5× faster than Python regular PCA on the 100k × 1024 Legacy
    Survey matrix, while NumPy is faster on the 20k × 768 DESI matrix.
-3. **Python streaming covariance remains fastest.** In the original run,
-   NumPy was roughly 5× faster on the two larger datasets. The subsequent
-   OpenBLAS-backed Rust path narrowed the 100k × 1,024 result to 1.30 s
-   versus 0.74 s for Python, a remaining 1.77× gap.
+3. **Python streaming PCA remains faster in isolation, but Rust wins the
+   optimized pipeline.** On the 100k × 1,024 matrix, streaming PCA took
+   0.90 s in Python and 1.31 s in Rust. Faster Rust geometry reduced the
+   complete non-GMST pipeline to 18.32 s versus 23.47 s for Python.
 4. **Estimator values agree closely.** Geometry outputs use identical
    CAGRA neighbors and agree to numerical precision. Differences in
    regular spectral results primarily reflect Python's randomized-SVD
@@ -328,4 +334,3 @@ geometry path so data conversion and neighbor arrays are shared once.
    calls because each call converts the full input to float32 and
    copies precomputed distances. The bundled Rust geometry path shares
    those conversions and is the relevant end-to-end implementation.
-

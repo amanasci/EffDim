@@ -304,16 +304,16 @@ def _strip_self(neighbors, distances, k: int):
 
 
 def _prepare_cagra(dataset: Path, cache_dir: Path, k: int) -> dict:
-    import cupy as cp
-    import numpy as np
-    from cuvs.neighbors import brute_force, cagra
-
     cache_dir.mkdir(parents=True, exist_ok=True)
     distances_path = cache_dir / f"{dataset.stem}_cagra_distances.npy"
     indices_path = cache_dir / f"{dataset.stem}_cagra_indices.npy"
     metadata_path = cache_dir / f"{dataset.stem}_cagra.json"
     if distances_path.exists() and indices_path.exists() and metadata_path.exists():
         return json.loads(metadata_path.read_text())
+
+    import cupy as cp
+    import numpy as np
+    from cuvs.neighbors import brute_force, cagra
 
     data = np.load(dataset, mmap_mode="r")
     device_data = cp.asarray(data, dtype=cp.float32)
