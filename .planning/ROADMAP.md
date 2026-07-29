@@ -2,116 +2,48 @@
 
 ## Overview
 
-EffDim ships a working `compute_dim` API covering spectral and geometric effective
-dimensionality estimators (v1.0 Phase 1, complete). This roadmap was bootstrapped
-retroactively on 2026-07-27 from the existing repository state and now carries forward into
-milestone v1.1, "PU Manifold Curvature": four new phases (5-8) reconstruct the PU
-foundation-model embedding manifold via Isomap, gate its Euclidean-embeddability, fit a
-smooth decoder to derive an analytic curvature field, and test whether crossmodal
-representational alignment (MKNN) varies with local curvature — entirely inside notebooks
-under `notebooks/`, with `src/effdim/` and `pyproject.toml` untouched throughout. v1.0's
-Phase 2 (validation hardening) and Phase 4 (CI & packaging) remain outstanding and are
-carried forward below as explicitly deferred, not dropped; v1.0's Phase 3 (applied analyses)
-is effectively fulfilled by this milestone's notebook deliverables (see Phase 3 note below).
+Milestone v1.1, "PU Manifold Curvature": four phases reconstruct the PU foundation-model
+embedding manifold via Isomap, gate its Euclidean-embeddability, fit a smooth decoder to
+derive an analytic curvature field, and test whether crossmodal representational alignment
+(MKNN) varies with local curvature. All work lives in notebooks under `notebooks/`;
+`src/effdim/` and `pyproject.toml` are untouched throughout.
+
+Phase numbering restarts at 1 for this milestone. The core library that v1.1 builds on
+(`effdim.compute_dim`) shipped before GSD adoption and is recorded under Shipped below.
+Two items of unstarted pre-v1.1 work are tracked in Backlog — they are independent of v1.1
+and are not numbered phases.
 
 ## Milestones
 
-- 🚧 **v1.0 MVP** - Phases 1-4 (Phase 1 complete; Phase 3 superseded by v1.1; Phases 2 & 4
-  deferred, not resumed in v1.1)
-- 🚧 **v1.1 PU Manifold Curvature** - Phases 5-8 (in progress — planning)
+- ✅ **v1.0 MVP** — core `compute_dim` library, shipped pre-GSD (see Shipped)
+- 🚧 **v1.1 PU Manifold Curvature** — Phases 1-4 (in progress — planning)
 
 ## Phases
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3, ...): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-- Numbering is continuous across milestones — v1.1 does not restart at 1. It continues from
-  v1.0's last phase (4), so v1.1's first phase is Phase 5.
+- Numbering restarts at 1 each milestone. v1.1's phases are 1-4.
 
-### v1.0 MVP (Phases 1-4)
-
-- [x] **Phase 1: Core ED Library** - Single-call API over spectral + geometric estimators
-- [ ] **Phase 2: Validation Hardening** - Estimates checked against known-dimension manifolds
-      *(deferred, carried forward from v1.0; not in v1.1 scope)*
-- [ ] **Phase 3: Applied Analyses** - Notebooks demonstrating ED on real embedding corpora
-      *(superseded — fulfilled by v1.1 Phases 5-8; see Phase 3 detail below)*
-- [ ] **Phase 4: CI & Packaging** - Cross-platform test matrix and release pipeline
-      *(deferred, carried forward from v1.0; not in v1.1 scope)*
-
-### v1.1 PU Manifold Curvature (Phases 5-8)
-
-- [ ] **Phase 5: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU
+- [ ] **Phase 1: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU
       subsample loaded and an Isomap fit produced, validated for connectivity and
       `n_neighbors` stability
-- [ ] **Phase 6: Eigenspectrum Audit & Validity Gate** - Full classical-MDS eigenspectrum
+- [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** - Full classical-MDS eigenspectrum
       audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
-- [ ] **Phase 7: Decoder & Curvature Field** - C2-smooth decoder trained and its analytic
+- [ ] **Phase 3: Decoder & Curvature Field** - C2-smooth decoder trained and its analytic
       mean-curvature field validated against a synthetic-manifold falsification test
-- [ ] **Phase 8: Region Partitioning & Regional Alignment (MKNN)** - Density-checked
+- [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** - Density-checked
       high/low-curvature regions compared on crossmodal MKNN alignment against permutation
       nulls and bootstrap CIs
 
 ## Phase Details
 
-### Phase 1: Core ED Library
-**Goal**: `effdim.compute_dim(array)` returns a dictionary of effective dimensionality estimates
-**Depends on**: Nothing (first phase)
-**Success Criteria** (what must be TRUE):
-  1. A user can call `compute_dim` on a 2D numpy array and get spectral ED metrics
-  2. The same call returns geometric/intrinsic dimension estimates
-  3. Invalid input (wrong ndim, <2 samples, NaN/inf) raises a clear `ValueError`
-  4. Large inputs use randomized SVD rather than full SVD
-**Plans**: Complete (pre-GSD)
-
-Plans:
-- [x] 01-01: Spectral metrics in `metrics.py`
-- [x] 01-02: Geometric estimators in `geometry.py`
-- [x] 01-03: Orchestration, validation, SVD dispatch in `api.py`
-- [x] 01-04: Benchmarks for runtime and accuracy
-
-### Phase 2: Validation Hardening
-**Goal**: ED estimates are demonstrably correct against data of known dimensionality
-**Depends on**: Phase 1
-**Success Criteria** (what must be TRUE):
-  1. Isotropic Gaussian noise in D dims yields estimates approximating D
-  2. Swiss Roll and similar manifolds yield estimates approximating their intrinsic dimension
-  3. Tolerances are explicit per estimator, so a regression fails the suite
-**Plans**: TBD
-**Status**: Deferred — carried forward from v1.0. Real outstanding work, not resumed during
-v1.1; not silently dropped. Revisit after v1.1 ships.
-
-### Phase 3: Applied Analyses
-**Goal**: Notebooks that apply EffDim to real high-dimensional embedding corpora
-**Depends on**: Phase 1
-**Success Criteria** (what must be TRUE):
-  1. A reader can open a notebook and reproduce an ED analysis on a public embedding set
-  2. Analyses relate ED estimates to a learned low-dimensional representation
-  3. Notebooks install their own heavy dependencies without touching core package deps
-**Plans**: TBD
-**Status**: Superseded — v1.1 Phases 5-8 fulfill this phase's goal directly: the PU manifold
-curvature notebooks under `notebooks/` are a reproducible ED-adjacent analysis of a public
-embedding corpus (`UniverseTBD/pu-embeddings`), relate `compute_dim` estimates to a learned
-low-dimensional (Isomap + decoder) representation (criterion 2), and install torch/datasets
-from within the notebook, never touching `pyproject.toml` (criterion 3). No separate work
-plan is needed for this phase; its success criteria are satisfied when Phases 5-8 complete.
-
-### Phase 4: CI & Packaging
-**Goal**: Tests run on every push across supported platforms; releases are reproducible
-**Depends on**: Phase 2
-**Success Criteria** (what must be TRUE):
-  1. CI executes the test suite for the standard Python implementation
-  2. CI covers any compiled extension across target platforms
-  3. A tagged release publishes to PyPI without manual steps
-**Plans**: TBD
-**Status**: Deferred — carried forward from v1.0. Real outstanding work, not resumed during
-v1.1; not silently dropped. Revisit after v1.1 ships (and after Phase 2, which it depends on).
-
-### Phase 5: Data Loading & Manifold Reconstruction
+### Phase 1: Data Loading & Manifold Reconstruction
 **Goal**: A reproducible, row-aligned 10,000-row subsample of `legacysurvey_dinov3_vitb16` is
 loaded and cached, and an Isomap fit on it is validated for connectivity and short-circuit
 stability before any eigenspectrum audit is trusted.
-**Depends on**: Nothing — this is v1.1's first phase. Calls the shipped `effdim.compute_dim`
-API as a pre-audit input; no library work needed.
+**Depends on**: Nothing (first phase). Calls the shipped `effdim.compute_dim` API as a
+pre-audit input; no library work needed.
 **Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, ISO-01, ISO-02, ISO-03,
 ISO-04, ISO-05
 **Success Criteria** (what must be TRUE):
@@ -134,12 +66,12 @@ ISO-04, ISO-05
 **Research**: Standard patterns (sklearn `Isomap` internals, classical-MDS mechanics,
 connectivity checks) — research pass can be skipped per SUMMARY.md.
 
-### Phase 6: Eigenspectrum Audit & Validity Gate
+### Phase 2: Eigenspectrum Audit & Validity Gate
 **Goal**: The Isomap geodesic matrix's full classical-MDS eigenspectrum is audited by hand
 (never via the truncated `kernel_pca_.eigenvalues_`), the embedding dimension `d` is frozen,
 and a machine-readable PASS/MARGINAL/FAIL gate verdict is written that halts the milestone on
 FAIL as a legitimate, complete outcome.
-**Depends on**: Phase 5
+**Depends on**: Phase 1
 **Requirements**: SPEC-01, SPEC-02, SPEC-03, SPEC-04, SPEC-05, SPEC-06, SPEC-07
 **Success Criteria** (what must be TRUE):
   1. A reader can see the full classical-MDS eigenspectrum computed by manual double-centring
@@ -157,18 +89,18 @@ FAIL as a legitimate, complete outcome.
      milestone outcome (SPEC-06, SPEC-07)
 **Plans**: TBD
 **Research**: Standard patterns (classical-MDS double-centering, eigenspectrum audit) —
-research pass can be skipped per SUMMARY.md. Together with Phase 5, this covers the scope
+research pass can be skipped per SUMMARY.md. Together with Phase 1, this covers the scope
 SUMMARY.md refers to as "the Isomap/gate phase."
 **Hard gate**: This phase's terminal artifact is `gate_verdict.json` (PASS/MARGINAL/FAIL). A
-FAIL halts the milestone here — Phase 7 must check this artifact before running any expensive
+FAIL halts the milestone here — Phase 3 must check this artifact before running any expensive
 cell and must not proceed on FAIL.
 
-### Phase 7: Decoder & Curvature Field
+### Phase 3: Decoder & Curvature Field
 **Goal**: A C2-smooth decoder is trained from the frozen Isomap coordinates back to the 768-d
 embedding, and its analytically-derived mean curvature field is validated against a
 synthetic-control falsification test before being trusted as a property of the data manifold
 rather than a decoder artifact.
-**Depends on**: Phase 6 (requires a PASS or MARGINAL gate verdict and the frozen embedding
+**Depends on**: Phase 2 (requires a PASS or MARGINAL gate verdict and the frozen embedding
 dimension `d`; does not proceed on FAIL)
 **Requirements**: DEC-01, DEC-02, DEC-03, DEC-04, DEC-05, CURV-01, CURV-02, CURV-03, CURV-04,
 CURV-05, CURV-06, CURV-07, CURV-08
@@ -195,18 +127,18 @@ mean-curvature-in-high-codimension math (first/second fundamental form, `‖H‖
 `torch.func` batched Jacobian/Hessian via `vmap`) as dense and easy to get subtly wrong on
 tensor shapes/index conventions.
 **Hard gate**: The synthetic-control falsification test (CURV-06, CURV-07) must complete and
-be reported before Phase 8 starts, not run alongside it. If the control shows the decoder
+be reported before Phase 4 starts, not run alongside it. If the control shows the decoder
 manufactures comparable-magnitude curvature on a known-flat/known-curved synthetic target,
-the real-data curvature signal cannot be trusted and Phase 8's regional comparison is not
+the real-data curvature signal cannot be trusted and Phase 4's regional comparison is not
 meaningful.
 
-### Phase 8: Region Partitioning & Regional Alignment (MKNN)
+### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 **Goal**: With all upstream hyperparameters (`n_neighbors`, `d`, decoder architecture,
-curvature quantile threshold) frozen from Phases 5-7's own diagnostics and the synthetic-
+curvature quantile threshold) frozen from Phases 1-3's own diagnostics and the synthetic-
 control falsification test complete, points are pre-specified into density-checked high/low
 curvature regions and crossmodal MKNN alignment is compared between them against
 region-specific permutation nulls and bootstrap confidence intervals.
-**Depends on**: Phase 7 (requires the synthetic-control falsification test (CURV-06, CURV-07)
+**Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07)
 to have already completed — not run in parallel with this phase)
 **Requirements**: REGN-01, REGN-02, REGN-03, REGN-04, REGN-05, MKNN-01, MKNN-02, MKNN-03,
 MKNN-04, MKNN-05, MKNN-06, MKNN-07, MKNN-08
@@ -236,23 +168,55 @@ density-matched stratification/null) as original synthesis, not a documented off
 recipe.
 **Ordering constraint**: Pre-specify the split, then compute. All upstream hyperparameters and
 the curvature quantile threshold must be frozen using upstream-only diagnostics from Phases
-5-7 *before* the first regional MKNN number is computed — this is a garden-of-forking-paths
+1-3 *before* the first regional MKNN number is computed — this is a garden-of-forking-paths
 guard against post-hoc tuning on a headline effect with thin statistical headroom (0.4-2% in
 the origin paper), not an implementation detail to leave to mid-phase judgment.
 
+## Shipped
+
+Work completed before GSD adoption. Not part of any numbered phase sequence.
+
+### Core ED Library (v1.0, pre-GSD)
+`effdim.compute_dim(array)` returns a dictionary of effective dimensionality estimates.
+- Spectral metrics in `metrics.py`
+- Geometric/intrinsic dimension estimators in `geometry.py`
+- Orchestration, input validation, SVD dispatch in `api.py`
+- Benchmarks for runtime and accuracy
+
+Verified behaviours: spectral and geometric estimates returned for a 2D numpy array; invalid
+input (wrong ndim, <2 samples, NaN/inf) raises `ValueError`; large inputs use randomized SVD.
+
+## Backlog
+
+Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of it. Not
+numbered, so it does not collide with the milestone phase sequence. Promote to a numbered
+phase in a future milestone via `/gsd-phase` or `/gsd-review-backlog`.
+
+### Validation Hardening
+**Goal**: ED estimates are demonstrably correct against data of known dimensionality
+**Success Criteria**:
+  1. Isotropic Gaussian noise in D dims yields estimates approximating D
+  2. Swiss Roll and similar manifolds yield estimates approximating their intrinsic dimension
+  3. Tolerances are explicit per estimator, so a regression fails the suite
+
+### CI & Packaging
+**Goal**: Tests run on every push across supported platforms; releases are reproducible
+**Success Criteria**:
+  1. CI executes the test suite for the standard Python implementation
+  2. A tagged release publishes to PyPI without manual steps
+**Note**: An earlier version of this item also required CI coverage for a compiled Rust
+extension. No Rust source exists in the repository and `pyproject.toml` builds with
+setuptools, not maturin — the Rust references in `TODO.md`, `PYPI_SETUP.md`,
+`docs/deployment.md` and `.gitignore` are stale. Reconcile those docs before promoting this
+item to a phase.
+
 ## Progress
 
-**Execution Order:**
-v1.0 phases already exist (1 complete; 2 and 4 deferred; 3 superseded). v1.1 phases execute
-in numeric order: 5 → 6 → 7 → 8, gated as described above.
+**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4, gated as described above.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
-| 1. Core ED Library | v1.0 | 4/4 | Complete | pre-GSD |
-| 2. Validation Hardening | v1.0 | 0/? | Deferred | - |
-| 3. Applied Analyses | v1.0 | 0/? | Superseded by v1.1 | - |
-| 4. CI & Packaging | v1.0 | 0/? | Deferred | - |
-| 5. Data Loading & Manifold Reconstruction | v1.1 | 0/TBD | Not started | - |
-| 6. Eigenspectrum Audit & Validity Gate | v1.1 | 0/TBD | Not started | - |
-| 7. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
-| 8. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
+| 1. Data Loading & Manifold Reconstruction | v1.1 | 0/TBD | Not started | - |
+| 2. Eigenspectrum Audit & Validity Gate | v1.1 | 0/TBD | Not started | - |
+| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
+| 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

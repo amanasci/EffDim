@@ -174,49 +174,49 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 5 | Pending |
-| DATA-02 | Phase 5 | Pending |
-| DATA-03 | Phase 5 | Pending |
-| DATA-04 | Phase 5 | Pending |
-| DATA-05 | Phase 5 | Pending |
-| ISO-01 | Phase 5 | Pending |
-| ISO-02 | Phase 5 | Pending |
-| ISO-03 | Phase 5 | Pending |
-| ISO-04 | Phase 5 | Pending |
-| ISO-05 | Phase 5 | Pending |
-| SPEC-01 | Phase 6 | Pending |
-| SPEC-02 | Phase 6 | Pending |
-| SPEC-03 | Phase 6 | Pending |
-| SPEC-04 | Phase 6 | Pending |
-| SPEC-05 | Phase 6 | Pending |
-| SPEC-06 | Phase 6 | Pending |
-| SPEC-07 | Phase 6 | Pending |
-| DEC-01 | Phase 7 | Pending |
-| DEC-02 | Phase 7 | Pending |
-| DEC-03 | Phase 7 | Pending |
-| DEC-04 | Phase 7 | Pending |
-| DEC-05 | Phase 7 | Pending |
-| CURV-01 | Phase 7 | Pending |
-| CURV-02 | Phase 7 | Pending |
-| CURV-03 | Phase 7 | Pending |
-| CURV-04 | Phase 7 | Pending |
-| CURV-05 | Phase 7 | Pending |
-| CURV-06 | Phase 7 | Pending |
-| CURV-07 | Phase 7 | Pending |
-| CURV-08 | Phase 7 | Pending |
-| REGN-01 | Phase 8 | Pending |
-| REGN-02 | Phase 8 | Pending |
-| REGN-03 | Phase 8 | Pending |
-| REGN-04 | Phase 8 | Pending |
-| REGN-05 | Phase 8 | Pending |
-| MKNN-01 | Phase 8 | Pending |
-| MKNN-02 | Phase 8 | Pending |
-| MKNN-03 | Phase 8 | Pending |
-| MKNN-04 | Phase 8 | Pending |
-| MKNN-05 | Phase 8 | Pending |
-| MKNN-06 | Phase 8 | Pending |
-| MKNN-07 | Phase 8 | Pending |
-| MKNN-08 | Phase 8 | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Pending |
+| ISO-01 | Phase 1 | Pending |
+| ISO-02 | Phase 1 | Pending |
+| ISO-03 | Phase 1 | Pending |
+| ISO-04 | Phase 1 | Pending |
+| ISO-05 | Phase 1 | Pending |
+| SPEC-01 | Phase 2 | Pending |
+| SPEC-02 | Phase 2 | Pending |
+| SPEC-03 | Phase 2 | Pending |
+| SPEC-04 | Phase 2 | Pending |
+| SPEC-05 | Phase 2 | Pending |
+| SPEC-06 | Phase 2 | Pending |
+| SPEC-07 | Phase 2 | Pending |
+| DEC-01 | Phase 3 | Pending |
+| DEC-02 | Phase 3 | Pending |
+| DEC-03 | Phase 3 | Pending |
+| DEC-04 | Phase 3 | Pending |
+| DEC-05 | Phase 3 | Pending |
+| CURV-01 | Phase 3 | Pending |
+| CURV-02 | Phase 3 | Pending |
+| CURV-03 | Phase 3 | Pending |
+| CURV-04 | Phase 3 | Pending |
+| CURV-05 | Phase 3 | Pending |
+| CURV-06 | Phase 3 | Pending |
+| CURV-07 | Phase 3 | Pending |
+| CURV-08 | Phase 3 | Pending |
+| REGN-01 | Phase 4 | Pending |
+| REGN-02 | Phase 4 | Pending |
+| REGN-03 | Phase 4 | Pending |
+| REGN-04 | Phase 4 | Pending |
+| REGN-05 | Phase 4 | Pending |
+| MKNN-01 | Phase 4 | Pending |
+| MKNN-02 | Phase 4 | Pending |
+| MKNN-03 | Phase 4 | Pending |
+| MKNN-04 | Phase 4 | Pending |
+| MKNN-05 | Phase 4 | Pending |
+| MKNN-06 | Phase 4 | Pending |
+| MKNN-07 | Phase 4 | Pending |
+| MKNN-08 | Phase 4 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 43 total (corrected from an earlier miscount of 42 — the seven category
@@ -225,12 +225,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Mapped to phases: 43/43 ✓
 - Unmapped: 0 ✓
 
-Phase 5 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
-Phase 6 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
-Phase 7 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
-Phase 8 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08
+Phase 1 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
+Phase 2 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
+Phase 3 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
+Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08
 (13 requirements)
 
 ---
 *Requirements defined: 2026-07-29*
-*Last updated: 2026-07-29 after ROADMAP creation for milestone v1.1 (Phases 5-8; 43/43 requirements mapped)*
+*Last updated: 2026-07-29 after v1.1 phase renumber to 1-4 (43/43 requirements mapped)*

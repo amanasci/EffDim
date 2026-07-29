@@ -6,11 +6,11 @@ status: planning
 last_updated: "2026-07-29T00:00:00.000Z"
 last_activity: 2026-07-29
 progress:
-  total_phases: 8
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 12
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,23 +20,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 5 — Data Loading & Manifold Reconstruction
+**Current focus:** Phase 1 — Data Loading & Manifold Reconstruction
 
 ## Current Position
 
-Phase: 5 of 8 (Data Loading & Manifold Reconstruction)
+Phase: 1 of 4 (Data Loading & Manifold Reconstruction)
 Plan: - of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-07-29 — ROADMAP.md created for milestone v1.1: Phases 5-8 defined,
-43/43 requirements mapped, REQUIREMENTS.md traceability filled in
+Last activity: 2026-07-29 — v1.1 phases renumbered to 1-4; pre-GSD library work moved to
+ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [█░░░░░░░] 12% (1/8 phases complete; Phase 1 pre-GSD, Phases 5-8 not yet planned)
+Progress: [░░░░░░░░░░] 0% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 4 (pre-GSD, Phase 1)
+- Total plans completed: 0 this milestone (4 pre-GSD plans shipped the core library; see
+  ROADMAP Shipped)
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -44,7 +45,7 @@ Progress: [█░░░░░░░] 12% (1/8 phases complete; Phase 1 pre-GSD, 
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 | 4 | n/a (pre-GSD) | n/a |
+| (none yet) | - | - | - |
 
 **Recent Trend:**
 
@@ -60,35 +61,36 @@ Progress: [█░░░░░░░] 12% (1/8 phases complete; Phase 1 pre-GSD, 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Bootstrap]: `.planning/` created retroactively — Phase 1 recorded as already complete
+- [Bootstrap]: `.planning/` created retroactively; pre-GSD library work is recorded under
+  ROADMAP Shipped rather than as a numbered phase
 - [v1.1 scope]: Heavy notebook deps (torch, datasets) install in-notebook, never in core
   `pyproject.toml`; `src/effdim/` and `pyproject.toml` untouched all milestone
-- [Roadmap]: v1.1 phases start at Phase 5, continuing numbering from v1.0's Phase 4. Split
-  into 4 phases (5-8) rather than SUMMARY.md's proposed 3, separating the eigenspectrum
-  audit/gate (Phase 6, 7 requirements, the hard PASS/MARGINAL/FAIL gate) from data
-  loading/Isomap fitting (Phase 5) given SPEC's size and gate role
-- [Roadmap]: v1.0 Phase 2 (Validation Hardening) and Phase 4 (CI & Packaging) carried forward
-  as deferred, not resumed in v1.1; v1.0 Phase 3 (Applied Analyses) marked superseded —
-  fulfilled by v1.1 Phases 5-8
+- [Roadmap]: v1.1 phase numbering restarts at 1. Split into 4 phases rather than
+  SUMMARY.md's proposed 3, separating the eigenspectrum audit/gate (Phase 2, 7 requirements,
+  the hard PASS/MARGINAL/FAIL gate) from data loading/Isomap fitting (Phase 1) given SPEC's
+  size and gate role
+- [Roadmap]: unstarted pre-v1.1 work (Validation Hardening, CI & Packaging) moved to ROADMAP
+  Backlog, unnumbered, so it neither collides with v1.1's phase sequence nor gets dropped. No
+  v1.1 phase depends on it. Pre-v1.1 applied-analysis intent is fulfilled by v1.1 itself
 
 ### Pending Todos
 
 From `TODO.md`:
 
-- Expand test suite to validate against known dimensionalities (v1.0 Phase 2, deferred)
-- CI for standard Python implementation and compiled Rust extension across platforms
-  (v1.0 Phase 4, deferred)
+- Expand test suite to validate against known dimensionalities (ROADMAP Backlog)
+- CI for the standard Python implementation across platforms (ROADMAP Backlog). The Rust
+  extension this todo also names does not exist in the repo — stale reference, see Backlog note
 
 ### Blockers/Concerns
 
 - `UniverseTBD/pu-embeddings` is ~93 GB across 163 configs — v1.1 streams exactly one config
   (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the
   whole dataset.
-- Phase 7 (decoder/curvature) and Phase 8 (regional MKNN) are flagged in
-  `research/SUMMARY.md` as needing a dedicated research pass during planning; Phase 5/6
+- Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) are flagged in
+  `research/SUMMARY.md` as needing a dedicated research pass during planning; Phase 1/2
   (Isomap + gate) are standard sklearn/MDS patterns and can skip that pass.
-- Phase 6's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself
-  a legitimate, complete outcome. Phase 7 must not be planned in detail until Phase 6's gate
+- Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself
+  a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate
   outcome is known.
 
 ## Deferred Items
@@ -97,14 +99,14 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| Validation | v1.0 Phase 2 — ED estimates checked against known-dimension manifolds (noise → D, Swiss Roll → intrinsic dim) | Deferred | v1.0 → v1.1 transition (2026-07-29) |
-| CI/Packaging | v1.0 Phase 4 — cross-platform test matrix and release pipeline | Deferred | v1.0 → v1.1 transition (2026-07-29) |
+| Validation | ED estimates checked against known-dimension manifolds (noise → D, Swiss Roll → intrinsic dim) | ROADMAP Backlog | v1.0 → v1.1 transition (2026-07-29) |
+| CI/Packaging | Cross-platform test matrix and release pipeline | ROADMAP Backlog | v1.0 → v1.1 transition (2026-07-29) |
 | Scale | SCALE-01/SCALE-02 — intramodal MKNN across a model-size ladder; curvature-stratified alignment across that ladder | Deferred (REQUIREMENTS.md Future Requirements) | v1.1 requirements definition (2026-07-29) |
 | Library | LIB-01/LIB-02/LIB-03 — promote curvature operator and MDS validity diagnostic into `src/effdim/`; fix `pyproject.toml` Python floor | Deferred (REQUIREMENTS.md Future Requirements) | v1.1 requirements definition (2026-07-29) |
 
 ## Session Continuity
 
 Last session: 2026-07-29
-Stopped at: ROADMAP.md written for v1.1 (Phases 5-8, 100% requirement coverage);
-REQUIREMENTS.md traceability filled in; awaiting phase planning for Phase 5
+Stopped at: ROADMAP.md written for v1.1 (Phases 1-4, 100% requirement coverage);
+REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
