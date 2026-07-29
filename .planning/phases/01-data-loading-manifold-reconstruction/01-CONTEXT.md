@@ -255,8 +255,10 @@ No `.planning/codebase/` maps exist; this section comes from a direct scan.
 ### Reusable Assets
 - `src/effdim/api.py` — `compute_dim(data: Union[np.ndarray, List[np.ndarray]]) -> Dict[str, Any]`.
   Called **read-only** by notebook 01 for the ISO-03 pre-audit and to drive `n_components`
-  (D-12). Validates 2-D, `n >= 2`, finite; switches to randomized SVD at `min(n, d) >= 1000`,
-  so the 10,000×768 call takes that path.
+  (D-12). Validates 2-D, `n >= 2`, finite. **Corrected 2026-07-29 (was stated backwards):**
+  `_do_svd` (`api.py:144`) uses full `np.linalg.svd` when `min(n_samples, n_features) < 1000`
+  and `randomized_svd` only at `>= 1000`. At 10,000×768 `min = 768`, so this phase's call takes
+  the **full-SVD** path, not the randomized one.
 - `src/effdim/geometry.py` — the geometric/intrinsic estimators (TwoNN, MLE, ESS, TLE, GMST,
   DANCo, MiND) whose median D-12 uses. The planner must read this to get the exact result-dict
   key names before writing the selection rule.
