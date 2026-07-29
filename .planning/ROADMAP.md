@@ -110,8 +110,8 @@ v1.1; not silently dropped. Revisit after v1.1 ships (and after Phase 2, which i
 **Goal**: A reproducible, row-aligned 10,000-row subsample of `legacysurvey_dinov3_vitb16` is
 loaded and cached, and an Isomap fit on it is validated for connectivity and short-circuit
 stability before any eigenspectrum audit is trusted.
-**Depends on**: Phase 1 (uses `effdim.compute_dim` as a pre-audit input; already shipped, no
-new library work needed)
+**Depends on**: Nothing — this is v1.1's first phase. Calls the shipped `effdim.compute_dim`
+API as a pre-audit input; no library work needed.
 **Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, ISO-01, ISO-02, ISO-03,
 ISO-04, ISO-05
 **Success Criteria** (what must be TRUE):
