@@ -12,3 +12,8 @@ target/
 Cargo.lock
 *.so
 *.pyd
+
+# Notebook analysis caches (v1.1 PU Manifold Curvature)
+notebooks/.cache/
+.planning/research/.cache/
+.ipynb_checkpoints/
