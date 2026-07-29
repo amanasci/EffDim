@@ -174,19 +174,63 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 through DATA-05 | TBD | Pending |
-| ISO-01 through ISO-05 | TBD | Pending |
-| SPEC-01 through SPEC-07 | TBD | Pending |
-| DEC-01 through DEC-05 | TBD | Pending |
-| CURV-01 through CURV-08 | TBD | Pending |
-| REGN-01 through REGN-05 | TBD | Pending |
-| MKNN-01 through MKNN-08 | TBD | Pending |
+| DATA-01 | Phase 5 | Pending |
+| DATA-02 | Phase 5 | Pending |
+| DATA-03 | Phase 5 | Pending |
+| DATA-04 | Phase 5 | Pending |
+| DATA-05 | Phase 5 | Pending |
+| ISO-01 | Phase 5 | Pending |
+| ISO-02 | Phase 5 | Pending |
+| ISO-03 | Phase 5 | Pending |
+| ISO-04 | Phase 5 | Pending |
+| ISO-05 | Phase 5 | Pending |
+| SPEC-01 | Phase 6 | Pending |
+| SPEC-02 | Phase 6 | Pending |
+| SPEC-03 | Phase 6 | Pending |
+| SPEC-04 | Phase 6 | Pending |
+| SPEC-05 | Phase 6 | Pending |
+| SPEC-06 | Phase 6 | Pending |
+| SPEC-07 | Phase 6 | Pending |
+| DEC-01 | Phase 7 | Pending |
+| DEC-02 | Phase 7 | Pending |
+| DEC-03 | Phase 7 | Pending |
+| DEC-04 | Phase 7 | Pending |
+| DEC-05 | Phase 7 | Pending |
+| CURV-01 | Phase 7 | Pending |
+| CURV-02 | Phase 7 | Pending |
+| CURV-03 | Phase 7 | Pending |
+| CURV-04 | Phase 7 | Pending |
+| CURV-05 | Phase 7 | Pending |
+| CURV-06 | Phase 7 | Pending |
+| CURV-07 | Phase 7 | Pending |
+| CURV-08 | Phase 7 | Pending |
+| REGN-01 | Phase 8 | Pending |
+| REGN-02 | Phase 8 | Pending |
+| REGN-03 | Phase 8 | Pending |
+| REGN-04 | Phase 8 | Pending |
+| REGN-05 | Phase 8 | Pending |
+| MKNN-01 | Phase 8 | Pending |
+| MKNN-02 | Phase 8 | Pending |
+| MKNN-03 | Phase 8 | Pending |
+| MKNN-04 | Phase 8 | Pending |
+| MKNN-05 | Phase 8 | Pending |
+| MKNN-06 | Phase 8 | Pending |
+| MKNN-07 | Phase 8 | Pending |
+| MKNN-08 | Phase 8 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 42 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 42 ⚠️
+- v1.1 requirements: 43 total (corrected from an earlier miscount of 42 — the seven category
+  subtotals stated at the top of this document, DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 +
+  REGN 5 + MKNN 8, sum to 43, matching the 43 checklist items actually listed above)
+- Mapped to phases: 43/43 ✓
+- Unmapped: 0 ✓
+
+Phase 5 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
+Phase 6 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
+Phase 7 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
+Phase 8 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08
+(13 requirements)
 
 ---
 *Requirements defined: 2026-07-29*
-*Last updated: 2026-07-29 after initial definition for milestone v1.1*
+*Last updated: 2026-07-29 after ROADMAP creation for milestone v1.1 (Phases 5-8; 43/43 requirements mapped)*
