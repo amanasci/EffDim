@@ -44,8 +44,8 @@ loaded and cached, and an Isomap fit on it is validated for connectivity and sho
 stability before any eigenspectrum audit is trusted.
 **Depends on**: Nothing (first phase). Calls the shipped `effdim.compute_dim` API as a
 pre-audit input; no library work needed.
-**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, ISO-01, ISO-02, ISO-03,
-ISO-04, ISO-05
+**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, DATA-05, ISO-01, ISO-02, ISO-03, ISO-04, ISO-05
+**UI hint**: no
 **Success Criteria** (what must be TRUE):
   1. A reader can load exactly the `legacysurvey_dinov3_vitb16` config and get a reproducible,
      assertion-verified row-aligned 10,000-row HSC/Legacy-Survey subsample from a recorded
@@ -102,8 +102,7 @@ synthetic-control falsification test before being trusted as a property of the d
 rather than a decoder artifact.
 **Depends on**: Phase 2 (requires a PASS or MARGINAL gate verdict and the frozen embedding
 dimension `d`; does not proceed on FAIL)
-**Requirements**: DEC-01, DEC-02, DEC-03, DEC-04, DEC-05, CURV-01, CURV-02, CURV-03, CURV-04,
-CURV-05, CURV-06, CURV-07, CURV-08
+**Requirements**: DEC-01, DEC-02, DEC-03, DEC-04, DEC-05, CURV-01, CURV-02, CURV-03, CURV-04, CURV-05, CURV-06, CURV-07, CURV-08
 **Success Criteria** (what must be TRUE):
   1. A reader can train a decoder mapping Isomap coordinates to the 768-d embedding using a
      C2-smooth activation throughout the forward path, with no ReLU-family activation
@@ -140,8 +139,7 @@ curvature regions and crossmodal MKNN alignment is compared between them against
 region-specific permutation nulls and bootstrap confidence intervals.
 **Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07)
 to have already completed — not run in parallel with this phase)
-**Requirements**: REGN-01, REGN-02, REGN-03, REGN-04, REGN-05, MKNN-01, MKNN-02, MKNN-03,
-MKNN-04, MKNN-05, MKNN-06, MKNN-07, MKNN-08
+**Requirements**: REGN-01, REGN-02, REGN-03, REGN-04, REGN-05, MKNN-01, MKNN-02, MKNN-03, MKNN-04, MKNN-05, MKNN-06, MKNN-07, MKNN-08
 **Success Criteria** (what must be TRUE):
   1. A reader can see a local sample-density measure per point in Isomap coordinate space and
      its correlation with curvature reported explicitly, before any region split is trusted
