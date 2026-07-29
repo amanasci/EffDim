@@ -2,15 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
+current_phase: 1
+current_phase_name: Data Loading & Manifold Reconstruction
 status: planning
-last_updated: "2026-07-29T00:00:00.000Z"
+stopped_at: Phase 1 context gathered
+last_updated: "2026-07-29T23:18:23.831Z"
 last_activity: 2026-07-29
+last_activity_desc: v1.1 phases renumbered to 1-4; pre-GSD library work moved to
 progress:
-  total_phases: 4
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 0
 ---
 
 # Project State
@@ -38,6 +41,7 @@ Progress: [░░░░░░░░░░] 0% (0/4 v1.1 phases complete; none ye
 
 - Total plans completed: 0 this milestone (4 pre-GSD plans shipped the core library; see
   ROADMAP Shipped)
+
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -63,12 +67,15 @@ Recent decisions affecting current work:
 
 - [Bootstrap]: `.planning/` created retroactively; pre-GSD library work is recorded under
   ROADMAP Shipped rather than as a numbered phase
+
 - [v1.1 scope]: Heavy notebook deps (torch, datasets) install in-notebook, never in core
   `pyproject.toml`; `src/effdim/` and `pyproject.toml` untouched all milestone
+
 - [Roadmap]: v1.1 phase numbering restarts at 1. Split into 4 phases rather than
   SUMMARY.md's proposed 3, separating the eigenspectrum audit/gate (Phase 2, 7 requirements,
   the hard PASS/MARGINAL/FAIL gate) from data loading/Isomap fitting (Phase 1) given SPEC's
   size and gate role
+
 - [Roadmap]: unstarted pre-v1.1 work (Validation Hardening, CI & Packaging) moved to ROADMAP
   Backlog, unnumbered, so it neither collides with v1.1's phase sequence nor gets dropped. No
   v1.1 phase depends on it. Pre-v1.1 applied-analysis intent is fulfilled by v1.1 itself
@@ -86,9 +93,11 @@ From `TODO.md`:
 - `UniverseTBD/pu-embeddings` is ~93 GB across 163 configs — v1.1 streams exactly one config
   (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the
   whole dataset.
+
 - Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) are flagged in
   `research/SUMMARY.md` as needing a dedicated research pass during planning; Phase 1/2
   (Isomap + gate) are standard sklearn/MDS patterns and can skip that pass.
+
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself
   a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate
   outcome is known.
@@ -106,7 +115,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-29
-Stopped at: ROADMAP.md written for v1.1 (Phases 1-4, 100% requirement coverage);
+Last session: 2026-07-29T23:18:23.826Z
+Stopped at: Phase 1 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/01-data-loading-manifold-reconstruction/01-CONTEXT.md
