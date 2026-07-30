@@ -1,0 +1,27 @@
+# Notebook-only dependencies for the v1.1 PU Manifold Curvature milestone (Phase 1-4).
+#
+# torch is only needed by notebook 02 (Phase 3's decoder), but this single shared file
+# installs it for all three notebooks by design (D-03's accepted side effect): one
+# diffable place for versions, rather than splitting requirements per notebook.
+#
+# numpy, scipy, scikit-learn, and faiss-cpu are deliberately NOT pinned here -- they are
+# already core `effdim` dependencies declared in pyproject.toml, and re-pinning them here
+# would fight that file. Leaving them unpinned is also what makes the cache-key
+# version-in-key behaviour (D-14) meaningful: a core-dependency upgrade changes the
+# installed version and therefore the cache key, without this file needing an edit.
+#
+# huggingface_hub, hf_xet, and pyarrow arrive transitively via `datasets` and are not
+# pinned directly here.
+#
+# The `+cpu` local-version specifier on torch is deliberate and must not be "fixed" to
+# plain `torch==2.13.0`: that suffix only exists on the PyTorch CPU wheel index below, so
+# pip is forced to resolve torch from there rather than pulling the multi-GB
+# CUDA-bundled PyPI wheel. This is what lets a single shared requirements file coexist
+# with the CPU-only requirement research recorded in STACK.md. If `+cpu` resolution ever
+# fails in a given environment, the documented fallback is STACK.md's two-cell install
+# pattern (index URL as a separate `%pip install --index-url ...` cell), with this file
+# remaining the source of the pins.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu
+datasets==5.0.1
+matplotlib==3.11.1
