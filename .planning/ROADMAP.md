@@ -62,7 +62,17 @@ pre-audit input; no library work needed.
   5. An Isomap fit at n=10,000 completes, is cached, and re-running the notebook reproduces
      identical results from cache, with any config change producing a new cache key
      (ISO-04, ISO-05)
-**Plans**: TBD
+**Plans**: 4 plans in 4 waves (sequential — every plan appends to the same notebook file)
+- [ ] 01-01-PLAN.md — Scaffold `notebooks/pu_manifold/` and prove the pipeline end-to-end on a
+      smoke config: subsample → alignment assert → L2 normalize → npz + joblib cache → read-back
+      identity (DATA-01, DATA-03, DATA-05, ISO-05)
+- [ ] 01-02-PLAN.md — Scale to the real 10,000-row subsample, show the norm distribution and the
+      locked metric statement, and derive `n_components` from the `compute_dim` panel
+      (DATA-02, DATA-03, DATA-04, ISO-03)
+- [ ] 01-03-PLAN.md — Two-stage `n_neighbors` sweep: cheap connectivity scan across all six k,
+      then full fits at 3-4 surviving k with the three-metric stability table (ISO-01, ISO-02)
+- [ ] 01-04-PLAN.md — Freeze `k*` by the pre-registered plateau rule, cache the fit, and write
+      the Phase 1 → Phase 2 handoff artifact (ISO-04, ISO-05)
 **Research**: Standard patterns (sklearn `Isomap` internals, classical-MDS mechanics,
 connectivity checks) — research pass can be skipped per SUMMARY.md.
 
@@ -214,7 +224,7 @@ item to a phase.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
-| 1. Data Loading & Manifold Reconstruction | v1.1 | 0/TBD | Not started | - |
+| 1. Data Loading & Manifold Reconstruction | v1.1 | 0/4 | Planned | - |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 0/TBD | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
