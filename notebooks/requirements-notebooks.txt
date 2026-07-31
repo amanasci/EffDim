@@ -1,14 +1,37 @@
 # Notebook-only dependencies for the v1.1 PU Manifold Curvature milestone (Phase 1-4).
 #
+# This file is intended to fully provision a user-supplied venv on its own -- a reader
+# should be able to create a fresh virtualenv, run `pip install -r
+# requirements-notebooks.txt`, and have everything the notebooks need, without first
+# installing `effdim` from `pyproject.toml`. That is a deliberate, user-directed change
+# (recorded as a deviation in the Phase 1 plan 01-01 SUMMARY.md): it intentionally
+# duplicates numpy/scipy/scikit-learn/faiss-cpu against pyproject.toml's core
+# `dependencies` list, which stay UNPINNED there.
+#
+# Duplication is accepted; the tradeoff is stated so a future reader does not "fix" it
+# back to matching pyproject.toml's unpinned style. Pinning here does NOT weaken D-14's
+# cache-key contract: `config_key` hashes whatever versions are actually installed at
+# runtime (via `sklearn.__version__` etc., not the pins in this file), so pinning fixes
+# *which* versions this file installs but the cache key still reflects the installed
+# reality either way.
+#
 # torch is only needed by notebook 02 (Phase 3's decoder), but this single shared file
 # installs it for all three notebooks by design (D-03's accepted side effect): one
 # diffable place for versions, rather than splitting requirements per notebook.
 #
-# numpy, scipy, scikit-learn, and faiss-cpu are deliberately NOT pinned here -- they are
-# already core `effdim` dependencies declared in pyproject.toml, and re-pinning them here
-# would fight that file. Leaving them unpinned is also what makes the cache-key
-# version-in-key behaviour (D-14) meaningful: a core-dependency upgrade changes the
-# installed version and therefore the cache key, without this file needing an edit.
+# numpy, scipy, scikit-learn, and faiss-cpu are pinned to the exact versions the Phase 1
+# tracer (01-01) actually ran under -- the same versions printed in
+# `01_manifold_and_gate.ipynb`'s §0.3 reproducibility header -- so the file and the header
+# agree.
+#
+# joblib is pinned directly because `notebooks/pu_manifold/cache.py` imports it directly
+# (`from joblib import dump, load`); it previously arrived only transitively via
+# scikit-learn. A direct import gets a direct requirement.
+#
+# pytest is pinned directly because this milestone ships
+# `notebooks/pu_manifold/tests/test_pu_manifold.py`, and a venv built from this file alone
+# must be able to run it. It is pulled in from pyproject.toml's
+# `[project.optional-dependencies] dev` extra -- ONLY pytest, not black/mypy/pytest-cov/docs.
 #
 # huggingface_hub, hf_xet, and pyarrow arrive transitively via `datasets` and are not
 # pinned directly here.
@@ -25,3 +48,9 @@
 torch==2.13.0+cpu
 datasets==5.0.1
 matplotlib==3.11.1
+numpy==2.5.1
+scipy==1.18.0
+scikit-learn==1.9.0
+faiss-cpu==1.14.3
+joblib==1.5.3
+pytest==9.1.1
