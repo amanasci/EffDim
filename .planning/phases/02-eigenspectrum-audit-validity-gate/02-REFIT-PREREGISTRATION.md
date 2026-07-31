@@ -176,5 +176,99 @@ time itself. Approximately 5 GiB of additional cache. Measured against 212 GiB f
 
 ## 8. Outcome
 
-To be appended below by the executing plan, after all three fits complete. This section is
-empty at pre-registration time by design.
+_Appended 2026-07-31 after all three re-fits completed. Executed in
+`notebooks/02_k_sensitivity_refit.ipynb` (a new notebook; `01_manifold_and_gate.ipynb` was
+not edited), run end-to-end with `jupyter nbconvert --to notebook --execute --inplace`:
+27 cells, zero error cells, every code cell carrying a non-null execution count._
+
+### 8.1 The measured table
+
+All four k, reported regardless of outcome per §6. Thresholds unchanged: `r < 0.10` PASS /
+`< 0.25` MARGINAL, `m < 0.05` PASS / `< 0.15` MARGINAL, strict less-than throughout.
+
+| k | `r(k)` | `m(k)` | `n_positive` | `n_negative` | `GEO_AMBIENT_RATIO` | `LONG_EDGE_FRACTION` | Verdict |
+|---|---|---|---|---|---|---|---|
+| 5 | 0.060312 | 0.406433 | 4972 | 5028 | 2.828727 | 0.006540 | **FAIL** |
+| 10 | 0.058311 | 0.410187 | 4971 | 5029 | 2.320592 | 0.008620 | **FAIL** |
+| 15 *(incumbent)* | 0.052419 | 0.412071 | 4971 | 5029 | 2.117401 | 0.010000 | **FAIL** |
+| 30 | 0.050708 | 0.415735 | 4963 | 5037 | 1.864727 | 0.013923 | **FAIL** |
+
+Supporting detail (descriptive, no thresholds attached):
+
+| k | `LAMBDA_MAX_POS` | `LAMBDA_MIN_NEG` | noise floor | kNN edges | edge p99 | median geodesic |
+|---|---|---|---|---|---|---|
+| 5 | 5.432086e+03 | -3.276213e+02 | 1.206e-08 | 50,000 | 0.487021 | 1.593138 |
+| 10 | 3.798254e+03 | -2.214809e+02 | 8.434e-09 | 100,000 | 0.504292 | 1.307802 |
+| 15 | 3.230854e+03 | -1.693588e+02 | 7.174e-09 | 150,000 | 0.516666 | 1.192894 |
+| 30 | 2.528065e+03 | -1.281927e+02 | 5.613e-09 | 300,000 | 0.539894 | 1.050865 |
+
+`LONG_EDGE_TAU = 0.516666` (the 99th percentile of the k=15 graph's edge lengths), so
+`LONG_EDGE_FRACTION(15) = 0.010000` is ~0.01 by construction — a check on the definition,
+not a result. All four graphs were independently re-verified connected
+(`n_components == 1`). Every `|LAMBDA_MIN_NEG|` is 10-11 orders of magnitude above its
+float64 noise floor: the negative tail is real structure at every k, not rounding.
+
+Validity checks that the numbers had to pass: the reconstructed fit configuration reproduces
+Phase 1's frozen `fit_key = 43cf438bc944c509` exactly; the incumbent's `r`/`m` reproduce
+02-01's published `0.052419` / `0.412071`; the 200,000-pair geodesic sample re-drawn for the
+co-diagnostics is bit-identical to the one already cached by 01 (so the pairs are provably
+the same at every k); each hand-rolled spectrum's leading 18 eigenvalues agree with sklearn's
+own `kernel_pca_.eigenvalues_` to `rtol=1e-8` (worst 5.6e-15); and each eigenvalue array was
+asserted to be exactly 10,000 float64 values.
+
+### 8.2 Which rule fired: **Rule A**
+
+- **Rule B never engaged.** `CANDIDATES = []`. No k satisfies `m(k) < M_MAX_MARGINAL`; the
+  smallest `m` measured is 0.406433 at k=5, which is 2.7x the 0.15 MARGINAL bound. Because
+  no candidate exists, the short-circuit test had nothing to run on and Rule C's
+  reporting-only path was never reached. No k* is adopted, and none was even reportable.
+- **Rule D does not apply.** `m(k)` is not monotone decreasing in k. In ascending k it is
+  0.406433, 0.410187, 0.412071, 0.415735 — flat to *slightly increasing*. The total spread
+  across a 6x change in neighbourhood size is 0.0093, about 2.3% of the statistic's own
+  value.
+- **Rule A's precondition holds**: `m(k) >= M_MAX_MARGINAL` for all k in {5, 10, 15, 30}.
+
+Therefore `GATE_VERDICT = FAIL` stands as the Phase 2 outcome against the incumbent k*=15
+fit, and the milestone proceeds to its documented-FAIL close-out. No further k is tried.
+
+### 8.3 What this says about H1 vs H2
+
+H2 predicted that densifying the graph would shrink the negative mass. It did not. `m` moved
+by 0.9 percentage points across `k = 5 -> 30` and moved in the *wrong direction*: the densest
+graph has the largest negative mass, not the smallest.
+
+The co-diagnostics show this is not because densification failed to do anything. It did
+exactly what §3 warned it would do:
+
+- `GEO_AMBIENT_RATIO` falls monotonically with k — 2.83, 2.32, 2.12, 1.86 — so graph
+  geodesics become steadily more chordal, i.e. more like the ambient Euclidean distance.
+- `LONG_EDGE_FRACTION` rises monotonically with k — 0.0065, 0.0086, 0.0100, 0.0139 — so
+  the graph is taking in progressively more long edges relative to the k=15 reference.
+
+Larger k measurably flattened the manifold and admitted more shortcut-length edges, and the
+non-Euclidean mass still did not fall. That is the signature §3 was written to detect, and
+here it lands on the side that *strengthens* the H1 reading rather than rescuing a candidate:
+the negativity survives the very operation that was its most plausible artifactual
+explanation. H2 (kNN-graph hop inflation) is not supported by this evidence.
+
+This is a bound on what was tested, not a proof of H1. Three neighbour counts plus the
+incumbent, one seed, one 10,000-row subsample, one dataset. What the analysis establishes is
+narrower and sufficient for the gate: **the FAIL is not an artifact of neighbourhood scale.**
+
+### 8.4 Conclusion
+
+The k-sensitivity re-fit is complete and its result is unwelcome in the ordinary sense — no k
+rescues the gate — and legitimate in the sense that matters. `GATE_VERDICT = FAIL` on the
+frozen k*=15 fit is the real, measured Phase 2 outcome. Per §6 it is not an error to work
+around: it is a complete, reportable milestone result whose remediation options belong to
+plan 02-03's verdict artifact and the milestone-level decision, not to this analysis.
+
+Nothing in §4.3 was revised, no k outside `K_REFIT` was tested, no k* was adopted, and no
+pass/fail threshold was invented for either co-diagnostic.
+
+**Artifacts** (all gitignored under `notebooks/.cache/`): `isomap_9db36086f7472619.joblib`
+(k=5), `isomap_9fbaf46e3570c8b7.joblib` (k=10), `isomap_860e4b66f08af831.joblib` (k=30),
+their `mds_eigenspectrum_{fit_key}.npz` spectra, `codiag_k{5,10,15,30}_{fit_key}.npz`, and
+`k_sensitivity_refit_43cf438bc944c509.json` (the machine-readable table above). Measured
+cost: fits 78.5 s / 87.9 s / 104.5 s, eigensolves 122.9 s / 120.4 s / 122.8 s, peak RSS
+3.48 GiB, ~4.8 GiB of additional cache.
