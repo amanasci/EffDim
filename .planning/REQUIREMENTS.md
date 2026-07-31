@@ -43,7 +43,7 @@ modified. Requirements below describe observable behaviours of the notebooks und
 - [x] **ISO-03**: A reader can compare `effdim.compute_dim` estimates on the raw 768-d
       embeddings against the dimension the Isomap eigenspectrum suggests
 
-- [ ] **ISO-04**: An Isomap fit at n=10,000 completes and is cached, so downstream work never
+- [x] **ISO-04**: An Isomap fit at n=10,000 completes and is cached, so downstream work never
       re-pays the fit cost
 
 - [x] **ISO-05**: A reader can re-run any notebook and get identical results from the cache,
@@ -217,7 +217,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISO-01 | Phase 1 | Complete |
 | ISO-02 | Phase 1 | Complete |
 | ISO-03 | Phase 1 | Complete |
-| ISO-04 | Phase 1 | Pending |
+| ISO-04 | Phase 1 | Complete |
 | ISO-05 | Phase 1 | Complete |
 | SPEC-01 | Phase 2 | Pending |
 | SPEC-02 | Phase 2 | Pending |

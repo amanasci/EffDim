@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 01
 current_phase_name: data-loading-manifold-reconstruction
-status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-31T03:52:39.814Z"
+status: verifying
+stopped_at: Completed 01-04-PLAN.md -- Phase 1 sealed (all 10 requirements complete)
+last_updated: "2026-07-31T04:19:34.361Z"
 last_activity: 2026-07-30
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 01 (data-loading-manifold-reconstruction) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-30 — Phase 01 execution started
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [████████░░] 75% (0/4 v1.1 phases complete; none yet planned)
+Progress: [██████████] 100% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [████████░░] 75% (0/4 v1.1 phases complete; none y
 | Phase 01 P01 | 35min | 4 tasks | 8 files |
 | Phase 01 P02 | 55min | 3 tasks | 1 files |
 | Phase 01 P03 | 25min | 4 tasks | 1 files |
+| Phase 01 P04 | 30min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 4 gate: accept-candidate selected, k*=15 confirmed (widest all-three-passing plateau run [10,15,30], odd length 3, no tie-break needed)
 - [Phase ?]: SHORT_CIRCUIT_RISK=False; all six base-range k (5,8,10,15,20,30) are connected at n=10,000, auto-extend ladder never entered
 - [Phase ?]: Known limitation recorded (not acted on): STAGE2_K=[5,10,15,30] is unevenly spaced (gaps 5,5,15); k=8/k=20 dropped by STAGE2_MAX_FITS=4, so the plateau is maximal in index space not k space
+- [Phase ?]: Task 3 gate (checkpoint:human-verify, gate=blocking): approved. K_STAR=15 frozen and cross-checked, isomap_43cf438bc944c509.joblib (dist_matrix_/embedding_/nbrs_/kernel_pca_) and phase1_handoff_43cf438bc944c509.json independently re-verified by coordinator before Phase 1 was sealed
+- [Phase ?]: fit_key == sweep_k15's key (43cf438bc944c509) is correct cache-contract behaviour (identical ANALYSIS_CFG/fit_cfg dicts hash identically), not a collision -- the joblib and npz artifacts remain distinct files under distinct stems
+- [Phase ?]: n_components_no_headroom=True is a live D-12 condition Phase 2 must budget for: a SPEC-04 elbow beyond N_COMPONENTS=18 forces a re-fit at a larger dimension (cheap to invalidate correctly via a new fit_key, but real wall-clock work)
 
 ### Pending Todos
 
@@ -131,7 +135,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-31T03:52:39.806Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-07-31T04:19:34.352Z
+Stopped at: Completed 01-04-PLAN.md -- Phase 1 sealed (all 10 requirements complete)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
