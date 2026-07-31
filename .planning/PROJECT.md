@@ -48,6 +48,10 @@ representational alignment (MKNN) varies with local curvature.
 - SVD path switches to randomized SVD when `min(n, d) >= 1000`
 - k-NN distances computed once (k=10) and shared across geometric estimators
 - Benchmark suite for runtime and accuracy vs vector size / count
+- Reproducible, row-aligned 10k subsample of `legacysurvey_dinov3_vitb16`, cached and
+  L2-normalized (DATA-01..05) — *Validated in Phase 1: Data Loading & Manifold Reconstruction*
+- Isomap fit validated for connectivity and `n_neighbors` stability; `k*=15` frozen by a
+  pre-registered plateau rule (ISO-01..05) — *Validated in Phase 1*
 
 ### Active
 
@@ -77,7 +81,16 @@ representational alignment (MKNN) varies with local curvature.
 - Package layout: `src/effdim/` with `api.py` (orchestration + validation + SVD),
   `metrics.py` (spectral estimators), `geometry.py` (intrinsic dimension estimators).
 - Core deps are deliberately light: numpy, scipy, scikit-learn, faiss-cpu.
-- `benchmarks/`, `tests/`, `docs/` (mkdocs) exist. `notebooks/` is new and empty.
+- `benchmarks/`, `tests/`, `docs/` (mkdocs) exist.
+- `notebooks/` now holds `01_manifold_and_gate.ipynb` (§0-§5 executed, §6 reserved for
+  Phase 2) and the `pu_manifold/` support package: `cache.py` + `subsample.py` implemented,
+  `curvature.py` + `mknn.py` stubbed for Phases 3-4, 14 passing tests.
+- Phase 1 complete — the milestone's canonical artifacts live in the gitignored
+  `notebooks/.cache/`: `isomap_43cf438bc944c509.joblib` (~1.55 GiB, the single k*=15 fit
+  carrying `dist_matrix_`) and `phase1_handoff_43cf438bc944c509.json` (the 14-key Phase 1→2
+  interface). Frozen: `k*=15`, `n_components=18`, `d_provisional=18`.
+- `notebooks/requirements-notebooks.txt` deliberately duplicates and pins the core deps that
+  `pyproject.toml` also declares — the notebooks are provisioned into a user-supplied venv.
 - `TODO.md` tracks testing/CI hardening as the standing next work.
 
 ### PU embeddings dataset (v1.1 subject)
@@ -131,6 +144,9 @@ manifold, or concentrated where the manifold is flat?
 | 2026-07-29 | Single model in v1.1, no size ladder | Establishes the curvature method before multiplying compute. Accepted cost: only crossmodal MKNN is computable, and on Legacy that is the paper's weakest signal (0.4-2%), so a null regional result is plausible and must be reportable |
 | 2026-07-29 | Decoder is a torch MLP with C2-smooth activation | Mean curvature needs a nonzero second derivative; ReLU's is identically zero. `torch.func.jacrev`/`hessian` give the fundamental forms directly |
 | 2026-07-29 | Milestone is notebook-only | ROADMAP Phase 3 framed this as applied analysis; promoting the curvature operator into `src/effdim/` would need unit tests against known-curvature surfaces, which is its own milestone |
+| 2026-07-30 | `subsample_*.npz` caches normalized arrays + raw norms only, never the raw 768-d vectors (D-05/D-06) | Removes any way for a later phase to silently mix normalized and raw embeddings. Accepted one-way cost: recovering raw vectors means re-streaming the 553 MiB parquet |
+| 2026-07-30 | `requirements-notebooks.txt` fully self-provisions, duplicating core `pyproject.toml` deps | User runs the notebooks in their own pre-existing venv; a partial requirements file left that venv underprovisioned. Reverses the original deliberate-exclusion policy |
+| 2026-07-31 | `k*=15` frozen by the pre-registered plateau rule, unchanged after seeing results | The sweep thresholds were fixed in a cell that executes before the first fit, with a cell-index assertion. Retuning post-hoc is the garden-of-forking-paths failure the design exists to prevent. Known limitation logged in `WINDOWS.md`: `STAGE2_K` is unevenly spaced, so the plateau is maximal in index space, not k space |
 
 ## Evolution
 
@@ -150,4 +166,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-29 after starting milestone v1.1 PU Manifold Curvature*
+*Last updated: 2026-07-31 after completing Phase 1: Data Loading & Manifold Reconstruction*
