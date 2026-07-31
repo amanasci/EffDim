@@ -34,10 +34,10 @@ modified. Requirements below describe observable behaviours of the notebooks und
 
 ### Manifold Reconstruction (ISO)
 
-- [ ] **ISO-01**: A reader can see the connected-component count of the k-NN graph before
+- [x] **ISO-01**: A reader can see the connected-component count of the k-NN graph before
       Isomap is fitted, so silent bridging by `_fix_connected_components` cannot pass unnoticed
 
-- [ ] **ISO-02**: A reader can see whether the embedding and eigenspectrum are stable across
+- [x] **ISO-02**: A reader can see whether the embedding and eigenspectrum are stable across
       at least three `n_neighbors` values, detecting short-circuit edges
 
 - [x] **ISO-03**: A reader can compare `effdim.compute_dim` estimates on the raw 768-d
@@ -214,8 +214,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-03 | Phase 1 | Complete |
 | DATA-04 | Phase 1 | Complete |
 | DATA-05 | Phase 1 | Complete |
-| ISO-01 | Phase 1 | Pending |
-| ISO-02 | Phase 1 | Pending |
+| ISO-01 | Phase 1 | Complete |
+| ISO-02 | Phase 1 | Complete |
 | ISO-03 | Phase 1 | Complete |
 | ISO-04 | Phase 1 | Pending |
 | ISO-05 | Phase 1 | Complete |
