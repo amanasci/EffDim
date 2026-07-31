@@ -117,7 +117,20 @@ FAIL as a legitimate, complete outcome.
      downstream notebooks check before running; on FAIL the notebook halts with remediation
      options enumerated, and that documented failure is itself a complete, reportable
      milestone outcome (SPEC-06, SPEC-07)
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [ ] 02-01-PLAN.md — Pre-register the gate constants, then compute the full 10,000-value
+      classical-MDS eigenspectrum by hand from the memory-mapped geodesic matrix and reduce it to
+      the two negativity statistics `r` and `m` plus the leading-spectrum dropoff
+      (SPEC-01, SPEC-02, SPEC-03)
+
+- [ ] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with its
+      pair-sample stability check, and the one-way freeze of the embedding dimension `d` — the
+      nesting slice or the documented re-fit halt (SPEC-04, SPEC-05)
+
+- [ ] 02-03-PLAN.md — The self-contained `gate_verdict_{fit_key}.json`, the copyable downstream
+      enforcement block with its three-way FAIL-path self-test, and the phase close-out
+      (SPEC-06, SPEC-07)
 **Research**: Standard patterns (classical-MDS double-centering, eigenspectrum audit) —
 research pass can be skipped per SUMMARY.md. Together with Phase 1, this covers the scope
 SUMMARY.md refers to as "the Isomap/gate phase."
