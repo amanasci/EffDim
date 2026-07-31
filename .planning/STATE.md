@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 1
-current_phase_name: Data Loading & Manifold Reconstruction
+current_phase: 01
+current_phase_name: data-loading-manifold-reconstruction
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-30T04:30:29.081Z"
-last_activity: 2026-07-29
-last_activity_desc: v1.1 phases renumbered to 1-4; pre-GSD library work moved to
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-31T03:06:44.618Z"
+last_activity: 2026-07-30
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,17 +23,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 1 — Data Loading & Manifold Reconstruction
+**Current focus:** Phase 01 — data-loading-manifold-reconstruction
 
 ## Current Position
 
-Phase: 1 of 4 (Data Loading & Manifold Reconstruction)
-Plan: - of TBD in current phase
+Phase: 01 (data-loading-manifold-reconstruction) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-29 — v1.1 phases renumbered to 1-4; pre-GSD library work moved to
+Last activity: 2026-07-30 — Phase 01 execution started
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [░░░░░░░░░░] 0% (0/4 v1.1 phases complete; none yet planned)
+Progress: [███░░░░░░░] 25% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -57,6 +57,11 @@ Progress: [░░░░░░░░░░] 0% (0/4 v1.1 phases complete; none ye
 - Trend: n/a
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 35min | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -79,6 +84,10 @@ Recent decisions affecting current work:
 - [Roadmap]: unstarted pre-v1.1 work (Validation Hardening, CI & Packaging) moved to ROADMAP
   Backlog, unnumbered, so it neither collides with v1.1's phase sequence nor gets dropped. No
   v1.1 phase depends on it. Pre-v1.1 applied-analysis intent is fulfilled by v1.1 itself
+
+- [Phase ?]: Task 1 approved: torch==2.13.0+cpu, datasets==5.0.1, matplotlib==3.11.1 confirmed legitimate on PyPI
+- [Phase ?]: Task 2: normalized-only selected for subsample_*.npz (no raw 768-d array cache; one-way tradeoff accepted)
+- [Phase ?]: User-directed deviation: requirements-notebooks.txt now fully self-provisions (numpy/scipy/scikit-learn/faiss-cpu/joblib/pytest pinned to exact venv versions), reversing the Task 1 exclusion policy
 
 ### Pending Todos
 
@@ -115,7 +124,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-29T23:18:23.826Z
-Stopped at: Phase 1 context gathered
+Last session: 2026-07-31T03:06:44.610Z
+Stopped at: Completed 01-01-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/01-data-loading-manifold-reconstruction/01-CONTEXT.md
+Resume file: None
