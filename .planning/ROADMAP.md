@@ -72,13 +72,13 @@ pre-audit input; no library work needed.
   5. An Isomap fit at n=10,000 completes, is cached, and re-running the notebook reproduces
      identical results from cache, with any config change producing a new cache key
      (ISO-04, ISO-05)
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 - [x] 01-01-PLAN.md — Scaffold `notebooks/pu_manifold/` and prove the pipeline end-to-end on a
       smoke config: subsample → alignment assert → L2 normalize → npz + joblib cache → read-back
       identity (DATA-01, DATA-03, DATA-05, ISO-05)
 
-- [ ] 01-02-PLAN.md — Scale to the real 10,000-row subsample, show the norm distribution and the
+- [x] 01-02-PLAN.md — Scale to the real 10,000-row subsample, show the norm distribution and the
       locked metric statement, and derive `n_components` from the `compute_dim` panel
       (DATA-02, DATA-03, DATA-04, ISO-03)
 
@@ -263,7 +263,7 @@ item to a phase.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
-| 1. Data Loading & Manifold Reconstruction | v1.1 | 1/4 | In Progress|  |
+| 1. Data Loading & Manifold Reconstruction | v1.1 | 2/4 | In Progress|  |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 0/TBD | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

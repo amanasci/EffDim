@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 01
 current_phase_name: data-loading-manifold-reconstruction
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-07-31T03:06:44.618Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-07-31T03:30:34.866Z"
 last_activity: 2026-07-30
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 01 (data-loading-manifold-reconstruction) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-30 — Phase 01 execution started
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [███░░░░░░░] 25% (0/4 v1.1 phases complete; none yet planned)
+Progress: [█████░░░░░] 50% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [███░░░░░░░] 25% (0/4 v1.1 phases complete; none y
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 35min | 4 tasks | 8 files |
+| Phase 01 P02 | 55min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 1 approved: torch==2.13.0+cpu, datasets==5.0.1, matplotlib==3.11.1 confirmed legitimate on PyPI
 - [Phase ?]: Task 2: normalized-only selected for subsample_*.npz (no raw 768-d array cache; one-way tradeoff accepted)
 - [Phase ?]: User-directed deviation: requirements-notebooks.txt now fully self-provisions (numpy/scipy/scikit-learn/faiss-cpu/joblib/pytest pinned to exact venv versions), reversing the Task 1 exclusion policy
+- [Phase ?]: Task 1 negative control: literal np.roll(LS,1,axis=0) does not reliably fail at n=10,000 (z=5.0010, at the margin) due to residual correlation over ~10-row gaps in sorted row_indices; np.roll(LS,1000,axis=0) used as the asserted control instead (z=0.29), DATA-03 check itself unchanged
+- [Phase ?]: N_COMPONENTS=18 (=D_PROVISIONAL) derived from ceil(median(8 geometric compute_dim keys))=ceil(17.183); ANALYSIS_CFG[n_components] set; fit_key=80ce249fedcf55e0
 
 ### Pending Todos
 
@@ -124,7 +127,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-31T03:06:44.610Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-07-31T03:30:34.858Z
+Stopped at: Completed 01-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None

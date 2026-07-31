@@ -20,13 +20,13 @@ modified. Requirements below describe observable behaviours of the notebooks und
 - [x] **DATA-01**: A reader can load exactly one config of `UniverseTBD/pu-embeddings`
       (`legacysurvey_dinov3_vitb16`) without downloading the other 162 configs
 
-- [ ] **DATA-02**: A reader gets a reproducible 10,000-row subsample from the 101,725
+- [x] **DATA-02**: A reader gets a reproducible 10,000-row subsample from the 101,725
       available rows, controlled by an explicit, recorded seed
 
 - [x] **DATA-03**: The `_hsc` and `_legacysurvey` arrays are guaranteed row-aligned after
       subsampling, enforced by an assertion rather than by convention
 
-- [ ] **DATA-04**: A reader can see the embedding norm distribution and an explicit statement
+- [x] **DATA-04**: A reader can see the embedding norm distribution and an explicit statement
       of which metric (Euclidean vs cosine) the pipeline uses and why
 
 - [x] **DATA-05**: The notebook states its own Python floor (3.11) and installs its
@@ -40,7 +40,7 @@ modified. Requirements below describe observable behaviours of the notebooks und
 - [ ] **ISO-02**: A reader can see whether the embedding and eigenspectrum are stable across
       at least three `n_neighbors` values, detecting short-circuit edges
 
-- [ ] **ISO-03**: A reader can compare `effdim.compute_dim` estimates on the raw 768-d
+- [x] **ISO-03**: A reader can compare `effdim.compute_dim` estimates on the raw 768-d
       embeddings against the dimension the Isomap eigenspectrum suggests
 
 - [ ] **ISO-04**: An Isomap fit at n=10,000 completes and is cached, so downstream work never
@@ -210,13 +210,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DATA-01 | Phase 1 | Complete |
-| DATA-02 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
-| DATA-04 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Complete |
 | DATA-05 | Phase 1 | Complete |
 | ISO-01 | Phase 1 | Pending |
 | ISO-02 | Phase 1 | Pending |
-| ISO-03 | Phase 1 | Pending |
+| ISO-03 | Phase 1 | Complete |
 | ISO-04 | Phase 1 | Pending |
 | ISO-05 | Phase 1 | Complete |
 | SPEC-01 | Phase 2 | Pending |
