@@ -51,14 +51,14 @@ modified. Requirements below describe observable behaviours of the notebooks und
 
 ### Eigenspectrum Audit and Validity Gate (SPEC)
 
-- [ ] **SPEC-01**: A reader can see the **full** classical-MDS eigenspectrum, computed from
+- [x] **SPEC-01**: A reader can see the **full** classical-MDS eigenspectrum, computed from
       `isomap.dist_matrix_` by manual double-centring — not from the truncated
       `kernel_pca_.eigenvalues_` attribute, which cannot show the negative tail
 
-- [ ] **SPEC-02**: A reader can confirm the leading eigenvalues are large and positive and see
+- [x] **SPEC-02**: A reader can confirm the leading eigenvalues are large and positive and see
       where the steep dropoff occurs
 
-- [ ] **SPEC-03**: A reader can see the negative-eigenvalue magnitude as an explicit reported
+- [x] **SPEC-03**: A reader can see the negative-eigenvalue magnitude as an explicit reported
       statistic, with a stated and justified threshold
 
 - [ ] **SPEC-04**: A reader can see the residual-variance-vs-dimension curve with the elbow
@@ -219,9 +219,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ISO-03 | Phase 1 | Complete |
 | ISO-04 | Phase 1 | Complete |
 | ISO-05 | Phase 1 | Complete |
-| SPEC-01 | Phase 2 | Pending |
-| SPEC-02 | Phase 2 | Pending |
-| SPEC-03 | Phase 2 | Pending |
+| SPEC-01 | Phase 2 | Complete |
+| SPEC-02 | Phase 2 | Complete |
+| SPEC-03 | Phase 2 | Complete |
 | SPEC-04 | Phase 2 | Pending |
 | SPEC-05 | Phase 2 | Pending |
 | SPEC-06 | Phase 2 | Pending |

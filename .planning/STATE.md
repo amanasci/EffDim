@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 2
-current_phase_name: Eigenspectrum Audit & Validity Gate
+current_phase: 02
+current_phase_name: eigenspectrum-audit-validity-gate
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-31T15:27:51.543Z"
+stopped_at: Completed 02-01-PLAN.md (eigenspectrum audit, GATE_VERDICT=FAIL measured)
+last_updated: "2026-07-31T19:37:46.581Z"
 last_activity: 2026-07-31
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,17 +23,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 01 — data-loading-manifold-reconstruction
+**Current focus:** Phase 02 — eigenspectrum-audit-validity-gate
 
 ## Current Position
 
-Phase: 2 — Eigenspectrum Audit & Validity Gate
-Plan: Not started
+Phase: 02 (eigenspectrum-audit-validity-gate) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-31 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-07-31 — Phase 02 execution started
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [██████████] 100% (0/4 v1.1 phases complete; none yet planned)
+Progress: [███████░░░] 71% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100% (0/4 v1.1 phases complete; none 
 | Phase 01 P02 | 55min | 3 tasks | 1 files |
 | Phase 01 P03 | 25min | 4 tasks | 1 files |
 | Phase 01 P04 | 30min | 3 tasks | 1 files |
+| Phase 02 P01 | 20min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 3 gate (checkpoint:human-verify, gate=blocking): approved. K_STAR=15 frozen and cross-checked, isomap_43cf438bc944c509.joblib (dist_matrix_/embedding_/nbrs_/kernel_pca_) and phase1_handoff_43cf438bc944c509.json independently re-verified by coordinator before Phase 1 was sealed
 - [Phase ?]: fit_key == sweep_k15's key (43cf438bc944c509) is correct cache-contract behaviour (identical ANALYSIS_CFG/fit_cfg dicts hash identically), not a collision -- the joblib and npz artifacts remain distinct files under distinct stems
 - [Phase ?]: n_components_no_headroom=True is a live D-12 condition Phase 2 must budget for: a SPEC-04 elbow beyond N_COMPONENTS=18 forces a re-fit at a larger dimension (cheap to invalidate correctly via a new fit_key, but real wall-clock work)
+- [Phase ?]: Real measured GATE_VERDICT=FAIL on k*=15 fit: R_STAT=0.052419 passes r<0.10 but M_STAT=0.412071 fails even the m<0.15 MARGINAL bound (41% of eigenvalue mass is negative). Legitimate hard-gate outcome per phase design, not an error.
+- [Phase ?]: Rule 1 auto-fix: np.asarray(dist_matrix_, dtype=float64) on a read-only memmap returned a view not a copy (dtype already matched); fixed with np.array(..., copy=True).
 
 ### Pending Todos
 
@@ -136,7 +139,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-31T14:40:07.810Z
-Stopped at: Phase 2 context gathered
+Last session: 2026-07-31T19:37:46.563Z
+Stopped at: Completed 02-01-PLAN.md (eigenspectrum audit, GATE_VERDICT=FAIL measured)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02-eigenspectrum-audit-validity-gate/02-CONTEXT.md
+Resume file: None
