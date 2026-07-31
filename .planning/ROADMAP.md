@@ -117,14 +117,14 @@ FAIL as a legitimate, complete outcome.
      downstream notebooks check before running; on FAIL the notebook halts with remediation
      options enumerated, and that documented failure is itself a complete, reportable
      milestone outcome (SPEC-06, SPEC-07)
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 - [x] 02-01-PLAN.md — Pre-register the gate constants, then compute the full 10,000-value
       classical-MDS eigenspectrum by hand from the memory-mapped geodesic matrix and reduce it to
       the two negativity statistics `r` and `m` plus the leading-spectrum dropoff
       (SPEC-01, SPEC-02, SPEC-03)
 
-- [ ] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with its
+- [x] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with its
       pair-sample stability check, and the one-way freeze of the embedding dimension `d` — the
       nesting slice or the documented re-fit halt (SPEC-04, SPEC-05)
 
@@ -277,6 +277,6 @@ item to a phase.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
-| 2. Eigenspectrum Audit & Validity Gate | v1.1 | 1/3 | In Progress|  |
+| 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

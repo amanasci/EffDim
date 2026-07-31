@@ -61,10 +61,10 @@ modified. Requirements below describe observable behaviours of the notebooks und
 - [x] **SPEC-03**: A reader can see the negative-eigenvalue magnitude as an explicit reported
       statistic, with a stated and justified threshold
 
-- [ ] **SPEC-04**: A reader can see the residual-variance-vs-dimension curve with the elbow
+- [x] **SPEC-04**: A reader can see the residual-variance-vs-dimension curve with the elbow
       identified by a stated criterion, not eyeballed
 
-- [ ] **SPEC-05**: The chosen embedding dimension `d` is frozen and recorded before any
+- [x] **SPEC-05**: The chosen embedding dimension `d` is frozen and recorded before any
       decoder is trained
 
 - [ ] **SPEC-06**: A PASS / MARGINAL / FAIL verdict is written as a machine-readable artifact
@@ -222,8 +222,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPEC-01 | Phase 2 | Complete |
 | SPEC-02 | Phase 2 | Complete |
 | SPEC-03 | Phase 2 | Complete |
-| SPEC-04 | Phase 2 | Pending |
-| SPEC-05 | Phase 2 | Pending |
+| SPEC-04 | Phase 2 | Complete |
+| SPEC-05 | Phase 2 | Complete |
 | SPEC-06 | Phase 2 | Pending |
 | SPEC-07 | Phase 2 | Pending |
 | DEC-01 | Phase 3 | Pending |
