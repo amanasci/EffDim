@@ -26,7 +26,7 @@ and are not numbered phases.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 - Numbering restarts at 1 each milestone. v1.1's phases are 1-4.
 
-- [ ] **Phase 1: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU
+- [x] **Phase 1: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU (completed 2026-07-31)
       subsample loaded and an Isomap fit produced, validated for connectivity and
       `n_neighbors` stability
 
@@ -263,7 +263,7 @@ item to a phase.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
-| 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | In Progress|  |
+| 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 0/TBD | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
