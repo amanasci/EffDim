@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02
 current_phase_name: eigenspectrum-audit-validity-gate
-status: executing
-stopped_at: Completed 02-01-PLAN.md (eigenspectrum audit, GATE_VERDICT=FAIL measured)
+status: paused
+stopped_at: Halted after 02-01 by user decision — GATE_VERDICT=FAIL (m=0.412071) measured; remediation decision pending before waves 2-3 run
 last_updated: "2026-07-31T19:37:46.581Z"
 last_activity: 2026-07-31
 last_activity_desc: Phase 02 execution started
@@ -27,10 +27,19 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02 (eigenspectrum-audit-validity-gate) — EXECUTING
-Plan: 2 of 3
-Status: Ready to execute
-Last activity: 2026-07-31 — Phase 02 execution started
+Phase: 02 (eigenspectrum-audit-validity-gate) — PAUSED (user-directed halt)
+Plan: 1 of 3 complete; 02-02 and 02-03 not dispatched
+Status: Awaiting remediation decision on the measured GATE_VERDICT=FAIL
+Last activity: 2026-07-31 — 02-01 complete, phase halted before d-freeze and verdict artifact
+
+**Halt context:** 02-01 measured R_STAT=0.052419 (passes r<0.10) and M_STAT=0.412071
+(fails the m<0.15 MARGINAL bound), giving GATE_VERDICT=FAIL on the frozen k*=15 fit.
+5029 of 10,000 eigenvalues are strictly negative, none individually dominant, collectively
+carrying 41% of total absolute eigenvalue mass; |LAMBDA_MIN_NEG|=169.36 sits ~24 orders of
+magnitude above the float64 noise floor, so the negative tail is real non-Euclidean
+structure and not rounding. User elected to decide remediation before 02-02 freezes `d`
+and 02-03 writes gate_verdict_{fit_key}.json. No verdict artifact exists yet — this FAIL
+is recorded only in 02-01-SUMMARY.md and the cached spectrum npz.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
 Progress: [███████░░░] 71% (0/4 v1.1 phases complete; none yet planned)
