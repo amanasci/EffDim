@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02
 current_phase_name: eigenspectrum-audit-validity-gate
-status: paused
-stopped_at: Halted after 02-01 by user decision — GATE_VERDICT=FAIL (m=0.412071) measured; remediation decision pending before waves 2-3 run
+status: executing
+stopped_at: k-sensitivity re-fit complete (Rule A fired, FAIL robust across k); resuming waves 2-3 to seal the documented FAIL
 last_updated: "2026-07-31T19:37:46.581Z"
 last_activity: 2026-07-31
 last_activity_desc: Phase 02 execution started
@@ -27,19 +27,30 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02 (eigenspectrum-audit-validity-gate) — PAUSED (user-directed halt)
-Plan: 1 of 3 complete; 02-02 and 02-03 not dispatched
-Status: Awaiting remediation decision on the measured GATE_VERDICT=FAIL
-Last activity: 2026-07-31 — 02-01 complete, phase halted before d-freeze and verdict artifact
+Phase: 02 (eigenspectrum-audit-validity-gate) — EXECUTING
+Plan: 2 of 3 (02-01 complete; k-sensitivity remediation complete; 02-02 dispatched)
+Status: Sealing the documented FAIL per pre-registration Rule A
+Last activity: 2026-07-31 — k-sensitivity re-fit complete, waves 2-3 resumed
 
-**Halt context:** 02-01 measured R_STAT=0.052419 (passes r<0.10) and M_STAT=0.412071
-(fails the m<0.15 MARGINAL bound), giving GATE_VERDICT=FAIL on the frozen k*=15 fit.
-5029 of 10,000 eigenvalues are strictly negative, none individually dominant, collectively
-carrying 41% of total absolute eigenvalue mass; |LAMBDA_MIN_NEG|=169.36 sits ~24 orders of
-magnitude above the float64 noise floor, so the negative tail is real non-Euclidean
-structure and not rounding. User elected to decide remediation before 02-02 freezes `d`
-and 02-03 writes gate_verdict_{fit_key}.json. No verdict artifact exists yet — this FAIL
-is recorded only in 02-01-SUMMARY.md and the cached spectrum npz.
+**Gate outcome (settled).** 02-01 measured R_STAT=0.052419 (passes r<0.10) and
+M_STAT=0.412071 (fails the m<0.15 MARGINAL bound) on the frozen k*=15 fit:
+GATE_VERDICT=FAIL. A pre-registered k-sensitivity re-fit
+(`02-REFIT-PREREGISTRATION.md`, committed 057b084 before any fit ran) then tested
+k in {5,10,30} against the incumbent k=15 with all other parameters pinned:
+
+| k | r(k) | m(k) | GEO_AMBIENT_RATIO | LONG_EDGE_FRACTION | Verdict |
+|---|---|---|---|---|---|
+| 5 | 0.060312 | 0.406433 | 2.828727 | 0.006540 | FAIL |
+| 10 | 0.058311 | 0.410187 | 2.320592 | 0.008620 | FAIL |
+| 15 | 0.052419 | 0.412071 | 2.117401 | 0.010000 | FAIL |
+| 30 | 0.050708 | 0.415735 | 1.864727 | 0.013923 | FAIL |
+
+Rule A fired: CANDIDATES=[], no k comes within 2.7x of the MARGINAL bound, and m(k) is
+flat-to-slightly-increasing in k rather than decreasing. The co-diagnostics show
+densification measurably worked (geodesics grew more chordal, more long edges admitted)
+and still bought no reduction in negative mass, so the kNN hop-inflation hypothesis (H2)
+is not supported and intrinsic curvature (H1) stands. No k* adopted; k*=15 remains the
+fit of record. FAIL is sealed against fit_key=43cf438bc944c509 by plan 02-03.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
 Progress: [███████░░░] 71% (0/4 v1.1 phases complete; none yet planned)
