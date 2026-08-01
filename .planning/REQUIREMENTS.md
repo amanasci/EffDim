@@ -73,7 +73,45 @@ modified. Requirements below describe observable behaviours of the notebooks und
 - [ ] **SPEC-07**: On FAIL, the notebook halts with remediation options enumerated, and that
       documented failure is itself a complete, reportable milestone outcome
 
+### Geometry Representation (GEOM)
+
+Added 2026-07-31 with Phase 02.1 (INSERTED), after Phase 2's `GATE_VERDICT = FAIL` established
+that classical MDS is an invalid description of the Isomap geodesic geometry for these
+embeddings (`m = 0.412071` against a 0.15 MARGINAL bound; ~41% of absolute eigenvalue mass
+negative, robust across `k`, survey column, disjoint resample, and normalization).
+
+- [ ] **GEOM-01**: A reader can see which manifold-learning methods share Isomap's
+      flat-target assumption and would fail the same way on this data, establishing the
+      failure as a property of the method class rather than an implementation choice
+
+- [ ] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
+      target — Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature
+      (Ollivier-Ricci, Forman-Ricci) requiring no embedding, diffusion maps, and
+      pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it
+      would demand of the decoder phase
+
+- [ ] **GEOM-03**: A reader can see what 41% negative eigenvalue mass means geometrically, and
+      an argued judgment on whether indefinite MDS or distance-matrix correction is principled
+      here or merely cosmetic — a method that hides the negativity rather than representing it
+      must be named as such
+
+- [ ] **GEOM-04**: A reader gets one recommended representation with its rationale, the
+      alternatives it was chosen over, and the evidence it is expected to be judged against,
+      sufficient for the decoder phase to be re-specified without re-opening the question
+
+- [ ] **GEOM-05**: A reader can see what the recommendation implies for the working dimension.
+      `D_FROZEN = 5` derives from a residual elbow flagged suspect against three other
+      estimates clustering at 18–25; whether the chosen representation inherits, revises, or
+      discards it must be stated explicitly
+
 ### Decoder (DEC)
+
+> **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written
+> against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1
+> selects the replacement representation; re-read "Isomap coordinates" throughout this section
+> and the next as "the coordinates of the representation chosen in Phase 02.1", and re-plan
+> Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an
+> analytic curvature field, falsified against a synthetic control — is unchanged.
 
 - [ ] **DEC-01**: A reader can train a decoder mapping Isomap coordinates to the original
       768-d embedding, using a C2-smooth activation throughout the forward path
@@ -226,6 +264,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPEC-05 | Phase 2 | Complete |
 | SPEC-06 | Phase 2 | Pending |
 | SPEC-07 | Phase 2 | Pending |
+| GEOM-01 | Phase 02.1 | Pending |
+| GEOM-02 | Phase 02.1 | Pending |
+| GEOM-03 | Phase 02.1 | Pending |
+| GEOM-04 | Phase 02.1 | Pending |
+| GEOM-05 | Phase 02.1 | Pending |
 | DEC-01 | Phase 3 | Pending |
 | DEC-02 | Phase 3 | Pending |
 | DEC-03 | Phase 3 | Pending |

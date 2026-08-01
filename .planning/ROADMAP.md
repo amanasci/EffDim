@@ -33,6 +33,10 @@ and are not numbered phases.
 - [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** - Full classical-MDS eigenspectrum
       audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
 
+- [ ] **Phase 02.1: Geometry Representation Research** (INSERTED) - A non-Euclidean-embeddable
+      representation identified and justified against the literature, replacing the Isomap
+      coordinates that Phase 2's gate invalidated
+
 - [ ] **Phase 3: Decoder & Curvature Field** - C2-smooth decoder trained and its analytic
       mean-curvature field validated against a synthetic-manifold falsification test
 
@@ -138,14 +142,94 @@ SUMMARY.md refers to as "the Isomap/gate phase."
 FAIL halts the milestone here — Phase 3 must check this artifact before running any expensive
 cell and must not proceed on FAIL.
 
+### Phase 02.1: Geometry Representation Research (INSERTED)
+
+**Goal**: A representation of the PU embedding geometry that does not assume Euclidean
+embeddability is identified and justified against the literature, and Phase 3 receives a
+concrete, argued decision on what it should decode from — replacing the Isomap coordinates
+that Phase 2's gate invalidated.
+
+**Why inserted**: Phase 2 measured `GATE_VERDICT = FAIL` on the frozen k*=15 fit —
+`m = 0.412071` against a 0.15 MARGINAL bound, with 5029 of 10,000 eigenvalues negative
+carrying 41% of absolute eigenvalue mass. `r = 0.052419` passes its own bound, so the failure
+is a long diffuse negative tail rather than one short-circuit edge. Four experiments ruled out
+numerical error, implementation bug, kNN hop inflation (k ∈ {5,10,15,30}; `m` flat-to-rising
+while co-diagnostics confirm the graph genuinely densified), L2 normalization (`m` moves 0.28%
+when exactly inverted), absence of manifold structure (local intrinsic dimension stable and
+tight at ~20–25, std 2.0), the specific survey column (paired HSC gives `m = 0.4226`), and the
+specific 10,000 objects (a ~90% disjoint resample gives `m = 0.411948` with identical
+positive/negative counts). See `.planning/phases/02-eigenspectrum-audit-validity-gate/02-FINDINGS.md`.
+
+Phase 3 as originally specified decodes *from the Isomap coordinates* — the direct output of
+the step that failed — so its mean-curvature field would conflate real curvature with
+parameterization damage, and its own CURV-06/07 synthetic control cannot detect that because a
+synthetic manifold passing the gate never reproduces the pathology. This phase exists to
+replace that input, not to work around the FAIL.
+
+**Depends on**: Phase 2 (consumes its FAIL verdict, the full eigenspectrum, and the intrinsic
+dimension measurements as evidence). Does **not** require a PASS.
+
+**Requirements**: GEOM-01, GEOM-02, GEOM-03, GEOM-04, GEOM-05 (to be added to REQUIREMENTS.md)
+
+**Success Criteria** (what must be TRUE):
+
+  1. A reader can see which manifold-learning methods share Isomap's flat-target assumption and
+     would therefore fail the same way on this data, establishing that the failure is a property
+     of the method class rather than an implementation choice (GEOM-01)
+
+  2. A reader can see the candidate representations that do **not** assume a flat target,
+     surveyed with their assumptions, costs, and what each would require of Phase 3 —
+     covering at minimum Riemannian/hyperbolic and product-manifold embeddings, graph-native
+     curvature (Ollivier-Ricci, Forman-Ricci) which needs no embedding at all, diffusion maps,
+     and pseudo-Euclidean/Krein-space treatments of indefinite similarity (GEOM-02)
+
+  3. A reader can see what 41% negative eigenvalue mass means geometrically, and an explicit
+     argued judgment on whether indefinite MDS or distance-matrix correction is principled here
+     or merely cosmetic — a method that hides the negativity rather than representing it must be
+     named as such (GEOM-03)
+
+  4. A reader gets one recommended representation with stated rationale, the alternatives it was
+     chosen over, and the evidence it is expected to be judged against — sufficient for Phase 3
+     to be re-specified without re-opening this question (GEOM-04)
+
+  5. A reader can see what the recommendation implies for the working dimension. `D_FROZEN = 5`
+     came from a residual-variance elbow that `02-FINDINGS.md` §6.4 flags as suspect against
+     three other estimates clustering at 18–25, on the reading that the elbow measured the flat
+     embedding's failure rather than the geometry. Whether the chosen representation inherits,
+     revises, or discards that dimension must be stated, not left implicit (GEOM-05)
+
+**Notes**: Literature-review and decision phase — no production pipeline code is expected. A
+pre-registered 35-model cross-architecture sweep (`sweep/`, `02-MODEL-SWEEP-PREREGISTRATION.md`)
+is packaged for external compute and not yet run; its result bears on how general the finding is
+but does not block this phase's method survey.
+
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 02.1 to break down)
+
 ### Phase 3: Decoder & Curvature Field
 
-**Goal**: A C2-smooth decoder is trained from the frozen Isomap coordinates back to the 768-d
-embedding, and its analytically-derived mean curvature field is validated against a
-synthetic-control falsification test before being trusted as a property of the data manifold
-rather than a decoder artifact.
-**Depends on**: Phase 2 (requires a PASS or MARGINAL gate verdict and the frozen embedding
-dimension `d`; does not proceed on FAIL)
+**Goal**: A C2-smooth decoder is trained from the coordinates of Phase 02.1's chosen
+representation back to the 768-d embedding, and its analytically-derived mean curvature field is
+validated against a synthetic-control falsification test before being trusted as a property of
+the data manifold rather than a decoder artifact.
+
+> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap*
+> coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL
+> (`m = 0.412071`), so those coordinates are the output of an invalidated step and cannot serve
+> as the decoder's input: the pullback metric would conflate real curvature with the
+> parameterization damage the decoder absorbs, and CURV-06/07's synthetic control cannot detect
+> that, because a synthetic manifold that passes the gate never reproduces the pathology. The
+> working dimension is also open — `D_FROZEN = 5` is flagged suspect in `02-FINDINGS.md` §6.4
+> against three other estimates clustering at 18–25. Phase 02.1 supplies both the representation
+> and the dimension. Re-plan this phase against its output before executing; the DEC and CURV
+> requirement text still refers to Isomap coordinates and needs the same amendment.
+
+**Depends on**: Phase 02.1 (requires its chosen representation and working dimension). Phase 2
+supplies the eigenspectrum evidence and the FAIL verdict that motivated the change; a PASS is no
+longer a precondition, because the flat-embedding path it would have gated is no longer the plan.
 **Requirements**: DEC-01, DEC-02, DEC-03, DEC-04, DEC-05, CURV-01, CURV-02, CURV-03, CURV-04, CURV-05, CURV-06, CURV-07, CURV-08
 **Success Criteria** (what must be TRUE):
 
@@ -272,11 +356,14 @@ item to a phase.
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 → 2 → 3 → 4, gated as described above.
+**Execution Order:** Phases execute in numeric order: 1 → 2 → 02.1 → 3 → 4, gated as described
+above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output
+rather than on a Phase 2 PASS.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
+| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 0/TBD | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

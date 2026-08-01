@@ -6,11 +6,11 @@ current_phase: 02
 current_phase_name: eigenspectrum-audit-validity-gate
 status: executing
 stopped_at: 02-03 tasks 1-2 committed; HOLDING at Task 3 blocking human-verify gate at user request (inspecting before sealing)
-last_updated: "2026-07-31T20:37:32.930Z"
+last_updated: "2026-08-01T02:42:57.993Z"
 last_activity: 2026-07-31
 last_activity_desc: k-sensitivity re-fit complete, waves 2-3 resumed
 progress:
-  total_phases: 2
+  total_phases: 3
   completed_phases: 1
   total_plans: 7
   completed_plans: 6
@@ -63,6 +63,7 @@ survives — see `02-FINDINGS.md` §6:
   Caveat: raw norms are 16.029 +/- 0.504 (cv=3.1%), so the data was already near-constant-norm
   and removing normalization barely moved the geometry. This closes "normalization caused it",
   not "shell geometry contributes".
+
 - **The cloud IS a manifold.** Local intrinsic dimension is stable and tight: TwoNN=19.5,
   local PCA median 25.0 (mean 24.5, std 2.0, 5-95% range 21-28, no neighbourhood above 29).
   That is a genuine manifold of roughly constant dimension, not a structureless cloud.
@@ -181,6 +182,10 @@ From `TODO.md`:
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself
   a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate
   outcome is known.
+
+### Roadmap Evolution
+
+- Phase 02.1 inserted after Phase 2: Geometry Representation Research - Phase 2 gate FAIL invalidated the Isomap coordinates Phase 3 was specified to decode from (URGENT)
 
 ## Deferred Items
 
