@@ -53,6 +53,37 @@ densification measurably worked (geodesics grew more chordal, more long edges ad
 and still bought no reduction in negative mass, so the kNN hop-inflation hypothesis (H2)
 is not supported and intrinsic curvature (H1) stands. No k* adopted; k*=15 remains the
 fit of record. FAIL is sealed against fit_key=43cf438bc944c509 by plan 02-03.
+
+**Post-gate diagnostic triage (2026-07-31, `notebooks/diagnostics/gate_diagnostics.py`,
+committed 9c6e2b5).** Both remaining alternative explanations were tested and neither
+survives — see `02-FINDINGS.md` §6:
+
+- **Not L2 normalization.** Norms are cached, so normalization is exactly invertible. An
+  unnormalized refit (same rows, seed, k=15) gives m=0.413239 vs 0.412071 — a 0.28% move.
+  Caveat: raw norms are 16.029 +/- 0.504 (cv=3.1%), so the data was already near-constant-norm
+  and removing normalization barely moved the geometry. This closes "normalization caused it",
+  not "shell geometry contributes".
+- **The cloud IS a manifold.** Local intrinsic dimension is stable and tight: TwoNN=19.5,
+  local PCA median 25.0 (mean 24.5, std 2.0, 5-95% range 21-28, no neighbourhood above 29).
+  That is a genuine manifold of roughly constant dimension, not a structureless cloud.
+
+Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic metric is
+strongly non-Euclidean.
+
+**!! D_FROZEN=5 IS SUSPECT — do not inherit it downstream.** Four estimates of intrinsic
+dimension now exist: local PCA ~25, TwoNN ~19.5, Phase 1's eight geometric estimators 18,
+and the residual-curve elbow 5. The elbow is the outlier and it is the value that was frozen.
+Likely cause: with 41% of eigenvalue mass negative the Tenenbaum residual curve saturates
+early because flat embedding fails at every dimension, so the elbow measured the failure
+rather than the geometry (consistent with CURVE_DIVERGENCE_MAX=0.698). Separately,
+n_components=18 sits BELOW the measured intrinsic dimension — 100% of neighbourhoods need
+more than 18 dimensions for 90% of local variance, so every fit this phase was
+dimension-starved. Neither point changes r/m, which derive from the full 10,000-value
+spectrum independently of n_components.
+
+**Implication for any Phase 3 respec:** a curvature-native representation is required
+(Riemannian/hyperbolic embedding, or working directly on the geodesic metric without
+flattening), and the target dimension is ~20-25, not 5.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
 Progress: [█████████░] 86% (0/4 v1.1 phases complete; none yet planned)
