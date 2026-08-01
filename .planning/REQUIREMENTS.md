@@ -84,7 +84,7 @@ negative, robust across `k`, survey column, disjoint resample, and normalization
       flat-target assumption and would fail the same way on this data, establishing the
       failure as a property of the method class rather than an implementation choice
 
-- [x] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
+- [ ] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
       target — Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature
       (Ollivier-Ricci, Forman-Ricci) requiring no embedding, diffusion maps, and
       pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it
@@ -95,7 +95,7 @@ negative, robust across `k`, survey column, disjoint resample, and normalization
       here or merely cosmetic — a method that hides the negativity rather than representing it
       must be named as such
 
-- [x] **GEOM-04**: A reader gets one recommended representation with its rationale, the
+- [ ] **GEOM-04**: A reader gets one recommended representation with its rationale, the
       alternatives it was chosen over, and the evidence it is expected to be judged against,
       sufficient for the decoder phase to be re-specified without re-opening the question
 
@@ -265,9 +265,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPEC-06 | Phase 2 | Pending |
 | SPEC-07 | Phase 2 | Pending |
 | GEOM-01 | Phase 02.1 | Pending |
-| GEOM-02 | Phase 02.1 | Complete |
+| GEOM-02 | Phase 02.1 | Pending |
 | GEOM-03 | Phase 02.1 | Pending |
-| GEOM-04 | Phase 02.1 | Complete |
+| GEOM-04 | Phase 02.1 | Pending |
 | GEOM-05 | Phase 02.1 | Pending |
 | DEC-01 | Phase 3 | Pending |
 | DEC-02 | Phase 3 | Pending |
