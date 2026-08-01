@@ -169,7 +169,7 @@ replace that input, not to work around the FAIL.
 **Depends on**: Phase 2 (consumes its FAIL verdict, the full eigenspectrum, and the intrinsic
 dimension measurements as evidence). Does **not** require a PASS.
 
-**Requirements**: GEOM-01, GEOM-02, GEOM-03, GEOM-04, GEOM-05 (to be added to REQUIREMENTS.md)
+**Requirements**: GEOM-01, GEOM-02, GEOM-03, GEOM-04, GEOM-05
 
 **Success Criteria** (what must be TRUE):
 
@@ -203,11 +203,28 @@ pre-registered 35-model cross-architecture sweep (`sweep/`, `02-MODEL-SWEEP-PRER
 is packaged for external compute and not yet run; its result bears on how general the finding is
 but does not block this phase's method survey.
 
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 02.1 to break down)
+- [ ] 02.1-01-PLAN.md — Pre-register every decision rule, then resolve the coordinate-producing vs
+      graph-native fork with both branches' Phase 3 consequences by requirement ID; two commits with
+      git-proved ordering, ratified at a blocking decision checkpoint (GEOM-02, GEOM-04)
+
+- [ ] 02.1-02-PLAN.md — The flat-target class-membership analysis (which methods share Isomap's
+      assumption and which structurally cannot show the failure) and the six-family non-flat-target
+      candidate survey with assumptions, costs at n=10,000, maturity and Phase 3 demand (GEOM-01,
+      GEOM-02)
+
+- [ ] 02.1-03-PLAN.md — Tested probe module with Wave 0 synthetic fixtures, then the measured run
+      over the frozen Phase 2 cache: correction blindness on three spectra, the pseudo-Euclidean
+      (p, q) distortion ladder against Phase 2's own 200,000-pair sample, and delta-hyperbolicity
+      against tree and flat-Euclidean anchors (GEOM-03, GEOM-04, GEOM-05)
+
+- [ ] 02.1-04-PLAN.md — The terminal artifact: the geometric reading of 41% negative mass, the argued
+      correction-vs-retention judgment, one recommended representation with alternatives and evidence,
+      the re-derived working dimension, and the machine-readable Phase 3 handoff (GEOM-03, GEOM-04,
+      GEOM-05)
 
 ### Phase 3: Decoder & Curvature Field
 
@@ -364,6 +381,6 @@ rather than on a Phase 2 PASS.
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
-| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 0/TBD | Not started | - |
+| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 0/4 | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
