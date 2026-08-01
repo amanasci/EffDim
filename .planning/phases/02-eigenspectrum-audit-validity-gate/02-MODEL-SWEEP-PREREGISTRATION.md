@@ -7,9 +7,9 @@ trigger: 02-FINDINGS.md §8 — the model is the one variable never varied
 
 # Cross-Model Sweep — Pre-Registration
 
-**Written and committed before any model other than `dinov3_vitb16` is fitted.** A 34-way
+**Written and committed before any model other than `dinov3_vitb16` is fitted.** A 35-way
 comparison run without a rule fixed in advance is the single easiest place in this project to
-manufacture a result: with 34 numbers, some will look special by chance, and any of them can be
+manufacture a result: with 35 numbers, some will look special by chance, and any of them can be
 narrated after the fact. This document fixes the model set, the held-constant parameters, the
 statistics, the primary question, and every secondary analysis, before any of them are seen.
 
@@ -27,7 +27,7 @@ disjoint sample).
 
 ## 2. Question
 
-For the ~34 vision foundation models whose embeddings are published in
+For the 35 vision foundation models whose embeddings are published in
 `UniverseTBD/pu-embeddings` (the embedding set accompanying *The Platonic Universe*,
 arXiv:2509.19453):
 
@@ -120,7 +120,7 @@ dimension, and becomes a candidate encoder for a flat-embedding pipeline. Adopti
 automatic — it would require re-running Phase 1's connectivity and plateau-stability selection
 under that model, and a documented amendment.
 
-**Rule C — reporting obligation, binds under both A and B.** The complete 34-row table is
+**Rule C — reporting obligation, binds under both A and B.** The complete 35-row table is
 reported whatever it shows. No model is dropped, no subset is highlighted as "the interesting
 ones" without the full table adjacent to it.
 
@@ -156,7 +156,7 @@ descriptive; none carries a pass/fail threshold, and none can override the prima
 
 ## 7. Expected cost
 
-~34 Isomap fits at n=10,000 plus ~34 dense 10,000x10,000 eigensolves, roughly 2 minutes each,
+35 Isomap fits at n=10,000 plus 35 dense 10,000x10,000 eigensolves, roughly 2 minutes each,
 ≈ 70 minutes of compute. Transfer is ~20 GB: only the `legacysurvey` column of each parquet is
 read (the paired `hsc` column is skipped, halving the 39.9 GB total). Each model's embeddings
 are released before the next is fetched, so peak disk stays small.

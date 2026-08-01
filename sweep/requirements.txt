@@ -1,0 +1,8 @@
+# Versions from the reference run. The control check in run_sweep.py reproduces
+# r=0.052419 / m=0.412071 for dinov3_vitb16 under exactly these; if your environment
+# differs and the control still passes to 1e-5, the comparison is still sound.
+numpy==2.5.1
+scipy==1.18.0
+scikit-learn==1.9.0
+pyarrow==25.0.0
+huggingface_hub==1.25.1
