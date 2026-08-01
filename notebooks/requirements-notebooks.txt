@@ -54,3 +54,12 @@ scikit-learn==1.9.0
 faiss-cpu==1.14.3
 joblib==1.5.3
 pytest==9.1.1
+
+# geomstats: Riemannian geometry toolkit, admitted in Phase 02.1 by user directive
+# (see .planning/phases/02.1-geometry-representation-research/02.1-AMENDMENT-01.md).
+# KNOWN DEFECT: 2.8.0 (latest) imports numpy.trapz, removed in numpy 2.0. Under the
+# numpy==2.5.1 pin above it raises ImportError at module load. The diagnostic entry
+# point applies a documented shim (np.trapz = np.trapezoid) before importing it.
+# Downgrading numpy is NOT an option -- config_key hashes the installed numpy version
+# into every cache key, so it would invalidate every Phase 1/2 frozen artifact.
+geomstats==2.8.0
