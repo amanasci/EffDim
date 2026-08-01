@@ -6,13 +6,13 @@ current_phase: 02
 current_phase_name: eigenspectrum-audit-validity-gate
 status: executing
 stopped_at: 02-03 tasks 1-2 committed; HOLDING at Task 3 blocking human-verify gate at user request (inspecting before sealing)
-last_updated: "2026-08-01T02:42:57.993Z"
+last_updated: "2026-08-01T15:09:44.458Z"
 last_activity: 2026-07-31
 last_activity_desc: k-sensitivity re-fit complete, waves 2-3 resumed
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 7
+  total_plans: 11
   completed_plans: 6
 ---
 
@@ -186,6 +186,7 @@ From `TODO.md`:
 ### Roadmap Evolution
 
 - Phase 02.1 inserted after Phase 2: Geometry Representation Research - Phase 2 gate FAIL invalidated the Isomap coordinates Phase 3 was specified to decode from (URGENT)
+- Phase 02.1 planned: 4 plans across 3 waves; plan-checker VERIFICATION PASSED first iteration; GEOM-01..05 coverage complete
 
 ## Deferred Items
 
