@@ -112,7 +112,12 @@ def load_physics_labels(
         invalid = (data[k] == -99.0) | np.isinf(data[k])
         data[k][invalid] = np.nan
 
-    return data
+    mapped_data = {}
+    for short_name, long_name in ALL_PROBES.items():
+        if long_name in data:
+            mapped_data[short_name] = data[long_name]
+
+    return mapped_data
 
 
 METADATA_COLUMNS = [

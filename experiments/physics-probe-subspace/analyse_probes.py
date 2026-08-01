@@ -81,6 +81,23 @@ def main():
         plt.savefig(out_dir / "probe_r2_comparison.png")
         plt.close()
         print(f"Saved probe_r2_comparison.png")
+        
+    # Plot mKNN vs Dimension
+    mknn_vs_dim = results.get("mknn_vs_dim", [])
+    if mknn_vs_dim:
+        dims = [x["dim"] for x in mknn_vs_dim]
+        mknns = [x["mknn"] for x in mknn_vs_dim]
+        
+        plt.figure(figsize=(8, 5))
+        plt.plot(dims, mknns, marker='.', linestyle='-')
+        plt.title("mKNN Overlap vs Task-Anchored Subspace Dimension")
+        plt.xlabel("Subspace Dimension (Number of Probes Included)")
+        plt.ylabel("mKNN Overlap")
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(out_dir / "mknn_vs_dimension.png")
+        plt.close()
+        print(f"Saved mknn_vs_dimension.png")
 
 if __name__ == "__main__":
     main()

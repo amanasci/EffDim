@@ -247,11 +247,26 @@ def main():
     mknn_dense = mknn_overlap(knn_A_dense, knn_B_dense)
     
     # Projected Euclidean mKNN (in subspace)
-    # Cosine or Euclidean? In subspace, usually euclidean is fine, but since original was normalized, we can use euclidean.
     knn_A_proj = knn_euclidean(ZAp_t, args.k)
     knn_B_proj = knn_euclidean(ZBp_t, args.k)
     mknn_subspace = mknn_overlap(knn_A_proj, knn_B_proj)
     
+    # Sweep over subspace dimensions to see how mKNN saturates
+    print("Computing mKNN sweep over subspace dimensions...")
+    mknn_vs_dim = []
+    max_dim = min(r_A, r_B)
+    for d in range(1, max_dim + 1):
+        ZAp_d = torch.from_numpy(Z_A_test_proj[:, :d]).to(device)
+        ZBp_d = torch.from_numpy(Z_B_test_proj[:, :d]).to(device)
+        
+        kAd = knn_euclidean(ZAp_d, args.k)
+        kBd = knn_euclidean(ZBp_d, args.k)
+        
+        mknn_vs_dim.append({
+            "dim": d,
+            "mknn": mknn_overlap(kAd, kBd)
+        })
+        
     # 7. Write results
     results = {
         "model_a": args.model_a,
@@ -264,6 +279,7 @@ def main():
         "rank_b": int(r_B),
         "mknn_dense_cosine": mknn_dense,
         "mknn_subspace_euclidean": mknn_subspace,
+        "mknn_vs_dim": mknn_vs_dim,
         "stats_a": stats_A,
         "stats_b": stats_B,
     }
