@@ -4,9 +4,9 @@
 **Phase:** 2 — Eigenspectrum Audit & Validity Gate
 **Date:** 2026-07-31
 **Status of this document:** complete and self-contained. The phase it reports on is **not yet
-sealed** — see §9.
+sealed** — see §10.
 
-This document reports three experiments. It is written for a reviewer with no prior context on
+This document reports four experiments. It is written for a reviewer with no prior context on
 the project. Everything needed to check the claims — data provenance, method, measured values,
 cache keys, and reproduction commands — is included or pointed at explicitly.
 
@@ -29,10 +29,20 @@ survives: removing L2 normalization moves `m` by **0.28%**, and the cloud's loca
 dimension is **stable and tight** (~20–25, std 2.0), which is what a genuine manifold looks
 like rather than a structureless cloud.
 
+A fourth replicated the result along the two axes that were confounded with it. The paired HSC
+survey column — same objects, same model, different imagery — gives `m = 0.4226` (+2.55%). A
+~90% disjoint resample under a new seed gives `m = 0.411948` (**−0.03%**), with *identical*
+positive/negative eigenvalue counts. The geometry is a stable population-level property, not an
+artifact of one column or one draw.
+
 The practical consequence: **classical MDS does not describe this geometry**, and the downstream
 work that assumed a valid flat embedding cannot proceed on that assumption. The surviving
 explanation is a real, stable ~20–25 dimensional manifold whose geodesic metric is strongly
 non-Euclidean.
+
+**The one variable never varied is the model.** Every fit reported here uses DINOv3 ViT-B/16.
+Whether this is a property of that embedding space, of deep vision embeddings generally, or of
+this astronomical population, is untested and is the largest open question (§8).
 
 **A correction this raises (§6.4):** the residual-curve elbow of 5, which was frozen as the
 project's working dimension, disagrees with every other dimension estimate available (18, 19.5,
@@ -60,7 +70,7 @@ project's working dimension, disagrees with every other dimension estimate avail
 passed three stability metrics was `[10, 15, 30]`, centre 15). `n_components = 18` came from the
 ceiling of the median over eight geometric intrinsic-dimension estimators (17.183 → 18).
 
-**Note for interpretation (§6, §7):** rows are L2-normalized, so the points lie on the unit
+**Note for interpretation (§6, §8):** rows are L2-normalized, so the points lie on the unit
 hypersphere in R^768. The raw pre-normalization norms are tightly concentrated
 (16.029 ± 0.504, cv = 3.1%) — the embeddings were already near-constant-norm before
 normalization was applied. This matters for §6.2.
@@ -397,7 +407,75 @@ spectrum of the double-centred geodesic matrix and are independent of `n_compone
 
 ---
 
-## 7. Interpretation — what is established, and what is not
+## 7. Experiment 4 — Replication across survey column and disjoint sample
+
+### 7.1 Status
+
+Also **not pre-registered**; diagnostic, same standing as Experiment 3. Reuses `r`/`m` and the
+four thresholds verbatim. Scripts: `notebooks/diagnostics/hsc_crosscheck.py` and
+`notebooks/diagnostics/seed_crosscheck.py`.
+
+Experiments 1–3 all rest on a single column (`legacysurvey`) of a single subsample
+(seed 20260729). Two things were therefore fully confounded with the result: the survey
+column, and the particular 10,000 objects drawn. This experiment varies each in turn.
+
+### 7.2 Cross-survey — the paired HSC column
+
+The config carries a second column, `hsc`: the **same objects row-for-row**, the **same
+DINOv3 ViT-B/16 model**, different sky survey imagery. Already subsampled and normalized in
+cache. Fitted with identical settings (k=15, `n_components=18`, dense).
+
+| | `legacysurvey` (published) | `hsc` |
+|---|---|---|
+| `r` | 0.052419 | 0.062512 |
+| `m` | **0.412071** | **0.422582** |
+| positive / negative | 4971 / 5029 | 4965 / 5035 |
+| `λ_max_pos` | 3.230854e+03 | 2.863319e+03 |
+| `λ_min_neg` | −1.693588e+02 | −1.789906e+02 |
+| Verdict | FAIL | FAIL |
+| TwoNN dim | 19.48 | 17.56 |
+| Local PCA median (std) | 25.0 (2.01) | 22.0 (2.57) |
+
+`m` differs by **+2.55%**. Same signature throughout: ~half the spectrum negative, `r` passing
+its own bound while `m` fails by ~3×, negative tail 2.8e+10 above the noise floor, intrinsic
+dimension stable and tight.
+
+**The result is not specific to the Legacy Survey column.** Note the limit, though: the two
+columns are ~0.85 cosine-aligned (mean |hsc − ls| = 0.0156 on unit vectors; the project's own
+alignment check measured `s_true = 0.8428`). They are correlated representations of the same
+objects, so this is a genuine but *weak* replication — it varies the input imagery and nothing
+else.
+
+### 7.3 Disjoint sample — a fresh draw under a new seed
+
+A new 10,000 rows drawn from the same 101,725-row config under `seed = 20260801`. Overlap with
+the original draw is **1,002 rows (10.02%)**, matching the 9.83% chance expectation for
+independent draws — so ~90% of the objects are different. Same column, same model, same
+settings. This also exercises the pre-registration's remediation option 2, which had been left
+untested.
+
+| | seed 20260729 (published) | seed 20260801 |
+|---|---|---|
+| `r` | 0.052419 | 0.048304 |
+| `m` | **0.412071** | **0.411948** |
+| positive / negative | 4971 / 5029 | **4971 / 5029** |
+| `λ_max_pos` | 3.230854e+03 | 3.203943e+03 |
+| `λ_min_neg` | −1.693588e+02 | −1.547647e+02 |
+| Verdict | FAIL | FAIL |
+| TwoNN dim | 19.48 | 19.98 |
+| Local PCA mean ± std | 24.52 ± 2.01 | 24.54 ± 2.02 |
+
+**`m` differs by −0.03%, and the positive/negative eigenvalue counts are identical.** On ~90%
+different objects. Local PCA dimension agrees to two decimal places in both mean and standard
+deviation.
+
+This is a much stronger replication than §7.2 and it closes two things at once: **sampling
+variance is not a factor**, and the geometry is **not a property of the particular 10,000
+objects** originally drawn. It is a stable population-level property.
+
+---
+
+## 8. Interpretation — what is established, and what is not
 
 ### Established by these experiments
 
@@ -412,7 +490,12 @@ spectrum of the double-centred geodesic matrix and are independent of `n_compone
    inverted (§6.2).
 6. The cloud **is** a manifold: local intrinsic dimension is stable and tightly concentrated at
    ~20–25 across both spaces (§6.3).
-7. Therefore **classical MDS is not a valid description of this geodesic metric**, and any
+7. It is **not specific to the Legacy Survey column**: the paired HSC column gives `m = 0.4226`,
+   +2.55% (§7.2).
+8. It is **not a property of the particular 10,000 objects, nor of sampling variance**: a ~90%
+   disjoint draw gives `m = 0.411948`, −0.03%, with identical positive/negative eigenvalue
+   counts (§7.3).
+9. Therefore **classical MDS is not a valid description of this geodesic metric**, and any
    downstream method assuming a valid flat Isomap embedding is unsupported on this fit.
 
 ### The surviving explanation
@@ -429,8 +512,14 @@ and it now has to be done with a representation that does not assume flatness.
 
 ### Remaining untested alternatives
 
+- **The model itself — the one variable never varied.** Every fit reported here uses DINOv3
+  ViT-B/16. Both surveys, both seeds, normalized and unnormalized: same model throughout.
+  Nothing distinguishes "a property of DINOv3 ViT-B/16 embedding geometry" from "a property of
+  deep vision embeddings generally" or "a property of this astronomical population." Testing it
+  requires a different model family — another of the dataset's 163 configs. **This is now the
+  single largest open question, and the runs are independent and embarrassingly parallel.**
 - **Shell geometry.** §6.2 closes "normalization caused it" but not "the data occupies a thin
-  shell (cv = 3.1% in raw norm) and shell-like geometry contributes." Untested; needs a
+  shell (cv ≈ 3.1% in raw norm) and shell-like geometry contributes." Untested; needs a
   different probe than the one run here.
 - **Estimator-specific behaviour.** Both dimension estimators in §6.3 are neighbourhood-based
   and could share a bias. They agree with the prior phase's eight geometric estimators, which
@@ -446,20 +535,24 @@ is comparable in magnitude to the positive part.
 
 ---
 
-## 8. Limitations
+## 9. Limitations
 
-- **One subsample.** 10,000 of 101,725 rows, a single seed. Sampling variance was not tested; a
-  new-seed re-draw is an enumerated remediation option that was not exercised.
-- **One dataset config.** One of 163 configs in the source dataset. Whether this behaviour is
-  specific to `legacysurvey_dinov3_vitb16` or general across PU embedding spaces is untested,
-  and is the single highest-value use of additional compute — the runs are independent and
-  embarrassingly parallel.
+- **Sampling variance: now tested and closed** (§7.3). A ~90% disjoint draw reproduces `m` to
+  within 0.03%. This was the pre-registration's remediation option 2.
+- **One model.** One of 163 configs, and crucially **one model architecture** (DINOv3
+  ViT-B/16) across every fit reported here. Both survey columns and both seeds share it.
+  Whether the behaviour generalizes to other model families is untested and is the single
+  highest-value use of additional compute — the runs are independent and embarrassingly
+  parallel.
 - **Three re-fit values of `k`,** by deliberate pre-registration. `k = 8, 20` excluded.
 - **Co-diagnostics are descriptive.** `GEO_AMBIENT_RATIO` and `LONG_EDGE_FRACTION` carry no
   pre-registered thresholds by design; they support a qualitative reading only.
-- **Experiment 3 was not pre-registered** (§6.1). It is hypothesis-narrowing triage, weaker
-  evidence than Experiments 1 and 2.
-- **Shell geometry untested** (§7). `n_components = 18` sits below the measured intrinsic
+- **Experiments 3 and 4 were not pre-registered** (§6.1, §7.1). They are hypothesis-narrowing
+  and replication triage, weaker evidence than Experiments 1 and 2.
+- **The HSC replication is weak** (§7.2): the two columns are ~0.85 cosine-aligned
+  representations of the same objects, so it varies input imagery and nothing else. The
+  disjoint-seed replication (§7.3) is the stronger of the two.
+- **Shell geometry untested** (§8). `n_components = 18` sits below the measured intrinsic
   dimension and every fit was dimension-starved (§6.4) — this does not affect `r`/`m`, which
   derive from the full spectrum, but it does constrain the embeddings.
 - **Curvature was never directly measured.** The conclusion rests on eliminating alternatives,
@@ -470,7 +563,7 @@ is comparable in magnitude to the positive part.
 
 ---
 
-## 9. Status and reproduction
+## 10. Status and reproduction
 
 ### Status
 
@@ -490,6 +583,8 @@ at a different `k` (already explored, and closed by Experiment 2), resample with
 | `notebooks/01_manifold_and_gate.ipynb` §6.0–§6.9 | Experiment 1, residual/elbow analysis, verdict |
 | `notebooks/02_k_sensitivity_refit.ipynb` | Experiment 2 |
 | `notebooks/diagnostics/gate_diagnostics.py` | Experiment 3 |
+| `notebooks/diagnostics/hsc_crosscheck.py` | Experiment 4, cross-survey |
+| `notebooks/diagnostics/seed_crosscheck.py` | Experiment 4, disjoint sample |
 | `.planning/phases/02-eigenspectrum-audit-validity-gate/02-REFIT-PREREGISTRATION.md` | Experiment 2's pre-registration + outcome |
 | `notebooks/.cache/gate_verdict_43cf438bc944c509.json` | Machine-readable verdict, self-contained |
 | `notebooks/.cache/mds_eigenspectrum_43cf438bc944c509.npz` | Full 10,000-value spectrum |
@@ -518,6 +613,15 @@ running anything:
 python notebooks/diagnostics/gate_diagnostics.py
 ```
 
+Experiment 4 is two scripts, one fit plus one eigensolve each (~2 min apiece). The
+disjoint-sample script draws a fresh subsample; the source config is already in the local
+HuggingFace cache, so it does not re-download:
+
+```
+python notebooks/diagnostics/hsc_crosscheck.py
+PYTHONPATH=notebooks python notebooks/diagnostics/seed_crosscheck.py
+```
+
 The headline statistics can be checked independently of the notebooks, from the persisted
 spectrum alone:
 
@@ -541,3 +645,4 @@ m = np.abs(neg).sum() / np.abs(ev).sum()   # 0.412071
 | `5cf9a19`, `539dafa` | Residual curves, elbow, frozen dimension |
 | `aea04ff`, `a2ca11f` | Verdict artifact, downstream enforcement |
 | `9c6e2b5` | Experiment 3 diagnostic script |
+| `18bbaf4` | Experiment 4 replication scripts |
