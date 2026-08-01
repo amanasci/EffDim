@@ -203,7 +203,7 @@ pre-registered 35-model cross-architecture sweep (`sweep/`, `02-MODEL-SWEEP-PRER
 is packaged for external compute and not yet run; its result bears on how general the finding is
 but does not block this phase's method survey.
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 **Wave dependencies:** Wave 1 = `02.1-01` alone (the fork; blocking decision checkpoint).
 Wave 2 = `02.1-02` and `02.1-03` in parallel, both depending on 01. Wave 3 = `02.1-04`,
@@ -236,7 +236,7 @@ Plans:
       candidate survey with assumptions, costs at n=10,000, maturity and Phase 3 demand (GEOM-01,
       GEOM-02)
 
-- [ ] 02.1-03-PLAN.md — Tested probe module with Wave 0 synthetic fixtures, then the measured run
+- [x] 02.1-03-PLAN.md — Tested probe module with Wave 0 synthetic fixtures, then the measured run
       over the frozen Phase 2 cache: correction blindness on three spectra, the pseudo-Euclidean
       (p, q) distortion ladder against Phase 2's own 200,000-pair sample, and delta-hyperbolicity
       against tree and flat-Euclidean anchors (GEOM-03, GEOM-04, GEOM-05)
@@ -401,6 +401,6 @@ rather than on a Phase 2 PASS.
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
-| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 2/4 | In Progress|  |
+| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

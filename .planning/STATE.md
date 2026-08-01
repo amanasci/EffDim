@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.1
 current_phase_name: geometry-representation-research
 status: executing
-stopped_at: "Completed 02.1-02-PLAN.md (02.1-SURVEY.md: GEOM-01/GEOM-02 written)"
-last_updated: "2026-08-01T19:46:07.070Z"
+stopped_at: Completed 02.1-03-PLAN.md (geometry probes measured over frozen Phase 2 cache; falsifier condition (a) trips, condition (b) does not)
+last_updated: "2026-08-01T19:59:52.419Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 02.1 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 11
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.1 (geometry-representation-research) — EXECUTING
-Plan: 3 of 4 (wave 1 of 3)
+Plan: 4 of 4 (wave 1 of 3)
 Status: Ready to execute
 Last activity: 2026-08-01 — Phase 02.1 execution started
 
@@ -93,7 +93,7 @@ spectrum independently of n_components.
 flattening), and the target dimension is ~20-25, not 5.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [███████░░░] 73% (0/4 v1.1 phases complete; none yet planned)
+Progress: [████████░░] 82% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -130,6 +130,7 @@ Progress: [███████░░░] 73% (0/4 v1.1 phases complete; none y
 | Phase 02 P02 | 15min | 3 tasks | 1 files |
 | Phase 02.1 P01 | N/A | 2 tasks | 2 files |
 | Phase 02.1 P02 | 15min | 2 tasks | 1 files |
+| Phase 02.1 P03 | 45min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02.1-02: GEOM-01 class-membership table separates PSD-constrained-by-construction (MVU/Laplacian-eigenmaps/LLE/Hessian-LLE/LTSA) from probability-based (t-SNE/UMAP) as two distinct mechanisms, both meaning no negative-eigenvalue diagnostic can exist; Isomap.kernel_pca_.eigenvalues_'s n_components truncation recorded as a second, within-family instance of the same blindness
 - [Phase ?]: 02.1-02: GEOM-02 survey covers all six candidate families with identical five-part treatment (Assumptions/Cost/Maturity/Fork side/Phase 3 demand); graph-native families (Ollivier-Ricci, Forman-Ricci) costed as fully as coordinate-producing ones despite the ratified fork verdict, since the falsifier is still untested; pseudo-Euclidean/Krein retention identified as cheapest candidate (one bottom-40 eigensolve on already-cached spectrum)
 - [Phase ?]: 02.1-02: MVU SDP claim, Ollivier-Ricci continuum-limit claim (arXiv:2307.02378), and both under-extracted survey papers (arXiv:2510.22599, arXiv:2509.15517) labelled [CITED] not [VERIFIED] in 02.1-SURVEY.md -- no WebFetch/WebSearch tool available this session
+- [Phase ?]: 02.1-03: falsifier condition (a) trips unambiguously (real manifold delta_rel_max=0.386 exceeds the flat-Euclidean anchor 0.360, not just close to it); condition (b) does not cleanly trip (18.4% relative distortion reduction from retaining negative eigenvalue directions -- real but modest, not adjudicated as 'material')
+- [Phase ?]: 02.1-03: pair-sample bit-identity verified on first attempt (200,000 re-drawn pairs match cached geo_pairs_r2 exactly); Krein bottom-40 eigenpairs cross-checked against Phase 2's eigvals_all to rtol=1e-8
+- [Phase ?]: 02.1-03: working-dimension re-derivation under gate_verdict's own kneedle criterion lands on (p,q)=(8,0) for the pseudo-Euclidean frontier -- identical to the classical q=0 elbow of p=8; retaining negative directions does not move the elbow-selected dimension, only improves the far tail past it
 
 ### Pending Todos
 
@@ -213,7 +217,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-01T19:46:07.051Z
-Stopped at: Completed 02.1-02-PLAN.md (02.1-SURVEY.md: GEOM-01/GEOM-02 written)
+Last session: 2026-08-01T19:59:52.409Z
+Stopped at: Completed 02.1-03-PLAN.md (geometry probes measured over frozen Phase 2 cache; falsifier condition (a) trips, condition (b) does not)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None

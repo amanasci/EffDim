@@ -90,16 +90,16 @@ negative, robust across `k`, survey column, disjoint resample, and normalization
       pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it
       would demand of the decoder phase
 
-- [ ] **GEOM-03**: A reader can see what 41% negative eigenvalue mass means geometrically, and
+- [x] **GEOM-03**: A reader can see what 41% negative eigenvalue mass means geometrically, and
       an argued judgment on whether indefinite MDS or distance-matrix correction is principled
       here or merely cosmetic — a method that hides the negativity rather than representing it
       must be named as such
 
-- [ ] **GEOM-04**: A reader gets one recommended representation with its rationale, the
+- [x] **GEOM-04**: A reader gets one recommended representation with its rationale, the
       alternatives it was chosen over, and the evidence it is expected to be judged against,
       sufficient for the decoder phase to be re-specified without re-opening the question
 
-- [ ] **GEOM-05**: A reader can see what the recommendation implies for the working dimension.
+- [x] **GEOM-05**: A reader can see what the recommendation implies for the working dimension.
       `D_FROZEN = 5` derives from a residual elbow flagged suspect against three other
       estimates clustering at 18–25; whether the chosen representation inherits, revises, or
       discards it must be stated explicitly
@@ -266,9 +266,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPEC-07 | Phase 2 | Pending |
 | GEOM-01 | Phase 02.1 | Complete |
 | GEOM-02 | Phase 02.1 | Complete |
-| GEOM-03 | Phase 02.1 | Pending |
-| GEOM-04 | Phase 02.1 | Pending |
-| GEOM-05 | Phase 02.1 | Pending |
+| GEOM-03 | Phase 02.1 | Complete |
+| GEOM-04 | Phase 02.1 | Complete |
+| GEOM-05 | Phase 02.1 | Complete |
 | DEC-01 | Phase 3 | Pending |
 | DEC-02 | Phase 3 | Pending |
 | DEC-03 | Phase 3 | Pending |
