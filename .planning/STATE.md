@@ -5,7 +5,7 @@ milestone_name: PU Manifold Curvature
 current_phase: 02
 current_phase_name: eigenspectrum-audit-validity-gate
 status: executing
-stopped_at: Completed 02-02-PLAN.md (D_FROZEN=5 via freeze-at-elbow; GATE_VERDICT=FAIL remains settled)
+stopped_at: 02-03 tasks 1-2 committed; HOLDING at Task 3 blocking human-verify gate at user request (inspecting before sealing)
 last_updated: "2026-07-31T20:37:32.930Z"
 last_activity: 2026-07-31
 last_activity_desc: k-sensitivity re-fit complete, waves 2-3 resumed
@@ -28,7 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02 (eigenspectrum-audit-validity-gate) — EXECUTING
-Plan: 3 of 3 (02-01 complete; k-sensitivity remediation complete; 02-02 dispatched)
+Plan: 3 of 3 — 02-03 tasks 1/3 and 2/3 committed (aea04ff, a2ca11f); Task 3 is a blocking
+human-verify gate and the user is inspecting before approving. Phase NOT sealed, NOT verified.
+Resume by completing 02-03 Task 3 once approved.
 Status: Sealing the documented FAIL per pre-registration Rule A
 Last activity: 2026-07-31 — k-sensitivity re-fit complete, waves 2-3 resumed
 
