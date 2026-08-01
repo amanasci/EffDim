@@ -203,27 +203,31 @@ pre-registered 35-model cross-architecture sweep (`sweep/`, `02-MODEL-SWEEP-PRER
 is packaged for external compute and not yet run; its result bears on how general the finding is
 but does not block this phase's method survey.
 
-**Plans:** 4 plans across 3 waves
+**Plans:** 1/4 plans executed
 
 **Wave dependencies:** Wave 1 = `02.1-01` alone (the fork; blocking decision checkpoint).
 Wave 2 = `02.1-02` and `02.1-03` in parallel, both depending on 01. Wave 3 = `02.1-04`,
 depending on all three.
 
 **Cross-cutting constraints:**
+
 - The coordinate-producing vs graph-native fork is resolved in wave 1 and gates everything after
   it. The graph-native branch re-opens CURV-01..03 (intrinsic Ricci ≠ the extrinsic
   mean-curvature vector) rather than merely re-specifying Phase 3's input.
+
 - No package installs anywhere in this phase — all seven candidate libraries returned SUS from
   the legitimacy checker and every plan carries a prohibition against installing.
+
 - Plan 03 requires the gitignored Phase 2 caches (`isomap_43cf438bc944c509.joblib`, 1.55 GiB, and
   the spectrum `.npz`). Not reproducible by any plan here; the runner halts rather than
   regenerating, because regenerating would change provenance.
+
 - Evaluation criterion and dimension rule are pre-registered in wave 1, before any candidate is
   compared, with ordering proved by git ancestry rather than asserted.
 
 Plans:
 
-- [ ] 02.1-01-PLAN.md — Pre-register every decision rule, then resolve the coordinate-producing vs
+- [x] 02.1-01-PLAN.md — Pre-register every decision rule, then resolve the coordinate-producing vs
       graph-native fork with both branches' Phase 3 consequences by requirement ID; two commits with
       git-proved ordering, ratified at a blocking decision checkpoint (GEOM-02, GEOM-04)
 
@@ -397,6 +401,6 @@ rather than on a Phase 2 PASS.
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
-| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 0/4 | Planned | - |
+| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 1/4 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |

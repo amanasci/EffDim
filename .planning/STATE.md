@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.1
 current_phase_name: geometry-representation-research
 status: executing
-stopped_at: 02-03 tasks 1-2 committed; HOLDING at Task 3 blocking human-verify gate at user request (inspecting before sealing)
-last_updated: "2026-08-01T15:16:53.009Z"
+stopped_at: "Completed 02.1-01-PLAN.md (fork ratified: coordinate-producing branch)"
+last_updated: "2026-08-01T19:37:38.727Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 02.1 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.1 (geometry-representation-research) — EXECUTING
-Plan: 1 of 4 (wave 1 of 3)
-Status: Executing Phase 02.1
+Plan: 2 of 4 (wave 1 of 3)
+Status: Ready to execute
 Last activity: 2026-08-01 — Phase 02.1 execution started
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3
@@ -93,7 +93,7 @@ spectrum independently of n_components.
 flattening), and the target dimension is ~20-25, not 5.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [█████████░] 86% (0/4 v1.1 phases complete; none yet planned)
+Progress: [██████░░░░] 64% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -128,6 +128,7 @@ Progress: [█████████░] 86% (0/4 v1.1 phases complete; none y
 | Phase 01 P04 | 30min | 3 tasks | 1 files |
 | Phase 02 P01 | 20min | 2 tasks | 1 files |
 | Phase 02 P02 | 15min | 3 tasks | 1 files |
+| Phase 02.1 P01 | N/A | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Rule 1 auto-fix: np.asarray(dist_matrix_, dtype=float64) on a read-only memmap returned a view not a copy (dtype already matched); fixed with np.array(..., copy=True).
 - [Phase ?]: Task 2 checkpoint resolved: freeze-at-elbow selected, D_FROZEN=5 confirmed and approved by human (ELBOW_D=5 <= N_COMPONENTS=18)
 - [Phase ?]: D_FROZEN=5 frozen via classical-MDS nesting slice EMBEDDING_ISOMAP[:, :5]; nesting claim verified numerically to worst relative difference 1.207e-14, not merely argued in prose
+- [Phase ?]: 02.1-01 checkpoint resolved: ratify (coordinate-producing branch stands as written, no amendment); falsifier remains live and untested, tested next by plan 02.1-03
 
 ### Pending Todos
 
@@ -207,7 +209,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-31T20:37:32.913Z
-Stopped at: Completed 02-02-PLAN.md (D_FROZEN=5 via freeze-at-elbow; GATE_VERDICT=FAIL remains settled)
+Last session: 2026-08-01T19:37:38.707Z
+Stopped at: Completed 02.1-01-PLAN.md (fork ratified: coordinate-producing branch)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
