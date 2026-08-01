@@ -1,0 +1,5 @@
+physics_vit_dino:
+  model_a: vit_base
+  model_b: dinov3_vitb16
+  dataset: physics
+  parquet_dir: data_hf/physics
