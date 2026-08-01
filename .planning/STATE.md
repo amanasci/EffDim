@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02
-current_phase_name: eigenspectrum-audit-validity-gate
+current_phase: 02.1
+current_phase_name: geometry-representation-research
 status: executing
 stopped_at: 02-03 tasks 1-2 committed; HOLDING at Task 3 blocking human-verify gate at user request (inspecting before sealing)
-last_updated: "2026-08-01T15:09:44.458Z"
-last_activity: 2026-07-31
-last_activity_desc: k-sensitivity re-fit complete, waves 2-3 resumed
+last_updated: "2026-08-01T15:16:53.009Z"
+last_activity: 2026-08-01
+last_activity_desc: Phase 02.1 execution started
 progress:
   total_phases: 3
   completed_phases: 1
@@ -23,16 +23,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02 — eigenspectrum-audit-validity-gate
+**Current focus:** Phase 02.1 — geometry-representation-research
 
 ## Current Position
 
-Phase: 02 (eigenspectrum-audit-validity-gate) — EXECUTING
-Plan: 3 of 3 — 02-03 tasks 1/3 and 2/3 committed (aea04ff, a2ca11f); Task 3 is a blocking
-human-verify gate and the user is inspecting before approving. Phase NOT sealed, NOT verified.
-Resume by completing 02-03 Task 3 once approved.
-Status: Sealing the documented FAIL per pre-registration Rule A
-Last activity: 2026-07-31 — k-sensitivity re-fit complete, waves 2-3 resumed
+Phase: 02.1 (geometry-representation-research) — EXECUTING
+Plan: 1 of 4 (wave 1 of 3)
+Status: Executing Phase 02.1
+Last activity: 2026-08-01 — Phase 02.1 execution started
+
+**!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3
+committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate that the
+user paused to inspect before approving. Phase 2 is NOT sealed and NOT verified; no
+`02-VERIFICATION.md` exists and the ROADMAP still shows 2/3 plans. Resume by approving 02-03
+Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its
+work does not depend on Phase 2 being sealed, only on Phase 2's FAIL verdict, which is settled
+and recorded below.
 
 **Gate outcome (settled).** 02-01 measured R_STAT=0.052419 (passes r<0.10) and
 M_STAT=0.412071 (fails the m<0.15 MARGINAL bound) on the frozen k*=15 fit:
