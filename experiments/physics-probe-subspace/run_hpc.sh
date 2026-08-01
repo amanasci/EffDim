@@ -10,8 +10,7 @@ eval "$(conda shell.bash hook)"
 conda activate effdim
 
 # Ensure outputs go to the right place
-export PLATONIC_ROOT=$HOME/platonic-universe
-mkdir -p logs
+mkdir -p outputs/probe_basis logs
 
 echo "Starting Physics Probe Subspace pipeline..."
 python experiments/physics-probe-subspace/probe_basis_mknn.py \
@@ -19,10 +18,10 @@ python experiments/physics-probe-subspace/probe_basis_mknn.py \
     --device cuda \
     --probes independent \
     --k 10 \
-    --output-dir $PLATONIC_ROOT/outputs/probe_basis
+    --output-dir outputs/probe_basis
 
 echo "Generating analysis charts..."
 python experiments/physics-probe-subspace/analyse_probes.py \
-    --results $PLATONIC_ROOT/outputs/probe_basis/results.json
+    --results outputs/probe_basis/results.json
 
 echo "Done!"

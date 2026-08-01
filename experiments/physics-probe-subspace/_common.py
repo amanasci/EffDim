@@ -14,14 +14,8 @@ def platonic_root(cli_value: str | None = None) -> Path:
     env = os.environ.get("PLATONIC_ROOT")
     if env:
         return Path(env).expanduser().resolve()
-    candidates = [
-        Path.home() / "GitHub" / "platonic-universe",
-        Path.home() / "platonic-universe",
-    ]
-    for c in candidates:
-        if c.is_dir():
-            return c.resolve()
-    return candidates[0]
+    # Default to the EffDim repository root (two directories up from this file)
+    return Path(__file__).resolve().parents[2]
 
 
 def load_embeddings(path: Path, col: str = "embeddings", hf_repo: str = "UniverseTBD/pu-embeddings") -> np.ndarray:
