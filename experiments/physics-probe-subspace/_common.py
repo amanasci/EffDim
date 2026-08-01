@@ -22,11 +22,15 @@ def load_embeddings(path: Path, col: str = "embeddings", hf_repo: str = "Univers
     """Load embedding column as float32 matrix. Fetches from HF if local path is missing."""
     if not path.exists():
         from huggingface_hub import hf_hub_download
+        import shutil
         print(f"File {path} not found locally. Downloading from HF {hf_repo}...")
         # Reconstruct repo path: e.g. physics/vit_base_test.parquet
         rel_path = f"{path.parent.name}/{path.name}"
         local_path = hf_hub_download(repo_id=hf_repo, filename=rel_path, repo_type="dataset")
-        path = Path(local_path)
+        
+        print(f"Moving downloaded file to {path}...")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(local_path, path)
         
     table = pq.read_table(path, columns=[col])
     X = np.vstack(table.column(0).to_pylist()).astype(np.float32)

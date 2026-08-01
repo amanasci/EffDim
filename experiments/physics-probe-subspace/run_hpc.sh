@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 
 # Load necessary modules (uncomment and adjust depending on your HPC's module system)
