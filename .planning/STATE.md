@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.1
 current_phase_name: geometry-representation-research
 status: executing
-stopped_at: "Completed 02.1-01-PLAN.md (fork ratified: coordinate-producing branch)"
-last_updated: "2026-08-01T19:37:38.727Z"
+stopped_at: "Completed 02.1-02-PLAN.md (02.1-SURVEY.md: GEOM-01/GEOM-02 written)"
+last_updated: "2026-08-01T19:46:07.070Z"
 last_activity: 2026-08-01
 last_activity_desc: Phase 02.1 execution started
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.1 (geometry-representation-research) — EXECUTING
-Plan: 2 of 4 (wave 1 of 3)
+Plan: 3 of 4 (wave 1 of 3)
 Status: Ready to execute
 Last activity: 2026-08-01 — Phase 02.1 execution started
 
@@ -93,7 +93,7 @@ spectrum independently of n_components.
 flattening), and the target dimension is ~20-25, not 5.
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
-Progress: [██████░░░░] 64% (0/4 v1.1 phases complete; none yet planned)
+Progress: [███████░░░] 73% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -129,6 +129,7 @@ Progress: [██████░░░░] 64% (0/4 v1.1 phases complete; none y
 | Phase 02 P01 | 20min | 2 tasks | 1 files |
 | Phase 02 P02 | 15min | 3 tasks | 1 files |
 | Phase 02.1 P01 | N/A | 2 tasks | 2 files |
+| Phase 02.1 P02 | 15min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 2 checkpoint resolved: freeze-at-elbow selected, D_FROZEN=5 confirmed and approved by human (ELBOW_D=5 <= N_COMPONENTS=18)
 - [Phase ?]: D_FROZEN=5 frozen via classical-MDS nesting slice EMBEDDING_ISOMAP[:, :5]; nesting claim verified numerically to worst relative difference 1.207e-14, not merely argued in prose
 - [Phase ?]: 02.1-01 checkpoint resolved: ratify (coordinate-producing branch stands as written, no amendment); falsifier remains live and untested, tested next by plan 02.1-03
+- [Phase ?]: 02.1-02: GEOM-01 class-membership table separates PSD-constrained-by-construction (MVU/Laplacian-eigenmaps/LLE/Hessian-LLE/LTSA) from probability-based (t-SNE/UMAP) as two distinct mechanisms, both meaning no negative-eigenvalue diagnostic can exist; Isomap.kernel_pca_.eigenvalues_'s n_components truncation recorded as a second, within-family instance of the same blindness
+- [Phase ?]: 02.1-02: GEOM-02 survey covers all six candidate families with identical five-part treatment (Assumptions/Cost/Maturity/Fork side/Phase 3 demand); graph-native families (Ollivier-Ricci, Forman-Ricci) costed as fully as coordinate-producing ones despite the ratified fork verdict, since the falsifier is still untested; pseudo-Euclidean/Krein retention identified as cheapest candidate (one bottom-40 eigensolve on already-cached spectrum)
+- [Phase ?]: 02.1-02: MVU SDP claim, Ollivier-Ricci continuum-limit claim (arXiv:2307.02378), and both under-extracted survey papers (arXiv:2510.22599, arXiv:2509.15517) labelled [CITED] not [VERIFIED] in 02.1-SURVEY.md -- no WebFetch/WebSearch tool available this session
 
 ### Pending Todos
 
@@ -209,7 +213,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-01T19:37:38.707Z
-Stopped at: Completed 02.1-01-PLAN.md (fork ratified: coordinate-producing branch)
+Last session: 2026-08-01T19:46:07.051Z
+Stopped at: Completed 02.1-02-PLAN.md (02.1-SURVEY.md: GEOM-01/GEOM-02 written)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None

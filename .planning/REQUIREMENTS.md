@@ -80,11 +80,11 @@ that classical MDS is an invalid description of the Isomap geodesic geometry for
 embeddings (`m = 0.412071` against a 0.15 MARGINAL bound; ~41% of absolute eigenvalue mass
 negative, robust across `k`, survey column, disjoint resample, and normalization).
 
-- [ ] **GEOM-01**: A reader can see which manifold-learning methods share Isomap's
+- [x] **GEOM-01**: A reader can see which manifold-learning methods share Isomap's
       flat-target assumption and would fail the same way on this data, establishing the
       failure as a property of the method class rather than an implementation choice
 
-- [ ] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
+- [x] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
       target — Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature
       (Ollivier-Ricci, Forman-Ricci) requiring no embedding, diffusion maps, and
       pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it
@@ -264,8 +264,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SPEC-05 | Phase 2 | Complete |
 | SPEC-06 | Phase 2 | Pending |
 | SPEC-07 | Phase 2 | Pending |
-| GEOM-01 | Phase 02.1 | Pending |
-| GEOM-02 | Phase 02.1 | Pending |
+| GEOM-01 | Phase 02.1 | Complete |
+| GEOM-02 | Phase 02.1 | Complete |
 | GEOM-03 | Phase 02.1 | Pending |
 | GEOM-04 | Phase 02.1 | Pending |
 | GEOM-05 | Phase 02.1 | Pending |

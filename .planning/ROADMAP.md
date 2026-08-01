@@ -203,7 +203,7 @@ pre-registered 35-model cross-architecture sweep (`sweep/`, `02-MODEL-SWEEP-PRER
 is packaged for external compute and not yet run; its result bears on how general the finding is
 but does not block this phase's method survey.
 
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 **Wave dependencies:** Wave 1 = `02.1-01` alone (the fork; blocking decision checkpoint).
 Wave 2 = `02.1-02` and `02.1-03` in parallel, both depending on 01. Wave 3 = `02.1-04`,
@@ -231,7 +231,7 @@ Plans:
       graph-native fork with both branches' Phase 3 consequences by requirement ID; two commits with
       git-proved ordering, ratified at a blocking decision checkpoint (GEOM-02, GEOM-04)
 
-- [ ] 02.1-02-PLAN.md — The flat-target class-membership analysis (which methods share Isomap's
+- [x] 02.1-02-PLAN.md — The flat-target class-membership analysis (which methods share Isomap's
       assumption and which structurally cannot show the failure) and the six-family non-flat-target
       candidate survey with assumptions, costs at n=10,000, maturity and Phase 3 demand (GEOM-01,
       GEOM-02)
@@ -401,6 +401,6 @@ rather than on a Phase 2 PASS.
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete    | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress|  |
-| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 1/4 | In Progress|  |
+| 02.1. Geometry Representation Research (INSERTED) | v1.1 | 2/4 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
