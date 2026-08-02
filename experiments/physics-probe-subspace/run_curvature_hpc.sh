@@ -87,21 +87,21 @@ echo "SAE experiment complete. Results at: ${PLATONIC_ROOT}/${SAE_OUT}/results.m
 # Experiment 2: Multi-scale PCA residual curvature
 # ---------------------------------------------------------------------------
 echo ""
-echo ">>> [2/2] Multi-Scale PCA Residual Curvature Experiment"
-python experiments/physics-probe-subspace/multiscale_curvature_probe.py \
-    --platonic-root  "${PLATONIC_ROOT}" \
-    --model-a        vit_base \
-    --model-b        dinov3_vitb16 \
-    --dataset        physics \
-    --max-n          "${MAX_N}" \
-    --probes         "${PROBES}" \
-    --k-small        "${K_SMALL}" \
-    --k-large        "${K_LARGE}" \
-    --seed           "${SEED}" \
-    --output-dir     "${PLATONIC_ROOT}/${MS_OUT}"
-
-echo ""
-echo "Multi-scale experiment complete. Results at: ${PLATONIC_ROOT}/${MS_OUT}/results.md"
+# echo ">>> [2/2] Multi-Scale PCA Residual Curvature Experiment"
+# python experiments/physics-probe-subspace/multiscale_curvature_probe.py \
+#     --platonic-root  "${PLATONIC_ROOT}" \
+#     --model-a        vit_base \
+#     --model-b        dinov3_vitb16 \
+#     --dataset        physics \
+#     --max-n          "${MAX_N}" \
+#     --probes         "${PROBES}" \
+#     --k-small        "${K_SMALL}" \
+#     --k-large        "${K_LARGE}" \
+#     --seed           "${SEED}" \
+#     --output-dir     "${PLATONIC_ROOT}/${MS_OUT}"
+# 
+# echo ""
+# echo "Multi-scale experiment complete. Results at: ${PLATONIC_ROOT}/${MS_OUT}/results.md"
 
 # ---------------------------------------------------------------------------
 # Done
