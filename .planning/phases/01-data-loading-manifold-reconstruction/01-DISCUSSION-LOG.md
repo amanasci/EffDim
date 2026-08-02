@@ -197,11 +197,10 @@
 ## Claude's Discretion
 
 The user selected a concrete option on every question — no "you decide" answers. Items left
-open for planning (named during discussion, never locked) are listed in CONTEXT.md
-§Claude's Discretion: the three plateau thresholds, the alignment smoke-test margin, the
-provisional `d`, notebook output hygiene, section numbering, and the written Phase 1 → Phase 2
-interface.
+open for planning (named during discussion, never locked): listed in CONTEXT.md §Claude's
+Discretion — the three plateau thresholds, alignment smoke-test margin, provisional `d`,
+notebook output hygiene, section numbering, and the written Phase 1 → Phase 2 interface.
 
 ## Deferred Ideas
 
-None — no scope creep was raised; discussion stayed inside DATA-01..05 / ISO-01..05.
+None — no scope creep raised; discussion stayed inside DATA-01..05 / ISO-01..05.

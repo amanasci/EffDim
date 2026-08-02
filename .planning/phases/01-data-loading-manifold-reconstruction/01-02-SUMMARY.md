@@ -173,26 +173,21 @@ Each task was committed atomically:
 - **Issue:** The plan's `must_haves.truths` and Task 1 `<action>`/`<acceptance_criteria>`
   specify the negative control as literally `np.roll(LS, 1, axis=0)`, asserting it
   "drives z to roughly zero and the assertion raises." At full scale (n=10,000) this is
-  empirically false: `z=5.0010`, essentially exactly at `ALIGNMENT_MARGIN_Z=5.0`, so
-  `assert_alignment` does **not** raise for this specific perturbation. Root cause:
-  `row_indices` is sorted (D-07), so adjacent entries in the 10,000-row subsample are on
-  average only `101725/10000 ~= 10.2` original-catalog positions apart; this dataset's
-  paired HSC/Legacy-Survey embeddings carry weak but non-negligible residual correlation
-  over catalog-order gaps that small, so a one-position shift *within the sorted
-  subsample* is a materially milder perturbation than a genuinely gross misalignment. A
-  diagnostic sweep (not committed as notebook cells, run during development) confirmed
-  the pattern directly: `roll=1 -> z~5.00`, `roll=2 -> z~3.62`, `roll=10 -> z~1.55`,
-  `roll=1000 -> z~0.29`, full random permutation `-> z~1.15` -- all comfortably below
-  margin once the shift stops being adjacent-in-sort-order.
+  empirically false: `z=5.0010`, essentially exactly at `ALIGNMENT_MARGIN_Z=5.0`. Root
+  cause: `row_indices` is sorted (D-07), so adjacent entries are on average only
+  `101725/10000 ~= 10.2` original-catalog positions apart, and this dataset's paired
+  HSC/Legacy-Survey embeddings carry weak but non-negligible residual correlation over
+  catalog-order gaps that small. Diagnostic sweep (development only, not committed):
+  `roll=1 -> z~5.00`, `roll=2 -> z~3.62`, `roll=10 -> z~1.55`, `roll=1000 -> z~0.29`, full
+  random permutation `-> z~1.15` -- all comfortably below margin once the shift stops
+  being adjacent-in-sort-order.
 - **Fix:** Kept the literal `np.roll(LS, 1, axis=0)` diagnostic call (reported
   transparently via `alignment_smoke_test`, which never raises on a low z by itself, so
-  no `try`/`except` was needed for it), added an honest markdown explanation of the
-  finding immediately after, and used `np.roll(LS, 1000, axis=0)` -- a genuinely gross
-  misalignment, `z=0.2944` -- as the actual control wrapped in the single `try`/`except
-  ValueError` block whose raise is asserted. This keeps the notebook's "exactly one
-  `try`/`except`, in §1.7" invariant intact and satisfies the deeper intent (prove the
-  DATA-03 check has teeth against a gross misalignment) without weakening the DATA-03
-  check itself (`ALIGNMENT_MARGIN_Z=5.0`, strict `>`, unchanged).
+  no `try`/`except` was needed), added an honest markdown explanation, and used
+  `np.roll(LS, 1000, axis=0)` (`z=0.2944`) as the actual control wrapped in the single
+  `try`/`except ValueError` block whose raise is asserted -- keeping the notebook's
+  "exactly one `try`/`except`, in §1.7" invariant intact without weakening DATA-03 itself
+  (`ALIGNMENT_MARGIN_Z=5.0`, strict `>`, unchanged).
 - **Files modified:** `notebooks/01_manifold_and_gate.ipynb` (§1.7 only).
 - **Verification:** Full notebook re-executed end-to-end after the fix; `§1.7`'s
   `assert control_raised` now passes against the `roll=1000` control (`z=0.2944`); the

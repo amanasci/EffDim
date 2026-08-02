@@ -4,12 +4,12 @@
 **Files analyzed:** 7 (1 notebook + 6 package/config files)
 **Analogs found:** 3 / 7 (all from `src/effdim/`; `notebooks/` is empty — no in-repo notebook convention exists)
 
-**Important scope note:** `notebooks/` does not exist yet (confirmed: `ls notebooks/` returns empty). There is
-no in-repo notebook, `pu_manifold`-style helper package, or requirements-pinning convention to copy. Every
-analog below comes from `src/effdim/` (the sibling installable package) purely for **code style** (imports,
-docstrings, typing, error handling) — not for notebook structure, which D-01..D-04 in CONTEXT.md establish
-from scratch. Cache/config-hash patterns are sourced from ARCHITECTURE.md's Pattern 1 (research-authored
-example code), since no cache module exists in the repo yet either.
+**Scope note:** `notebooks/` does not exist yet (confirmed: `ls notebooks/` returns empty). No in-repo
+notebook, `pu_manifold`-style helper package, or requirements-pinning convention to copy. Every analog below
+comes from `src/effdim/` (the sibling installable package) purely for **code style** (imports, docstrings,
+typing, error handling) — not notebook structure, which D-01..D-04 in CONTEXT.md establish from scratch.
+Cache/config-hash patterns are sourced from ARCHITECTURE.md's Pattern 1 (research-authored example code),
+since no cache module exists in the repo yet either.
 
 ## File Classification
 

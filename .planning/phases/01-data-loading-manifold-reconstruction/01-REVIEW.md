@@ -30,23 +30,21 @@ status: issues_found
 ## Summary
 
 `cache.py` and `subsample.py` are solid: the path-containment guard in
-`_assert_inside_cache` was verified empirically (both a `../`-relative traversal stem
-and an absolute-path stem such as `/etc/passwd` are correctly rejected, because
-`_assert_inside_cache` resolves the fully composed path and checks containment rather
-than pattern-matching the stem string), the alignment smoke test's statistics are sound,
-and the 14-test suite passes cleanly against the pinned dependency versions. `curvature.py`
-and `mknn.py` are intentional Phase 3/4 stubs per D-02 and are out of scope for findings.
+`_assert_inside_cache` was verified empirically (both a `../`-relative traversal stem and
+an absolute-path stem such as `/etc/passwd` are correctly rejected — it resolves the fully
+composed path and checks containment rather than pattern-matching the stem string), the
+alignment smoke test's statistics are sound, and the 14-test suite passes cleanly against
+the pinned dependency versions. `curvature.py` and `mknn.py` are intentional Phase 3/4
+stubs per D-02, out of scope for findings.
 
-The one finding that rises to Critical is in the notebook, not the library modules: the
-Phase 1 -> Phase 2 handoff artifact (`phase1_handoff_{fit_key}.json`, §5.3) is cached
-under a key that omits the very §4.0 pre-registered constants (`PLATEAU_THRESH`,
-`SWEEP_K_RANGE`, `GEO_PAIR_COUNT`/`SEED`, etc.) that determine the `k_star_selection`
-data being recorded. This is exactly the "silently reuse a stale artifact" threat
-(T-01-03) `cache.py`'s manifest system exists to prevent, reappearing at a call site
-that passed too narrow a `cfg`. The notebook's own stage-2 sweep cells defend against an
-analogous gap (`GEO_PAIR_COUNT`/`GEO_PAIR_SEED` re-verification asserts in §4.3) but the
-§5.3 handoff cell has no equivalent guard, even though it is the most-trusted, most
-downstream artifact of the phase.
+The one Critical finding is in the notebook, not the library modules: the Phase 1 -> Phase
+2 handoff artifact (`phase1_handoff_{fit_key}.json`, §5.3) is cached under a key that omits
+the §4.0 pre-registered constants (`PLATEAU_THRESH`, `SWEEP_K_RANGE`,
+`GEO_PAIR_COUNT`/`SEED`, etc.) that determine the `k_star_selection` data being recorded —
+exactly the "silently reuse a stale artifact" threat (T-01-03) `cache.py`'s manifest
+system exists to prevent. The notebook's stage-2 sweep cells defend against an analogous
+gap (§4.3's `GEO_PAIR_COUNT`/`GEO_PAIR_SEED` re-verification asserts) but §5.3 has no
+equivalent guard, despite being the most-trusted, most downstream artifact of the phase.
 
 Three Warnings and four Info items round out the report: non-atomic cache writes in
 `cache.py` (verified to crash-loop with an unhandled `JSONDecodeError` on an interrupted
