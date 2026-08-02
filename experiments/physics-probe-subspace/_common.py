@@ -63,14 +63,30 @@ def load_physics_labels(
     split: str = "test", 
     hf_token: str | None = None
 ) -> dict[str, np.ndarray]:
-    """Stream Smith42/galaxies v2.0 labels and compute derived properties."""
-    ds = load_dataset(
-        "Smith42/galaxies",
-        revision="v2.0",
-        split=split,
-        streaming=True,
-        token=hf_token
-    )
+    """Load Smith42/galaxies v2.0 labels and compute derived properties.
+    
+    Uses local HF dataset caching for fast, robust loads; falls back to streaming if needed.
+    """
+    ds = None
+    try:
+        # Try standard download + local HF cache (fast & robust against streaming timeouts)
+        full_ds = load_dataset(
+            "Smith42/galaxies",
+            revision="v2.0",
+            split=split,
+            streaming=False,
+            token=hf_token
+        )
+        ds = full_ds.select(range(min(n, len(full_ds))))
+    except Exception as e:
+        print(f"Non-streaming dataset load failed/timed out ({e}). Falling back to streaming mode...")
+        ds = load_dataset(
+            "Smith42/galaxies",
+            revision="v2.0",
+            split=split,
+            streaming=True,
+            token=hf_token
+        )
     
     # Pre-allocate dictionary of lists
     raw_data = {k: [] for k in ALL_PROBES.values() if k in METADATA_COLUMNS}
