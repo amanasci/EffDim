@@ -280,8 +280,7 @@ def correction_blindness(eigvals: np.ndarray) -> Dict[str, float]:
     Returns:
     --------
     Dict[str, float]
-        ``m_before`` (the pre-correction ``m`` statistic, matching
-        ``gate_diagnostics.py``'s ``gate_stats`` definition:
+        ``m_before`` (the pre-correction ``m`` statistic:
         ``sum(abs(negative)) / sum(abs(all))``), ``m_after_clip``, ``m_after_shift``
         (both exactly 0.0 by construction on any input), and ``shift_constant`` (the
         Lingoes-type additive constant used).

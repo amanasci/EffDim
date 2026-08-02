@@ -33,10 +33,8 @@ Invoke with: PYTHONPATH=notebooks python notebooks/diagnostics/geometry_probes_r
 """
 
 import gc
-import json
 import resource
 import time
-from pathlib import Path
 
 import joblib
 import numpy as np
@@ -67,11 +65,33 @@ PUBLISHED_M = 0.4120712514841815
 PUBLISHED_N_POSITIVE = 4971
 PUBLISHED_N_NEGATIVE = 5029
 
+# Phase 2 gate-verdict provenance (02-FINDINGS.md), inlined so this script runs from a
+# clean checkout instead of reading the gitignored gate_verdict_{fit_key}.json. Pure
+# provenance -- nothing below computes from these, they are only printed and copied into
+# this script's own output artifact.
+D_FROZEN = 5
+D_PROVISIONAL = 18
+ELBOW_CRITERION = (
+    "Maximum-curvature (kneedle) elbow on the Tenenbaum residual-variance curve "
+    "(1 - R^2 between geodesic and embedded pairwise distances): both axes are normalized "
+    "to [0, 1] by their own range, and the elbow is the point of greatest perpendicular "
+    "distance from the chord connecting the curve's first and last normalized point. Swept "
+    "over d = 1..40 (K_EFF, bounded by D_SWEEP_MAX=40 and N_POSITIVE=4971); ties broken to "
+    "the lower d (ELBOW_TIE_BREAK='lower')."
+)
+GATE_SPECTRUM = {
+    "dropoff_index": 2,
+    "dropoff_ratio": 2.444713943099398,
+    "lambda_max_pos": 3230.8539634646067,
+    "lambda_min_neg": -169.35880545251558,
+    "n_negative": 5029,
+    "n_positive": 4971,
+    "noise_floor": 7.173936918879702e-09,
+}
+
 
 def gate_stats(ev):
-    """r and m exactly as Phase 2 defines them. Copied verbatim from
-    notebooks/diagnostics/gate_diagnostics.py rather than imported, because importing
-    that module would execute its own top-level diagnostic run as a side effect."""
+    """r and m, Phase 2's definition (02-FINDINGS.md)."""
     neg, pos = ev[ev < 0], ev[ev > 0]
     r = abs(neg.min()) / pos.max()
     m = np.abs(neg).sum() / np.abs(ev).sum()
@@ -79,12 +99,10 @@ def gate_stats(ev):
 
 
 def spectrum_from_distmatrix(D):
-    """Full classical-MDS double-centred matrix by mean-form double-centring, float64
-    throughout. Copied verbatim from notebooks/diagnostics/gate_diagnostics.py's
-    ``spectrum_from_distmatrix`` (minus its ``eigvalsh`` call, since here we want the
-    matrix ``B`` itself for a subset eigensolve, not the full spectrum). ``copy=True``:
-    ``np.asarray``/``np.array`` on a read-only memmap returns a *view*, not a copy, when
-    the dtype already matches -- in-place arithmetic on a view then fails or corrupts."""
+    """Full classical-MDS double-centred matrix, Phase 2's mean-form double-centring
+    (02-FINDINGS.md), float64 throughout. ``copy=True``: ``np.asarray``/``np.array`` on a
+    read-only memmap returns a *view*, not a copy, when the dtype already matches --
+    in-place arithmetic on a view then fails or corrupts."""
     D2 = np.array(D, dtype=np.float64, copy=True)
     D2 **= 2
     row = D2.mean(axis=1, keepdims=True)
@@ -140,12 +158,6 @@ print("=" * 78)
 print(f"Phase 02.1 geometry probes -- fit_key = {FIT_KEY}")
 print("=" * 78)
 
-_gate_verdict = json.loads(Path(f"{CACHE}/gate_verdict_{FIT_KEY}.json").read_text())
-D_FROZEN = _gate_verdict["d_frozen"]
-D_PROVISIONAL = _gate_verdict["d_provisional"]
-ELBOW_CRITERION = _gate_verdict["elbow_criterion"]
-GATE_SPECTRUM = _gate_verdict["spectrum"]
-
 # =========================================================================================
 print()
 print("=" * 78)
@@ -188,13 +200,10 @@ pair_identity_verified = bool(np.array_equal(_redrawn, geo_pairs_r2))
 if not pair_identity_verified:
     raise SystemExit(
         "HALT -- the 200,000 re-drawn pairs are NOT bit-identical to the cached "
-        "geo_pairs_r2 array. pu_manifold.geometry_probes.draw_geo_pairs (mirroring "
-        "02-PATTERNS.md's _draw_geo_pairs) does not match whatever produced geo_pairs_r2 "
-        "under PAIR_SEED=20260731. The section 6 pair-draw cell of "
-        "notebooks/01_manifold_and_gate.ipynb is the source of truth to mirror -- read it "
-        "directly and compare against draw_geo_pairs before changing anything else. Every "
-        "distortion number below this line depends on this identity and none of them can "
-        "be trusted until it is fixed."
+        "geo_pairs_r2 array under PAIR_SEED=20260731. See "
+        ".planning/phases/02-eigenspectrum-audit-validity-gate/02-PATTERNS.md's "
+        "_draw_geo_pairs for the source of truth to mirror. Every distortion number below "
+        "this line depends on this identity."
     )
 print(f"  pair_identity_verified = {pair_identity_verified} "
       "(dist_matrix_[rows, cols] is bit-identical to cached geo_pairs_r2)")
