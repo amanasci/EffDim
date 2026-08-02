@@ -3,13 +3,9 @@
 **Defined:** 2026-07-29
 **Core Value:** One call over an `(n_samples, n_features)` array returns a comparable panel of effective dimensionality estimates, so a researcher can see how spectral and geometric notions of dimension agree or disagree on the same data.
 
-**Milestone Goal:** Reconstruct the PU embedding manifold via Isomap, build a smooth decoder
-parameterization of it, compute mean curvature, and test whether foundation-model
-representational alignment (MKNN) varies with local curvature.
+**Milestone Goal:** Reconstruct the PU embedding manifold via Isomap, build a smooth decoder parameterization of it, compute mean curvature, and test whether foundation-model representational alignment (MKNN) varies with local curvature.
 
-**Scope note:** Notebook-only milestone. `src/effdim/` and `pyproject.toml` are not
-modified. Requirements below describe observable behaviours of the notebooks under
-`notebooks/` plus the local, non-installed helper package `notebooks/pu_manifold/`.
+**Scope note:** Notebook-only milestone. `src/effdim/` and `pyproject.toml` are not modified. Requirements below describe observable behaviours of the notebooks under `notebooks/` plus the local, non-installed helper package `notebooks/pu_manifold/`.
 
 ---
 
@@ -17,177 +13,79 @@ modified. Requirements below describe observable behaviours of the notebooks und
 
 ### Data Loading (DATA)
 
-- [x] **DATA-01**: A reader can load exactly one config of `UniverseTBD/pu-embeddings`
-      (`legacysurvey_dinov3_vitb16`) without downloading the other 162 configs
-
-- [x] **DATA-02**: A reader gets a reproducible 10,000-row subsample from the 101,725
-      available rows, controlled by an explicit, recorded seed
-
-- [x] **DATA-03**: The `_hsc` and `_legacysurvey` arrays are guaranteed row-aligned after
-      subsampling, enforced by an assertion rather than by convention
-
-- [x] **DATA-04**: A reader can see the embedding norm distribution and an explicit statement
-      of which metric (Euclidean vs cosine) the pipeline uses and why
-
-- [x] **DATA-05**: The notebook states its own Python floor (3.11) and installs its
-      dependencies from a notebook cell, leaving `pyproject.toml` untouched
+- [x] **DATA-01**: Loads exactly one config of `UniverseTBD/pu-embeddings` (`legacysurvey_dinov3_vitb16`) without downloading the other 162 configs
+- [x] **DATA-02**: Reproducible 10,000-row subsample from the 101,725 available rows, controlled by an explicit, recorded seed
+- [x] **DATA-03**: `_hsc` and `_legacysurvey` arrays guaranteed row-aligned after subsampling, enforced by an assertion rather than convention
+- [x] **DATA-04**: Embedding norm distribution shown plus an explicit statement of which metric (Euclidean vs cosine) the pipeline uses and why
+- [x] **DATA-05**: Notebook states its own Python floor (3.11) and installs its dependencies from a notebook cell, leaving `pyproject.toml` untouched
 
 ### Manifold Reconstruction (ISO)
 
-- [x] **ISO-01**: A reader can see the connected-component count of the k-NN graph before
-      Isomap is fitted, so silent bridging by `_fix_connected_components` cannot pass unnoticed
-
-- [x] **ISO-02**: A reader can see whether the embedding and eigenspectrum are stable across
-      at least three `n_neighbors` values, detecting short-circuit edges
-
-- [x] **ISO-03**: A reader can compare `effdim.compute_dim` estimates on the raw 768-d
-      embeddings against the dimension the Isomap eigenspectrum suggests
-
-- [x] **ISO-04**: An Isomap fit at n=10,000 completes and is cached, so downstream work never
-      re-pays the fit cost
-
-- [x] **ISO-05**: A reader can re-run any notebook and get identical results from the cache,
-      with a config change producing a new cache key rather than silently reusing a stale one
+- [x] **ISO-01**: Connected-component count of the k-NN graph shown before Isomap is fitted, so silent bridging by `_fix_connected_components` cannot pass unnoticed
+- [x] **ISO-02**: Embedding and eigenspectrum stability shown across at least three `n_neighbors` values, detecting short-circuit edges
+- [x] **ISO-03**: `effdim.compute_dim` estimates on the raw 768-d embeddings compared against the dimension the Isomap eigenspectrum suggests
+- [x] **ISO-04**: Isomap fit at n=10,000 completes and is cached, so downstream work never re-pays the fit cost
+- [x] **ISO-05**: Re-running any notebook gets identical results from the cache; a config change produces a new cache key rather than silently reusing a stale one
 
 ### Eigenspectrum Audit and Validity Gate (SPEC)
 
-- [x] **SPEC-01**: A reader can see the **full** classical-MDS eigenspectrum, computed from
-      `isomap.dist_matrix_` by manual double-centring — not from the truncated
-      `kernel_pca_.eigenvalues_` attribute, which cannot show the negative tail
-
-- [x] **SPEC-02**: A reader can confirm the leading eigenvalues are large and positive and see
-      where the steep dropoff occurs
-
-- [x] **SPEC-03**: A reader can see the negative-eigenvalue magnitude as an explicit reported
-      statistic, with a stated and justified threshold
-
-- [x] **SPEC-04**: A reader can see the residual-variance-vs-dimension curve with the elbow
-      identified by a stated criterion, not eyeballed
-
-- [x] **SPEC-05**: The chosen embedding dimension `d` is frozen and recorded before any
-      decoder is trained
-
-- [ ] **SPEC-06**: A PASS / MARGINAL / FAIL verdict is written as a machine-readable artifact
-      that downstream notebooks check before running
-
-- [ ] **SPEC-07**: On FAIL, the notebook halts with remediation options enumerated, and that
-      documented failure is itself a complete, reportable milestone outcome
+- [x] **SPEC-01**: The **full** classical-MDS eigenspectrum shown, computed from `isomap.dist_matrix_` by manual double-centring — not from the truncated `kernel_pca_.eigenvalues_` attribute, which cannot show the negative tail
+- [x] **SPEC-02**: Leading eigenvalues confirmed large and positive; steep dropoff location shown
+- [x] **SPEC-03**: Negative-eigenvalue magnitude shown as an explicit reported statistic, with a stated and justified threshold
+- [x] **SPEC-04**: Residual-variance-vs-dimension curve shown with the elbow identified by a stated criterion, not eyeballed
+- [x] **SPEC-05**: Chosen embedding dimension `d` frozen and recorded before any decoder is trained
+- [ ] **SPEC-06**: A PASS / MARGINAL / FAIL verdict written as a machine-readable artifact that downstream notebooks check before running
+- [ ] **SPEC-07**: On FAIL, the notebook halts with remediation options enumerated, and that documented failure is itself a complete, reportable milestone outcome
 
 ### Geometry Representation (GEOM)
 
-Added 2026-07-31 with Phase 02.1 (INSERTED), after Phase 2's `GATE_VERDICT = FAIL` established
-that classical MDS is an invalid description of the Isomap geodesic geometry for these
-embeddings (`m = 0.412071` against a 0.15 MARGINAL bound; ~41% of absolute eigenvalue mass
-negative, robust across `k`, survey column, disjoint resample, and normalization).
+Added 2026-07-31 with Phase 02.1 (INSERTED), after Phase 2's `GATE_VERDICT = FAIL` established that classical MDS is an invalid description of the Isomap geodesic geometry for these embeddings (`m = 0.412071` against a 0.15 MARGINAL bound; ~41% of absolute eigenvalue mass negative, robust across `k`, survey column, disjoint resample, and normalization).
 
-- [x] **GEOM-01**: A reader can see which manifold-learning methods share Isomap's
-      flat-target assumption and would fail the same way on this data, establishing the
-      failure as a property of the method class rather than an implementation choice
-
-- [x] **GEOM-02**: A reader can see the candidate representations that do not assume a flat
-      target — Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature
-      (Ollivier-Ricci, Forman-Ricci) requiring no embedding, diffusion maps, and
-      pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it
-      would demand of the decoder phase
-
-- [x] **GEOM-03**: A reader can see what 41% negative eigenvalue mass means geometrically, and
-      an argued judgment on whether indefinite MDS or distance-matrix correction is principled
-      here or merely cosmetic — a method that hides the negativity rather than representing it
-      must be named as such
-
-- [x] **GEOM-04**: A reader gets one recommended representation with its rationale, the
-      alternatives it was chosen over, and the evidence it is expected to be judged against,
-      sufficient for the decoder phase to be re-specified without re-opening the question
-
-- [x] **GEOM-05**: A reader can see what the recommendation implies for the working dimension.
-      `D_FROZEN = 5` derives from a residual elbow flagged suspect against three other
-      estimates clustering at 18–25; whether the chosen representation inherits, revises, or
-      discards it must be stated explicitly
+- [x] **GEOM-01**: Which manifold-learning methods share Isomap's flat-target assumption and would fail the same way on this data shown, establishing the failure as a property of the method class rather than an implementation choice
+- [x] **GEOM-02**: Candidate representations that do not assume a flat target shown — Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature (Ollivier-Ricci, Forman-Ricci) requiring no embedding, diffusion maps, pseudo-Euclidean/Krein-space treatments — each with its assumptions, cost, and what it would demand of the decoder phase
+- [x] **GEOM-03**: What 41% negative eigenvalue mass means geometrically shown, with an argued judgment on whether indefinite MDS or distance-matrix correction is principled here or merely cosmetic — a method that hides the negativity rather than representing it must be named as such
+- [x] **GEOM-04**: One recommended representation with its rationale, the alternatives it was chosen over, and the evidence it is expected to be judged against, sufficient for the decoder phase to be re-specified without re-opening the question
+- [x] **GEOM-05**: What the recommendation implies for the working dimension shown. `D_FROZEN = 5` derives from a residual elbow flagged suspect against three other estimates clustering at 18-25; whether the chosen representation inherits, revises, or discards it must be stated explicitly
 
 ### Decoder (DEC)
 
-> **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written
-> against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1
-> selects the replacement representation; re-read "Isomap coordinates" throughout this section
-> and the next as "the coordinates of the representation chosen in Phase 02.1", and re-plan
-> Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an
-> analytic curvature field, falsified against a synthetic control — is unchanged.
+> **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1 selects the replacement representation; re-read "Isomap coordinates" throughout this section and the next as "the coordinates of the representation chosen in Phase 02.1," and re-plan Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control — is unchanged.
 
-- [ ] **DEC-01**: A reader can train a decoder mapping Isomap coordinates to the original
-      768-d embedding, using a C2-smooth activation throughout the forward path
-
-- [ ] **DEC-02**: A reader can verify no ReLU-family activation appears anywhere in the
-      decoder, since its second derivative is identically zero
-
-- [ ] **DEC-03**: A reader can see held-out reconstruction quality, not just training loss
-- [ ] **DEC-04**: A reader can see both an aggregate reconstruction metric and a
-      per-output-dimension distribution, so good averages cannot hide subset failures
-
-- [ ] **DEC-05**: Decoder training is reproducible from a recorded torch seed
+- [ ] **DEC-01**: Train a decoder mapping Isomap coordinates to the original 768-d embedding, using a C2-smooth activation throughout the forward path
+- [ ] **DEC-02**: Verify no ReLU-family activation appears anywhere in the decoder, since its second derivative is identically zero
+- [ ] **DEC-03**: Held-out reconstruction quality shown, not just training loss
+- [ ] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown, so good averages cannot hide subset failures
+- [ ] **DEC-05**: Decoder training reproducible from a recorded torch seed
 
 ### Curvature Field (CURV)
 
-- [ ] **CURV-01**: A reader can compute the first fundamental form from the decoder Jacobian
-      via `torch.func` autodiff, batched over all points rather than looped
-
-- [ ] **CURV-02**: A reader can compute the second fundamental form as the normal-projected
-      ambient Hessian of the decoder
-
-- [ ] **CURV-03**: A reader gets the mean curvature **vector** field and its norm, with the
-      output labelled as a vector norm and never as Gaussian or principal curvature
-
-- [ ] **CURV-04**: A reader can see the conditioning of the metric tensor, with near-singular
-      points flagged, so a non-immersion point cannot silently corrupt the field
-
-- [ ] **CURV-05**: A reader can verify the decoder's second derivatives are non-zero and
-      finite away from training nodes
-
-- [ ] **CURV-06**: A reader can compare the PU manifold's curvature against the same decoder
-      architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle)
-      at matched dimension and ambient size
-
-- [ ] **CURV-07**: A reader can tell whether the measured curvature is a property of the data
-      manifold or an artifact of the fitted decoder, on the evidence of CURV-06
-
-- [ ] **CURV-08**: Curvature is only evaluated at or near the actual Isomap coordinates, never
-      extrapolated beyond their support
+- [ ] **CURV-01**: First fundamental form computed from the decoder Jacobian via `torch.func` autodiff, batched over all points rather than looped
+- [ ] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
+- [ ] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
+- [ ] **CURV-04**: Conditioning of the metric tensor shown, with near-singular points flagged, so a non-immersion point cannot silently corrupt the field
+- [ ] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
+- [ ] **CURV-06**: PU manifold's curvature compared against the same decoder architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension and ambient size
+- [ ] **CURV-07**: Whether the measured curvature is a property of the data manifold or an artifact of the fitted decoder shown, on the evidence of CURV-06
+- [ ] **CURV-08**: Curvature only evaluated at or near the actual Isomap coordinates, never extrapolated beyond their support
 
 ### Region Partitioning (REGN)
 
-- [ ] **REGN-01**: A reader can see a local sample-density measure per point in Isomap
-      coordinate space
-
-- [ ] **REGN-02**: A reader can see the correlation between local density and curvature
-      reported explicitly, before any region split is trusted
-
-- [ ] **REGN-03**: A reader can partition points into high- and low-curvature regions by
-      quantile, never by a fixed absolute threshold
-
-- [ ] **REGN-04**: The quantile threshold is specified before regional alignment is computed,
-      and that ordering is visible in the notebook
-
-- [ ] **REGN-05**: A reader can see each region's point count, since region size affects every
-      downstream k-NN statistic
+- [ ] **REGN-01**: Local sample-density measure per point in Isomap coordinate space shown
+- [ ] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
+- [ ] **REGN-03**: Points partitioned into high- and low-curvature regions by quantile, never by a fixed absolute threshold
+- [ ] **REGN-04**: Quantile threshold specified before regional alignment is computed, and that ordering visible in the notebook
+- [ ] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
 
 ### Regional Alignment (MKNN)
 
-- [ ] **MKNN-01**: A reader can compute the MKNN score between two row-aligned embeddings as
-      the k-normalized size of the k-NN set intersection, matching the origin paper
-
-- [ ] **MKNN-02**: A reader can reproduce a global crossmodal MKNN number for HSC vs Legacy
-      Survey and compare it against the origin paper's published range
-
-- [ ] **MKNN-03**: A reader gets a per-region MKNN score for the high- and low-curvature regions
-- [ ] **MKNN-04**: Each region gets its own permutation null, computed within that region's
-      index set rather than reused from a global null
-
-- [ ] **MKNN-05**: A reader gets bootstrap confidence intervals on every regional MKNN score
-- [ ] **MKNN-06**: A reader can see whether the high-vs-low result holds across k = 5, 10, 20, 50
-- [ ] **MKNN-07**: A reader gets an explicit verdict on whether regional difference is
-      distinguishable from noise, where "no detectable difference" is a valid reported outcome
-
-- [ ] **MKNN-08**: A reader can see the hubness caveat for k-NN-based alignment metrics in
-      high-dimensional spaces stated alongside the results
+- [ ] **MKNN-01**: MKNN score between two row-aligned embeddings computed as the k-normalized size of the k-NN set intersection, matching the origin paper
+- [ ] **MKNN-02**: Global crossmodal MKNN number for HSC vs Legacy Survey reproduced and compared against the origin paper's published range
+- [ ] **MKNN-03**: Per-region MKNN score for the high- and low-curvature regions shown
+- [ ] **MKNN-04**: Each region gets its own permutation null, computed within that region's index set rather than reused from a global null
+- [ ] **MKNN-05**: Bootstrap confidence intervals shown on every regional MKNN score
+- [ ] **MKNN-06**: Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown
+- [ ] **MKNN-07**: Explicit verdict on whether regional difference is distinguishable from noise, where "no detectable difference" is a valid reported outcome
+- [ ] **MKNN-08**: Hubness caveat for k-NN-based alignment metrics in high-dimensional spaces stated alongside the results
 
 ---
 
@@ -197,28 +95,19 @@ Deferred. Tracked but not in the v1.1 roadmap.
 
 ### Model Scale (SCALE)
 
-- **SCALE-01**: Intramodal MKNN across a model-size ladder (the origin paper's stronger
-  28–56% signal), requiring a second model size
-
-- **SCALE-02**: Curvature-stratified alignment compared across the size ladder, testing
-  whether the curvature/alignment relationship itself scales with capacity
+- **SCALE-01**: Intramodal MKNN across a model-size ladder (the origin paper's stronger 28-56% signal), requiring a second model size
+- **SCALE-02**: Curvature-stratified alignment compared across the size ladder, testing whether the curvature/alignment relationship itself scales with capacity
 
 ### Library Promotion (LIB)
 
-- **LIB-01**: Mean curvature operator promoted into `src/effdim/`, unit-tested against
-  analytically known curvature surfaces
-
+- **LIB-01**: Mean curvature operator promoted into `src/effdim/`, unit-tested against analytically known curvature surfaces
 - **LIB-02**: MDS eigenspectrum validity diagnostic promoted into `src/effdim/`
-- **LIB-03**: `pyproject.toml` Python floor corrected from `>=3.8` to match the real
-  scikit-learn 1.9.0 requirement of `>=3.11`
+- **LIB-03**: `pyproject.toml` Python floor corrected from `>=3.8` to match the real scikit-learn 1.9.0 requirement of `>=3.11`
 
 ### Other Configs (CFG)
 
-- **CFG-01**: Same pipeline run on `desi_*` (HSC vs DESI spectra), the strongest crossmodal
-  claim in the origin paper
-
-- **CFG-02**: Same pipeline run on `physics_*_test`, geometry only, since those configs are
-  unpaired and cannot support MKNN
+- **CFG-01**: Same pipeline run on `desi_*` (HSC vs DESI spectra), the strongest crossmodal claim in the origin paper
+- **CFG-02**: Same pipeline run on `physics_*_test`, geometry only, since those configs are unpaired and cannot support MKNN
 
 ---
 
@@ -296,17 +185,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MKNN-07 | Phase 4 | Pending |
 | MKNN-08 | Phase 4 | Pending |
 
-**Coverage:**
-
-- v1.1 requirements: 43 total (DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8)
-- Mapped to phases: 43/43 ✓ · Unmapped: 0 ✓
+**Coverage:** v1.1 requirements: 43 total (DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8). Mapped to phases: 43/43 ✓ · Unmapped: 0 ✓
 
 Phase 1 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
 Phase 2 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
 Phase 3 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
-Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08
-(13 requirements)
+Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08 (13 requirements)
 
 ---
 *Requirements defined: 2026-07-29*
 *Last updated: 2026-07-29 after v1.1 phase renumber to 1-4 (43/43 requirements mapped)*
+</content>
