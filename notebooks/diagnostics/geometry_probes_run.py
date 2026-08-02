@@ -1,32 +1,14 @@
-"""
-Phase 02.1 geometry-representation probes, run over the frozen Phase 2 cache
-(fit_key=43cf438bc944c509). Diagnostic, not pre-registered -- 02.1-PREREGISTRATION.md's
-rules govern how these numbers are read; this script only produces them. Every constant
-below was fixed in 02.1-PREREGISTRATION.md before any of these numbers existed.
+"""Phase 02.1 geometry probes over the frozen Phase 2 cache (fit_key=43cf438bc944c509).
 
-Three questions:
-  Q1. Correction blindness (GEOM-03). Do eigenvalue clipping and the Lingoes-type
-      additive shift force zero negative mass on ANY input, curved or not?
-  Q2. The pseudo-Euclidean (p, q) distortion ladder (GEOM-03, GEOM-05). How far does
-      retaining negative eigenvalue directions reduce distortion below the q=0
-      classical-MDS baseline, and what working dimension does that curve imply?
-  Q3. Delta-hyperbolicity (GEOM-04). Does the real manifold's sampled Gromov delta sit
-      near a tree anchor (single constant negative curvature defensible) or near a flat-
-      Euclidean anchor (not defensible), at matched n?
+Q1 correction blindness (GEOM-03); Q2 the (p, q) distortion ladder + working dimension
+(GEOM-03/05); Q3 delta-hyperbolicity vs tree/flat anchors (GEOM-04). Q2+Q3 test the
+pre-registered falsifier; "materially below" is 02.1-04's judgment, not this script's.
+Constants fixed in 02.1-PREREGISTRATION.md before any of these numbers existed.
 
-Q2 and Q3 together test the falsifier 02.1-PREREGISTRATION.md and 02.1-FORK.md both name:
-the coordinate-producing verdict is overturned only if BOTH the delta reading rule refuses
-a single-curvature model AND the (p, q) ladder never drops distortion materially below the
-q=0 baseline. This script reports the measured numbers plainly; it does not adjudicate
-"materially below" -- that judgment is plan 02.1-04's.
+Precondition: the isomap joblib and mds_eigenspectrum npz must exist (gitignored,
+irreproducible here) — halts rather than regenerating, which would change provenance.
 
-Hard precondition: notebooks/.cache/isomap_43cf438bc944c509.joblib (~1.55 GiB) and
-notebooks/.cache/mds_eigenspectrum_43cf438bc944c509.npz must already exist on disk (both
-gitignored, neither reproducible by any plan in this phase). This script halts rather than
-regenerating either -- regenerating would disconnect this phase's evidence from the exact
-fit Phase 2 audited.
-
-Invoke with: PYTHONPATH=notebooks python notebooks/diagnostics/geometry_probes_run.py
+Invoke: PYTHONPATH=notebooks python notebooks/diagnostics/geometry_probes_run.py
 """
 
 import gc
