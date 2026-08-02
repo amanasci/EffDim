@@ -190,13 +190,12 @@ orchestrator's directive to execute the full plan without pausing._
 
 **1. [Rule 1 - Bug] `np.asarray` on a read-only memmap returned a view, not a copy**
 - **Found during:** Task 1, first execution attempt of §6.1
-- **Issue:** `_dist_matrix` is a `numpy.memmap` opened with `mmap_mode="r"` (read-only) and
-  is already `float64`. `np.asarray(_dist_matrix, dtype=np.float64)` therefore returns the
-  memmap itself (no copy is made when the requested dtype already matches), so the
-  subsequent in-place `D2 **= 2` raised `ValueError: output array is read-only`.
-- **Fix:** Changed to `np.array(_dist_matrix, dtype=np.float64, copy=True)`, which forces
-  an actual resident copy regardless of dtype match, documented inline with a comment
-  explaining why `asarray` was wrong here.
+- **Issue:** `_dist_matrix` is a `numpy.memmap` opened with `mmap_mode="r"` (read-only),
+  already `float64`. `np.asarray(_dist_matrix, dtype=np.float64)` returns the memmap
+  itself (no copy when the dtype already matches), so the in-place `D2 **= 2` raised
+  `ValueError: output array is read-only`.
+- **Fix:** Changed to `np.array(_dist_matrix, dtype=np.float64, copy=True)`, forcing an
+  actual resident copy regardless of dtype match, documented inline.
 - **Files modified:** `notebooks/01_manifold_and_gate.ipynb` (§6.1 code cell)
 - **Verification:** Full notebook re-execution completed with zero error cells; the
   squared-then-centred array (`D2`/`B_CENTERED`) is confirmed resident and mutable by the

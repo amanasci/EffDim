@@ -55,17 +55,14 @@ state to work around.
   | MARGINAL | `r < 0.25` **and** `m < 0.15` |
   | FAIL | otherwise |
 
-  Justification to state in the notebook: `r` below ~0.1 is the conventional reading of
-  negligible non-Euclideanity. Rejected: stricter cutoffs (`r < 0.05`/`m < 0.02`) —
-  foundation-model geodesic matrices routinely carry a visible negative tail, and the user
-  chose not to raise the odds of terminating the milestone at FAIL on a convention;
-  and empirical calibration against known-Euclidean / known-curved controls — most
-  defensible, but costs 2+ extra Isomap fits and needs an argument that `r`/`m` are
-  comparable across `n`.
-  — **Reversibility:** one-way in practice — the thresholds are pre-registered *before* the
-  spectrum is seen precisely so they cannot be revised after. Changing them once `r` and `m`
-  are known is the garden-of-forking-paths failure this design exists to prevent. If they
-  must change, that is a documented amendment with a stated reason, not a quiet edit.
+  `r` below ~0.1 is the conventional reading of negligible non-Euclideanity. Rejected:
+  stricter cutoffs (`r < 0.05`/`m < 0.02`) — foundation-model geodesic matrices routinely
+  carry a visible negative tail, user chose not to raise FAIL odds on a convention; and
+  empirical calibration against known-Euclidean/curved controls — most defensible, but
+  costs 2+ extra Isomap fits and needs `r`/`m` comparable-across-`n` argument.
+  Reversibility: one-way in practice — pre-registered *before* the spectrum is seen so they
+  cannot be revised after. Changing them once known is the garden-of-forking-paths failure
+  this design prevents; a later change is a documented amendment, not a quiet edit.
 
 - **D-03:** Pre-registration **mirrors the Phase 1 §4.0 mechanism** exactly: a `§6.0`
   constants cell holding the `r`/`m` cutoffs, guarded by a **cell-index assertion** that it
@@ -119,15 +116,14 @@ state to work around.
   the curvature field lives on, and the basis for Phase 4's region partition. Changing it
   after Phase 3 invalidates the decoder, the curvature field, and every MKNN number.
 
-- **D-08:** If the elbow **exceeds 18**, the notebook **halts and a human decides**. The halt
-  message states: the elbow value, the required `n_components`, the cost (a fresh Isomap fit,
-  minutes of compute, another ~1.55 GiB cache entry under a new `fit_key`), and the exact
-  constant to change. A human edits `ANALYSIS_CFG` and re-runs. This is the same
-  documented-halt-with-remediation posture as Phase 1's D-11 k-ceiling branch and SPEC-07's
-  FAIL path. Rejected: auto-re-fit (a Run All would silently spend minutes and ~1.55 GiB, and
-  the record of which dimension was fitted becomes execution-order dependent), and a
-  pre-emptive wide fit at `n_components=40` (removes the branch but pays the re-fit
-  unconditionally and quietly reverses D-12's deliberate no-headroom choice).
+- **D-08:** If the elbow **exceeds 18**, the notebook **halts and a human decides**. Halt
+  message states: elbow value, required `n_components`, cost (fresh Isomap fit, minutes of
+  compute, another ~1.55 GiB cache entry under a new `fit_key`), and the exact constant to
+  change. A human edits `ANALYSIS_CFG` and re-runs — same documented-halt-with-remediation
+  posture as Phase 1's D-11 k-ceiling branch and SPEC-07's FAIL path. Rejected: auto-re-fit
+  (a Run All would silently spend minutes and ~1.55 GiB, execution-order-dependent record),
+  and a pre-emptive wide fit at `n_components=40` (removes the branch but pays the re-fit
+  unconditionally, quietly reversing D-12's no-headroom choice).
   *Note:* this branch is live, not hypothetical — `n_components_no_headroom=True` is set in
   the Phase 1 handoff precisely to flag it.
 
