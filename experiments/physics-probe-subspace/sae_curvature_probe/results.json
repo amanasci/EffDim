@@ -1,0 +1,816 @@
+{
+  "experiment": "sae_curvature_probe",
+  "args": {
+    "max_n": 16384,
+    "k_curv": 50,
+    "sae_feature_dim": 2048,
+    "sae_topk": 64,
+    "sae_epochs": 50,
+    "probe_set": "independent",
+    "n_probes": 38,
+    "seed": 0
+  },
+  "per_model": [
+    {
+      "spearman": [
+        {
+          "metric": "active_set_jaccard_var",
+          "spearman_rho": -0.01963325403266519,
+          "spearman_pval": 0.1687125754268028,
+          "logistic_auc": 0.5209642415691841,
+          "n_valid": 4916
+        },
+        {
+          "metric": "code_gradient_norm",
+          "spearman_rho": 0.009347935378241596,
+          "spearman_pval": 0.512293557877743,
+          "logistic_auc": 0.5197818882035115,
+          "n_valid": 4916
+        },
+        {
+          "metric": "local_code_rank",
+          "spearman_rho": 0.03978581641204643,
+          "spearman_pval": 0.00527168992267922,
+          "logistic_auc": 0.5198038188846834,
+          "n_valid": 4916
+        },
+        {
+          "metric": "atom_turnover_rate",
+          "spearman_rho": 0.1301527949310568,
+          "spearman_pval": 5.083429176792787e-20,
+          "logistic_auc": 0.5831749634709333,
+          "n_valid": 4916
+        },
+        {
+          "metric": "reconstruction_error",
+          "spearman_rho": 0.1798263211287091,
+          "spearman_pval": 5.276984131063736e-37,
+          "logistic_auc": 0.6257005404381899,
+          "n_valid": 4916
+        }
+      ],
+      "boxplot_path": "/home/s4883420/platonic-universe/outputs/sae_curvature_probe/vit_base_boxplot.png",
+      "per_probe_top5": {
+        "active_set_jaccard_var": [
+          {
+            "probe": "elpetro_ba",
+            "rho": -0.17277466883721163,
+            "pval": 0.0014529834337614178
+          },
+          {
+            "probe": "mag_g",
+            "rho": -0.13535534312754124,
+            "pval": 0.012881925791317729
+          },
+          {
+            "probe": "mag_r",
+            "rho": -0.0945535291004362,
+            "pval": 0.08305875637235428
+          },
+          {
+            "probe": "merging",
+            "rho": -0.09394776768236823,
+            "pval": 4.111636449961232e-11
+          },
+          {
+            "probe": "bar_strong",
+            "rho": 0.0838122881176981,
+            "pval": 0.13775072169258973
+          }
+        ],
+        "code_gradient_norm": [
+          {
+            "probe": "bar_signal",
+            "rho": 0.17038235757094097,
+            "pval": 0.0024118972411495336
+          },
+          {
+            "probe": "bar_strong",
+            "rho": 0.12033302234866373,
+            "pval": 0.03276326890286583
+          },
+          {
+            "probe": "mag_r",
+            "rho": 0.11571853734031319,
+            "pval": 0.03370730902963948
+          },
+          {
+            "probe": "elpetro_theta",
+            "rho": 0.11416368383955691,
+            "pval": 0.03618581951617166
+          },
+          {
+            "probe": "sersic_ba",
+            "rho": -0.09071922713214656,
+            "pval": 0.09638737002311978
+          }
+        ],
+        "local_code_rank": [
+          {
+            "probe": "bar_signal",
+            "rho": -0.15148677547290787,
+            "pval": 0.007070689070485831
+          },
+          {
+            "probe": "elpetro_ba",
+            "rho": 0.1434121117412603,
+            "pval": 0.008375221055235043
+          },
+          {
+            "probe": "bar_strong",
+            "rho": -0.13571217408998593,
+            "pval": 0.015942138908515015
+          },
+          {
+            "probe": "merging",
+            "rho": 0.11850932297816888,
+            "pval": 7.65450773149405e-17
+          },
+          {
+            "probe": "log_sersic_n",
+            "rho": -0.07991959535556886,
+            "pval": 0.14318841807605465
+          }
+        ],
+        "atom_turnover_rate": [
+          {
+            "probe": "elpetro_ba",
+            "rho": 0.2180287407683328,
+            "pval": 5.430854329453291e-05
+          },
+          {
+            "probe": "merging",
+            "rho": 0.168936742116868,
+            "pval": 8.491218299552611e-33
+          },
+          {
+            "probe": "ssfr",
+            "rho": 0.1605312863994974,
+            "pval": 0.0008961356403910468
+          },
+          {
+            "probe": "elpetro_theta",
+            "rho": 0.15440239126871966,
+            "pval": 0.004497578476907157
+          },
+          {
+            "probe": "sersic_ba",
+            "rho": 0.15002548713156766,
+            "pval": 0.005788928425367598
+          }
+        ],
+        "reconstruction_error": [
+          {
+            "probe": "mag_g",
+            "rho": 0.3597001035941917,
+            "pval": 9.90429468565751e-12
+          },
+          {
+            "probe": "ssfr",
+            "rho": 0.32252630098013163,
+            "pval": 9.600978356518848e-12
+          },
+          {
+            "probe": "elpetro_ba",
+            "rho": 0.27686582420090744,
+            "pval": 2.404251119765421e-07
+          },
+          {
+            "probe": "elpetro_theta",
+            "rho": 0.26530303182323267,
+            "pval": 7.770593154081907e-07
+          },
+          {
+            "probe": "sersic_n",
+            "rho": 0.2476199046331436,
+            "pval": 4.2116926271367114e-06
+          }
+        ]
+      },
+      "model": "vit_base",
+      "col": "vit_base_galaxies",
+      "n_train": 11468,
+      "n_test": 4916,
+      "probe_stats": {
+        "smooth": {
+          "r2_train": 0.7060909271240234,
+          "r2_cv": 0.630584466457367,
+          "n_valid": 11468
+        },
+        "featured_disk": {
+          "r2_train": 0.6968520283699036,
+          "r2_cv": 0.623033607006073,
+          "n_valid": 11468
+        },
+        "has_spiral_arms": {
+          "r2_train": 1.0,
+          "r2_cv": -3.5087539672851564,
+          "n_valid": 725
+        },
+        "bar_strong": {
+          "r2_train": 1.0,
+          "r2_cv": -2.4099101543426515,
+          "n_valid": 725
+        },
+        "bar_weak": {
+          "r2_train": 1.0,
+          "r2_cv": -5.986683368682861,
+          "n_valid": 725
+        },
+        "bulge_dominant": {
+          "r2_train": 1.0,
+          "r2_cv": -7.507058787345886,
+          "n_valid": 725
+        },
+        "bulge_large": {
+          "r2_train": 1.0,
+          "r2_cv": -3.7131001949310303,
+          "n_valid": 725
+        },
+        "bulge_moderate": {
+          "r2_train": 1.0,
+          "r2_cv": -2.533456039428711,
+          "n_valid": 725
+        },
+        "bulge_small": {
+          "r2_train": 1.0,
+          "r2_cv": -2.13978271484375,
+          "n_valid": 725
+        },
+        "edge_on": {
+          "r2_train": 0.9538511037826538,
+          "r2_cv": -0.0034514307975769044,
+          "n_valid": 1187
+        },
+        "merging": {
+          "r2_train": 0.4339020252227783,
+          "r2_cv": 0.31490622758865355,
+          "n_valid": 11468
+        },
+        "major_disturbance": {
+          "r2_train": 0.43523645401000977,
+          "r2_cv": 0.30390450954437254,
+          "n_valid": 11468
+        },
+        "minor_disturbance": {
+          "r2_train": 0.39364999532699585,
+          "r2_cv": 0.276623523235321,
+          "n_valid": 11468
+        },
+        "mag_r": {
+          "r2_train": 0.9930252432823181,
+          "r2_cv": -1.2951940059661866,
+          "n_valid": 803
+        },
+        "mag_g": {
+          "r2_train": 0.9933452606201172,
+          "r2_cv": -0.7988776206970215,
+          "n_valid": 803
+        },
+        "mag_z": {
+          "r2_train": 0.9926365613937378,
+          "r2_cv": -0.66456298828125,
+          "n_valid": 803
+        },
+        "u_minus_r": {
+          "r2_train": 0.9836139678955078,
+          "r2_cv": -3.6927157402038575,
+          "n_valid": 803
+        },
+        "sersic_n": {
+          "r2_train": 0.9799239039421082,
+          "r2_cv": -3.2272784233093263,
+          "n_valid": 803
+        },
+        "sersic_ba": {
+          "r2_train": 0.9850929379463196,
+          "r2_cv": -2.840800476074219,
+          "n_valid": 803
+        },
+        "petro_th50": {
+          "r2_train": 0.983328640460968,
+          "r2_cv": -32.385983204841615,
+          "n_valid": 803
+        },
+        "petro_th90": {
+          "r2_train": 0.9841557741165161,
+          "r2_cv": -9.15273118019104,
+          "n_valid": 803
+        },
+        "elpetro_ba": {
+          "r2_train": 0.9884827733039856,
+          "r2_cv": -1.4817509651184082,
+          "n_valid": 803
+        },
+        "elpetro_theta": {
+          "r2_train": 0.9924771785736084,
+          "r2_cv": -11116.723640608787,
+          "n_valid": 803
+        },
+        "stellar_mass": {
+          "r2_train": 0.9868702292442322,
+          "r2_cv": -2.562138032913208,
+          "n_valid": 803
+        },
+        "redshift": {
+          "r2_train": 0.6645255088806152,
+          "r2_cv": 0.5937265753746033,
+          "n_valid": 10652
+        },
+        "sfr": {
+          "r2_train": 0.8760491013526917,
+          "r2_cv": -82.6638053894043,
+          "n_valid": 967
+        },
+        "ssfr": {
+          "r2_train": 0.9385511875152588,
+          "r2_cv": -31.37259521484375,
+          "n_valid": 966
+        },
+        "g_minus_r": {
+          "r2_train": 0.9883018732070923,
+          "r2_cv": -5.034281635284424,
+          "n_valid": 803
+        },
+        "g_minus_z": {
+          "r2_train": 0.9892688989639282,
+          "r2_cv": -3.3398670673370363,
+          "n_valid": 803
+        },
+        "r_minus_z": {
+          "r2_train": 0.9752570390701294,
+          "r2_cv": -19.12097716331482,
+          "n_valid": 803
+        },
+        "concentration": {
+          "r2_train": 0.9854743480682373,
+          "r2_cv": -3.1474843978881837,
+          "n_valid": 803
+        },
+        "log_petro_th50": {
+          "r2_train": 0.9867675304412842,
+          "r2_cv": -2.6785315990448,
+          "n_valid": 803
+        },
+        "log_petro_th90": {
+          "r2_train": 0.9830540418624878,
+          "r2_cv": -2.8775609970092773,
+          "n_valid": 803
+        },
+        "log_sersic_n": {
+          "r2_train": 0.9832310676574707,
+          "r2_cv": -2.8541603088378906,
+          "n_valid": 803
+        },
+        "smooth_minus_disk": {
+          "r2_train": 0.6973831653594971,
+          "r2_cv": 0.6229543447494507,
+          "n_valid": 11468
+        },
+        "bar_signal": {
+          "r2_train": 1.0,
+          "r2_cv": -3.4230367660522463,
+          "n_valid": 725
+        },
+        "total_merger": {
+          "r2_train": 0.5043772459030151,
+          "r2_cv": 0.39777957201004027,
+          "n_valid": 11468
+        },
+        "bulge_total": {
+          "r2_train": 1.0,
+          "r2_cv": -3.794928693771362,
+          "n_valid": 725
+        }
+      },
+      "mean_probe_error": 19.422637939453125,
+      "sae_dir": "/home/s4883420/platonic-universe/outputs/sae/vit_base_test/vit_base_galaxies/F2048_k64_seed0",
+      "sae_feature_dim": 2048,
+      "sae_topk": 64
+    },
+    {
+      "spearman": [
+        {
+          "metric": "active_set_jaccard_var",
+          "spearman_rho": -0.015573104006434827,
+          "spearman_pval": 0.27497195973407995,
+          "logistic_auc": 0.49249151406774583,
+          "n_valid": 4916
+        },
+        {
+          "metric": "code_gradient_norm",
+          "spearman_rho": 0.03144130236635182,
+          "spearman_pval": 0.02749159544815212,
+          "logistic_auc": 0.513411894274586,
+          "n_valid": 4916
+        },
+        {
+          "metric": "local_code_rank",
+          "spearman_rho": 0.04627981717312632,
+          "spearman_pval": 0.0011712687872614533,
+          "logistic_auc": 0.5202686665682407,
+          "n_valid": 4916
+        },
+        {
+          "metric": "atom_turnover_rate",
+          "spearman_rho": 0.10730026512902807,
+          "spearman_pval": 4.5877509279587984e-14,
+          "logistic_auc": 0.5574786602058603,
+          "n_valid": 4916
+        },
+        {
+          "metric": "reconstruction_error",
+          "spearman_rho": 0.16991140113542413,
+          "spearman_pval": 3.6616922090987835e-33,
+          "logistic_auc": 0.59706453280863,
+          "n_valid": 4916
+        }
+      ],
+      "boxplot_path": "/home/s4883420/platonic-universe/outputs/sae_curvature_probe/dinov3_vitb16_boxplot.png",
+      "per_probe_top5": {
+        "active_set_jaccard_var": [
+          {
+            "probe": "merging",
+            "rho": -0.14718396318702165,
+            "pval": 3.2696393452064108e-25
+          },
+          {
+            "probe": "bulge_large",
+            "rho": -0.14193993004764596,
+            "pval": 0.011670628183549725
+          },
+          {
+            "probe": "bulge_total",
+            "rho": -0.13766868998667758,
+            "pval": 0.01447247550912307
+          },
+          {
+            "probe": "mag_r",
+            "rho": -0.11232099901924143,
+            "pval": 0.03932177130286212
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": -0.10681335242810082,
+            "pval": 5.97098998416486e-14
+          }
+        ],
+        "code_gradient_norm": [
+          {
+            "probe": "bulge_moderate",
+            "rho": -0.18512763809063093,
+            "pval": 0.0009626951580795235
+          },
+          {
+            "probe": "bulge_small",
+            "rho": 0.17175952054610444,
+            "pval": 0.0022202155420420993
+          },
+          {
+            "probe": "mag_g",
+            "rho": -0.12916132600565378,
+            "pval": 0.017681479594133426
+          },
+          {
+            "probe": "g_minus_z",
+            "rho": 0.09844008022625322,
+            "pval": 0.07153104455881203
+          },
+          {
+            "probe": "log_petro_th50",
+            "rho": -0.09329873504719428,
+            "pval": 0.08724641430269314
+          }
+        ],
+        "local_code_rank": [
+          {
+            "probe": "bulge_total",
+            "rho": 0.16813827683778504,
+            "pval": 0.002756750617848483
+          },
+          {
+            "probe": "merging",
+            "rho": 0.16680970725697464,
+            "pval": 5.230352876093217e-32
+          },
+          {
+            "probe": "bulge_large",
+            "rho": 0.164983510133877,
+            "pval": 0.003317505473956404
+          },
+          {
+            "probe": "g_minus_z",
+            "rho": -0.12828323410501544,
+            "pval": 0.0186509473740849
+          },
+          {
+            "probe": "mag_g",
+            "rho": 0.1258236741573879,
+            "pval": 0.020864764548293162
+          }
+        ],
+        "atom_turnover_rate": [
+          {
+            "probe": "mag_g",
+            "rho": 0.23113305641216345,
+            "pval": 1.8237693895310858e-05
+          },
+          {
+            "probe": "merging",
+            "rho": 0.19707443603892055,
+            "pval": 3.092204330974031e-44
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": 0.17588202102045322,
+            "pval": 1.8963420457848804e-35
+          },
+          {
+            "probe": "g_minus_z",
+            "rho": -0.1305136367444078,
+            "pval": 0.016680015335128848
+          },
+          {
+            "probe": "mag_z",
+            "rho": 0.12578528410690237,
+            "pval": 0.02109627398593304
+          }
+        ],
+        "reconstruction_error": [
+          {
+            "probe": "sersic_n",
+            "rho": 0.3102044041327309,
+            "pval": 5.970973101519627e-09
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": 0.279688631764215,
+            "pval": 4.910051323215098e-89
+          },
+          {
+            "probe": "log_sersic_n",
+            "rho": 0.2794396883645913,
+            "pval": 1.837942128247257e-07
+          },
+          {
+            "probe": "mag_z",
+            "rho": 0.23378075708781235,
+            "pval": 1.494864090578407e-05
+          },
+          {
+            "probe": "mag_g",
+            "rho": 0.2083249722202016,
+            "pval": 0.00011692770840537206
+          }
+        ]
+      },
+      "model": "dinov3_vitb16",
+      "col": "dinov3_vitb16_galaxies",
+      "n_train": 11468,
+      "n_test": 4916,
+      "probe_stats": {
+        "smooth": {
+          "r2_train": 0.7598259449005127,
+          "r2_cv": 0.6927513718605042,
+          "n_valid": 11468
+        },
+        "featured_disk": {
+          "r2_train": 0.7566803693771362,
+          "r2_cv": 0.6982841253280639,
+          "n_valid": 11468
+        },
+        "has_spiral_arms": {
+          "r2_train": 1.0,
+          "r2_cv": -4.464882278442383,
+          "n_valid": 725
+        },
+        "bar_strong": {
+          "r2_train": 1.0,
+          "r2_cv": -1.520384168624878,
+          "n_valid": 725
+        },
+        "bar_weak": {
+          "r2_train": 1.0,
+          "r2_cv": -5.204272174835205,
+          "n_valid": 725
+        },
+        "bulge_dominant": {
+          "r2_train": 1.0,
+          "r2_cv": -5.062934064865113,
+          "n_valid": 725
+        },
+        "bulge_large": {
+          "r2_train": 1.0,
+          "r2_cv": -3.5916124820709228,
+          "n_valid": 725
+        },
+        "bulge_moderate": {
+          "r2_train": 1.0,
+          "r2_cv": -1.9534099578857422,
+          "n_valid": 725
+        },
+        "bulge_small": {
+          "r2_train": 1.0,
+          "r2_cv": -2.141543483734131,
+          "n_valid": 725
+        },
+        "edge_on": {
+          "r2_train": 0.9625967741012573,
+          "r2_cv": 0.2520852565765381,
+          "n_valid": 1187
+        },
+        "merging": {
+          "r2_train": 0.5299485921859741,
+          "r2_cv": 0.42500734329223633,
+          "n_valid": 11468
+        },
+        "major_disturbance": {
+          "r2_train": 0.5236379504203796,
+          "r2_cv": 0.4198936104774475,
+          "n_valid": 11468
+        },
+        "minor_disturbance": {
+          "r2_train": 0.4438263773918152,
+          "r2_cv": 0.3399487495422363,
+          "n_valid": 11468
+        },
+        "mag_r": {
+          "r2_train": 0.9935824871063232,
+          "r2_cv": -0.807128620147705,
+          "n_valid": 803
+        },
+        "mag_g": {
+          "r2_train": 0.9943309426307678,
+          "r2_cv": -0.47092926502227783,
+          "n_valid": 803
+        },
+        "mag_z": {
+          "r2_train": 0.9950122833251953,
+          "r2_cv": -0.404895031452179,
+          "n_valid": 803
+        },
+        "u_minus_r": {
+          "r2_train": 0.9849469661712646,
+          "r2_cv": -2.226597762107849,
+          "n_valid": 803
+        },
+        "sersic_n": {
+          "r2_train": 0.9790716171264648,
+          "r2_cv": -3.0370587348937987,
+          "n_valid": 803
+        },
+        "sersic_ba": {
+          "r2_train": 0.9932464361190796,
+          "r2_cv": -1.5358722925186157,
+          "n_valid": 803
+        },
+        "petro_th50": {
+          "r2_train": 0.9617434144020081,
+          "r2_cv": -34.20523853302002,
+          "n_valid": 803
+        },
+        "petro_th90": {
+          "r2_train": 0.9779173731803894,
+          "r2_cv": -7.803003644943237,
+          "n_valid": 803
+        },
+        "elpetro_ba": {
+          "r2_train": 0.994808554649353,
+          "r2_cv": -0.7856406211853028,
+          "n_valid": 803
+        },
+        "elpetro_theta": {
+          "r2_train": 0.9798339605331421,
+          "r2_cv": -24463.102483534814,
+          "n_valid": 803
+        },
+        "stellar_mass": {
+          "r2_train": 0.9890225529670715,
+          "r2_cv": -1.653522253036499,
+          "n_valid": 803
+        },
+        "redshift": {
+          "r2_train": 0.6822874546051025,
+          "r2_cv": 0.613211727142334,
+          "n_valid": 10652
+        },
+        "sfr": {
+          "r2_train": 0.8647370338439941,
+          "r2_cv": -51.246760559082034,
+          "n_valid": 967
+        },
+        "ssfr": {
+          "r2_train": 0.945273756980896,
+          "r2_cv": -24.16842403411865,
+          "n_valid": 966
+        },
+        "g_minus_r": {
+          "r2_train": 0.9825902581214905,
+          "r2_cv": -2.8275253534317017,
+          "n_valid": 803
+        },
+        "g_minus_z": {
+          "r2_train": 0.9901689887046814,
+          "r2_cv": -1.4160316467285157,
+          "n_valid": 803
+        },
+        "r_minus_z": {
+          "r2_train": 0.9600042104721069,
+          "r2_cv": -13.53280725479126,
+          "n_valid": 803
+        },
+        "concentration": {
+          "r2_train": 0.9845573306083679,
+          "r2_cv": -2.51717209815979,
+          "n_valid": 803
+        },
+        "log_petro_th50": {
+          "r2_train": 0.9853250980377197,
+          "r2_cv": -3.245344805717468,
+          "n_valid": 803
+        },
+        "log_petro_th90": {
+          "r2_train": 0.982177734375,
+          "r2_cv": -2.6692020893096924,
+          "n_valid": 803
+        },
+        "log_sersic_n": {
+          "r2_train": 0.9796819686889648,
+          "r2_cv": -3.0108681678771974,
+          "n_valid": 803
+        },
+        "smooth_minus_disk": {
+          "r2_train": 0.7554399967193604,
+          "r2_cv": 0.694413697719574,
+          "n_valid": 11468
+        },
+        "bar_signal": {
+          "r2_train": 1.0,
+          "r2_cv": -2.229109859466553,
+          "n_valid": 725
+        },
+        "total_merger": {
+          "r2_train": 0.599428117275238,
+          "r2_cv": 0.5186020493507385,
+          "n_valid": 11468
+        },
+        "bulge_total": {
+          "r2_train": 1.0,
+          "r2_cv": -3.589272880554199,
+          "n_valid": 725
+        }
+      },
+      "mean_probe_error": 20.19587516784668,
+      "sae_dir": "/home/s4883420/platonic-universe/outputs/sae/dinov3_vitb16_test/dinov3_vitb16_galaxies/F2048_k64_seed0",
+      "sae_feature_dim": 2048,
+      "sae_topk": 64
+    }
+  ],
+  "aggregated_spearman": [
+    {
+      "metric": "reconstruction_error",
+      "mean_abs_rho": 0.17486886113206662,
+      "mean_auc": 0.61138253662341,
+      "rhos_per_model": [
+        0.1798263211287091,
+        0.16991140113542413
+      ]
+    },
+    {
+      "metric": "atom_turnover_rate",
+      "mean_abs_rho": 0.11872653003004244,
+      "mean_auc": 0.5703268118383968,
+      "rhos_per_model": [
+        0.1301527949310568,
+        0.10730026512902807
+      ]
+    },
+    {
+      "metric": "local_code_rank",
+      "mean_abs_rho": 0.04303281679258637,
+      "mean_auc": 0.520036242726462,
+      "rhos_per_model": [
+        0.03978581641204643,
+        0.04627981717312632
+      ]
+    },
+    {
+      "metric": "code_gradient_norm",
+      "mean_abs_rho": 0.02039461887229671,
+      "mean_auc": 0.5165968912390487,
+      "rhos_per_model": [
+        0.009347935378241596,
+        0.03144130236635182
+      ]
+    },
+    {
+      "metric": "active_set_jaccard_var",
+      "mean_abs_rho": 0.017603179019550007,
+      "mean_auc": 0.506727877818465,
+      "rhos_per_model": [
+        -0.01963325403266519,
+        -0.015573104006434827
+      ]
+    }
+  ]
+}
