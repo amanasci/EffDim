@@ -65,3 +65,13 @@ When documenting or publishing this approach, we link it to established mathemat
 * *Curvature Drift:* **Riemannian Manifold Learning**, **Tangent Space Drift**.
 
 To avoid pitfalls (such as collinearity of physical properties causing ill-conditioned projections), we use SVD/QR decomposition on the weight matrix $W$ to form an orthonormal basis before projection.
+
+---
+
+## 6. Implementation Notes
+During the initial implementation of this pipeline (`experiments/physics-probe-subspace/`), the following key technical decisions were made:
+
+- **Orthogonal Procrustes Dropped:** The rigid rotation via Procrustes was temporarily removed from the pipeline to isolate the core effect. The current pipeline strictly focuses on QR decomposition of the individual model's probe weight matrix, followed by independent subspace projection and independent mKNN evaluation.
+- **HuggingFace Dataset Streaming:** Because the 768D parquets are excessively large to store in git, the data-loading layer (`_common.py`) was upgraded to seamlessly interface with `huggingface_hub`. It intercepts missing local paths and permanently downloads the `UniverseTBD/pu-embeddings` parquets directly into the local `data_hf/` directory.
+- **mKNN Dimensionality Sweep:** Rather than only testing mKNN on the full $M$-dimensional subspace, the pipeline performs a continuous sweep, computing mKNN from $d=1$ up to $d=M$ (adding one orthogonalized probe direction at a time). The analysis script plots this saturation curve to visually identify the "elbow" where the intrinsic physical dimensionality of the embeddings is fully spanned.
+- **Fail-Fast HPC Execution:** The main executable script (`run_hpc.sh`) was converted for interactive HPC sessions and enforces strict `set -e` bash constraints to prevent cascading downstream failures (such as the analysis script attempting to read non-existent JSON outputs when the upstream probe training fails).

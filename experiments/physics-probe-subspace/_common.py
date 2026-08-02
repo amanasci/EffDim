@@ -1,11 +1,15 @@
 """Shared utilities for Physics Probe Subspace experiments."""
 
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
 from datasets import load_dataset
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from sklearn.model_selection import KFold
 
 
 def platonic_root(cli_value: str | None = None) -> Path:
@@ -16,6 +20,23 @@ def platonic_root(cli_value: str | None = None) -> Path:
         return Path(env).expanduser().resolve()
     # Default to the EffDim repository root (two directories up from this file)
     return Path(__file__).resolve().parents[2]
+
+
+def ensure_sae_import() -> Path:
+    """Put the local sae/ vendored copy on sys.path; return the chosen dir."""
+    candidates = [
+        Path(__file__).resolve().parent / "sae",
+        Path(__file__).resolve().parents[1] / "SAE-shared-basis" / "sae",
+    ]
+    for p in candidates:
+        if (p / "sae_model.py").is_file():
+            if str(p) not in sys.path:
+                sys.path.insert(0, str(p))
+            return p
+    raise FileNotFoundError(
+        "sae_model.py not found. Expected vendored copy at "
+        f"{candidates[0]} (shipped with this package) or SAE-shared-basis/sae/"
+    )
 
 
 def load_embeddings(path: Path, col: str = "embeddings", hf_repo: str = "UniverseTBD/pu-embeddings") -> np.ndarray:
@@ -122,6 +143,205 @@ def load_physics_labels(
             mapped_data[short_name] = data[long_name]
 
     return mapped_data
+
+
+def train_probes(Z: np.ndarray, y_dict: dict[str, np.ndarray], probe_keys: list[str]) -> tuple[np.ndarray, dict]:
+    """Train linear probes and return weight matrix W (D x M) and diagnostic stats.
+
+    Each column of W is the unit-free coefficient vector for one probe property.
+    """
+    D = Z.shape[1]
+    M = len(probe_keys)
+    W = np.zeros((D, M), dtype=np.float32)
+    stats = {}
+    
+    for m, key in enumerate(probe_keys):
+        y = y_dict[key]
+        valid = ~np.isnan(y)
+        if valid.sum() < 10:
+            print(f"Warning: Probe '{key}' has less than 10 valid samples, skipping.")
+            stats[key] = {"r2_train": float('nan'), "r2_cv": float('nan'), "n_valid": int(valid.sum())}
+            continue
+            
+        Z_valid = Z[valid]
+        y_valid = y[valid]
+        
+        # Standardize target
+        y_mean = y_valid.mean()
+        y_std = y_valid.std() + 1e-12
+        y_valid_std = (y_valid - y_mean) / y_std
+        
+        # Fit on full train valid set
+        model = LinearRegression(fit_intercept=True)
+        model.fit(Z_valid, y_valid_std)
+        w = model.coef_
+        W[:, m] = w
+        
+        r2_train = r2_score(y_valid_std, model.predict(Z_valid))
+        
+        # 5-fold CV
+        cv_scores = []
+        kf = KFold(n_splits=min(5, len(y_valid)), shuffle=True, random_state=42)
+        for train_idx, test_idx in kf.split(Z_valid):
+            m_cv = LinearRegression(fit_intercept=True)
+            m_cv.fit(Z_valid[train_idx], y_valid_std[train_idx])
+            pred = m_cv.predict(Z_valid[test_idx])
+            cv_scores.append(r2_score(y_valid_std[test_idx], pred))
+            
+        stats[key] = {
+            "r2_train": float(r2_train),
+            "r2_cv": float(np.mean(cv_scores)),
+            "n_valid": int(valid.sum())
+        }
+    
+    return W, stats
+
+
+def compute_probe_residuals(
+    Z_test: np.ndarray,
+    y_test: dict[str, np.ndarray],
+    W: np.ndarray,
+    probe_keys: list[str],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute per-point, per-probe standardized squared residuals.
+
+    Returns
+    -------
+    residuals : (n_test, M) array of squared residuals (standardized targets)
+    mean_residual : (n_test,) mean across valid probes per point
+    """
+    n = Z_test.shape[0]
+    M = len(probe_keys)
+    residuals = np.full((n, M), np.nan, dtype=np.float64)
+
+    for m, key in enumerate(probe_keys):
+        if key not in y_test:
+            continue
+        y = y_test[key]
+        valid = ~np.isnan(y)
+        if valid.sum() < 5:
+            continue
+        y_std = (y - np.nanmean(y)) / (np.nanstd(y) + 1e-12)
+        # predict = Z_test @ w_m  (linear probe, intercept not saved; fit was standardized so intercept ≈ 0)
+        w_m = W[:, m]
+        y_hat = Z_test @ w_m
+        sq = (y_std - y_hat) ** 2
+        sq[~valid] = np.nan
+        residuals[:, m] = sq
+
+    mean_residual = np.nanmean(residuals, axis=1)
+    return residuals.astype(np.float32), mean_residual.astype(np.float32)
+
+
+def correlation_analysis(
+    curvature_dict: dict[str, np.ndarray],
+    mean_residual: np.ndarray,
+    residuals: np.ndarray,
+    probe_keys: list[str],
+    output_dir: Path,
+    tag: str = "",
+) -> dict:
+    """Spearman ρ, binned box-plots, logistic AUC, per-probe breakdown.
+
+    Parameters
+    ----------
+    curvature_dict : mapping metric_name -> (n_test,) curvature values
+    mean_residual  : (n_test,) mean probe squared residual per point
+    residuals      : (n_test, M) per-probe squared residuals
+    probe_keys     : list of probe names corresponding to residuals columns
+    output_dir     : directory to write plots and JSON
+    tag            : prefix for output filenames (e.g. 'model_a')
+    """
+    import json
+    from scipy.stats import spearmanr
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import roc_auc_score
+    from sklearn.preprocessing import StandardScaler
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    valid_mask = np.isfinite(mean_residual)
+    hard_label = (mean_residual > np.nanmedian(mean_residual)).astype(int)
+
+    summary = {}
+
+    # ---- Spearman + logistic AUC per metric ----
+    spearman_rows = []
+    for metric_name, curv in curvature_dict.items():
+        curv = np.asarray(curv, dtype=np.float64)
+        both_valid = valid_mask & np.isfinite(curv)
+        if both_valid.sum() < 20:
+            continue
+        rho, pval = spearmanr(curv[both_valid], mean_residual[both_valid])
+        # Logistic AUC
+        x = curv[both_valid].reshape(-1, 1)
+        y_lab = hard_label[both_valid]
+        if len(np.unique(y_lab)) < 2:
+            auc = float("nan")
+        else:
+            sc = StandardScaler()
+            x_sc = sc.fit_transform(x)
+            lr = LogisticRegression(max_iter=300, random_state=0)
+            lr.fit(x_sc, y_lab)
+            auc = roc_auc_score(y_lab, lr.predict_proba(x_sc)[:, 1])
+        row = {
+            "metric": metric_name,
+            "spearman_rho": float(rho),
+            "spearman_pval": float(pval),
+            "logistic_auc": float(auc),
+            "n_valid": int(both_valid.sum()),
+        }
+        spearman_rows.append(row)
+        print(f"  [{tag}] {metric_name:<35} ρ={rho:+.3f} (p={pval:.2e})  AUC={auc:.3f}", flush=True)
+    summary["spearman"] = spearman_rows
+
+    # ---- Binned box-plots ----
+    fig, axes = plt.subplots(1, len(curvature_dict), figsize=(5 * len(curvature_dict), 5), squeeze=False)
+    for ax, (metric_name, curv) in zip(axes[0], curvature_dict.items()):
+        curv = np.asarray(curv, dtype=np.float64)
+        both_valid = valid_mask & np.isfinite(curv)
+        c_v = curv[both_valid]
+        r_v = mean_residual[both_valid]
+        q33, q67 = np.quantile(c_v, [1/3, 2/3])
+        groups = [
+            r_v[c_v <= q33],
+            r_v[(c_v > q33) & (c_v <= q67)],
+            r_v[c_v > q67],
+        ]
+        ax.boxplot(groups, labels=["Low", "Mid", "High"])
+        ax.set_title(f"{metric_name}\n({tag})", fontsize=9)
+        ax.set_xlabel("Curvature tercile")
+        ax.set_ylabel("Mean probe ε²")
+        ax.grid(axis="y", alpha=0.3)
+    fig.suptitle(f"Curvature vs Probe Error ({tag})", fontsize=11)
+    fig.tight_layout()
+    boxplot_path = output_dir / f"{tag}_boxplot.png"
+    fig.savefig(boxplot_path, dpi=120)
+    plt.close(fig)
+    summary["boxplot_path"] = str(boxplot_path)
+
+    # ---- Per-probe breakdown (top-5 |ρ| for each curvature metric) ----
+    per_probe = {}
+    for metric_name, curv in curvature_dict.items():
+        curv = np.asarray(curv, dtype=np.float64)
+        both_valid = valid_mask & np.isfinite(curv)
+        probe_rows = []
+        for m, key in enumerate(probe_keys):
+            col = residuals[:, m].astype(np.float64)
+            mask = both_valid & np.isfinite(col)
+            if mask.sum() < 20:
+                continue
+            rho, pval = spearmanr(curv[mask], col[mask])
+            probe_rows.append({"probe": key, "rho": float(rho), "pval": float(pval)})
+        probe_rows.sort(key=lambda r: abs(r["rho"]), reverse=True)
+        per_probe[metric_name] = probe_rows[:5]
+    summary["per_probe_top5"] = per_probe
+
+    return summary
 
 
 METADATA_COLUMNS = [
