@@ -8,10 +8,10 @@ derive an analytic curvature field, and test whether crossmodal representational
 (MKNN) varies with local curvature. All work lives in notebooks under `notebooks/`;
 `src/effdim/` and `pyproject.toml` are untouched throughout.
 
-Phase numbering restarts at 1 for this milestone. The core library that v1.1 builds on
+Phase numbering restarts at 1 for this milestone. The core library v1.1 builds on
 (`effdim.compute_dim`) shipped before GSD adoption and is recorded under Shipped below.
-Two items of unstarted pre-v1.1 work are tracked in Backlog — they are independent of v1.1
-and are not numbered phases.
+Two items of unstarted pre-v1.1 work are tracked in Backlog — independent of v1.1, not
+numbered phases.
 
 ## Milestones
 
@@ -26,9 +26,9 @@ and are not numbered phases.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 - Numbering restarts at 1 each milestone. v1.1's phases are 1-4.
 
-- [x] **Phase 1: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU (completed 2026-07-31)
+- [x] **Phase 1: Data Loading & Manifold Reconstruction** - Reproducible, row-aligned PU
       subsample loaded and an Isomap fit produced, validated for connectivity and
-      `n_neighbors` stability
+      `n_neighbors` stability (completed 2026-07-31)
 
 - [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** - Full classical-MDS eigenspectrum
       audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
@@ -57,40 +57,31 @@ pre-audit input; no library work needed.
 **UI hint**: no
 **Success Criteria** (what must be TRUE):
 
-  1. A reader can load exactly the `legacysurvey_dinov3_vitb16` config and get a reproducible,
-     assertion-verified row-aligned 10,000-row HSC/Legacy-Survey subsample from a recorded
-     seed, without downloading the dataset's other 162 configs (DATA-01, DATA-02, DATA-03)
+  1. `legacysurvey_dinov3_vitb16` loads without downloading the other 162 configs, into a
+     reproducible, assertion-verified row-aligned 10,000-row HSC/Legacy-Survey subsample from
+     a recorded seed (DATA-01, DATA-02, DATA-03)
+  2. The embedding norm distribution and a justified Euclidean-vs-cosine metric choice are
+     shown; the notebook states its Python 3.11 floor and installs its own deps (DATA-04, DATA-05)
+  3. The k-NN graph's connected-component count and an embedding/eigenspectrum stability
+     comparison across >= 3 `n_neighbors` values are shown before Isomap is trusted (ISO-01, ISO-02)
+  4. `effdim.compute_dim` estimates on the raw 768-d embeddings are compared against the
+     Isomap-eigenspectrum-suggested dimension, informing candidate `n_components` (ISO-03)
+  5. The n=10,000 Isomap fit completes, is cached, and re-running the notebook reproduces
+     identical results from cache, any config change producing a new cache key (ISO-04, ISO-05)
 
-  2. A reader can see the embedding norm distribution and an explicit, justified statement of
-     which distance metric (Euclidean vs cosine) the pipeline uses, and confirm the notebook
-     states its own Python 3.11 floor and installs its own dependencies (DATA-04, DATA-05)
-
-  3. A reader can see the k-NN graph's connected-component count and an embedding/eigenspectrum
-     stability comparison across at least 3 `n_neighbors` values before Isomap is trusted
-     (ISO-01, ISO-02)
-
-  4. A reader can compare `effdim.compute_dim` estimates on the raw 768-d embeddings against
-     the dimension the Isomap eigenspectrum suggests, informing the candidate `n_components`
-     (ISO-03)
-
-  5. An Isomap fit at n=10,000 completes, is cached, and re-running the notebook reproduces
-     identical results from cache, with any config change producing a new cache key
-     (ISO-04, ISO-05)
 **Plans**: 4/4 plans executed
 
 - [x] 01-01-PLAN.md — Scaffold `notebooks/pu_manifold/` and prove the pipeline end-to-end on a
       smoke config: subsample → alignment assert → L2 normalize → npz + joblib cache → read-back
       identity (DATA-01, DATA-03, DATA-05, ISO-05)
-
 - [x] 01-02-PLAN.md — Scale to the real 10,000-row subsample, show the norm distribution and the
       locked metric statement, and derive `n_components` from the `compute_dim` panel
       (DATA-02, DATA-03, DATA-04, ISO-03)
-
 - [x] 01-03-PLAN.md — Two-stage `n_neighbors` sweep: cheap connectivity scan across all six k,
       then full fits at 3-4 surviving k with the three-metric stability table (ISO-01, ISO-02)
-
 - [x] 01-04-PLAN.md — Freeze `k*` by the pre-registered plateau rule, cache the fit, and write
       the Phase 1 → Phase 2 handoff artifact (ISO-04, ISO-05)
+
 **Research**: Standard patterns (sklearn `Isomap` internals, classical-MDS mechanics,
 connectivity checks) — research pass can be skipped per SUMMARY.md.
 
@@ -104,37 +95,30 @@ FAIL as a legitimate, complete outcome.
 **Requirements**: SPEC-01, SPEC-02, SPEC-03, SPEC-04, SPEC-05, SPEC-06, SPEC-07
 **Success Criteria** (what must be TRUE):
 
-  1. A reader can see the full classical-MDS eigenspectrum computed by manual double-centring
-     of `isomap.dist_matrix_`, never from the truncated `kernel_pca_.eigenvalues_` (SPEC-01)
+  1. The full classical-MDS eigenspectrum is computed by manual double-centring of
+     `isomap.dist_matrix_`, never from the truncated `kernel_pca_.eigenvalues_` (SPEC-01)
+  2. Leading eigenvalues are confirmed large/positive with the steep dropoff located, and the
+     negative-eigenvalue magnitude is reported against a stated, justified threshold (SPEC-02, SPEC-03)
+  3. The residual-variance-vs-dimension curve's elbow is identified by a stated criterion, not
+     eyeballed (SPEC-04)
+  4. The chosen embedding dimension `d` is frozen and recorded before any decoder is trained (SPEC-05)
+  5. A PASS/MARGINAL/FAIL verdict is written as a machine-readable artifact downstream
+     notebooks check before running; on FAIL the notebook halts with remediation options
+     enumerated as a complete, reportable outcome (SPEC-06, SPEC-07)
 
-  2. A reader can confirm the leading eigenvalues are large and positive with the steep
-     dropoff located, and see the negative-eigenvalue magnitude reported as an explicit
-     statistic against a stated, justified threshold (SPEC-02, SPEC-03)
-
-  3. A reader can see the residual-variance-vs-dimension curve with its elbow identified by a
-     stated criterion, not eyeballed (SPEC-04)
-
-  4. The chosen embedding dimension `d` is frozen and recorded before any decoder is trained
-     (SPEC-05)
-
-  5. A reader can see a PASS/MARGINAL/FAIL verdict written as a machine-readable artifact that
-     downstream notebooks check before running; on FAIL the notebook halts with remediation
-     options enumerated, and that documented failure is itself a complete, reportable
-     milestone outcome (SPEC-06, SPEC-07)
 **Plans**: 2/3 plans executed
 
 - [x] 02-01-PLAN.md — Pre-register the gate constants, then compute the full 10,000-value
       classical-MDS eigenspectrum by hand from the memory-mapped geodesic matrix and reduce it to
       the two negativity statistics `r` and `m` plus the leading-spectrum dropoff
       (SPEC-01, SPEC-02, SPEC-03)
-
 - [x] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with its
       pair-sample stability check, and the one-way freeze of the embedding dimension `d` — the
       nesting slice or the documented re-fit halt (SPEC-04, SPEC-05)
-
 - [ ] 02-03-PLAN.md — The self-contained `gate_verdict_{fit_key}.json`, the copyable downstream
       enforcement block with its three-way FAIL-path self-test, and the phase close-out
       (SPEC-06, SPEC-07)
+
 **Research**: Standard patterns (classical-MDS double-centering, eigenspectrum audit) —
 research pass can be skipped per SUMMARY.md. Together with Phase 1, this covers the scope
 SUMMARY.md refers to as "the Isomap/gate phase."
@@ -173,28 +157,21 @@ dimension measurements as evidence). Does **not** require a PASS.
 
 **Success Criteria** (what must be TRUE):
 
-  1. A reader can see which manifold-learning methods share Isomap's flat-target assumption and
-     would therefore fail the same way on this data, establishing that the failure is a property
-     of the method class rather than an implementation choice (GEOM-01)
-
-  2. A reader can see the candidate representations that do **not** assume a flat target,
-     surveyed with their assumptions, costs, and what each would require of Phase 3 —
-     covering at minimum Riemannian/hyperbolic and product-manifold embeddings, graph-native
-     curvature (Ollivier-Ricci, Forman-Ricci) which needs no embedding at all, diffusion maps,
-     and pseudo-Euclidean/Krein-space treatments of indefinite similarity (GEOM-02)
-
-  3. A reader can see what 41% negative eigenvalue mass means geometrically, and an explicit
-     argued judgment on whether indefinite MDS or distance-matrix correction is principled here
-     or merely cosmetic — a method that hides the negativity rather than representing it must be
-     named as such (GEOM-03)
-
-  4. A reader gets one recommended representation with stated rationale, the alternatives it was
-     chosen over, and the evidence it is expected to be judged against — sufficient for Phase 3
-     to be re-specified without re-opening this question (GEOM-04)
-
-  5. A reader can see what the recommendation implies for the working dimension. `D_FROZEN = 5`
-     came from a residual-variance elbow that `02-FINDINGS.md` §6.4 flags as suspect against
-     three other estimates clustering at 18–25, on the reading that the elbow measured the flat
+  1. Manifold-learning methods sharing Isomap's flat-target assumption are identified,
+     establishing the failure as a property of the method class, not an implementation choice (GEOM-01)
+  2. Candidate representations that do **not** assume a flat target are surveyed with
+     assumptions, costs, and Phase 3 implications — at minimum Riemannian/hyperbolic and
+     product-manifold embeddings, graph-native curvature (Ollivier-Ricci, Forman-Ricci,
+     needing no embedding), diffusion maps, and pseudo-Euclidean/Krein-space treatments (GEOM-02)
+  3. What 41% negative eigenvalue mass means geometrically is shown, with an argued judgment
+     on whether indefinite MDS or distance-matrix correction is principled here or merely
+     cosmetic — a method hiding the negativity rather than representing it must be named as such (GEOM-03)
+  4. One recommended representation is delivered with stated rationale, the alternatives it
+     was chosen over, and the evidence it is expected to be judged against — sufficient for
+     Phase 3 to be re-specified without re-opening this question (GEOM-04)
+  5. What the recommendation implies for the working dimension is shown. `D_FROZEN = 5` came
+     from a residual-variance elbow that `02-FINDINGS.md` §6.4 flags as suspect against three
+     other estimates clustering at 18–25, on the reading that the elbow measured the flat
      embedding's failure rather than the geometry. Whether the chosen representation inherits,
      revises, or discards that dimension must be stated, not left implicit (GEOM-05)
 
@@ -214,14 +191,11 @@ depending on all three.
 - The coordinate-producing vs graph-native fork is resolved in wave 1 and gates everything after
   it. The graph-native branch re-opens CURV-01..03 (intrinsic Ricci ≠ the extrinsic
   mean-curvature vector) rather than merely re-specifying Phase 3's input.
-
 - No package installs anywhere in this phase — all seven candidate libraries returned SUS from
   the legitimacy checker and every plan carries a prohibition against installing.
-
 - Plan 03 requires the gitignored Phase 2 caches (`isomap_43cf438bc944c509.joblib`, 1.55 GiB, and
   the spectrum `.npz`). Not reproducible by any plan here; the runner halts rather than
   regenerating, because regenerating would change provenance.
-
 - Evaluation criterion and dimension rule are pre-registered in wave 1, before any candidate is
   compared, with ordering proved by git ancestry rather than asserted.
 
@@ -230,17 +204,14 @@ Plans:
 - [x] 02.1-01-PLAN.md — Pre-register every decision rule, then resolve the coordinate-producing vs
       graph-native fork with both branches' Phase 3 consequences by requirement ID; two commits with
       git-proved ordering, ratified at a blocking decision checkpoint (GEOM-02, GEOM-04)
-
 - [x] 02.1-02-PLAN.md — The flat-target class-membership analysis (which methods share Isomap's
       assumption and which structurally cannot show the failure) and the six-family non-flat-target
       candidate survey with assumptions, costs at n=10,000, maturity and Phase 3 demand (GEOM-01,
       GEOM-02)
-
 - [x] 02.1-03-PLAN.md — Tested probe module with Wave 0 synthetic fixtures, then the measured run
       over the frozen Phase 2 cache: correction blindness on three spectra, the pseudo-Euclidean
       (p, q) distortion ladder against Phase 2's own 200,000-pair sample, and delta-hyperbolicity
       against tree and flat-Euclidean anchors (GEOM-03, GEOM-04, GEOM-05)
-
 - [ ] 02.1-04-PLAN.md — The terminal artifact: the geometric reading of 41% negative mass, the argued
       correction-vs-retention judgment, one recommended representation with alternatives and evidence,
       the re-derived working dimension, and the machine-readable Phase 3 handoff (GEOM-03, GEOM-04,
@@ -270,26 +241,22 @@ longer a precondition, because the flat-embedding path it would have gated is no
 **Requirements**: DEC-01, DEC-02, DEC-03, DEC-04, DEC-05, CURV-01, CURV-02, CURV-03, CURV-04, CURV-05, CURV-06, CURV-07, CURV-08
 **Success Criteria** (what must be TRUE):
 
-  1. A reader can train a decoder mapping Isomap coordinates to the 768-d embedding using a
-     C2-smooth activation throughout the forward path, with no ReLU-family activation
-     anywhere, reproducible from a recorded torch seed (DEC-01, DEC-02, DEC-05)
+  1. A decoder maps Isomap coordinates to the 768-d embedding using a C2-smooth activation
+     throughout, no ReLU-family activation anywhere, reproducible from a recorded torch seed
+     (DEC-01, DEC-02, DEC-05)
+  2. Held-out reconstruction quality is shown as both an aggregate metric and a per-output-
+     dimension distribution, not just training loss (DEC-03, DEC-04)
+  3. First and second fundamental forms are computed from the decoder via batched
+     `torch.func` autodiff, yielding the mean curvature vector field and its norm, labelled
+     only as a vector norm and never as Gaussian or principal curvature (CURV-01, CURV-02, CURV-03)
+  4. The metric tensor's per-point conditioning is shown with near-singular points flagged;
+     decoder second derivatives are verified non-zero and finite away from training nodes;
+     curvature is confirmed evaluated only at/near actual Isomap coordinates, never
+     extrapolated beyond their support (CURV-04, CURV-05, CURV-08)
+  5. The PU manifold's curvature is compared against the same decoder architecture fitted to
+     known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension and
+     ambient size, distinguishing data-manifold curvature from decoder artifact (CURV-06, CURV-07)
 
-  2. A reader can see held-out reconstruction quality as both an aggregate metric and a
-     per-output-dimension distribution, not just training loss (DEC-03, DEC-04)
-
-  3. A reader can compute the first and second fundamental forms from the decoder via batched
-     `torch.func` autodiff and get the mean curvature vector field and its norm, labelled only
-     as a vector norm and never as Gaussian or principal curvature (CURV-01, CURV-02, CURV-03)
-
-  4. A reader can see the metric tensor's conditioning per point with near-singular points
-     flagged, verify the decoder's second derivatives are non-zero and finite away from
-     training nodes, and confirm curvature is only evaluated at or near actual Isomap
-     coordinates, never extrapolated beyond their support (CURV-04, CURV-05, CURV-08)
-
-  5. A reader can compare the PU manifold's curvature against the same decoder architecture
-     fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched
-     dimension and ambient size, and tell whether the measured curvature reflects the data
-     manifold or is an artifact of the fitted decoder (CURV-06, CURV-07)
 **Plans**: TBD
 **Research**: Needs a research pass during planning — SUMMARY.md flags the
 mean-curvature-in-high-codimension math (first/second fundamental form, `‖H‖` derivation,
@@ -313,28 +280,22 @@ to have already completed — not run in parallel with this phase)
 **Requirements**: REGN-01, REGN-02, REGN-03, REGN-04, REGN-05, MKNN-01, MKNN-02, MKNN-03, MKNN-04, MKNN-05, MKNN-06, MKNN-07, MKNN-08
 **Success Criteria** (what must be TRUE):
 
-  1. A reader can see a local sample-density measure per point in Isomap coordinate space and
-     its correlation with curvature reported explicitly, before any region split is trusted
-     (REGN-01, REGN-02)
+  1. A local sample-density measure per point in Isomap coordinate space and its correlation
+     with curvature are shown explicitly, before any region split is trusted (REGN-01, REGN-02)
+  2. Points are partitioned into high/low-curvature regions by a pre-specified quantile
+     threshold (never a fixed absolute value), fixed before regional alignment is computed,
+     with each region's point count shown (REGN-03, REGN-04, REGN-05)
+  3. The MKNN score between two row-aligned embeddings is computed as the k-normalized k-NN
+     intersection size, matching the origin paper, and a global crossmodal HSC-vs-Legacy-Survey
+     MKNN number is reproduced and compared against the origin paper's published range (MKNN-01, MKNN-02)
+  4. A per-region MKNN score for high- and low-curvature regions is produced, each with its own
+     permutation null computed within that region's index set (never reused from a global null)
+     and bootstrap confidence intervals (MKNN-03, MKNN-04, MKNN-05)
+  5. Whether the high-vs-low result holds across k = 5, 10, 20, 50 is shown, with an explicit
+     verdict on whether the regional difference is distinguishable from noise (where "no
+     detectable difference" is a valid outcome), and the hubness caveat for k-NN-based
+     alignment metrics stated alongside the results (MKNN-06, MKNN-07, MKNN-08)
 
-  2. A reader can see points partitioned into high- and low-curvature regions by a
-     pre-specified quantile threshold (never a fixed absolute value), with the threshold fixed
-     before regional alignment is computed and each region's point count shown
-     (REGN-03, REGN-04, REGN-05)
-
-  3. A reader can compute the MKNN score between two row-aligned embeddings as the
-     k-normalized k-NN intersection size, matching the origin paper, and reproduce a global
-     crossmodal HSC-vs-Legacy-Survey MKNN number compared against the origin paper's published
-     range (MKNN-01, MKNN-02)
-
-  4. A reader gets a per-region MKNN score for the high- and low-curvature regions, each with
-     its own permutation null computed within that region's index set (never reused from a
-     global null) and bootstrap confidence intervals (MKNN-03, MKNN-04, MKNN-05)
-
-  5. A reader can see whether the high-vs-low result holds across k = 5, 10, 20, 50, gets an
-     explicit verdict on whether the regional difference is distinguishable from noise (where
-     "no detectable difference" is a valid reported outcome), and sees the hubness caveat for
-     k-NN-based alignment metrics stated alongside the results (MKNN-06, MKNN-07, MKNN-08)
 **Plans**: TBD
 **Research**: Needs a research pass during planning — SUMMARY.md flags the density-confound
 control methodology (correlation check, centroid-distance check, partial regression,

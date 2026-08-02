@@ -34,11 +34,10 @@ Last activity: 2026-08-01 — Phase 02.1 execution started
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3
 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate that the
-user paused to inspect before approving. Phase 2 is NOT sealed and NOT verified; no
-`02-VERIFICATION.md` exists and the ROADMAP still shows 2/3 plans. Resume by approving 02-03
-Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its
-work does not depend on Phase 2 being sealed, only on Phase 2's FAIL verdict, which is settled
-and recorded below.
+user paused to inspect before approving. No `02-VERIFICATION.md` exists and the ROADMAP still
+shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1
+was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict,
+which is settled and recorded below.
 
 **Gate outcome (settled).** 02-01 measured R_STAT=0.052419 (passes r<0.10) and
 M_STAT=0.412071 (fails the m<0.15 MARGINAL bound) on the frozen k*=15 fit:
@@ -54,11 +53,11 @@ k in {5,10,30} against the incumbent k=15 with all other parameters pinned:
 | 30 | 0.050708 | 0.415735 | 1.864727 | 0.013923 | FAIL |
 
 Rule A fired: CANDIDATES=[], no k comes within 2.7x of the MARGINAL bound, and m(k) is
-flat-to-slightly-increasing in k rather than decreasing. The co-diagnostics show
-densification measurably worked (geodesics grew more chordal, more long edges admitted)
-and still bought no reduction in negative mass, so the kNN hop-inflation hypothesis (H2)
-is not supported and intrinsic curvature (H1) stands. No k* adopted; k*=15 remains the
-fit of record. FAIL is sealed against fit_key=43cf438bc944c509 by plan 02-03.
+flat-to-slightly-increasing in k rather than decreasing. Densification measurably worked
+(geodesics grew more chordal, more long edges admitted) and still bought no reduction in
+negative mass, so kNN hop-inflation (H2) is not supported and intrinsic curvature (H1)
+stands. No k* adopted; k*=15 remains the fit of record. FAIL is sealed against
+fit_key=43cf438bc944c509 by plan 02-03.
 
 **Post-gate diagnostic triage (2026-07-31, `notebooks/diagnostics/gate_diagnostics.py`,
 committed 9c6e2b5).** Both remaining alternative explanations were tested and neither
@@ -91,6 +90,7 @@ spectrum independently of n_components.
 **Implication for any Phase 3 respec:** a curvature-native representation is required
 (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without
 flattening), and the target dimension is ~20-25, not 5.
+
 ROADMAP Shipped, unstarted pre-v1.1 work moved to ROADMAP Backlog (unnumbered)
 
 Progress: [████████░░] 82% (0/4 v1.1 phases complete; none yet planned)
@@ -101,7 +101,6 @@ Progress: [████████░░] 82% (0/4 v1.1 phases complete; none y
 
 - Total plans completed: 4 this milestone (4 pre-GSD plans shipped the core library; see
   ROADMAP Shipped)
-
 - Average duration: n/a
 - Total execution time: n/a
 
@@ -191,9 +190,9 @@ From `TODO.md`:
   (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the
   whole dataset.
 
-- Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) are flagged in
-  `research/SUMMARY.md` as needing a dedicated research pass during planning; Phase 1/2
-  (Isomap + gate) are standard sklearn/MDS patterns and can skip that pass.
+- Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) need a dedicated research pass
+  during planning per `research/SUMMARY.md`; Phase 1/2 (Isomap + gate) are standard
+  sklearn/MDS patterns and can skip that pass.
 
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself
   a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate

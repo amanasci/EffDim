@@ -7,9 +7,9 @@
 parameterization of it, compute mean curvature, and test whether foundation-model
 representational alignment (MKNN) varies with local curvature.
 
-**Scope note:** This milestone is notebook-only. `src/effdim/` and `pyproject.toml` are not
+**Scope note:** Notebook-only milestone. `src/effdim/` and `pyproject.toml` are not
 modified. Requirements below describe observable behaviours of the notebooks under
-`notebooks/`, plus the local, non-installed helper package `notebooks/pu_manifold/`.
+`notebooks/` plus the local, non-installed helper package `notebooks/pu_manifold/`.
 
 ---
 
@@ -298,12 +298,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 
-- v1.1 requirements: 43 total (corrected from an earlier miscount of 42 — the seven category
-  subtotals stated at the top of this document, DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 +
-  REGN 5 + MKNN 8, sum to 43, matching the 43 checklist items actually listed above)
-
-- Mapped to phases: 43/43 ✓
-- Unmapped: 0 ✓
+- v1.1 requirements: 43 total (DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8)
+- Mapped to phases: 43/43 ✓ · Unmapped: 0 ✓
 
 Phase 1 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
 Phase 2 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
