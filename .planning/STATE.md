@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 02.1 (geometry-representation-research) — EXECUTING
 Plan: 4 of 4 (wave 1 of 3)
 Status: Ready to execute
-Last activity: 2026-08-01 — Phase 02.1 execution started
+Last activity: 2026-08-02 — Completed quick task 260801-ovf: cleanup, reduce to barebones isomap-on-dino experiment
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
 
@@ -119,6 +119,12 @@ From `TODO.md`:
 - `UniverseTBD/pu-embeddings` is ~93 GB across 163 configs — v1.1 streams exactly one config (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the whole dataset
 - Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) need a dedicated research pass during planning per `research/SUMMARY.md`; Phase 1/2 are standard sklearn/MDS patterns and can skip it
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate outcome is known
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260801-ovf | cleanup: reduce to barebones isomap-on-dino experiment | 2026-08-02 | 59742af | [260801-ovf-cleanup-reduce-to-barebones-isomap-on-di](./quick/260801-ovf-cleanup-reduce-to-barebones-isomap-on-di/) |
 
 ### Roadmap Evolution
 
