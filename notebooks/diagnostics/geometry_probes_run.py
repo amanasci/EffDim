@@ -1,10 +1,8 @@
 """
 Phase 02.1 geometry-representation probes, run over the frozen Phase 2 cache
-(fit_key=43cf438bc944c509). Diagnostic, not pre-registered, in the sense that it defines
-no new gate -- 02.1-PREREGISTRATION.md's rules govern how these numbers are read; this
-script only produces them. Every constant below was fixed in 02.1-PREREGISTRATION.md
-before any of these numbers existed, named by the section it came from -- never invented
-here.
+(fit_key=43cf438bc944c509). Diagnostic, not pre-registered -- 02.1-PREREGISTRATION.md's
+rules govern how these numbers are read; this script only produces them. Every constant
+below was fixed in 02.1-PREREGISTRATION.md before any of these numbers existed.
 
 Three questions:
   Q1. Correction blindness (GEOM-03). Do eigenvalue clipping and the Lingoes-type
@@ -16,18 +14,17 @@ Three questions:
       near a tree anchor (single constant negative curvature defensible) or near a flat-
       Euclidean anchor (not defensible), at matched n?
 
-Together these two probes (Q2, Q3) test the falsifier 02.1-PREREGISTRATION.md and
-02.1-FORK.md both name: the coordinate-producing verdict is overturned only if BOTH the
-delta reading rule refuses a single-curvature model AND the (p, q) ladder never drops
-distortion materially below the q=0 baseline. This script reports the measured numbers
-plainly; it does not adjudicate "materially below" -- that judgment is plan 02.1-04's.
+Q2 and Q3 together test the falsifier 02.1-PREREGISTRATION.md and 02.1-FORK.md both name:
+the coordinate-producing verdict is overturned only if BOTH the delta reading rule refuses
+a single-curvature model AND the (p, q) ladder never drops distortion materially below the
+q=0 baseline. This script reports the measured numbers plainly; it does not adjudicate
+"materially below" -- that judgment is plan 02.1-04's.
 
 Hard precondition: notebooks/.cache/isomap_43cf438bc944c509.joblib (~1.55 GiB) and
-notebooks/.cache/mds_eigenspectrum_43cf438bc944c509.npz must already exist on disk --
-notebooks/.cache/ is gitignored and neither artifact is reproducible by any plan in this
-phase. This script halts (via assertion / FileNotFoundError) rather than regenerating
-either; regenerating would silently change provenance and disconnect this phase's
-evidence from the exact fit Phase 2 audited.
+notebooks/.cache/mds_eigenspectrum_43cf438bc944c509.npz must already exist on disk (both
+gitignored, neither reproducible by any plan in this phase). This script halts rather than
+regenerating either -- regenerating would disconnect this phase's evidence from the exact
+fit Phase 2 audited.
 
 Invoke with: PYTHONPATH=notebooks python notebooks/diagnostics/geometry_probes_run.py
 """

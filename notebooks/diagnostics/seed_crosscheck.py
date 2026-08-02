@@ -1,14 +1,10 @@
 """
-Disjoint-sample check of the Phase 2 gate.
-
-Everything so far uses ONE subsample: 10,000 rows drawn with seed=20260729. Two axes stay
-confounded in that design -- "property of the model's embedding geometry" vs "property of
-these particular 10,000 objects" -- and the pre-registration's own remediation option 2
-(resample with a new seed) was never exercised.
-
-This draws a fresh 10,000 rows from the same 101,725-row config under a different seed and
-re-runs the gate on the legacysurvey column. Same model, same survey, same everything else;
-only the objects change.
+Disjoint-sample check of the Phase 2 gate: draws a fresh 10,000 rows from the same
+101,725-row config under a different seed (20260801 vs. the original 20260729) and re-runs
+the gate on the legacysurvey column -- same model, same survey, only the objects change.
+Exercises the pre-registration's remediation option 2 (resample with a new seed), closing
+whether "property of the model's embedding geometry" and "property of these particular
+10,000 objects" were confounded.
 
   same m on a disjoint draw -> not a property of the original 10k; sampling variance closed
   much lower m              -> the original draw was unrepresentative

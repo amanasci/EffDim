@@ -20,9 +20,8 @@
 # diffable place for versions, rather than splitting requirements per notebook.
 #
 # numpy, scipy, scikit-learn, and faiss-cpu are pinned to the exact versions the Phase 1
-# tracer (01-01) actually ran under -- the same versions printed in
-# `01_manifold_and_gate.ipynb`'s §0.3 reproducibility header -- so the file and the header
-# agree.
+# tracer (01-01) actually ran under -- numpy==2.5.1, scipy==1.18.0, scikit-learn==1.9.0,
+# faiss-cpu==1.14.3 below.
 #
 # joblib is pinned directly because `notebooks/pu_manifold/cache.py` imports it directly
 # (`from joblib import dump, load`); it previously arrived only transitively via

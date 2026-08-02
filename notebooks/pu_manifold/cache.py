@@ -30,42 +30,16 @@ KEY_LEN = 16
 
 
 def config_key(cfg: Dict[str, Any]) -> str:
-    """
-    Compute a stable, order-independent hash key for a config dict.
-
-    Parameters:
-    -----------
-    cfg : Dict[str, Any]
-        The analysis-parameter dict to key on. Must be JSON-serializable.
-
-    Returns:
-    --------
-    str
-        The first ``KEY_LEN`` hex characters of the sha256 digest of
-        ``json.dumps(cfg, sort_keys=True)``. ``sort_keys=True`` is required so key
-        stability does not depend on dict insertion order.
-    """
+    """First KEY_LEN hex chars of sha256(json.dumps(cfg, sort_keys=True)). sort_keys=True
+    so the key does not depend on dict insertion order."""
     serialized = json.dumps(cfg, sort_keys=True).encode()
     return hashlib.sha256(serialized).hexdigest()[:KEY_LEN]
 
 
 def _assert_inside_cache(path: Path) -> None:
-    """
-    Raise ``ValueError`` unless ``path`` resolves to a location inside ``CACHE_DIR``.
-
-    Parameters:
-    -----------
-    path : Path
-        The path to check.
-
-    Returns:
-    --------
-    None
-
-    This is the T-01-01 mitigation: every load path is one this module composed
-    itself from ``CACHE_DIR`` plus a ``config_key`` it just computed, and this guard
-    makes a ``..`` segment in a stem unable to escape ``CACHE_DIR``.
-    """
+    """Raise ValueError unless path resolves inside CACHE_DIR (T-01-01 mitigation: every
+    load path this module composes must not let a '..' segment in a stem escape
+    CACHE_DIR)."""
     resolved = path.resolve()
     resolved_cache_dir = CACHE_DIR.resolve()
     if resolved_cache_dir not in resolved.parents and resolved != resolved_cache_dir:
@@ -76,65 +50,21 @@ def _assert_inside_cache(path: Path) -> None:
 
 
 def cache_path(stem: str, ext: str) -> Path:
-    """
-    Compose a containment-checked path under ``CACHE_DIR`` for a given stem and extension.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem, e.g. ``f"subsample_{seed}_{subsample_key}"``.
-    ext : str
-        The file extension without a leading dot, e.g. ``"npz"``.
-
-    Returns:
-    --------
-    Path
-        ``CACHE_DIR / f"{stem}.{ext}"``, guaranteed to resolve inside ``CACHE_DIR``.
-    """
+    """Containment-checked CACHE_DIR / f"{stem}.{ext}"."""
     path = CACHE_DIR / f"{stem}.{ext}"
     _assert_inside_cache(path)
     return path
 
 
 def _manifest_path(stem: str) -> Path:
-    """
-    Compose the sidecar manifest path for a given stem.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem the artifact was written under.
-
-    Returns:
-    --------
-    Path
-        ``CACHE_DIR / f"{stem}.meta.json"``, guaranteed to resolve inside ``CACHE_DIR``.
-    """
+    """Sidecar manifest path for a stem: CACHE_DIR / f"{stem}.meta.json"."""
     return cache_path(stem, "meta.json")
 
 
 def _manifest_matches(stem: str, cfg: Dict[str, Any]) -> bool:
-    """
-    Check whether an existing sidecar manifest's cfg equals the passed cfg.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem.
-    cfg : Dict[str, Any]
-        The cfg dict the caller currently wants to load or write.
-
-    Returns:
-    --------
-    bool
-        True if a manifest exists and its stored cfg equals ``cfg`` exactly.
-
-    Raises:
-    -------
-    ValueError
-        If a manifest exists but its stored cfg differs from ``cfg``, naming both
-        dicts. A filename-key match alone is not sufficient trust (PITFALLS Pitfall 10).
-    """
+    """True if a manifest exists and its stored cfg equals cfg exactly. Raises ValueError
+    on a mismatch rather than returning False -- a filename-key match alone is not
+    sufficient trust (PITFALLS Pitfall 10)."""
     manifest_path = _manifest_path(stem)
     if not manifest_path.exists():
         return False
@@ -149,43 +79,14 @@ def _manifest_matches(stem: str, cfg: Dict[str, Any]) -> bool:
 
 
 def _write_manifest(stem: str, cfg: Dict[str, Any]) -> None:
-    """
-    Write the sidecar manifest recording the full cfg dict for a stem.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem.
-    cfg : Dict[str, Any]
-        The cfg dict to record.
-
-    Returns:
-    --------
-    None
-    """
+    """Write the sidecar manifest recording the full cfg dict for a stem."""
     manifest_path = _manifest_path(stem)
     manifest_path.write_text(json.dumps(cfg, indent=2, sort_keys=True))
 
 
 def npz_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Dict[str, np.ndarray]]) -> Dict[str, np.ndarray]:
-    """
-    Load-or-compute an npz-backed artifact, keyed by a sidecar manifest.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem (caller composes it, e.g.
-        ``f"subsample_{seed}_{subsample_key}"``).
-    cfg : Dict[str, Any]
-        The cfg dict this artifact is keyed on. Recorded in the sidecar manifest.
-    compute_fn : Callable[[], Dict[str, np.ndarray]]
-        Zero-argument callable returning the dict of arrays to cache on a miss.
-
-    Returns:
-    --------
-    Dict[str, np.ndarray]
-        The cached or freshly computed dict of arrays.
-    """
+    """Load-or-compute an npz-backed artifact, keyed by a sidecar manifest (cfg is
+    recorded and re-verified on load; compute_fn runs only on a cache miss)."""
     path = cache_path(stem, "npz")
     if path.exists() and _manifest_matches(stem, cfg):
         return dict(np.load(path))
@@ -196,29 +97,10 @@ def npz_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Dict[str,
 
 
 def joblib_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Any]) -> Any:
-    """
-    Load-or-compute a joblib-pickled artifact, keyed by a sidecar manifest.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem (caller composes it, e.g. ``f"isomap_{fit_key}"``).
-    cfg : Dict[str, Any]
-        The cfg dict this artifact is keyed on. Recorded in the sidecar manifest.
-    compute_fn : Callable[[], Any]
-        Zero-argument callable returning the object to cache on a miss.
-
-    Returns:
-    --------
-    Any
-        The cached or freshly computed object.
-
-    This function only ever loads a path it composed itself from ``CACHE_DIR`` plus a
-    caller-supplied stem (validated by ``_assert_inside_cache``). Do not add a helper
-    that loads a caller-supplied absolute path -- ``joblib.load`` is pickle
-    deserialization (threat T-01-01), and never loading a path this module did not
-    build is the only defence.
-    """
+    """Load-or-compute a joblib-pickled artifact, keyed by a sidecar manifest. Only ever
+    loads a path this module composed itself from CACHE_DIR (validated by
+    _assert_inside_cache) -- do not add a helper that loads a caller-supplied absolute
+    path, since joblib.load is pickle deserialization (threat T-01-01)."""
     path = cache_path(stem, "joblib")
     if path.exists() and _manifest_matches(stem, cfg):
         return joblib_load(path)
@@ -229,24 +111,7 @@ def joblib_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Any]) 
 
 
 def json_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Load-or-compute a json-backed artifact, keyed by a sidecar manifest.
-
-    Parameters:
-    -----------
-    stem : str
-        The fully-formed filename stem (caller composes it, e.g.
-        ``f"effdim_panel_{seed}_{subsample_key}"``).
-    cfg : Dict[str, Any]
-        The cfg dict this artifact is keyed on. Recorded in the sidecar manifest.
-    compute_fn : Callable[[], Dict[str, Any]]
-        Zero-argument callable returning the dict to cache on a miss.
-
-    Returns:
-    --------
-    Dict[str, Any]
-        The cached or freshly computed dict.
-    """
+    """Load-or-compute a json-backed artifact, keyed by a sidecar manifest."""
     path = cache_path(stem, "json")
     if path.exists() and _manifest_matches(stem, cfg):
         return json.loads(path.read_text())

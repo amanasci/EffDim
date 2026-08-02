@@ -49,32 +49,13 @@ ALIGNMENT_N_PERMUTATIONS = 50
 
 
 def draw_row_indices(n_total: int, n_rows: int, seed: int) -> np.ndarray:
-    """
-    Draw a deterministic, sorted, duplicate-free sample of row indices.
-
-    Parameters:
-    -----------
-    n_total : int
-        Total number of rows available to sample from.
-    n_rows : int
-        Number of rows to draw.
-    seed : int
-        Seed for ``numpy.random.default_rng``.
-
-    Returns:
-    --------
-    np.ndarray
-        ``np.sort(np.random.default_rng(seed).choice(n_total, n_rows, replace=False))``.
-        ``replace=False`` admits no equal elements and ``np.sort`` fixes one deterministic
-        total order (DATA-03). Both paired columns must be read off this single array in
-        one indexing pass, never via two independent shuffle/select calls.
-
-    Raises:
-    -------
-    ValueError
-        If ``n_rows < 2``, if ``n_rows > MAX_N_ROWS`` (a dense-geodesic fit at the full
-        dataset size would need ~83 GB), or if ``n_total < n_rows``.
-    """
+    """Deterministic, sorted, duplicate-free row-index sample:
+    ``np.sort(np.random.default_rng(seed).choice(n_total, n_rows, replace=False))``.
+    ``replace=False`` admits no equal elements and ``np.sort`` fixes one deterministic
+    total order (DATA-03). Both paired columns must be read off this single array in one
+    indexing pass, never via two independent shuffle/select calls. Raises ValueError if
+    ``n_rows < 2``, ``n_rows > MAX_N_ROWS`` (a full-dataset dense-geodesic fit would need
+    ~83 GB), or ``n_total < n_rows``."""
     if n_rows < 2:
         raise ValueError(f"n_rows must be at least 2, got {n_rows}.")
     if n_rows > MAX_N_ROWS:
@@ -94,24 +75,8 @@ def draw_row_indices(n_total: int, n_rows: int, seed: int) -> np.ndarray:
 
 
 def l2_normalize(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    L2-normalize each row of a 2D array, returning the unit rows and the raw norms.
-
-    Parameters:
-    -----------
-    x : np.ndarray
-        A ``(n_rows, n_features)`` array.
-
-    Returns:
-    --------
-    Tuple[np.ndarray, np.ndarray]
-        ``(x / norms[:, None], norms)`` where ``norms = np.linalg.norm(x, axis=1)``.
-
-    Raises:
-    -------
-    ValueError
-        If any row has a norm of exactly zero (would divide by zero).
-    """
+    """L2-normalize each row of a ``(n_rows, n_features)`` array, returning
+    ``(x / norms[:, None], norms)``. Raises ValueError on a zero-norm row."""
     norms = np.linalg.norm(x, axis=1)
     if np.any(norms == 0):
         raise ValueError(
@@ -122,20 +87,8 @@ def l2_normalize(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def row_indices_sha256(row_indices: np.ndarray) -> str:
-    """
-    Compute a sha256 hash over a row-index array's C-contiguous int64 bytes.
-
-    Parameters:
-    -----------
-    row_indices : np.ndarray
-        The row-index array to hash.
-
-    Returns:
-    --------
-    str
-        Hex digest of the sha256 hash of ``row_indices``, cast to ``int64`` and made
-        C-contiguous first so the hash is independent of dtype/layout quirks.
-    """
+    """Sha256 hex digest of row_indices, cast to int64 and made C-contiguous first so
+    the hash is independent of dtype/layout quirks."""
     contiguous = np.ascontiguousarray(row_indices, dtype=np.int64)
     return hashlib.sha256(contiguous.tobytes()).hexdigest()
 
@@ -146,32 +99,9 @@ def assert_structural_alignment(
     row_indices: np.ndarray,
     expected_sha256: Optional[str] = None,
 ) -> str:
-    """
-    Raise unless the two paired arrays and the row-index array are structurally consistent.
-
-    Parameters:
-    -----------
-    hsc : np.ndarray
-        The HSC embedding array, shape ``(n_rows, N_FEATURES)``.
-    legacysurvey : np.ndarray
-        The Legacy Survey embedding array, shape ``(n_rows, N_FEATURES)``.
-    row_indices : np.ndarray
-        The row-index array both arrays were selected with.
-    expected_sha256 : Optional[str]
-        If given, the recomputed hash of ``row_indices`` must match this value.
-
-    Returns:
-    --------
-    str
-        The (recomputed) sha256 hash of ``row_indices``.
-
-    Raises:
-    -------
-    ValueError
-        If ``hsc.shape != legacysurvey.shape``, if ``hsc.shape[0] != row_indices.shape[0]``,
-        if ``hsc.shape[1] != N_FEATURES``, if either array contains a non-finite value, or
-        if ``expected_sha256`` is given and does not match the recomputed hash.
-    """
+    """Raise ValueError unless hsc/legacysurvey/row_indices are structurally consistent
+    (matching shapes, N_FEATURES width, finiteness, and -- if expected_sha256 is given --
+    a matching row_indices hash). Returns the (recomputed) sha256 hash of row_indices."""
     if hsc.shape != legacysurvey.shape:
         raise ValueError(
             f"hsc.shape {hsc.shape} != legacysurvey.shape {legacysurvey.shape}; the two "
@@ -204,40 +134,16 @@ def alignment_smoke_test(
     seed: int,
     n_permutations: int = ALIGNMENT_N_PERMUTATIONS,
 ) -> Dict[str, Any]:
-    """
-    Statistical row-alignment smoke test: a scale-free z-score against a permuted null.
+    """Statistical row-alignment smoke test: a scale-free z-score against a permuted null.
+    Returns ``{"s_true", "mu_perm", "sd_perm", "z", "margin_z", "n_permutations"}``, where
+    ``s_true`` is the mean per-row cosine (plain dot product, inputs already L2-normalized)
+    of the true pairing, ``mu_perm``/``sd_perm`` are the mean/std of that same statistic
+    over ``n_permutations`` seeded permutations of legacysurvey, and
+    ``z = (s_true - mu_perm) / sd_perm``. Raises ValueError if ``sd_perm == 0``.
 
-    Parameters:
-    -----------
-    hsc : np.ndarray
-        L2-normalized HSC embedding array, shape ``(n_rows, N_FEATURES)``.
-    legacysurvey : np.ndarray
-        L2-normalized Legacy Survey embedding array, shape ``(n_rows, N_FEATURES)``.
-    seed : int
-        Seed for the permutation draws (``np.random.default_rng(seed)``).
-    n_permutations : int
-        Number of independent seeded permutations of ``legacysurvey`` to draw for the null.
-
-    Returns:
-    --------
-    Dict[str, Any]
-        ``{"s_true", "mu_perm", "sd_perm", "z", "margin_z", "n_permutations"}``.
-        ``s_true`` is the mean per-row cosine (plain dot product, since inputs are already
-        L2-normalized) between the true pairing. ``mu_perm``/``sd_perm`` are the mean and
-        standard deviation of that same statistic over ``n_permutations`` independent
-        permutations of ``legacysurvey``. ``z = (s_true - mu_perm) / sd_perm``.
-
-    Raises:
-    -------
-    ValueError
-        If ``sd_perm`` is exactly zero (the null has no spread to compare against).
-
-    Notes:
-    ------
     Scale-free by construction: the origin paper (arXiv:2509.19453) reports Legacy Survey
     crossmodal MKNN at only 0.4-2%, so an absolute-cosine margin would risk rejecting a
-    genuinely correct but weak pairing. A z-score against the permuted null adapts to
-    whatever the true-pair cosine actually is. The null's spread is a standard error over
+    genuinely correct but weak pairing. The null's spread is a standard error over
     ``n_rows`` rows, so a correct alignment -- even a weak one -- puts ``s_true`` many
     standard errors above ``mu_perm``; a gross misalignment (off-by-one, independent
     re-sort) makes ``s_true`` itself a draw from the permuted distribution, so ``z`` lands
@@ -277,36 +183,12 @@ def assert_alignment(
     seed: int,
     expected_sha256: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Run the structural check then the statistical smoke test; raise unless both pass.
-
-    Parameters:
-    -----------
-    hsc : np.ndarray
-        L2-normalized HSC embedding array.
-    legacysurvey : np.ndarray
-        L2-normalized Legacy Survey embedding array.
-    row_indices : np.ndarray
-        The row-index array both arrays were selected with.
-    seed : int
-        Seed for the permutation-null draws.
-    expected_sha256 : Optional[str]
-        If given, forwarded to :func:`assert_structural_alignment`.
-
-    Returns:
-    --------
-    Dict[str, Any]
-        The stats dict from :func:`alignment_smoke_test`, with ``row_indices_sha256`` added.
-
-    Raises:
-    -------
-    ValueError
-        If the structural check fails, or if ``stats["z"] <= ALIGNMENT_MARGIN_Z`` -- the
-        comparison is strict, so a z of exactly ``ALIGNMENT_MARGIN_Z`` is insufficient and
-        raises. This check must never be weakened, skipped, or downgraded to a warning
-        (DATA-03 prohibition): there is no ``object_id`` in this dataset, so this assertion
-        is the only correctness invariant the whole milestone rests on.
-    """
+    """Run the structural check then the statistical smoke test; raise ValueError unless
+    both pass (strictly ``stats["z"] > ALIGNMENT_MARGIN_Z``). Returns the
+    :func:`alignment_smoke_test` stats dict with ``row_indices_sha256`` added. This check
+    must never be weakened, skipped, or downgraded to a warning (DATA-03 prohibition):
+    there is no ``object_id`` in this dataset, so this assertion is the only correctness
+    invariant the whole milestone rests on."""
     computed_sha256 = assert_structural_alignment(
         hsc, legacysurvey, row_indices, expected_sha256
     )
@@ -324,45 +206,25 @@ def assert_alignment(
 
 
 def load_subsample(cfg: Dict[str, Any]) -> Dict[str, np.ndarray]:
-    """
-    Load (or compute-and-cache) a seeded, L2-normalized subsample of the paired columns.
+    """Load (or compute-and-cache) a seeded, L2-normalized subsample of the paired
+    columns. ``cfg`` must contain ``"dataset"``, ``"seed"`` and ``"n_rows"``; extra keys
+    (e.g. ``n_neighbors``, ``n_components``) are ignored (see cache-key note below).
+    Returns ``{"hsc", "legacysurvey", "hsc_norms", "ls_norms", "row_indices"}`` -- ``hsc``/
+    ``legacysurvey`` are L2-normalized (D-05/D-06), ``hsc_norms``/``ls_norms`` are the raw
+    pre-normalization norms (kept so the DATA-04 norm histogram is reproducible without
+    re-streaming), and ``row_indices`` is the sorted seeded index array both columns were
+    read off. Raises ValueError if ``cfg["n_rows"] > MAX_N_ROWS`` (checked before the
+    ``datasets`` import), propagated from :func:`draw_row_indices` for other degenerate
+    cases, or if the upstream config no longer reports ``EXPECTED_N_TOTAL`` rows.
 
-    Parameters:
-    -----------
-    cfg : Dict[str, Any]
-        Must contain ``"dataset"`` (the HF config name), ``"seed"``, and ``"n_rows"``.
-        Extra keys (e.g. ``n_neighbors``, ``n_components``) are ignored here -- see Notes.
+    ``datasets`` is imported lazily inside this function so the module imports cleanly
+    with only numpy and joblib present.
 
-    Returns:
-    --------
-    Dict[str, np.ndarray]
-        ``{"hsc", "legacysurvey", "hsc_norms", "ls_norms", "row_indices"}``. ``hsc`` and
-        ``legacysurvey`` are L2-normalized (D-05/D-06); ``hsc_norms``/``ls_norms`` are the
-        raw pre-normalization norms, retained so the DATA-04 norm histogram is reproducible
-        without re-streaming; ``row_indices`` is the sorted seeded index array both columns
-        were read off.
-
-    Raises:
-    -------
-    ValueError
-        If ``cfg["n_rows"] > MAX_N_ROWS`` (checked before anything else, including before
-        the ``datasets`` import). Propagated from :func:`draw_row_indices` for the other
-        degenerate cases, and from the loaded-row-count assertion below if the upstream
-        config no longer reports ``EXPECTED_N_TOTAL`` rows.
-
-    Notes:
-    ------
-    ``datasets`` is imported lazily, inside this function, never at module top level, so
-    this module imports cleanly with only numpy and joblib present.
-
-    The cache key this function computes is deliberately **narrower** than the full ``cfg``
-    it is called with: only ``dataset``, ``seed``, ``n_rows``, ``normalize``, the installed
-    ``datasets`` version, and the installed ``numpy`` version participate. This is a stated
-    refinement of D-14 (see the Phase 1 plan's "Cache-key refinement" note): the subsample
-    artifact must not be invalidated by changing a fit-only parameter such as
-    ``n_neighbors`` or ``n_components``, which would otherwise force an unnecessary
-    re-download and re-subsample. The Isomap *fit* cache (built by the notebook, not this
-    function) uses the full D-14 field set instead.
+    The cache key is deliberately **narrower** than the full ``cfg``: only ``dataset``,
+    ``seed``, ``n_rows``, ``normalize``, and the installed ``datasets``/``numpy`` versions
+    participate (D-14 refinement) -- a fit-only parameter such as ``n_neighbors`` must not
+    invalidate this artifact and force an unnecessary re-download. The Isomap *fit* cache
+    (built by the notebook, not this function) uses the full D-14 field set instead.
     """
     if cfg["n_rows"] > MAX_N_ROWS:
         raise ValueError(
