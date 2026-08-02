@@ -1,0 +1,841 @@
+{
+  "experiment": "sae_curvature_probe",
+  "args": {
+    "max_n": 100,
+    "k_curv": 5,
+    "sae_feature_dim": 64,
+    "sae_topk": 4,
+    "sae_epochs": 1,
+    "probe_set": "independent",
+    "n_probes": 38,
+    "seed": 0
+  },
+  "per_model": [
+    {
+      "spearman": [
+        {
+          "metric": "active_set_jaccard_var",
+          "spearman_rho": 0.20218414097624,
+          "spearman_pval": 0.28395945581910537,
+          "logistic_auc": 0.5977777777777777,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "code_gradient_norm",
+          "spearman_rho": 0.07764182424916574,
+          "spearman_pval": 0.6834144011145575,
+          "logistic_auc": 0.528888888888889,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "local_code_rank",
+          "spearman_rho": 0.11234705228031144,
+          "spearman_pval": 0.5544673067635923,
+          "logistic_auc": 0.5466666666666666,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "atom_turnover_rate",
+          "spearman_rho": 0.10379308089787868,
+          "spearman_pval": 0.5851899529602569,
+          "logistic_auc": 0.5355555555555556,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "reconstruction_error",
+          "spearman_rho": 0.45317018909899887,
+          "spearman_pval": 0.01190695366951449,
+          "logistic_auc": 0.6977777777777778,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        }
+      ],
+      "boxplot_path": "scratch/smoke_test/vit_base_boxplot.png",
+      "per_probe_top5": {
+        "active_set_jaccard_var": [
+          {
+            "probe": "merging",
+            "rho": -0.416037067003273,
+            "pval": 0.022214637369716343
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": 0.14743061112251907,
+            "pval": 0.4368867553632786
+          },
+          {
+            "probe": "smooth_minus_disk",
+            "rho": 0.1380058231968786,
+            "pval": 0.46706598734903726
+          },
+          {
+            "probe": "smooth",
+            "rho": 0.12880543498375333,
+            "pval": 0.49754784887451997
+          },
+          {
+            "probe": "featured_disk",
+            "rho": 0.11713664993296036,
+            "pval": 0.5375975437682565
+          }
+        ],
+        "code_gradient_norm": [
+          {
+            "probe": "redshift",
+            "rho": 0.1694581280788177,
+            "pval": 0.3795101465496067
+          },
+          {
+            "probe": "smooth_minus_disk",
+            "rho": 0.13592880978865407,
+            "pval": 0.47386050072048835
+          },
+          {
+            "probe": "merging",
+            "rho": 0.11412680756395997,
+            "pval": 0.5481702274262921
+          },
+          {
+            "probe": "smooth",
+            "rho": 0.08832035595105672,
+            "pval": 0.6425732546619212
+          },
+          {
+            "probe": "featured_disk",
+            "rho": 0.0843159065628476,
+            "pval": 0.6577771651218055
+          }
+        ],
+        "local_code_rank": [
+          {
+            "probe": "smooth",
+            "rho": 0.15595105672969967,
+            "pval": 0.4105440551156686
+          },
+          {
+            "probe": "merging",
+            "rho": 0.14838709677419354,
+            "pval": 0.4338845839552422
+          },
+          {
+            "probe": "featured_disk",
+            "rho": 0.14349276974416017,
+            "pval": 0.4493650226110115
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": 0.13726362625139044,
+            "pval": 0.46948804567056723
+          },
+          {
+            "probe": "total_merger",
+            "rho": 0.13681868743047831,
+            "pval": 0.4709431830890044
+          }
+        ],
+        "atom_turnover_rate": [
+          {
+            "probe": "merging",
+            "rho": 0.4925697502955364,
+            "pval": 0.005687835396115389
+          },
+          {
+            "probe": "total_merger",
+            "rho": 0.2742463732344812,
+            "pval": 0.14249303172161867
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": 0.10468784883665351,
+            "pval": 0.5819415591540275
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": -0.09462170952543683,
+            "pval": 0.6189345320673485
+          },
+          {
+            "probe": "smooth",
+            "rho": -0.06755497937749863,
+            "pval": 0.7228165966673952
+          }
+        ],
+        "reconstruction_error": [
+          {
+            "probe": "major_disturbance",
+            "rho": 0.3797552836484983,
+            "pval": 0.038462979182396426
+          },
+          {
+            "probe": "total_merger",
+            "rho": 0.3210233592880979,
+            "pval": 0.08368000725262145
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": 0.28409343715239155,
+            "pval": 0.1281416150973709
+          },
+          {
+            "probe": "redshift",
+            "rho": 0.16600985221674872,
+            "pval": 0.3894248052313538
+          },
+          {
+            "probe": "smooth_minus_disk",
+            "rho": 0.14349276974416017,
+            "pval": 0.4493650226110115
+          }
+        ]
+      },
+      "model": "vit_base",
+      "col": "vit_base_galaxies",
+      "n_train": 70,
+      "n_test": 30,
+      "probe_stats": {
+        "smooth": {
+          "r2_train": 1.0,
+          "r2_cv": -0.4525854825973511,
+          "n_valid": 70
+        },
+        "featured_disk": {
+          "r2_train": 1.0,
+          "r2_cv": -0.6719472408294678,
+          "n_valid": 70
+        },
+        "has_spiral_arms": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bar_strong": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bar_weak": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_dominant": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_large": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_moderate": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_small": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "edge_on": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 8
+        },
+        "merging": {
+          "r2_train": 1.0,
+          "r2_cv": -4.047957897186279,
+          "n_valid": 70
+        },
+        "major_disturbance": {
+          "r2_train": 1.0,
+          "r2_cv": -0.1632373809814453,
+          "n_valid": 70
+        },
+        "minor_disturbance": {
+          "r2_train": 1.0,
+          "r2_cv": -0.3709887623786926,
+          "n_valid": 70
+        },
+        "mag_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "mag_g": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "mag_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "u_minus_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "sersic_n": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "sersic_ba": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "petro_th50": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "petro_th90": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "elpetro_ba": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "elpetro_theta": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "stellar_mass": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "redshift": {
+          "r2_train": 1.0,
+          "r2_cv": 0.16162621974945068,
+          "n_valid": 67
+        },
+        "sfr": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "ssfr": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "g_minus_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "g_minus_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "r_minus_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "concentration": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_petro_th50": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_petro_th90": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_sersic_n": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "smooth_minus_disk": {
+          "r2_train": 1.0,
+          "r2_cv": -0.5904682636260986,
+          "n_valid": 70
+        },
+        "bar_signal": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "total_merger": {
+          "r2_train": 1.0,
+          "r2_cv": -0.5674509406089783,
+          "n_valid": 70
+        },
+        "bulge_total": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        }
+      },
+      "mean_probe_error": 2.8038341999053955,
+      "sae_dir": "/Users/jasperchong/GitHub/EffDim/outputs/sae/vit_base_test/vit_base_galaxies/F64_k4_seed0",
+      "sae_feature_dim": 64,
+      "sae_topk": 4
+    },
+    {
+      "spearman": [
+        {
+          "metric": "active_set_jaccard_var",
+          "spearman_rho": -0.04086217305325898,
+          "spearman_pval": 0.8302425131959417,
+          "logistic_auc": 0.5022222222222222,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "code_gradient_norm",
+          "spearman_rho": 0.07942157953281423,
+          "spearman_pval": 0.6765425401795025,
+          "logistic_auc": 0.5422222222222222,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "local_code_rank",
+          "spearman_rho": -0.04471635150166852,
+          "spearman_pval": 0.8144946781880171,
+          "logistic_auc": 0.5822222222222222,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "atom_turnover_rate",
+          "spearman_rho": 0.03813931939286773,
+          "spearman_pval": 0.8414072141007332,
+          "logistic_auc": 0.5866666666666667,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        },
+        {
+          "metric": "reconstruction_error",
+          "spearman_rho": 0.006006674082313682,
+          "spearman_pval": 0.9748690768685238,
+          "logistic_auc": 0.49777777777777776,
+          "n_valid": 30,
+          "spearman_rho_dense": NaN,
+          "spearman_pval_dense": NaN
+        }
+      ],
+      "boxplot_path": "scratch/smoke_test/dinov3_vitb16_boxplot.png",
+      "per_probe_top5": {
+        "active_set_jaccard_var": [
+          {
+            "probe": "featured_disk",
+            "rho": 0.2110095821602718,
+            "pval": 0.2630129905598479
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": -0.16836108460195234,
+            "pval": 0.3738202721692748
+          },
+          {
+            "probe": "redshift",
+            "rho": 0.11598958942060235,
+            "pval": 0.5490557677310206
+          },
+          {
+            "probe": "total_merger",
+            "rho": -0.0893162252530251,
+            "pval": 0.6388137601910513
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": -0.08306408948531335,
+            "pval": 0.6625579579505303
+          }
+        ],
+        "code_gradient_norm": [
+          {
+            "probe": "smooth",
+            "rho": 0.2253615127919911,
+            "pval": 0.23115666528541257
+          },
+          {
+            "probe": "merging",
+            "rho": -0.2186874304783092,
+            "pval": 0.24563221703044613
+          },
+          {
+            "probe": "total_merger",
+            "rho": 0.20978865406006672,
+            "pval": 0.2658489717443996
+          },
+          {
+            "probe": "smooth_minus_disk",
+            "rho": 0.20311457174638486,
+            "pval": 0.28170222907423026
+          },
+          {
+            "probe": "featured_disk",
+            "rho": 0.17285873192436038,
+            "pval": 0.36100144122309663
+          }
+        ],
+        "local_code_rank": [
+          {
+            "probe": "redshift",
+            "rho": 0.4266009852216748,
+            "pval": 0.02101059878009681
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": -0.1635150166852058,
+            "pval": 0.3879257345165761
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": 0.10878754171301447,
+            "pval": 0.567160824124569
+          },
+          {
+            "probe": "smooth",
+            "rho": -0.1003337041156841,
+            "pval": 0.5978232057695443
+          },
+          {
+            "probe": "smooth_minus_disk",
+            "rho": -0.08342602892102337,
+            "pval": 0.661174334820857
+          }
+        ],
+        "atom_turnover_rate": [
+          {
+            "probe": "featured_disk",
+            "rho": -0.14829464775697393,
+            "pval": 0.4341742654366425
+          },
+          {
+            "probe": "minor_disturbance",
+            "rho": 0.10634139642481942,
+            "pval": 0.5759595290183759
+          },
+          {
+            "probe": "merging",
+            "rho": 0.1000596261718765,
+            "pval": 0.598829093070816
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": -0.09557264741977442,
+            "pval": 0.61539859993667
+          },
+          {
+            "probe": "redshift",
+            "rho": -0.08055042395521338,
+            "pval": 0.6778690644518677
+          }
+        ],
+        "reconstruction_error": [
+          {
+            "probe": "merging",
+            "rho": 0.1243604004449388,
+            "pval": 0.5126248379279994
+          },
+          {
+            "probe": "redshift",
+            "rho": -0.11379310344827585,
+            "pval": 0.5566975148334772
+          },
+          {
+            "probe": "major_disturbance",
+            "rho": 0.09721913236929922,
+            "pval": 0.609296324690827
+          },
+          {
+            "probe": "total_merger",
+            "rho": -0.0843159065628476,
+            "pval": 0.6577771651218055
+          },
+          {
+            "probe": "smooth",
+            "rho": -0.057174638487208,
+            "pval": 0.7641029227953104
+          }
+        ]
+      },
+      "model": "dinov3_vitb16",
+      "col": "dinov3_vitb16_galaxies",
+      "n_train": 70,
+      "n_test": 30,
+      "probe_stats": {
+        "smooth": {
+          "r2_train": 1.0,
+          "r2_cv": -0.5508784294128418,
+          "n_valid": 70
+        },
+        "featured_disk": {
+          "r2_train": 1.0,
+          "r2_cv": -0.7485824346542358,
+          "n_valid": 70
+        },
+        "has_spiral_arms": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bar_strong": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bar_weak": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_dominant": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_large": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_moderate": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "bulge_small": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "edge_on": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 8
+        },
+        "merging": {
+          "r2_train": 1.0,
+          "r2_cv": -8.779405283927918,
+          "n_valid": 70
+        },
+        "major_disturbance": {
+          "r2_train": 1.0,
+          "r2_cv": -0.1401553511619568,
+          "n_valid": 70
+        },
+        "minor_disturbance": {
+          "r2_train": 1.0,
+          "r2_cv": -0.22544909715652467,
+          "n_valid": 70
+        },
+        "mag_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "mag_g": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "mag_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "u_minus_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "sersic_n": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "sersic_ba": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "petro_th50": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "petro_th90": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "elpetro_ba": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "elpetro_theta": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "stellar_mass": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "redshift": {
+          "r2_train": 1.0,
+          "r2_cv": 0.10563460588455201,
+          "n_valid": 67
+        },
+        "sfr": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "ssfr": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "g_minus_r": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "g_minus_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "r_minus_z": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "concentration": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_petro_th50": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_petro_th90": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "log_sersic_n": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 4
+        },
+        "smooth_minus_disk": {
+          "r2_train": 1.0,
+          "r2_cv": -0.6850284337997437,
+          "n_valid": 70
+        },
+        "bar_signal": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        },
+        "total_merger": {
+          "r2_train": 1.0,
+          "r2_cv": -0.45995569229125977,
+          "n_valid": 70
+        },
+        "bulge_total": {
+          "r2_train": NaN,
+          "r2_cv": NaN,
+          "n_valid": 5
+        }
+      },
+      "mean_probe_error": 3.5659563541412354,
+      "sae_dir": "/Users/jasperchong/GitHub/EffDim/outputs/sae/dinov3_vitb16_test/dinov3_vitb16_galaxies/F64_k4_seed0",
+      "sae_feature_dim": 64,
+      "sae_topk": 4
+    }
+  ],
+  "aggregated_spearman": [
+    {
+      "metric": "reconstruction_error",
+      "mean_abs_rho": 0.22958843159065628,
+      "mean_auc": 0.5977777777777777,
+      "rhos_per_model": [
+        0.45317018909899887,
+        0.006006674082313682
+      ],
+      "mean_abs_rho_dense": NaN
+    },
+    {
+      "metric": "active_set_jaccard_var",
+      "mean_abs_rho": 0.12152315701474949,
+      "mean_auc": 0.55,
+      "rhos_per_model": [
+        0.20218414097624,
+        -0.04086217305325898
+      ],
+      "mean_abs_rho_dense": NaN
+    },
+    {
+      "metric": "code_gradient_norm",
+      "mean_abs_rho": 0.07853170189098999,
+      "mean_auc": 0.5355555555555556,
+      "rhos_per_model": [
+        0.07764182424916574,
+        0.07942157953281423
+      ],
+      "mean_abs_rho_dense": NaN
+    },
+    {
+      "metric": "local_code_rank",
+      "mean_abs_rho": 0.07853170189098999,
+      "mean_auc": 0.5644444444444444,
+      "rhos_per_model": [
+        0.11234705228031144,
+        -0.04471635150166852
+      ],
+      "mean_abs_rho_dense": NaN
+    },
+    {
+      "metric": "atom_turnover_rate",
+      "mean_abs_rho": 0.0709662001453732,
+      "mean_auc": 0.5611111111111111,
+      "rhos_per_model": [
+        0.10379308089787868,
+        0.03813931939286773
+      ],
+      "mean_abs_rho_dense": NaN
+    }
+  ]
+}

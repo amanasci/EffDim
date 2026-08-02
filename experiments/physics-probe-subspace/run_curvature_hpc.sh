@@ -34,9 +34,10 @@ K_CURV="${K_CURV:-50}"
 K_SMALL="${K_SMALL:-30}"
 K_LARGE="${K_LARGE:-200}"
 
-# Output roots (relative to PLATONIC_ROOT)
-SAE_OUT="outputs/sae_curvature_probe"
-MS_OUT="outputs/multiscale_curvature_probe"
+# Output directories (Timestamped in local repo)
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+SAE_OUT="experiments/physics-probe-subspace/outputs/run_${TIMESTAMP}"
+MS_OUT="experiments/physics-probe-subspace/outputs/run_${TIMESTAMP}/ms_pca"
 
 # ---------------------------------------------------------------------------
 # Environment setup
@@ -48,7 +49,7 @@ MS_OUT="outputs/multiscale_curvature_probe"
 eval "$(conda shell.bash hook)"
 conda activate effdim
 
-mkdir -p logs "${PLATONIC_ROOT}/${SAE_OUT}" "${PLATONIC_ROOT}/${MS_OUT}"
+mkdir -p logs "${SAE_OUT}" "${MS_OUT}"
 
 echo "============================================================"
 echo " Curvature ↔ Probe Correlation Experiments"
@@ -78,10 +79,10 @@ python experiments/physics-probe-subspace/sae_curvature_probe.py \
     --sae-epochs         "${SAE_EPOCHS}" \
     --device             "${DEVICE}" \
     --seed               "${SEED}" \
-    --output-dir         "${PLATONIC_ROOT}/${SAE_OUT}"
+    --output-dir         "${SAE_OUT}"
 
 echo ""
-echo "SAE experiment complete. Results at: ${PLATONIC_ROOT}/${SAE_OUT}/results.md"
+echo "SAE experiment complete. Results at: ${SAE_OUT}/results.md"
 
 # ---------------------------------------------------------------------------
 # Experiment 2: Multi-scale PCA residual curvature

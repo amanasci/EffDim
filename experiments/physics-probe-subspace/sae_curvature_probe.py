@@ -211,20 +211,12 @@ def reconstruct_sae(bundle: dict, X: np.ndarray, device: torch.device, bs: int =
 # kNN graph (batched, no GPU required for pure numpy)
 # ---------------------------------------------------------------------------
 
-def build_knn_indices(X: np.ndarray, k: int) -> np.ndarray:
-    """Return (n, k) integer array of kNN indices in X (Euclidean, no self)."""
-    try:
-        import faiss
-        X32 = np.ascontiguousarray(X, dtype=np.float32)
-        index = faiss.IndexFlatL2(X32.shape[1])
-        index.add(X32)
-        _, I = index.search(X32, k + 1)
-        return I[:, 1:k + 1]  # drop self
-    except ImportError:
-        from sklearn.neighbors import NearestNeighbors
-        nn = NearestNeighbors(n_neighbors=k + 1, metric="euclidean").fit(X)
-        I = nn.kneighbors(X, return_distance=False)
-        return I[:, 1:]
+def build_knn_with_dists(X: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+    """Return (distances, indices) of kNN in X (Euclidean, no self)."""
+    from sklearn.neighbors import NearestNeighbors
+    nn = NearestNeighbors(n_neighbors=k + 1, metric="euclidean").fit(X)
+    D, I = nn.kneighbors(X, return_distance=True)
+    return D[:, 1:], I[:, 1:]
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +378,8 @@ def run_one_model(
 
     # --- kNN graph on test embeddings ---
     print(f"  Building kNN graph (k={args.k_curv}) on test split...", flush=True)
-    knn_idx = build_knn_indices(Z_test, args.k_curv)
+    knn_dists, knn_idx = build_knn_with_dists(Z_test, args.k_curv)
+    d_k = knn_dists[:, -1]
 
     # --- SAE curvature metrics on test split ---
     C_test = C[idx_test]
@@ -400,7 +393,7 @@ def run_one_model(
     print(f"\n  Correlation analysis ({tag}):", flush=True)
     summary = correlation_analysis(
         curv_dict, mean_residual, residuals, probe_keys,
-        output_dir=out_dir, tag=tag
+        output_dir=out_dir, tag=tag, density_metric=d_k
     )
     summary["model"] = model_name
     summary["col"] = col
@@ -442,11 +435,13 @@ def aggregate_results(summaries: list[dict]) -> dict:
                 if row["metric"] == metric:
                     rhos.append(row["spearman_rho"])
                     aucs.append(row["logistic_auc"])
+        dense_rhos = [r["spearman_rho_dense"] for s in summaries for r in s.get("spearman", []) if r["metric"] == metric and "spearman_rho_dense" in r and not np.isnan(r["spearman_rho_dense"])]
         agg_rows.append({
             "metric": metric,
             "mean_abs_rho": float(np.mean(np.abs(rhos))),
             "mean_auc": float(np.nanmean(aucs)),
             "rhos_per_model": rhos,
+            "mean_abs_rho_dense": float(np.mean(np.abs(dense_rhos))) if dense_rhos else float('nan')
         })
     agg_rows.sort(key=lambda r: r["mean_abs_rho"], reverse=True)
     return {"aggregated_spearman": agg_rows}
@@ -557,23 +552,27 @@ def main() -> None:
         "",
         "## Aggregated Spearman |ρ| (mean across models)",
         "",
-        "| Metric | Mean |ρ| | Mean AUC |",
-        "|---|---:|---:|",
+        "| Metric | Mean |ρ| | Mean |ρ| (Dense Q1) | Mean AUC |",
+        "|---|---:|---:|---:|",
     ]
     for row in agg["aggregated_spearman"]:
-        lines.append(f"| {row['metric']} | {row['mean_abs_rho']:.3f} | {row['mean_auc']:.3f} |")
+        dense_val = row.get("mean_abs_rho_dense", float('nan'))
+        dense_str = f"{dense_val:.3f}" if not np.isnan(dense_val) else "N/A"
+        lines.append(f"| {row['metric']} | {row['mean_abs_rho']:.3f} | {dense_str} | {row['mean_auc']:.3f} |")
 
     for s in summaries:
         lines += [
             "",
             f"## {s['model']} (n_test={s['n_test']})",
             "",
-            "| Metric | ρ | p-val | AUC |",
-            "|---|---:|---:|---:|",
+            "| Metric | ρ | ρ (Dense Q1) | p-val | AUC |",
+            "|---|---:|---:|---:|---:|",
         ]
         for row in s.get("spearman", []):
+            dense_rho = row.get("spearman_rho_dense", float('nan'))
+            dense_str = f"{dense_rho:+.3f}" if not np.isnan(dense_rho) else "N/A"
             lines.append(
-                f"| {row['metric']} | {row['spearman_rho']:+.3f} "
+                f"| {row['metric']} | {row['spearman_rho']:+.3f} | {dense_str} "
                 f"| {row['spearman_pval']:.2e} | {row['logistic_auc']:.3f} |"
             )
 

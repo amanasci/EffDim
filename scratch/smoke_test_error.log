@@ -1,0 +1,44 @@
+Using 38 probes.
+Loading physics labels (100 samples)...
+
+============================================================
+  Model: vit_base  (vit_base_galaxies)
+============================================================
+  Loading cached SAE from /Users/jasperchong/GitHub/EffDim/outputs/sae/vit_base_test/vit_base_galaxies/F64_k4_seed0
+  Encoding SAE codes...
+  Computing reconstruction error...
+  Training 38 linear probes...
+Warning: Probe 'has_spiral_arms' has less than 10 valid samples, skipping.
+Warning: Probe 'bar_strong' has less than 10 valid samples, skipping.
+Warning: Probe 'bar_weak' has less than 10 valid samples, skipping.
+Warning: Probe 'bulge_dominant' has less than 10 valid samples, skipping.
+Warning: Probe 'bulge_large' has less than 10 valid samples, skipping.
+Warning: Probe 'bulge_moderate' has less than 10 valid samples, skipping.
+Warning: Probe 'bulge_small' has less than 10 valid samples, skipping.
+Warning: Probe 'edge_on' has less than 10 valid samples, skipping.
+Warning: Probe 'mag_r' has less than 10 valid samples, skipping.
+Warning: Probe 'mag_g' has less than 10 valid samples, skipping.
+Warning: Probe 'mag_z' has less than 10 valid samples, skipping.
+Warning: Probe 'u_minus_r' has less than 10 valid samples, skipping.
+Warning: Probe 'sersic_n' has less than 10 valid samples, skipping.
+Warning: Probe 'sersic_ba' has less than 10 valid samples, skipping.
+Warning: Probe 'petro_th50' has less than 10 valid samples, skipping.
+Warning: Probe 'petro_th90' has less than 10 valid samples, skipping.
+Warning: Probe 'elpetro_ba' has less than 10 valid samples, skipping.
+Warning: Probe 'elpetro_theta' has less than 10 valid samples, skipping.
+Warning: Probe 'stellar_mass' has less than 10 valid samples, skipping.
+Warning: Probe 'sfr' has less than 10 valid samples, skipping.
+Warning: Probe 'ssfr' has less than 10 valid samples, skipping.
+Warning: Probe 'g_minus_r' has less than 10 valid samples, skipping.
+Warning: Probe 'g_minus_z' has less than 10 valid samples, skipping.
+Warning: Probe 'r_minus_z' has less than 10 valid samples, skipping.
+Warning: Probe 'concentration' has less than 10 valid samples, skipping.
+Warning: Probe 'log_petro_th50' has less than 10 valid samples, skipping.
+Warning: Probe 'log_petro_th90' has less than 10 valid samples, skipping.
+Warning: Probe 'log_sersic_n' has less than 10 valid samples, skipping.
+Warning: Probe 'bar_signal' has less than 10 valid samples, skipping.
+Warning: Probe 'bulge_total' has less than 10 valid samples, skipping.
+  Mean probe ε²: 2.8038 ± 2.0849
+  Building kNN graph (k=5) on test split...
+/opt/miniconda3/envs/effdim/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

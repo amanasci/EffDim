@@ -240,6 +240,7 @@ def correlation_analysis(
     probe_keys: list[str],
     output_dir: Path,
     tag: str = "",
+    density_metric: np.ndarray | None = None,
 ) -> dict:
     """Spearman ρ, binned box-plots, logistic AUC, per-probe breakdown.
 
@@ -251,6 +252,7 @@ def correlation_analysis(
     probe_keys     : list of probe names corresponding to residuals columns
     output_dir     : directory to write plots and JSON
     tag            : prefix for output filenames (e.g. 'model_a')
+    density_metric : optional (n_test,) array (e.g. d_k). Smaller = denser.
     """
     import json
     from scipy.stats import spearmanr
@@ -266,6 +268,12 @@ def correlation_analysis(
 
     valid_mask = np.isfinite(mean_residual)
     hard_label = (mean_residual > np.nanmedian(mean_residual)).astype(int)
+    
+    if density_metric is not None:
+        q25 = np.nanpercentile(density_metric, 25)
+        dense_mask = density_metric <= q25
+    else:
+        dense_mask = None
 
     summary = {}
 
@@ -295,8 +303,20 @@ def correlation_analysis(
             "logistic_auc": float(auc),
             "n_valid": int(both_valid.sum()),
         }
+        
+        if dense_mask is not None:
+            both_valid_dense = both_valid & dense_mask
+            if both_valid_dense.sum() >= 20:
+                rho_dense, pval_dense = spearmanr(curv[both_valid_dense], mean_residual[both_valid_dense])
+            else:
+                rho_dense, pval_dense = float("nan"), float("nan")
+            row["spearman_rho_dense"] = float(rho_dense)
+            row["spearman_pval_dense"] = float(pval_dense)
+            print(f"  [{tag}] {metric_name:<35} ρ={rho:+.3f} (p={pval:.2e})  AUC={auc:.3f} | Dense Q1 ρ={rho_dense:+.3f}", flush=True)
+        else:
+            print(f"  [{tag}] {metric_name:<35} ρ={rho:+.3f} (p={pval:.2e})  AUC={auc:.3f}", flush=True)
+            
         spearman_rows.append(row)
-        print(f"  [{tag}] {metric_name:<35} ρ={rho:+.3f} (p={pval:.2e})  AUC={auc:.3f}", flush=True)
     summary["spearman"] = spearman_rows
 
     # ---- Binned box-plots ----
