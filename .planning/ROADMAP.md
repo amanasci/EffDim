@@ -31,6 +31,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 **Requirements**: DATA-01..05, ISO-01..05
 **UI hint**: no
 **Success Criteria**:
+
   1. `legacysurvey_dinov3_vitb16` loads without downloading the other 162 configs, into a reproducible, assertion-verified row-aligned 10,000-row HSC/Legacy-Survey subsample from a recorded seed (DATA-01..03)
   2. Embedding norm distribution and a justified Euclidean-vs-cosine metric choice shown; notebook states its Python 3.11 floor and installs its own deps (DATA-04, DATA-05)
   3. k-NN graph's connected-component count and an embedding/eigenspectrum stability comparison across >= 3 `n_neighbors` values shown before Isomap is trusted (ISO-01, ISO-02)
@@ -38,6 +39,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
   5. n=10,000 Isomap fit completes, is cached, and re-running the notebook reproduces identical results from cache, any config change producing a new cache key (ISO-04, ISO-05)
 
 **Plans**: 4/4 executed
+
 - [x] 01-01-PLAN.md — Scaffold `notebooks/pu_manifold/`, prove pipeline end-to-end on a smoke config: subsample -> alignment assert -> L2 normalize -> npz+joblib cache -> read-back identity (DATA-01, DATA-03, DATA-05, ISO-05)
 - [x] 01-02-PLAN.md — Scale to the real 10,000-row subsample, show norm distribution + locked metric statement, derive `n_components` from `compute_dim` panel (DATA-02..04, ISO-03)
 - [x] 01-03-PLAN.md — Two-stage `n_neighbors` sweep: cheap connectivity scan across all six k, then full fits at 3-4 surviving k with three-metric stability table (ISO-01, ISO-02)
@@ -51,6 +53,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 **Depends on**: Phase 1
 **Requirements**: SPEC-01..07
 **Success Criteria**:
+
   1. Full classical-MDS eigenspectrum computed by manual double-centring of `isomap.dist_matrix_`, never from truncated `kernel_pca_.eigenvalues_` (SPEC-01)
   2. Leading eigenvalues confirmed large/positive with steep dropoff located; negative-eigenvalue magnitude reported against a stated, justified threshold (SPEC-02, SPEC-03)
   3. Residual-variance-vs-dimension curve's elbow identified by a stated criterion, not eyeballed (SPEC-04)
@@ -58,6 +61,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
   5. PASS/MARGINAL/FAIL verdict written as a machine-readable artifact downstream notebooks check before running; on FAIL the notebook halts with remediation options enumerated (SPEC-06, SPEC-07)
 
 **Plans**: 2/3 executed
+
 - [x] 02-01-PLAN.md — Pre-register gate constants, compute the full 10,000-value classical-MDS eigenspectrum by hand from the memory-mapped geodesic matrix, reduce to `r`/`m` plus leading-spectrum dropoff (SPEC-01..03)
 - [x] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with pair-sample stability check, one-way freeze of embedding dimension `d` (SPEC-04, SPEC-05)
 - [ ] 02-03-PLAN.md — Self-contained `gate_verdict_{fit_key}.json`, copyable downstream enforcement block with three-way FAIL-path self-test, phase close-out (SPEC-06, SPEC-07)
@@ -76,6 +80,7 @@ Phase 3 as originally specified decodes *from the Isomap coordinates* — the di
 **Depends on**: Phase 2 (consumes its FAIL verdict, full eigenspectrum, intrinsic dimension measurements as evidence). Does **not** require a PASS.
 **Requirements**: GEOM-01..05
 **Success Criteria**:
+
   1. Manifold-learning methods sharing Isomap's flat-target assumption identified, establishing the failure as a property of the method class, not an implementation choice (GEOM-01)
   2. Candidate representations that do **not** assume a flat target surveyed with assumptions, costs, Phase 3 implications — at minimum Riemannian/hyperbolic and product-manifold embeddings, graph-native curvature (Ollivier-Ricci, Forman-Ricci, needing no embedding), diffusion maps, pseudo-Euclidean/Krein-space treatments (GEOM-02)
   3. What 41% negative eigenvalue mass means geometrically shown, with an argued judgment on whether indefinite MDS or distance-matrix correction is principled here or merely cosmetic (GEOM-03)
@@ -89,6 +94,7 @@ Phase 3 as originally specified decodes *from the Isomap coordinates* — the di
 **Cross-cutting constraints**: The coordinate-producing vs graph-native fork resolved in wave 1 gates everything after it (graph-native branch re-opens CURV-01..03, intrinsic Ricci != extrinsic mean-curvature vector). No package installs anywhere in this phase — all seven candidate libraries returned SUS from the legitimacy checker. Plan 03 requires the gitignored Phase 2 caches (`isomap_43cf438bc944c509.joblib`, 1.55 GiB, and the spectrum `.npz`) — not reproducible by any plan here, the runner halts rather than regenerating (would change provenance). Evaluation criterion and dimension rule pre-registered in wave 1, before any candidate compared, with ordering proved by git ancestry rather than asserted.
 
 Plans:
+
 - [x] 02.1-01-PLAN.md — Pre-register every decision rule, resolve the coordinate-producing vs graph-native fork with both branches' Phase 3 consequences by requirement ID; two commits with git-proved ordering, ratified at a blocking decision checkpoint (GEOM-02, GEOM-04)
 - [x] 02.1-02-PLAN.md — Flat-target class-membership analysis + six-family non-flat-target candidate survey with assumptions, costs at n=10,000, maturity, Phase 3 demand (GEOM-01, GEOM-02)
 - [x] 02.1-03-PLAN.md — Tested probe module with Wave 0 synthetic fixtures, then measured run over frozen Phase 2 cache: correction blindness on three spectra, pseudo-Euclidean (p,q) distortion ladder against Phase 2's own 200,000-pair sample, delta-hyperbolicity against tree and flat-Euclidean anchors (GEOM-03..05)
@@ -110,6 +116,7 @@ A theorem about compact manifolds with positive reach is not evidence about this
 **Requirements**: CAE-01..07
 **UI hint**: no
 **Success Criteria**:
+
   1. Gate metrics and their numeric PASS/FAIL thresholds pre-registered and committed **before** any CAE fit runs, with the ordering proved by git ancestry rather than asserted — the `02-REFIT-PREREGISTRATION.md` precedent (CAE-01)
   2. A Chart Auto-Encoder trained on the frozen Phase 1 10,000-row normalized subsample, reproducible from recorded seeds: initial encoder E from R^768 to R^l with l near 2d per the Nash-Kuiper minimal near-isometric motivation, N over-specified chart encoders E_alpha into chart spaces (0,1)^d, per-chart decoders D_alpha, one shared embedding decoder D back to R^768, and a chart predictor P emitting partition-of-unity probabilities p_alpha; trained under the paper's loss (eq. 3, `min_alpha e_alpha` minus the cross-entropy term on softmax(-e)) with Lipschitz regularization on chart-encoder spectral norms (eq. 4) and FPS-seeded per-chart pre-training (eq. 5) (CAE-02)
   3. Held-out reconstruction error reported as both an aggregate metric and a per-output-dimension distribution, against two stated baselines at matched capacity: a plain single-chart autoencoder, and the classical-MDS/Isomap reconstruction at the working dimension. A CAE that only ties the single-chart control has not demonstrated that charts bought anything (CAE-03)
@@ -125,11 +132,25 @@ A theorem about compact manifolds with positive reach is not evidence about this
 **Plans**: 6 plans across 5 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 02.2-01-PLAN.md — Pre-register the gate metrics, constants and three numeric thresholds; blocking D-10 ratification before any fit (CAE-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 02.2-02-PLAN.md — Tracer: the Chart Auto-Encoder architecture and eq. 3 loss proven end to end into a manifest-guarded verdict artifact (CAE-02, CAE-06, CAE-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 02.2-03-PLAN.md — eq. 4 Lipschitz penalty, FPS-seeded eq. 5 pre-training, the three-way stopping rule, and the matched-capacity baseline trainers (CAE-02, CAE-03, CAE-05, CAE-06)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 02.2-04-PLAN.md — A-posteriori chart pruning, eq. 8 cycle residual, eqs. 20/21 unfaithfulness and coverage, and the geodesic distortion on the global embedding (CAE-03, CAE-04, CAE-05, CAE-07)
 - [ ] 02.2-05-PLAN.md — Training runner with run-time ancestry and cache guards; execute 3 seeds plus the ReLU control and 4 baselines (CAE-02, CAE-03, CAE-05, CAE-06)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 02.2-06-PLAN.md — Evaluate, write cae_verdict_{fit_key}.json and 02.2-FINDINGS.md, PASS-only Phase 3 handoff, blocking phase gate (CAE-03..07)
 
 ### Phase 3: Decoder & Curvature Field
@@ -141,6 +162,7 @@ Plans:
 **Depends on**: Phase 02.1 (requires its chosen representation and working dimension) and Phase 02.2 **PASS** (a precondition — Phase 3 decodes from the CAE representation and must check `cae_verdict.json` before running any expensive cell; on FAIL, Phase 3 stays blocked and the milestone remains at the phase-2 stage). Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the change; a Phase 2 PASS is no longer a precondition.
 **Requirements**: DEC-01..05, CURV-01..08
 **Success Criteria**:
+
   1. A decoder maps the Phase 02.2-validated Chart Auto-Encoder chart representation to the 768-d embedding using a C2-smooth activation throughout, no ReLU-family activation, reproducible from a recorded torch seed (DEC-01, DEC-02, DEC-05)
   2. Held-out reconstruction quality shown as both aggregate metric and per-output-dimension distribution, not just training loss (DEC-03, DEC-04)
   3. First and second fundamental forms computed via batched `torch.func` autodiff, yielding the mean curvature vector field and its norm, labelled only as a vector norm and never as Gaussian or principal curvature (CURV-01..03)
@@ -157,6 +179,7 @@ Plans:
 **Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07) to have already completed)
 **Requirements**: REGN-01..05, MKNN-01..08
 **Success Criteria**:
+
   1. Local sample-density measure per point in Isomap coordinate space and its correlation with curvature shown explicitly, before any region split is trusted (REGN-01, REGN-02)
   2. Points partitioned into high/low-curvature regions by a pre-specified quantile threshold (never a fixed absolute value), fixed before regional alignment is computed, each region's point count shown (REGN-03..05)
   3. MKNN score between two row-aligned embeddings computed as k-normalized k-NN intersection size, matching the origin paper; global crossmodal HSC-vs-Legacy-Survey MKNN number reproduced and compared against the origin paper's published range (MKNN-01, MKNN-02)
@@ -185,6 +208,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 **Goal**: ED estimates are demonstrably correct against data of known dimensionality
 **Success Criteria**:
+
   1. Isotropic Gaussian noise in D dims yields estimates approximating D
   2. Swiss Roll and similar manifolds yield estimates approximating their intrinsic dimension
   3. Tolerances are explicit per estimator, so a regression fails the suite
@@ -193,6 +217,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 **Goal**: Tests run on every push across supported platforms; releases are reproducible
 **Success Criteria**:
+
   1. CI executes the test suite for the standard Python implementation
   2. A tagged release publishes to PyPI without manual steps
 
