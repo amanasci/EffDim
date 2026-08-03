@@ -47,6 +47,18 @@ Added 2026-07-31 with Phase 02.1 (INSERTED), after Phase 2's `GATE_VERDICT = FAI
 - [x] **GEOM-04**: One recommended representation with its rationale, the alternatives it was chosen over, and the evidence it is expected to be judged against, sufficient for the decoder phase to be re-specified without re-opening the question
 - [x] **GEOM-05**: What the recommendation implies for the working dimension shown. `D_FROZEN = 5` derives from a residual elbow flagged suspect against three other estimates clustering at 18-25; whether the chosen representation inherits, revises, or discards it must be stated explicitly
 
+### Chart Autoencoder Validity (CAE)
+
+Added 2026-08-03 with Phase 02.2 (INSERTED), to empirically test whether the Chart Auto-Encoder method of arXiv:1912.10094 — which assumes only local Euclidean charts, not the global Euclidean embeddability Phase 2's gate falsified — yields a representation Phase 3 can validly decode from.
+
+- [ ] **CAE-01**: Gate metrics and numeric PASS/FAIL thresholds pre-registered and committed before any CAE fit runs, with the ordering proved by git ancestry rather than asserted
+- [ ] **CAE-02**: Chart Auto-Encoder trained on the frozen Phase 1 10,000-row normalized subsample and reproducible from recorded seeds, with the full architecture named — initial encoder to R^l, N over-specified chart encoders into chart spaces `(0,1)^d`, per-chart decoders, one shared embedding decoder, and a partition-of-unity chart predictor — trained under the paper's loss with Lipschitz regularization on chart-encoder spectral norms and FPS-seeded per-chart pre-training
+- [ ] **CAE-03**: Held-out reconstruction error shown as an aggregate metric plus a per-output-dimension distribution against a matched-capacity single-chart autoencoder control and the classical-MDS/Isomap reconstruction, so a CAE that merely ties the control cannot be read as a success
+- [ ] **CAE-04**: Chart-transition cycle residual `R_cycle` shown over held-out points
+- [ ] **CAE-05**: Chart count obtained a posteriori after weight-decay pruning by a stated decoder-weight-norm tolerance, with the over-specified initial `N`, the surviving count, its stability across seeds, and the paper's unfaithfulness and coverage measures shown
+- [ ] **CAE-06**: Decoders trained with a C2-smooth activation rather than the reference implementation's ReLU, since DEC-02 and CURV-01..03 need a non-zero second derivative, with the substitution and any reconstruction cost stated; the compact-manifold-with-positive-reach assumption behind the paper's Thm 2 recorded as an unverified assumption about the PU point cloud, not a verified one
+- [ ] **CAE-07**: `cae_verdict_{fit_key}.json` written as a machine-readable PASS/FAIL artifact carrying every pre-registered metric and threshold, checked by downstream notebooks before any expensive cell; on FAIL the notebook halts, findings are documented, and that documented failure is itself a complete milestone outcome
+
 ### Decoder (DEC)
 
 > **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1 selects the replacement representation; re-read "Isomap coordinates" throughout this section and the next as "the coordinates of the representation chosen in Phase 02.1," and re-plan Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control — is unchanged.
@@ -158,6 +170,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GEOM-03 | Phase 02.1 | Complete |
 | GEOM-04 | Phase 02.1 | Complete |
 | GEOM-05 | Phase 02.1 | Complete |
+| CAE-01 | Phase 02.2 | Pending |
+| CAE-02 | Phase 02.2 | Pending |
+| CAE-03 | Phase 02.2 | Pending |
+| CAE-04 | Phase 02.2 | Pending |
+| CAE-05 | Phase 02.2 | Pending |
+| CAE-06 | Phase 02.2 | Pending |
+| CAE-07 | Phase 02.2 | Pending |
 | DEC-01 | Phase 3 | Pending |
 | DEC-02 | Phase 3 | Pending |
 | DEC-03 | Phase 3 | Pending |
@@ -185,14 +204,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MKNN-07 | Phase 4 | Pending |
 | MKNN-08 | Phase 4 | Pending |
 
-**Coverage:** v1.1 requirements: 43 total (DATA 5 + ISO 5 + SPEC 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8). Mapped to phases: 43/43 ✓ · Unmapped: 0 ✓
+**Coverage:** v1.1 requirements: 55 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8). Mapped to phases: 55/55 ✓ · Unmapped: 0 ✓
 
 Phase 1 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
 Phase 2 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
+Phase 02.1 (Geometry Representation Research): GEOM-01..05 (5 requirements)
+Phase 02.2 (Chart Autoencoder Validity Test): CAE-01..07 (7 requirements)
 Phase 3 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
 Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08 (13 requirements)
 
 ---
 *Requirements defined: 2026-07-29*
-*Last updated: 2026-07-29 after v1.1 phase renumber to 1-4 (43/43 requirements mapped)*
+*Last updated: 2026-08-03 — added CAE-01..07 for Phase 02.2 (INSERTED) and corrected coverage arithmetic, which had omitted the five GEOM requirements added for Phase 02.1 (55/55 requirements mapped)*
 </content>

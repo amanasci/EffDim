@@ -118,7 +118,7 @@ From `TODO.md`:
 
 - `UniverseTBD/pu-embeddings` is ~93 GB across 163 configs — v1.1 streams exactly one config (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the whole dataset
 - Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) need a dedicated research pass during planning per `research/SUMMARY.md`; Phase 1/2 are standard sklearn/MDS patterns and can skip it
-- Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 must not be planned in detail until Phase 2's gate outcome is known
+- Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 is now blocked on Phase 02.2's `cae_verdict.json` reading PASS, and a FAIL there leaves the milestone at the phase-2 stage
 
 ### Quick Tasks Completed
 
@@ -130,6 +130,7 @@ From `TODO.md`:
 
 - Phase 02.1 inserted after Phase 2: Geometry Representation Research — Phase 2 gate FAIL invalidated the Isomap coordinates Phase 3 was specified to decode from (URGENT)
 - Phase 02.1 planned: 4 plans across 3 waves; plan-checker VERIFICATION PASSED first iteration; GEOM-01..05 coverage complete
+- Phase 02.2 inserted after Phase 02.1: Chart Autoencoder Validity Test — empirically tests arXiv:1912.10094 on the PU data behind a PASS/FAIL gate; PASS unblocks Phase 3 to decode from the CAE representation, FAIL documents the finding and leaves the milestone at the phase-2 stage. Doc-only insertion; the phase itself is unplanned
 
 ## Deferred Items
 
