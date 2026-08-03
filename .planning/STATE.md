@@ -5,12 +5,12 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.1
 current_phase_name: geometry-representation-research
 status: executing
-stopped_at: Completed 02.1-03-PLAN.md (geometry probes measured over frozen Phase 2 cache; falsifier condition (a) trips, condition (b) does not)
-last_updated: "2026-08-01T19:59:52.419Z"
-last_activity: 2026-08-01
-last_activity_desc: Phase 02.1 execution started
+stopped_at: Phase 02.2 context gathered
+last_updated: "2026-08-03T19:16:46.836Z"
+last_activity: 2026-08-03
+last_activity_desc: "Completed quick task 260803-k9n: inserted Phase 02.2 (Chart Autoencoder Validity Test) into ROADMAP"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 1
   total_plans: 11
   completed_plans: 9
@@ -81,6 +81,7 @@ Progress: [████████░░] 82% (0/4 v1.1 phases complete; none y
 ### Decisions
 
 Logged in PROJECT.md Key Decisions table. Recent decisions affecting current work:
+
 - [Bootstrap]: `.planning/` created retroactively; pre-GSD library work recorded under ROADMAP Shipped, not a numbered phase
 - [v1.1 scope]: Heavy notebook deps (torch, datasets) install in-notebook, never core `pyproject.toml`; `src/effdim/`/`pyproject.toml` untouched all milestone
 - [Roadmap]: v1.1 phase numbering restarts at 1. Split into 4 phases rather than SUMMARY.md's proposed 3, separating eigenspectrum audit/gate (Phase 2, 7 requirements, hard PASS/MARGINAL/FAIL gate) from data loading/Isomap fitting (Phase 1)
@@ -111,6 +112,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 ### Pending Todos
 
 From `TODO.md`:
+
 - Expand test suite to validate against known dimensionalities (ROADMAP Backlog)
 - CI for the standard Python implementation across platforms (ROADMAP Backlog). The Rust extension this todo also names does not exist in the repo — stale reference, see Backlog note
 
@@ -144,8 +146,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-01T19:59:52.409Z
-Stopped at: Completed 02.1-03-PLAN.md (geometry probes measured over frozen Phase 2 cache; falsifier condition (a) trips, condition (b) does not)
+Last session: 2026-08-03T19:16:46.816Z
+Stopped at: Phase 02.2 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.2-chart-autoencoder-validity-test-inserted/02.2-CONTEXT.md
 </content>
