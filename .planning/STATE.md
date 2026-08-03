@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 02.1 (geometry-representation-research) — EXECUTING
 Plan: 4 of 4 (wave 1 of 3)
 Status: Ready to execute
-Last activity: 2026-08-02 — Completed quick task 260801-ovf: cleanup, reduce to barebones isomap-on-dino experiment
+Last activity: 2026-08-03 — Completed quick task 260803-k9n: inserted Phase 02.2 (Chart Autoencoder Validity Test) into ROADMAP
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
 
@@ -125,6 +125,7 @@ From `TODO.md`:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260801-ovf | cleanup: reduce to barebones isomap-on-dino experiment | 2026-08-02 | 59742af | [260801-ovf-cleanup-reduce-to-barebones-isomap-on-di](./quick/260801-ovf-cleanup-reduce-to-barebones-isomap-on-di/) |
+| 260803-k9n | Insert Phase 02.2: Chart Autoencoder Validity Test (arXiv:1912.10094) with PASS/FAIL gate for Phase 3 | 2026-08-03 | 3357ea5 | [260803-k9n-update-phase-2-of-milestone-to-test-vali](./quick/260803-k9n-update-phase-2-of-milestone-to-test-vali/) |
 
 ### Roadmap Evolution
 
