@@ -18,6 +18,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 1: Data Loading & Manifold Reconstruction** — Reproducible, row-aligned PU subsample loaded and an Isomap fit produced, validated for connectivity and `n_neighbors` stability (completed 2026-07-31)
 - [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** — Full classical-MDS eigenspectrum audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
 - [ ] **Phase 02.1: Geometry Representation Research** (INSERTED) — A non-Euclidean-embeddable representation identified and justified against the literature, replacing the Isomap coordinates that Phase 2's gate invalidated
+- [ ] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) is empirically validity-tested on the PU data behind a PASS/FAIL gate that decides whether Phase 3 proceeds
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -127,12 +128,12 @@ A theorem about compact manifolds with positive reach is not evidence about this
 
 **Goal**: A C2-smooth decoder trained from Phase 02.1's chosen representation back to the 768-d embedding, its analytically-derived mean curvature field validated against a synthetic-control falsification test before being trusted as a property of the data manifold rather than a decoder artifact.
 
-> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap* coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL (`m = 0.412071`), so those coordinates are the output of an invalidated step: the pullback metric would conflate real curvature with parameterization damage, undetectable by CURV-06/07's synthetic control (a synthetic manifold passing the gate never reproduces the pathology). Working dimension also open — `D_FROZEN = 5` flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18-25. Phase 02.1 supplies both the representation and the dimension. Re-plan against its output; DEC/CURV requirement text still refers to Isomap coordinates and needs the same amendment.
+> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap* coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL (`m = 0.412071`), so those coordinates are the output of an invalidated step: the pullback metric would conflate real curvature with parameterization damage, undetectable by CURV-06/07's synthetic control (a synthetic manifold passing the gate never reproduces the pathology). Working dimension also open — `D_FROZEN = 5` flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18-25. Phase 02.1 supplies both the representation and the dimension. Re-plan against its output; DEC/CURV requirement text still refers to Isomap coordinates and needs the same amendment. **Further amended after Phase 02.2's insertion.** Phase 02.2 now tests whether a Chart Auto-Encoder representation is a valid input for this decoding step; Phase 3 does not start until `cae_verdict.json` reads PASS.
 
-**Depends on**: Phase 02.1 (requires its chosen representation and working dimension). Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the change; a PASS is no longer a precondition.
+**Depends on**: Phase 02.1 (requires its chosen representation and working dimension) and Phase 02.2 **PASS** (a precondition — Phase 3 decodes from the CAE representation and must check `cae_verdict.json` before running any expensive cell; on FAIL, Phase 3 stays blocked and the milestone remains at the phase-2 stage). Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the change; a Phase 2 PASS is no longer a precondition.
 **Requirements**: DEC-01..05, CURV-01..08
 **Success Criteria**:
-  1. A decoder maps Isomap coordinates to the 768-d embedding using a C2-smooth activation throughout, no ReLU-family activation, reproducible from a recorded torch seed (DEC-01, DEC-02, DEC-05)
+  1. A decoder maps the Phase 02.2-validated Chart Auto-Encoder chart representation to the 768-d embedding using a C2-smooth activation throughout, no ReLU-family activation, reproducible from a recorded torch seed (DEC-01, DEC-02, DEC-05)
   2. Held-out reconstruction quality shown as both aggregate metric and per-output-dimension distribution, not just training loss (DEC-03, DEC-04)
   3. First and second fundamental forms computed via batched `torch.func` autodiff, yielding the mean curvature vector field and its norm, labelled only as a vector norm and never as Gaussian or principal curvature (CURV-01..03)
   4. Metric tensor's per-point conditioning shown with near-singular points flagged; decoder second derivatives verified non-zero and finite away from training nodes; curvature confirmed evaluated only at/near actual Isomap coordinates, never extrapolated (CURV-04, CURV-05, CURV-08)
@@ -191,13 +192,14 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 -> 2 -> 02.1 -> 3 -> 4, gated as described above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output rather than on a Phase 2 PASS.
+**Execution Order:** Phases execute in numeric order: 1 -> 2 -> 02.1 -> 02.2 -> 3 -> 4, gated as described above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output rather than on a Phase 2 PASS. Phase 02.2 was inserted after 02.1 to empirically test the Chart Auto-Encoder representation before Phase 3 commits to decoding from it; Phase 3 now also depends on a Phase 02.2 PASS.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress | |
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress | |
+| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 0/TBD | Not started | - |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
