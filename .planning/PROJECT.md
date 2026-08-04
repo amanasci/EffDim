@@ -71,11 +71,13 @@ Python >= 3.8. Core package installable without GPU/deep-learning stack. Noteboo
 | 2026-07-30 | `subsample_*.npz` caches normalized arrays + raw norms only, never raw 768-d vectors (D-05/D-06) | Prevents mixing normalized/raw embeddings; recovery means re-streaming the 553 MiB parquet |
 | 2026-07-30 | `requirements-notebooks.txt` fully self-provisions, duplicating core deps | User runs notebooks in their own venv; reverses original exclusion policy |
 | 2026-07-31 | `k*=15` frozen by pre-registered plateau rule, unchanged after seeing results | Thresholds fixed pre-fit with a cell-index assertion, preventing post-hoc retuning. Known limitation in `WINDOWS.md`: `STAGE2_K` unevenly spaced, plateau maximal in index space not k space |
+| 2026-08-04 | Chart Auto-Encoder (arXiv:1912.10094) tested behind a ratified pre-registration and returned `CAE_VERDICT = FAIL` | T1 geodesic distortion 0.296981 (threshold `<0.15`) and T3 held-out reconstruction margin 3.586350 (threshold `<0.90`) both failed; T2 passed. Thresholds were git-ancestry-proved to predate every fit, so the negative result is publishable as measured. Validated in Phase 02.2 |
+| 2026-08-04 | On the 02.2 FAIL the user chose to iterate, not adopt 02.1's Krein representation or stop | Phase 3 now depends on a proposed Phase 02.3 reaching PASS from a freshly re-registered protocol. Per D-02 no automatic Krein fallback fired; the 02.2 verdict is sealed and any changed constant requires a new pre-registration plus a full re-run |
 
 ## Evolution
 
 Updated at phase transitions (`/gsd-transition`) and milestone boundaries (`/gsd-complete-milestone`): move requirements between Validated/Active/Out of Scope, log decisions, refresh Context.
 
 ---
-*Last updated: 2026-07-31 after completing Phase 1: Data Loading & Manifold Reconstruction*
+*Last updated: 2026-08-04 after completing Phase 02.2: Chart Autoencoder Validity Test (`CAE_VERDICT = FAIL`; user elected to iterate)*
 </content>
