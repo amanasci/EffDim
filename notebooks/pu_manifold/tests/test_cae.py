@@ -418,3 +418,93 @@ def test_fps_pretrain_loss_returns_named_components_and_is_differentiable():
     assert after < before
 
 
+# --- Plan 02.2-03 Task 2: full pre-registered protocol and the three-way stopping rule --
+
+
+def test_train_cae_respects_wallclock_ceiling():
+    torch.manual_seed(0)
+    x = _make_synthetic_fixture(n=80, ambient_dim=12, seed=6)
+    model = c.ChartAutoEncoder(
+        in_dim=12, embed_dim=6, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    cfg = {
+        "seed": 0,
+        "lr": 3e-3,
+        "weight_decay": 1e-4,
+        "batch": 16,
+        "max_epochs": 10_000,
+        "wallclock_ceiling_s": 1e-6,
+    }
+    fit = c.train_cae(model, x, cfg)
+    assert fit["wallclock_truncated"] is True
+    assert fit["early_stopped"] is False
+    assert fit["epochs_run"] < cfg["max_epochs"]
+    assert set(fit.keys()) == {
+        "history",
+        "epochs_run",
+        "wallclock_s",
+        "wallclock_truncated",
+        "early_stopped",
+        "cfg",
+    }
+    assert fit["cfg"]["lip_every_n_steps"] == 1  # echoed default, not hardcoded in the loop
+
+
+def test_train_cae_reproducible_under_same_seed():
+    x = _make_synthetic_fixture(n=60, ambient_dim=12, seed=7)
+    cfg = {
+        "seed": 5,
+        "lr": 3e-3,
+        "weight_decay": 1e-4,
+        "batch": 16,
+        "max_epochs": 4,
+        "n_charts": 2,
+        "fps_pretrain_epochs": 2,
+        "lip_weight": 1e-2,
+        "lip_every_n_steps": 2,
+        "wallclock_ceiling_s": 60.0,
+    }
+
+    torch.manual_seed(11)
+    model_a = c.ChartAutoEncoder(
+        in_dim=12, embed_dim=6, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    fit_a = c.train_cae(model_a, x, dict(cfg))
+
+    torch.manual_seed(11)
+    model_b = c.ChartAutoEncoder(
+        in_dim=12, embed_dim=6, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    fit_b = c.train_cae(model_b, x, dict(cfg))
+
+    assert len(fit_a["history"]) == len(fit_b["history"])
+    stages = {h["stage"] for h in fit_a["history"]}
+    assert stages == {"pretrain", "main"}
+    for ha, hb in zip(fit_a["history"], fit_b["history"]):
+        assert ha["stage"] == hb["stage"]
+        assert ha["total"] == hb["total"]  # exact equality, not approx
+    assert fit_a["cfg"]["lip_every_n_steps"] == 2
+
+
+def test_timing_probe_returns_expected_keys():
+    def model_factory():
+        return c.ChartAutoEncoder(
+            in_dim=10, embed_dim=4, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+        )
+
+    x = _make_synthetic_fixture(n=40, ambient_dim=10, seed=8)
+    cfg = {
+        "lr": 3e-3,
+        "weight_decay": 1e-4,
+        "batch": 8,
+        "max_epochs": 5,
+        "wallclock_ceiling_s": 7200.0,
+        "lip_weight": 0.0,
+    }
+    probe = c.timing_probe(model_factory, x, cfg, n_steps=5)
+    assert set(probe.keys()) == {"seconds_per_step", "projected_wallclock_s", "exceeds_ceiling"}
+    assert probe["seconds_per_step"] >= 0
+    assert probe["projected_wallclock_s"] >= 0
+    assert isinstance(probe["exceeds_ceiling"], bool)
+
+

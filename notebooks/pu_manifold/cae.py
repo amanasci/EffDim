@@ -354,60 +354,203 @@ def reconstruction_stats(x: torch.Tensor, y: torch.Tensor) -> Dict[str, Any]:
 
 
 def train_cae(model: nn.Module, x_train: torch.Tensor, cfg: Dict[str, Any]) -> Dict[str, Any]:
-    """A real training loop, minimal but not a stub: AdamW with ``cfg["lr"]`` and
-    ``cfg["weight_decay"]``, shuffled minibatches of ``cfg["batch"]``,
-    ``cfg["max_epochs"]`` epochs, accumulating a per-epoch mean-loss history.
+    """The full pre-registered training protocol: FPS-seeded per-chart pre-training (eq.
+    5, stage one) followed by the main AdamW loop (stage two) minimizing eq. 3's
+    ``chart_loss`` plus the eq. 4 Lipschitz penalty, stopped by whichever of three
+    pre-registered limits fires first -- the epoch cap ``cfg["max_epochs"]``, a
+    relative-plateau early-stopping rule, or a wall-clock ceiling checked at every epoch
+    boundary, measured from the start of stage one.
 
-    Returns the fit-artifact dict every later plan builds against: ``history`` (list of
-    per-epoch dicts with ``epoch``, ``recon``, ``xent``, ``total``), ``epochs_run``,
-    ``wallclock_s``, ``wallclock_truncated``, ``early_stopped``, ``cfg``. Early stopping,
-    the wall-clock ceiling, the Lipschitz term, and the FPS pre-training stage are
-    expansion points filled by plan 02.2-03 -- the keys are present and honestly valued
-    (``wallclock_truncated: False``, ``early_stopped: False``) here rather than absent, so
-    the contract does not change shape later."""
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    Every random source -- the minibatch shuffle and the FPS seed draw -- derives from
+    the single ``cfg["seed"]`` (default 0), so a fit is reproducible from one recorded
+    integer (CAE-02). Every protocol value this function reads is read from ``cfg``, not
+    hardcoded, and is echoed back into the returned ``cfg`` (T-02.2-08): a caller that
+    omits an optional key sees the default this function actually used, not silence about
+    it.
+
+    Returns the plan 02.2-02 fit-artifact contract, unchanged in shape: ``history`` (list
+    of per-epoch/per-pretrain-step dicts, each carrying a ``stage`` field of
+    ``"pretrain"`` or ``"main"``), ``epochs_run``, ``wallclock_s``, ``wallclock_truncated``,
+    ``early_stopped``, ``cfg``."""
+    seed = cfg.get("seed", 0)
+    torch.manual_seed(seed)
+    rng = np.random.default_rng(seed)
+
     n = x_train.shape[0]
     batch_size = cfg["batch"]
     max_epochs = cfg["max_epochs"]
 
+    effective_cfg: Dict[str, Any] = dict(cfg)
+    effective_cfg.setdefault("seed", seed)
+    effective_cfg.setdefault("n_charts", model.n_charts)
+    effective_cfg.setdefault("fps_pretrain_epochs", 0)
+    effective_cfg.setdefault("lip_weight", 0.0)
+    effective_cfg.setdefault("lip_every_n_steps", 1)
+    effective_cfg.setdefault("early_stop_min_delta", 0.0)
+    effective_cfg.setdefault("early_stop_patience", max_epochs + 1)
+    effective_cfg.setdefault("wallclock_ceiling_s", float("inf"))
+
+    n_charts_cfg = effective_cfg["n_charts"]
+    fps_pretrain_epochs = effective_cfg["fps_pretrain_epochs"]
+    lip_weight = effective_cfg["lip_weight"]
+    lip_every_n_steps = effective_cfg["lip_every_n_steps"]
+    early_stop_min_delta = effective_cfg["early_stop_min_delta"]
+    early_stop_patience = effective_cfg["early_stop_patience"]
+    wallclock_ceiling_s = effective_cfg["wallclock_ceiling_s"]
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+
     history: List[Dict[str, Any]] = []
     start = time.monotonic()
-    for epoch in range(max_epochs):
+    wallclock_truncated = False
+    early_stopped = False
+    epochs_run = 0
+    step_counter = 0
+
+    # --- stage one: FPS-seeded per-chart pre-training (eq. 5) ---
+    if fps_pretrain_epochs > 0:
+        with torch.no_grad():
+            z_train = model.encode(x_train)
+        seed_idx = farthest_point_sample(z_train, n_charts_cfg, seed=seed)
+        x_seeds = x_train[seed_idx]
+        seed_chart_index = torch.arange(n_charts_cfg)
+        for epoch in range(fps_pretrain_epochs):
+            optimizer.zero_grad()
+            loss_dict = fps_pretrain_loss(model, x_seeds, seed_chart_index)
+            loss_dict["total"].backward()
+            optimizer.step()
+            history.append(
+                {
+                    "epoch": epoch,
+                    "stage": "pretrain",
+                    "recon": loss_dict["recon"].item(),
+                    "center": loss_dict["center"].item(),
+                    "xent": loss_dict["xent"].item(),
+                    "total": loss_dict["total"].item(),
+                }
+            )
+            if time.monotonic() - start > wallclock_ceiling_s:
+                wallclock_truncated = True
+                break
+
+    # --- stage two: the main loop, three-way stopping rule ---
+    best_loss = float("inf")
+    plateau_count = 0
+    if not wallclock_truncated:
+        for epoch in range(max_epochs):
+            perm = torch.from_numpy(rng.permutation(n))
+            epoch_recon = 0.0
+            epoch_xent = 0.0
+            epoch_lip = 0.0
+            epoch_total = 0.0
+            n_batches = 0
+            for i in range(0, n, batch_size):
+                idx = perm[i : i + batch_size]
+                xb = x_train[idx]
+                optimizer.zero_grad()
+                out = model(xb)
+                loss_dict = chart_loss(xb, out["y_charts"], out["p"])
+                total = loss_dict["total"]
+                lip_value = 0.0
+                if lip_weight and step_counter % lip_every_n_steps == 0:
+                    lip_term = lipschitz_penalty(model.chart_encoders, lip_weight)
+                    total = total + lip_term
+                    lip_value = lip_term.item()
+                total.backward()
+                optimizer.step()
+                epoch_recon += loss_dict["recon"].item()
+                epoch_xent += loss_dict["xent"].item()
+                epoch_lip += lip_value
+                epoch_total += total.item()
+                n_batches += 1
+                step_counter += 1
+
+            epoch_mean_total = epoch_total / n_batches
+            history.append(
+                {
+                    "epoch": epoch,
+                    "stage": "main",
+                    "recon": epoch_recon / n_batches,
+                    "xent": epoch_xent / n_batches,
+                    "lip": epoch_lip / n_batches,
+                    "total": epoch_mean_total,
+                }
+            )
+            epochs_run = epoch + 1
+
+            if time.monotonic() - start > wallclock_ceiling_s:
+                wallclock_truncated = True
+                break
+
+            if epoch_mean_total < best_loss * (1 - early_stop_min_delta):
+                best_loss = epoch_mean_total
+                plateau_count = 0
+            else:
+                plateau_count += 1
+                if plateau_count >= early_stop_patience:
+                    early_stopped = True
+                    break
+
+    wallclock_s = time.monotonic() - start
+
+    return {
+        "history": history,
+        "epochs_run": epochs_run,
+        "wallclock_s": wallclock_s,
+        "wallclock_truncated": wallclock_truncated,
+        "early_stopped": early_stopped,
+        "cfg": effective_cfg,
+    }
+
+
+def timing_probe(
+    model_factory: Callable[[], nn.Module], x_train: torch.Tensor, cfg: Dict[str, Any], n_steps: int
+) -> Dict[str, Any]:
+    """D-07's pre-registered compute contingency: run ``n_steps`` real training steps
+    (a fresh model from ``model_factory``, the same optimizer/loss/Lipschitz-penalty
+    machinery as :func:`train_cae`'s main loop) and project the wall-clock time
+    ``cfg["max_epochs"]`` would take at this training-set size. The runner in plan
+    02.2-05 calls this before any real fit and applies the pre-registered contingency: if
+    the projection exceeds ``cfg["wallclock_ceiling_s"]``, ``lip_every_n_steps`` moves
+    from one to four for every fit in the protocol, including the controls -- applied
+    un-rescaled, not tuned per-fit."""
+    model = model_factory()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    n = x_train.shape[0]
+    batch_size = cfg["batch"]
+    lip_weight = cfg.get("lip_weight", 0.0)
+
+    steps_done = 0
+    start = time.monotonic()
+    while steps_done < n_steps:
         perm = torch.randperm(n)
-        epoch_recon = 0.0
-        epoch_xent = 0.0
-        epoch_total = 0.0
-        n_batches = 0
         for i in range(0, n, batch_size):
+            if steps_done >= n_steps:
+                break
             idx = perm[i : i + batch_size]
             xb = x_train[idx]
             optimizer.zero_grad()
             out = model(xb)
             loss_dict = chart_loss(xb, out["y_charts"], out["p"])
-            loss_dict["total"].backward()
+            total = loss_dict["total"]
+            if lip_weight and hasattr(model, "chart_encoders"):
+                total = total + lipschitz_penalty(model.chart_encoders, lip_weight)
+            total.backward()
             optimizer.step()
-            epoch_recon += loss_dict["recon"].item()
-            epoch_xent += loss_dict["xent"].item()
-            epoch_total += loss_dict["total"].item()
-            n_batches += 1
-        history.append(
-            {
-                "epoch": epoch,
-                "recon": epoch_recon / n_batches,
-                "xent": epoch_xent / n_batches,
-                "total": epoch_total / n_batches,
-            }
-        )
-    wallclock_s = time.monotonic() - start
+            steps_done += 1
+    elapsed = time.monotonic() - start
+
+    seconds_per_step = elapsed / n_steps
+    n_batches_per_epoch = math.ceil(n / batch_size)
+    projected_wallclock_s = seconds_per_step * n_batches_per_epoch * cfg["max_epochs"]
+    exceeds_ceiling = projected_wallclock_s > cfg["wallclock_ceiling_s"]
 
     return {
-        "history": history,
-        "epochs_run": max_epochs,
-        "wallclock_s": wallclock_s,
-        "wallclock_truncated": False,
-        "early_stopped": False,
-        "cfg": cfg,
+        "seconds_per_step": seconds_per_step,
+        "projected_wallclock_s": projected_wallclock_s,
+        "exceeds_ceiling": bool(exceeds_ceiling),
     }
+
 
 
 # --- native casting ------------------------------------------------------------------------
