@@ -804,6 +804,85 @@ def chart_survival(model: "ChartAutoEncoder", prune_tol: float) -> Dict[str, Any
     }
 
 
+# --- CAE-04 chart-transition cycle residual (eq. 8) and the overlap-pair selection rule -----
+
+
+def _decode_through_chart(model: "ChartAutoEncoder", z: torch.Tensor, chart_idx: int) -> torch.Tensor:
+    """(batch, l) -> (batch, m): the two-hop decode through one named chart -- that
+    chart's coordinate, its own chart decoder, then the single shared embedding decoder."""
+    z_charts = model.chart_coords(z)
+    w = model.chart_decoders[chart_idx](z_charts[:, chart_idx, :])
+    return model.embedding_decoder(w)
+
+
+def r_cycle(model: "ChartAutoEncoder", x: torch.Tensor, alpha: int, beta: int) -> torch.Tensor:
+    """eq. 8 verbatim, both directions: encode ``x``, decode through chart ``alpha``,
+    re-encode that ambient reconstruction and decode through chart ``beta``, compare to
+    ``x`` with an unsquared L2 norm; plus the symmetric ``beta``-then-``alpha`` direction.
+    Returns the sum of the two per-row norms as a ``(batch,)`` tensor. Both directions are
+    required -- the residual is a statement about the atlas's consistency where two charts
+    overlap, and a one-directional version would measure something weaker.
+
+    ``model`` only needs ``encode``, ``chart_coords``, ``chart_decoders``, and
+    ``embedding_decoder`` -- it need not be a full ``ChartAutoEncoder`` instance."""
+    z = model.encode(x)
+
+    y1_ab = _decode_through_chart(model, z, alpha)
+    z2_ab = model.encode(y1_ab)
+    y2_ab = _decode_through_chart(model, z2_ab, beta)
+    dir_ab = torch.linalg.vector_norm(x - y2_ab, dim=-1)
+
+    y1_ba = _decode_through_chart(model, z, beta)
+    z2_ba = model.encode(y1_ba)
+    y2_ba = _decode_through_chart(model, z2_ba, alpha)
+    dir_ba = torch.linalg.vector_norm(x - y2_ba, dim=-1)
+
+    return dir_ab + dir_ba
+
+
+def select_overlap_pairs(
+    p: np.ndarray,
+    p_min: float,
+    min_points: int,
+    surviving_indices: Sequence[int],
+) -> Dict[str, np.ndarray]:
+    """The pre-registered T2 overlap-pair selection rule. For each row, restricts to the
+    surviving (post-pruning) charts, takes the two highest probabilities, and admits the
+    row only when **both** reach ``p_min``. Raises ``ValueError`` naming the shortfall
+    when fewer than ``min_points`` rows qualify: the paper frames R_cycle as applying only
+    where a point is in the intersection of two chart neighbourhoods but supplies no
+    numeric cutoff, so without a pre-registered one the evaluation set is ill-defined, and
+    an under-populated set would let a near-zero residual be reported from a handful of
+    points. Halting is the honest behaviour, not a fallback to a looser cutoff.
+
+    Returns a dict with ``rows`` (admitted row indices), ``alpha``, ``beta`` (each
+    admitted row's two highest-probability surviving chart indices), as equal-length
+    int64 numpy arrays."""
+    p = np.asarray(p, dtype=np.float64)
+    surviving = np.asarray(sorted(surviving_indices), dtype=np.int64)
+    p_surv = p[:, surviving]
+
+    order = np.argsort(-p_surv, axis=1)
+    top2_local = order[:, :2]
+    p_top1 = np.take_along_axis(p_surv, top2_local[:, 0:1], axis=1)[:, 0]
+    p_top2 = np.take_along_axis(p_surv, top2_local[:, 1:2], axis=1)[:, 0]
+
+    qualifies = (p_top1 >= p_min) & (p_top2 >= p_min)
+    n_qualify = int(qualifies.sum())
+    if n_qualify < min_points:
+        raise ValueError(
+            f"select_overlap_pairs: only {n_qualify} rows qualify for the T2 overlap "
+            f"evaluation set (both top chart probabilities >= {p_min}), below the "
+            f"pre-registered minimum of {min_points} -- T2 is undefined and the run "
+            "must halt rather than report a value."
+        )
+
+    admitted_rows = np.flatnonzero(qualifies).astype(np.int64)
+    alpha = surviving[top2_local[admitted_rows, 0]].astype(np.int64)
+    beta = surviving[top2_local[admitted_rows, 1]].astype(np.int64)
+    return {"rows": admitted_rows, "alpha": alpha, "beta": beta}
+
+
 # --- native casting ------------------------------------------------------------------------
 
 

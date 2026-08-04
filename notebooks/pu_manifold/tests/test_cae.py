@@ -747,3 +747,74 @@ def test_pruning_statistic_no_underflow():
     assert logmass < 0.0
     assert logmass > -math.inf
 
+
+# --- Plan 02.2-04 Task 2: eq. 8 cycle residual and the overlap-pair selection rule ------
+
+
+class _IdentityChartModel:
+    """A duck-typed model exposing exactly the interface r_cycle (and, with chart_dim/
+    out_dim set, unfaithfulness_coverage) needs, with every map an identity -- a
+    known-answer fixture in the same spirit as the tree-metric delta-hyperbolicity test,
+    where the correct answer is derivable independently of the function under test."""
+
+    def __init__(self, n_charts: int):
+        self.chart_decoders = [torch.nn.Identity() for _ in range(n_charts)]
+        self.embedding_decoder = torch.nn.Identity()
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        return x
+
+    def chart_coords(self, z: torch.Tensor) -> torch.Tensor:
+        return z.unsqueeze(1).expand(-1, len(self.chart_decoders), -1).clone()
+
+
+def test_r_cycle_zero_for_identity_charts():
+    torch.manual_seed(0)
+    model = _IdentityChartModel(n_charts=3)
+    x = torch.randn(20, 5, dtype=torch.float64)
+
+    residual_ab = c.r_cycle(model, x, alpha=0, beta=1)
+    residual_ba = c.r_cycle(model, x, alpha=1, beta=0)
+
+    assert residual_ab.shape == (20,)
+    assert residual_ab.abs().max().item() < 1e-10
+    assert torch.allclose(residual_ab, residual_ba)
+
+    # shape and swap-symmetry hold generally on a real, trained model too, not just in
+    # the degenerate identity fixture
+    real_model = c.ChartAutoEncoder(
+        in_dim=8, embed_dim=4, chart_dim=2, n_charts=3, hidden=[8], activation="silu"
+    )
+    x_real = torch.randn(10, 8)
+    r_ab = c.r_cycle(real_model, x_real, alpha=0, beta=2)
+    r_ba = c.r_cycle(real_model, x_real, alpha=2, beta=0)
+    assert r_ab.shape == (10,)
+    assert torch.allclose(r_ab, r_ba)
+
+
+def test_overlap_selection_halts_below_min_points():
+    rng = np.random.default_rng(0)
+    n = 50
+    n_charts = 4
+    surviving = [0, 1, 2, 3]
+
+    # only a handful of rows have two chart probabilities both clearing p_min=0.3 --
+    # every other row is dominated by a single chart
+    p_sparse = np.zeros((n, n_charts))
+    p_sparse[:, 0] = 0.9
+    p_sparse[:, 1] = 0.1
+    p_sparse[:5, 0] = 0.5
+    p_sparse[:5, 1] = 0.5
+    with pytest.raises(ValueError) as excinfo:
+        c.select_overlap_pairs(p_sparse, p_min=0.3, min_points=20, surviving_indices=surviving)
+    assert "20" in str(excinfo.value)
+
+    # enough rows qualify
+    p_dense = rng.dirichlet(np.ones(n_charts), size=n)
+    result = c.select_overlap_pairs(p_dense, p_min=0.05, min_points=5, surviving_indices=surviving)
+    assert len(result["rows"]) == len(result["alpha"]) == len(result["beta"])
+    assert len(result["rows"]) >= 5
+    for row, a, b in zip(result["rows"], result["alpha"], result["beta"]):
+        assert p_dense[row, a] >= 0.05
+        assert p_dense[row, b] >= 0.05
+
