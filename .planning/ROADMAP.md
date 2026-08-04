@@ -129,7 +129,7 @@ A theorem about compact manifolds with positive reach is not evidence about this
 
 **Hard gate**: Terminal artifact is `cae_verdict.json` (PASS/FAIL). PASS unblocks Phase 3, which then decodes from the CAE representation. FAIL blocks Phase 3, the findings are documented, and the milestone remains at the phase-2 stage — a legitimate and complete outcome, not an error to be worked around.
 
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -142,7 +142,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02.2-03-PLAN.md — eq. 4 Lipschitz penalty, FPS-seeded eq. 5 pre-training, the three-way stopping rule, and the matched-capacity baseline trainers (CAE-02, CAE-03, CAE-05, CAE-06)
+- [x] 02.2-03-PLAN.md — eq. 4 Lipschitz penalty, FPS-seeded eq. 5 pre-training, the three-way stopping rule, and the matched-capacity baseline trainers (CAE-02, CAE-03, CAE-05, CAE-06)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -232,7 +232,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress | |
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress | |
-| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 2/6 | In Progress|  |
+| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 3/6 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
