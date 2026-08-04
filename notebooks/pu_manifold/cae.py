@@ -552,6 +552,201 @@ def timing_probe(
     }
 
 
+# --- CAE-03 matched-capacity baseline controls --------------------------------------------
+
+
+class PlainAutoEncoder(nn.Module):
+    """The paper's own eq. 22 deterministic autoencoder reference architecture -- the
+    CAE-03 plain single-chart control. Three hidden layers of ``HIDDEN_WIDTH`` each side
+    of a single bottleneck, no chart predictor, no cross-entropy term: precisely the
+    question CAE-03 asks is whether the atlas bought anything over one chart at matched
+    capacity, and building this as the paper's own stated architecture (not an invented
+    control) is what keeps that comparison defensible."""
+
+    def __init__(
+        self,
+        in_dim: int,
+        latent_dim: int,
+        hidden: Sequence[int] = (250, 250, 250),
+        activation: str = "silu",
+    ):
+        super().__init__()
+        self.latent_dim = latent_dim
+        self.encoder = mlp_stack(in_dim, hidden, latent_dim, activation, out_activation=None)
+        self.decoder = mlp_stack(latent_dim, hidden, in_dim, activation, out_activation=None)
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        return self.encoder(x)
+
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
+        return self.decoder(z)
+
+    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+        z = self.encode(x)
+        y = self.decode(z)
+        return {"z": z, "y": y}
+
+
+class MlpDecoder(nn.Module):
+    """A decoder from a fixed coordinate array back to ambient space, matched in hidden
+    width/depth to ``PlainAutoEncoder``'s decoder half -- the CAE-03 classical-MDS
+    baseline decoder. Classical MDS has no native inverse map to ambient space, so one
+    must be fitted explicitly rather than substituted by the ``sklearn.manifold.Isomap``
+    estimator's own residual-variance reconstruction-quality method, which is a different
+    quantity (RESEARCH.md Pitfall 4)."""
+
+    def __init__(
+        self,
+        latent_dim: int,
+        out_dim: int,
+        hidden: Sequence[int] = (250, 250, 250),
+        activation: str = "silu",
+    ):
+        super().__init__()
+        self.net = mlp_stack(latent_dim, hidden, out_dim, activation, out_activation=None)
+
+    def forward(self, z: torch.Tensor) -> Dict[str, torch.Tensor]:
+        return {"y": self.net(z)}
+
+
+def _train_decoder_protocol(
+    forward_fn: Callable[[torch.Tensor], torch.Tensor],
+    parameters: Any,
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    cfg: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Shared training-loop body for :func:`train_plain_ae` and :func:`train_mlp_decoder`:
+    the identical protocol as :func:`train_cae`'s main loop -- same optimizer, learning
+    rate, weight decay, batch size, three-way stopping rule, seeding discipline, and
+    returned fit-artifact shape -- but with no pre-training stage, no chart predictor, no
+    cross-entropy term, and no Lipschitz penalty, because a single-chart / fixed-coordinate
+    model has no chart-encoder family for the penalty to range over."""
+    seed = cfg.get("seed", 0)
+    torch.manual_seed(seed)
+    rng = np.random.default_rng(seed)
+
+    n = inputs.shape[0]
+    batch_size = cfg["batch"]
+    max_epochs = cfg["max_epochs"]
+
+    effective_cfg: Dict[str, Any] = dict(cfg)
+    effective_cfg.setdefault("seed", seed)
+    effective_cfg.setdefault("early_stop_min_delta", 0.0)
+    effective_cfg.setdefault("early_stop_patience", max_epochs + 1)
+    effective_cfg.setdefault("wallclock_ceiling_s", float("inf"))
+
+    early_stop_min_delta = effective_cfg["early_stop_min_delta"]
+    early_stop_patience = effective_cfg["early_stop_patience"]
+    wallclock_ceiling_s = effective_cfg["wallclock_ceiling_s"]
+
+    optimizer = torch.optim.AdamW(parameters, lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+
+    history: List[Dict[str, Any]] = []
+    start = time.monotonic()
+    wallclock_truncated = False
+    early_stopped = False
+    epochs_run = 0
+    best_loss = float("inf")
+    plateau_count = 0
+
+    for epoch in range(max_epochs):
+        perm = torch.from_numpy(rng.permutation(n))
+        epoch_recon = 0.0
+        n_batches = 0
+        for i in range(0, n, batch_size):
+            idx = perm[i : i + batch_size]
+            xb = inputs[idx]
+            yb = targets[idx]
+            optimizer.zero_grad()
+            y_hat = forward_fn(xb)
+            recon = ((yb - y_hat) ** 2).sum(dim=-1).mean()
+            recon.backward()
+            optimizer.step()
+            epoch_recon += recon.item()
+            n_batches += 1
+
+        epoch_mean = epoch_recon / n_batches
+        history.append({"epoch": epoch, "stage": "main", "recon": epoch_mean, "xent": 0.0, "total": epoch_mean})
+        epochs_run = epoch + 1
+
+        if time.monotonic() - start > wallclock_ceiling_s:
+            wallclock_truncated = True
+            break
+
+        if epoch_mean < best_loss * (1 - early_stop_min_delta):
+            best_loss = epoch_mean
+            plateau_count = 0
+        else:
+            plateau_count += 1
+            if plateau_count >= early_stop_patience:
+                early_stopped = True
+                break
+
+    wallclock_s = time.monotonic() - start
+
+    return {
+        "history": history,
+        "epochs_run": epochs_run,
+        "wallclock_s": wallclock_s,
+        "wallclock_truncated": wallclock_truncated,
+        "early_stopped": early_stopped,
+        "cfg": effective_cfg,
+    }
+
+
+def train_plain_ae(model: "PlainAutoEncoder", x_train: torch.Tensor, cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Trains the CAE-03 plain single-chart control under the identical protocol as
+    :func:`train_cae`'s main loop (see :func:`_train_decoder_protocol`), returning a fit
+    artifact of the identical shape. The differences from ``train_cae`` -- no
+    pre-training, no chart predictor, no cross-entropy term, no Lipschitz penalty -- are
+    recorded explicitly in the returned ``cfg["protocol_difference"]`` rather than left
+    implicit."""
+
+    def forward_fn(xb: torch.Tensor) -> torch.Tensor:
+        return model(xb)["y"]
+
+    fit = _train_decoder_protocol(forward_fn, model.parameters(), x_train, x_train, cfg)
+    fit["cfg"]["protocol_difference"] = (
+        "no pre-training stage, no chart predictor, no cross-entropy term, no Lipschitz "
+        "penalty -- a single-chart model has no chart-encoder family for the penalty to "
+        "range over"
+    )
+    return fit
+
+
+def train_mlp_decoder(
+    model: "MlpDecoder", z_train: torch.Tensor, x_train: torch.Tensor, cfg: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Fits the CAE-03 classical-MDS baseline decoder from fixed coordinates ``z_train``
+    to ambient targets ``x_train``, under the identical protocol as :func:`train_cae`'s
+    main loop (see :func:`_train_decoder_protocol`), returning a fit artifact of the
+    identical shape."""
+
+    def forward_fn(zb: torch.Tensor) -> torch.Tensor:
+        return model(zb)["y"]
+
+    fit = _train_decoder_protocol(forward_fn, model.parameters(), z_train, x_train, cfg)
+    fit["cfg"]["protocol_difference"] = (
+        "fits a decoder only, from fixed input coordinates z_train, not a jointly-trained "
+        "encoder-decoder pair"
+    )
+    return fit
+
+
+def fit_linear_decoder(z_train: torch.Tensor, x_train: torch.Tensor) -> Dict[str, np.ndarray]:
+    """Least-squares linear map ``x_hat = z @ weight.T + bias`` from coordinates back to
+    ambient space, reported as a floor beneath the fitted ``MlpDecoder`` so a reader can
+    see how much of the baseline's performance is linear."""
+    z_np = z_train.detach().cpu().numpy().astype(np.float64)
+    x_np = x_train.detach().cpu().numpy().astype(np.float64)
+    n = z_np.shape[0]
+    z_aug = np.concatenate([z_np, np.ones((n, 1))], axis=1)
+    coef, *_ = np.linalg.lstsq(z_aug, x_np, rcond=None)
+    weight = coef[:-1].T
+    bias = coef[-1]
+    return {"weight": weight, "bias": bias}
+
 
 # --- native casting ------------------------------------------------------------------------
 

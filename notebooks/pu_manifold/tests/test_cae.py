@@ -508,3 +508,109 @@ def test_timing_probe_returns_expected_keys():
     assert isinstance(probe["exceeds_ceiling"], bool)
 
 
+# --- Plan 02.2-03 Task 3: matched-capacity baseline trainers for the CAE-03 gate --------
+
+
+def test_plain_autoencoder_matches_eq22_shape():
+    model = c.PlainAutoEncoder(768, 20, hidden=(250, 250, 250), activation="silu")
+    linears = [m for m in model.modules() if isinstance(m, torch.nn.Linear)]
+    assert len(linears) == 8
+    assert model.encoder[-1].out_features == 20
+
+
+def test_train_plain_ae_matches_train_cae_key_set():
+    x = _make_synthetic_fixture(n=40, ambient_dim=10, seed=9)
+    plain_model = c.PlainAutoEncoder(10, 4, hidden=(8, 8), activation="silu")
+    cfg = {"seed": 0, "lr": 3e-3, "weight_decay": 1e-4, "batch": 8, "max_epochs": 3}
+    plain_fit = c.train_plain_ae(plain_model, x, cfg)
+
+    cae_model = c.ChartAutoEncoder(
+        in_dim=10, embed_dim=4, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    cae_fit = c.train_cae(cae_model, x, dict(cfg))
+
+    assert set(plain_fit.keys()) == set(cae_fit.keys())
+    assert "protocol_difference" in plain_fit["cfg"]
+
+
+def test_fit_linear_decoder_recovers_known_linear_map():
+    rng = np.random.default_rng(0)
+    n, latent_dim, out_dim = 200, 5, 12
+    z_np = rng.standard_normal((n, latent_dim))
+    w_true = rng.standard_normal((out_dim, latent_dim))
+    b_true = rng.standard_normal(out_dim)
+    x_np = z_np @ w_true.T + b_true
+
+    z = torch.tensor(z_np, dtype=torch.float64)
+    x = torch.tensor(x_np, dtype=torch.float64)
+
+    fitted = c.fit_linear_decoder(z, x)
+    rel_err_w = np.linalg.norm(fitted["weight"] - w_true) / np.linalg.norm(w_true)
+    rel_err_b = np.linalg.norm(fitted["bias"] - b_true) / np.linalg.norm(b_true)
+    assert rel_err_w < 1e-8
+    assert rel_err_b < 1e-8
+
+
+def test_train_mlp_decoder_returns_fit_artifact():
+    rng = np.random.default_rng(5)
+    n, latent_dim, out_dim = 60, 4, 10
+    z = torch.tensor(rng.standard_normal((n, latent_dim)), dtype=torch.float32)
+    x = torch.tensor(rng.standard_normal((n, out_dim)), dtype=torch.float32)
+    model = c.MlpDecoder(latent_dim, out_dim, hidden=(8, 8), activation="silu")
+    cfg = {"seed": 0, "lr": 3e-3, "weight_decay": 1e-4, "batch": 16, "max_epochs": 3}
+    fit = c.train_mlp_decoder(model, z, x, cfg)
+    assert set(fit.keys()) == {
+        "history",
+        "epochs_run",
+        "wallclock_s",
+        "wallclock_truncated",
+        "early_stopped",
+        "cfg",
+    }
+    with torch.no_grad():
+        y = model(z)["y"]
+    stats = c.reconstruction_stats(x, y)
+    assert "mse_per_dim" in stats
+
+
+def test_single_chart_fails_circle_topology():
+    n = 200
+    ambient_dim = 8
+    t = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    circle = np.stack([np.cos(t), np.sin(t)], axis=1)
+    rng = np.random.default_rng(0)
+    proj = rng.standard_normal((2, ambient_dim))
+    x = torch.tensor(circle @ proj, dtype=torch.float32)
+
+    cfg = {
+        "seed": 0,
+        "lr": 1e-2,
+        "weight_decay": 0.0,
+        "batch": 32,
+        "max_epochs": 150,
+        "lip_weight": 0.0,
+        "fps_pretrain_epochs": 8,  # eq. 5 pre-training -- without it the second chart in
+        # the two-chart model is never activated (the "dead chart" failure mode) and both
+        # models perform identically, which would defeat the point of this test
+        "wallclock_ceiling_s": 60.0,
+    }
+
+    torch.manual_seed(1)
+    one_chart = c.ChartAutoEncoder(
+        in_dim=ambient_dim, embed_dim=4, chart_dim=1, n_charts=1, hidden=[16, 16], activation="silu"
+    )
+    c.train_cae(one_chart, x, dict(cfg))
+
+    torch.manual_seed(1)
+    two_chart = c.ChartAutoEncoder(
+        in_dim=ambient_dim, embed_dim=4, chart_dim=1, n_charts=2, hidden=[16, 16], activation="silu"
+    )
+    c.train_cae(two_chart, x, dict(cfg))
+
+    with torch.no_grad():
+        y_one = one_chart.reconstruct(x)
+        y_two = two_chart.reconstruct(x)
+    mse_one = ((x - y_one) ** 2).sum(dim=-1).mean().item()
+    mse_two = ((x - y_two) ** 2).sum(dim=-1).mean().item()
+
+    assert mse_two < 0.7 * mse_one
