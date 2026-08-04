@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.1
-current_phase_name: geometry-representation-research
+current_phase: 02.2
+current_phase_name: chart-autoencoder-validity-test-inserted
 status: executing
-stopped_at: Phase 02.2 context gathered
-last_updated: "2026-08-03T19:16:46.836Z"
-last_activity: 2026-08-03
-last_activity_desc: "Completed quick task 260803-k9n: inserted Phase 02.2 (Chart Autoencoder Validity Test) into ROADMAP"
+stopped_at: Completed 02.2-01-PLAN.md
+last_updated: "2026-08-04T13:56:45.887Z"
+last_activity: 2026-08-04
+last_activity_desc: Phase 02.2 execution started
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 11
-  completed_plans: 9
+  total_plans: 17
+  completed_plans: 10
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.1 — geometry-representation-research
+**Current focus:** Phase 02.2 — chart-autoencoder-validity-test-inserted
 
 ## Current Position
 
-Phase: 02.1 (geometry-representation-research) — EXECUTING
-Plan: 4 of 4 (wave 1 of 3)
+Phase: 02.2 (chart-autoencoder-validity-test-inserted) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-08-03 — Completed quick task 260803-k9n: inserted Phase 02.2 (Chart Autoencoder Validity Test) into ROADMAP
+Last activity: 2026-08-04 — Phase 02.2 execution started
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
 
@@ -56,7 +56,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 82% (0/4 v1.1 phases complete; none yet planned)
+Progress: [██████░░░░] 59% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [████████░░] 82% (0/4 v1.1 phases complete; none y
 | Phase 02.1 P01 | N/A | 2 tasks | 2 files |
 | Phase 02.1 P02 | 15min | 2 tasks | 1 files |
 | Phase 02.1 P03 | 45min | 2 tasks | 3 files |
+| Phase 02.2 P01 | 7min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.1-03: falsifier condition (a) trips unambiguously (real manifold delta_rel_max=0.386 exceeds the flat-Euclidean anchor 0.360); condition (b) does not cleanly trip (18.4% relative distortion reduction from retaining negative eigenvalue directions — real but modest)
 - [Phase ?]: 02.1-03: pair-sample bit-identity verified on first attempt (200,000 re-drawn pairs match cached geo_pairs_r2 exactly); Krein bottom-40 eigenpairs cross-checked against Phase 2's eigvals_all to rtol=1e-8
 - [Phase ?]: 02.1-03: working-dimension re-derivation under gate_verdict's own kneedle criterion lands on (p,q)=(8,0) for the pseudo-Euclidean frontier — identical to the classical q=0 elbow of p=8; retaining negative directions does not move the elbow-selected dimension, only improves the far tail past it
+- [Phase ?]: 02.2-01: All three CAE gate thresholds ratified exactly as proposed on 2026-08-04 (T1=0.15, T2 ratio=2.0, T3 margin=0.10); ancestry SHA c2c4c93 confirmed an ancestor of HEAD, satisfying D-10 and CAE-01's ordering requirement
 
 ### Pending Todos
 
@@ -146,8 +148,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-03T19:16:46.816Z
-Stopped at: Phase 02.2 context gathered
+Last session: 2026-08-04T13:56:45.867Z
+Stopped at: Completed 02.2-01-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.2-chart-autoencoder-validity-test-inserted/02.2-CONTEXT.md
+Resume file: None
 </content>

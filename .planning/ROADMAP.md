@@ -129,12 +129,12 @@ A theorem about compact manifolds with positive reach is not evidence about this
 
 **Hard gate**: Terminal artifact is `cae_verdict.json` (PASS/FAIL). PASS unblocks Phase 3, which then decodes from the CAE representation. FAIL blocks Phase 3, the findings are documented, and the milestone remains at the phase-2 stage — a legitimate and complete outcome, not an error to be worked around.
 
-**Plans**: 6 plans across 5 waves
+**Plans**: 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02.2-01-PLAN.md — Pre-register the gate metrics, constants and three numeric thresholds; blocking D-10 ratification before any fit (CAE-01)
+- [x] 02.2-01-PLAN.md — Pre-register the gate metrics, constants and three numeric thresholds; blocking D-10 ratification before any fit (CAE-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -232,7 +232,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress | |
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress | |
-| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 0/TBD | Not started | - |
+| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 1/6 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
