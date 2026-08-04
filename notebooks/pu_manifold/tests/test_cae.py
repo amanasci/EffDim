@@ -421,6 +421,50 @@ def test_fps_pretrain_loss_returns_named_components_and_is_differentiable():
 # --- Plan 02.2-03 Task 2: full pre-registered protocol and the three-way stopping rule --
 
 
+def test_train_cae_early_stopping_on_plateau():
+    torch.manual_seed(0)
+    x = torch.randn(60, 8) * 0.01  # tiny-variance data -- loss plateaus almost immediately
+    model = c.ChartAutoEncoder(
+        in_dim=8, embed_dim=4, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    cfg = {
+        "seed": 0,
+        "lr": 1e-2,
+        "weight_decay": 0.0,
+        "batch": 16,
+        "max_epochs": 200,
+        "early_stop_min_delta": 0.01,
+        "early_stop_patience": 3,
+        "wallclock_ceiling_s": 60.0,
+    }
+    fit = c.train_cae(model, x, cfg)
+    assert fit["early_stopped"] is True
+    assert fit["wallclock_truncated"] is False
+    assert fit["epochs_run"] < cfg["max_epochs"]
+
+
+def test_train_cae_runs_full_epoch_cap_when_neither_limit_fires():
+    torch.manual_seed(0)
+    x = _make_synthetic_fixture(n=40, ambient_dim=10, seed=10)
+    model = c.ChartAutoEncoder(
+        in_dim=10, embed_dim=4, chart_dim=2, n_charts=2, hidden=[8], activation="silu"
+    )
+    cfg = {
+        "seed": 0,
+        "lr": 1e-4,  # deliberately tiny -- loss keeps moving, plateau rule never fires
+        "weight_decay": 0.0,
+        "batch": 8,
+        "max_epochs": 5,
+        "early_stop_min_delta": 0.0,
+        "early_stop_patience": 10_000,
+        "wallclock_ceiling_s": 60.0,
+    }
+    fit = c.train_cae(model, x, cfg)
+    assert fit["early_stopped"] is False
+    assert fit["wallclock_truncated"] is False
+    assert fit["epochs_run"] == cfg["max_epochs"]
+
+
 def test_train_cae_respects_wallclock_ceiling():
     torch.manual_seed(0)
     x = _make_synthetic_fixture(n=80, ambient_dim=12, seed=6)
