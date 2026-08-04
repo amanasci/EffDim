@@ -135,3 +135,62 @@ def test_chart_decoder_targets_embedding_space():
     p = model.chart_probs(z)
     assert torch.all(p >= 0)
     assert torch.allclose(p.sum(dim=1), torch.ones(64), atol=1e-6)
+
+
+# --- Task 2: fit-artifact serialization contract and the PASS handoff writer ------------
+
+
+def test_state_dict_array_roundtrip():
+    torch.manual_seed(0)
+    model_a = c.ChartAutoEncoder(
+        in_dim=10, embed_dim=4, chart_dim=2, n_charts=3, hidden=[8], activation="silu"
+    )
+    model_b = c.ChartAutoEncoder(
+        in_dim=10, embed_dim=4, chart_dim=2, n_charts=3, hidden=[8], activation="silu"
+    )
+
+    arrays = c.state_dict_to_arrays(model_a.state_dict())
+    assert all(isinstance(v, np.ndarray) for v in arrays.values())
+    assert set(arrays.keys()) == set(model_a.state_dict().keys())
+
+    restored = c.arrays_to_state_dict(arrays, model_b.state_dict())
+    model_b.load_state_dict(restored)
+
+    x = torch.randn(5, 10)
+    with torch.no_grad():
+        za = model_a(x)["z"]
+        zb = model_b(x)["z"]
+    assert torch.equal(za, zb)
+
+
+def test_write_cae_handoff_refuses_non_pass_and_names_consumables(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    payload = {
+        "consumes": "cae_fit_test_fit_key_seed0",
+        "global_embedding_key": "z_all",
+        "chart_coords_key": "chart_coords_all",
+        "chart_probs_key": "p_all",
+        "chart_assignments_key": "chart_argmax_all",
+        "decoder_state_keys": ["chart_decoders.", "embedding_decoder."],
+        "surviving_charts": [0, 1, 2],
+        "activation": "silu",
+    }
+    with pytest.raises(ValueError):
+        c.write_cae_handoff("test_fit_key", "FAIL", payload)
+
+    handoff = c.write_cae_handoff("test_fit_key", "PASS", payload)
+    expected_keys = {
+        "global_embedding_key",
+        "chart_coords_key",
+        "chart_probs_key",
+        "chart_assignments_key",
+        "decoder_state_keys",
+        "surviving_charts",
+        "activation",
+        "consumes",
+        "fit_key",
+        "phase",
+        "verdict",
+        "timestamp",
+    }
+    assert expected_keys.issubset(handoff.keys())

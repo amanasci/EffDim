@@ -11,6 +11,7 @@ installed to import the package), this module is deliberately NOT re-exported th
 """
 
 import time
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -18,6 +19,26 @@ import torch
 from torch import nn
 
 from . import cache
+
+# --- fit-artifact contract (plans 02.2-04 and 02.2-05 build against this, not a guess) --
+
+FIT_ARTIFACT_CONTRACT = """
+npz stem `cae_fit_{fit_key}_seed{seed}` carries:
+  - every state_dict_to_arrays key (the trained model's full parameter set)
+  - z_all            -- the initial encoder's output for all 10,000 rows
+  - p_all            -- chart probabilities for all rows
+  - chart_argmax_all -- per-row argmax chart index
+  - train_idx        -- training-split row indices
+  - holdout_idx      -- holdout-split row indices
+  - y_holdout        -- argmax-chart ambient reconstruction of the holdout rows
+
+Per-chart weight-mass quantities are deliberately NOT stored: they are derivable from the
+persisted state_dict, and storing a derived value invites it drifting from the weights it
+summarises.
+
+Companion json stem `cae_fit_meta_{fit_key}_seed{seed}` carries the train_cae return dict
+plus seed, activation, torch_version, numpy_version, timestamp.
+"""
 
 # --- activations ----------------------------------------------------------------------
 
@@ -376,3 +397,62 @@ def write_cae_verdict(
         return to_native(payload)
 
     return cache.json_cache(f"cae_verdict_{fit_key}", cfg, _compute)
+
+
+# --- fit-artifact serialization (no pickle path) ------------------------------------------
+
+
+def state_dict_to_arrays(state_dict: Dict[str, torch.Tensor]) -> Dict[str, np.ndarray]:
+    """Flatten a torch ``state_dict`` to a flat ``Dict[str, np.ndarray]`` of float64
+    arrays suitable for ``cache.npz_cache``. Persisting fits this way keeps the phase free
+    of pickle: the package's separate pickle-backed cache helper exists, but pickle
+    deserialization is a path the codebase's own threat model deliberately keeps narrow,
+    so every fit artifact takes this array route instead."""
+    return {k: v.detach().cpu().numpy().astype(np.float64) for k, v in state_dict.items()}
+
+
+def arrays_to_state_dict(
+    arrays: Dict[str, np.ndarray], reference_state_dict: Dict[str, torch.Tensor]
+) -> Dict[str, torch.Tensor]:
+    """Invert :func:`state_dict_to_arrays`, casting each array to the dtype and shape of
+    the corresponding tensor in ``reference_state_dict``."""
+    out: Dict[str, torch.Tensor] = {}
+    for key, ref in reference_state_dict.items():
+        arr = arrays[key]
+        out[key] = torch.tensor(arr, dtype=ref.dtype).reshape(ref.shape)
+    return out
+
+
+# --- D-03 PASS handoff writer --------------------------------------------------------------
+
+
+def write_cae_handoff(fit_key: str, verdict: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """D-03: on a ``"PASS"`` verdict, writes a machine-readable artifact naming exactly
+    what Phase 3 consumes -- the global embedding, chart coordinates, chart assignments
+    and probabilities, and the trained chart and embedding decoders. Refuses to write
+    (raises ``ValueError``) unless ``verdict == "PASS"``."""
+    if verdict != "PASS":
+        raise ValueError(
+            f"write_cae_handoff refuses to write a handoff for a non-PASS verdict: {verdict!r}"
+        )
+
+    cfg = {"fit_key": fit_key, "phase": "02.2"}
+
+    def _compute() -> Dict[str, Any]:
+        result = {
+            "fit_key": fit_key,
+            "phase": "02.2",
+            "verdict": verdict,
+            "consumes": payload["consumes"],
+            "global_embedding_key": payload["global_embedding_key"],
+            "chart_coords_key": payload["chart_coords_key"],
+            "chart_probs_key": payload["chart_probs_key"],
+            "chart_assignments_key": payload["chart_assignments_key"],
+            "decoder_state_keys": payload["decoder_state_keys"],
+            "surviving_charts": payload["surviving_charts"],
+            "activation": payload["activation"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        return to_native(result)
+
+    return cache.json_cache(f"cae_handoff_{fit_key}", cfg, _compute)
