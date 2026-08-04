@@ -20,6 +20,7 @@ import torch
 from torch import nn
 
 from . import cache
+from . import geometry_probes
 
 # --- fit-artifact contract (plans 02.2-04 and 02.2-05 build against this, not a guess) --
 
@@ -746,6 +747,61 @@ def fit_linear_decoder(z_train: torch.Tensor, x_train: torch.Tensor) -> Dict[str
     weight = coef[:-1].T
     bias = coef[-1]
     return {"weight": weight, "bias": bias}
+
+
+# --- CAE-05 a-posteriori chart pruning ------------------------------------------------------
+
+
+def _chart_decoder_logmass(decoder: nn.Module) -> float:
+    """Sum, in float64, of the natural logarithms of a chart decoder's per-``nn.Linear``
+    layer exact spectral norm (the same per-layer quantity :func:`lipschitz_penalty`
+    uses). Working in log space rather than a float32 product is the contract, not an
+    optimisation: a chart decoder with several small-spectral-norm layers underflows a
+    float32 product to exactly zero, which would silently report a live chart as dead and
+    change the surviving count CAE-05 reports as an outcome."""
+    total = 0.0
+    for layer in decoder.modules():
+        if isinstance(layer, nn.Linear):
+            sv = float(torch.linalg.matrix_norm(layer.weight, ord=2).item())
+            total += -math.inf if sv <= 0.0 else math.log(sv)
+    return total
+
+
+def chart_survival(model: "ChartAutoEncoder", prune_tol: float) -> Dict[str, Any]:
+    """CAE-05: the chart count is obtained a posteriori, never chosen as an input. For
+    each chart decoder, computes :func:`_chart_decoder_logmass`, then compares every
+    chart's mass against the largest chart's mass: a chart is pruned when
+    ``exp(log_mass_alpha - log_mass_max)`` is **strictly less than** ``prune_tol`` -- a
+    chart whose ratio equals ``prune_tol`` exactly survives, mirroring the strict-less-
+    than discipline :func:`verdict_from_metrics` uses throughout, so a value sitting
+    exactly on a stated tolerance never clears it by accident in one direction and gets
+    caught by it in the other.
+
+    ``model`` only needs to expose ``n_charts`` and an iterable ``chart_decoders`` of
+    ``nn.Module`` decoders -- it need not be a full ``ChartAutoEncoder`` instance.
+    Returns a dict with ``n_charts_initial``, ``n_charts_surviving``,
+    ``surviving_indices``, ``pruned_indices`` (native Python ints/lists), plus
+    ``chart_logmass`` and ``chart_mass_ratio`` as float64 numpy arrays, and
+    ``prune_tol`` (native float)."""
+    n_charts = model.n_charts
+    logmass = np.array(
+        [_chart_decoder_logmass(dec) for dec in model.chart_decoders], dtype=np.float64
+    )
+    log_mass_max = float(logmass.max())
+    mass_ratio = np.exp(logmass - log_mass_max)
+
+    surviving_indices = [int(i) for i in range(n_charts) if mass_ratio[i] >= prune_tol]
+    pruned_indices = [int(i) for i in range(n_charts) if mass_ratio[i] < prune_tol]
+
+    return {
+        "n_charts_initial": int(n_charts),
+        "n_charts_surviving": int(len(surviving_indices)),
+        "surviving_indices": surviving_indices,
+        "pruned_indices": pruned_indices,
+        "chart_logmass": logmass,
+        "chart_mass_ratio": mass_ratio,
+        "prune_tol": float(prune_tol),
+    }
 
 
 # --- native casting ------------------------------------------------------------------------

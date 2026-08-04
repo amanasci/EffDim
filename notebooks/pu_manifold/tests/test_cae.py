@@ -658,3 +658,92 @@ def test_single_chart_fails_circle_topology():
     mse_two = ((x - y_two) ** 2).sum(dim=-1).mean().item()
 
     assert mse_two < 0.7 * mse_one
+
+
+# --- Plan 02.2-04 Task 1: a-posteriori chart pruning ------------------------------------
+
+
+class _ChartDecoderOnlyModel:
+    """A duck-typed model exposing exactly the interface chart_survival needs
+    (n_charts, chart_decoders) -- it need not be a full ChartAutoEncoder."""
+
+    def __init__(self, decoders):
+        self.chart_decoders = decoders
+        self.n_charts = len(decoders)
+
+
+def test_pruning_removes_dead_chart():
+    torch.manual_seed(0)
+    model = c.ChartAutoEncoder(
+        in_dim=10, embed_dim=5, chart_dim=2, n_charts=4, hidden=[6], activation="silu"
+    )
+    with torch.no_grad():
+        for layer in model.chart_decoders[1].modules():
+            if isinstance(layer, torch.nn.Linear):
+                layer.weight.zero_()
+                if layer.bias is not None:
+                    layer.bias.zero_()
+
+    result = c.chart_survival(model, prune_tol=1e-2)
+    assert result["n_charts_initial"] == 4
+    assert result["n_charts_surviving"] == 3
+    assert result["pruned_indices"] == [1]
+    assert set(result["surviving_indices"]) == {0, 2, 3}
+    assert result["chart_logmass"].dtype == np.float64
+    assert result["chart_mass_ratio"].dtype == np.float64
+    assert set(result.keys()) == {
+        "n_charts_initial",
+        "n_charts_surviving",
+        "surviving_indices",
+        "pruned_indices",
+        "chart_logmass",
+        "chart_mass_ratio",
+        "prune_tol",
+    }
+
+
+def test_pruning_boundary_is_strict_less_than():
+    torch.manual_seed(0)
+    model = c.ChartAutoEncoder(
+        in_dim=6, embed_dim=3, chart_dim=2, n_charts=2, hidden=[4], activation="silu"
+    )
+    # read off the actual computed mass ratio of the smaller chart -- ratio computation
+    # itself does not depend on prune_tol, only the survive/prune label does
+    probe = c.chart_survival(model, prune_tol=0.5)
+    minority = int(np.argmin(probe["chart_mass_ratio"]))
+    exact_ratio = float(probe["chart_mass_ratio"][minority])
+
+    # exactly at the tolerance -> survives (strict less-than, not less-than-or-equal)
+    at_tol = c.chart_survival(model, prune_tol=exact_ratio)
+    assert minority in at_tol["surviving_indices"]
+    assert minority not in at_tol["pruned_indices"]
+
+    # a tolerance one representable step above the chart's exact ratio has the identical
+    # effect, for the strict `<` comparison, as the chart's ratio sitting one step below a
+    # fixed tolerance -- bit-exact round-tripping of exp(log(w)) back to an arbitrarily
+    # chosen target ratio is not guaranteed, so the boundary is exercised by nudging the
+    # tolerance by one ULP instead of the weight -> now pruned
+    just_above = float(np.nextafter(exact_ratio, 1.0))
+    below_tol = c.chart_survival(model, prune_tol=just_above)
+    assert minority in below_tol["pruned_indices"]
+    assert minority not in below_tol["surviving_indices"]
+
+
+def test_pruning_statistic_no_underflow():
+    torch.manual_seed(0)
+    decoder = c.ChartDecoder(chart_dim=2, embed_dim=2, hidden=[2, 2, 2, 2, 2], activation="silu")
+    linears = [m for m in decoder.modules() if isinstance(m, torch.nn.Linear)]
+    assert len(linears) == 6
+    with torch.no_grad():
+        for lin in linears:
+            lin.weight.copy_(1e-3 * torch.eye(2))
+            if lin.bias is not None:
+                lin.bias.zero_()
+
+    model = _ChartDecoderOnlyModel([decoder])
+    result = c.chart_survival(model, prune_tol=1e-2)
+    logmass = float(result["chart_logmass"][0])
+    assert math.isfinite(logmass)
+    assert logmass < 0.0
+    assert logmass > -math.inf
+
