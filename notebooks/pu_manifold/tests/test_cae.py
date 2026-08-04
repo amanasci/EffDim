@@ -11,6 +11,7 @@ explicitly:
 """
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -194,3 +195,104 @@ def test_write_cae_handoff_refuses_non_pass_and_names_consumables(tmp_path, monk
         "timestamp",
     }
     assert expected_keys.issubset(handoff.keys())
+
+
+# --- Task 3: harden the verdict rule against its boundary/empty/ordering/precision edges -
+
+_BASE_METRICS = {"distortion": 0.05, "rcycle_ratio": 0.5, "recon_margin": 0.2}
+_BASE_THRESHOLDS = {"distortion": 0.15, "rcycle_ratio": 2.0, "recon_margin": 1.0}
+
+
+def test_verdict_rule_strict_inequality():
+    for gate in c.GATING_METRICS:
+        threshold = _BASE_THRESHOLDS[gate]
+
+        at_threshold = dict(_BASE_METRICS)
+        at_threshold[gate] = threshold
+        verdict, gate_detail = c.verdict_from_metrics(at_threshold, _BASE_THRESHOLDS)
+        assert verdict == "FAIL"
+        assert gate_detail[gate]["passed"] is False
+
+        one_ulp_below = dict(_BASE_METRICS)
+        one_ulp_below[gate] = math.nextafter(threshold, -math.inf)
+        _, gate_detail_below = c.verdict_from_metrics(one_ulp_below, _BASE_THRESHOLDS)
+        assert gate_detail_below[gate]["passed"] is True
+
+
+@pytest.mark.parametrize("bad_value", [None, float("nan"), float("inf"), float("-inf")])
+@pytest.mark.parametrize("gate", list(_BASE_METRICS.keys()))
+def test_verdict_rejects_missing_or_nonfinite_metric(gate, bad_value):
+    metrics = dict(_BASE_METRICS)
+    if bad_value is None:
+        del metrics[gate]
+    else:
+        metrics[gate] = bad_value
+    with pytest.raises(ValueError):
+        c.verdict_from_metrics(metrics, _BASE_THRESHOLDS)
+
+
+def test_verdict_json_is_byte_stable(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+
+    metrics_a = {"distortion": 0.05, "rcycle_ratio": 0.5, "recon_margin": 0.2}
+    metrics_b = {"recon_margin": 0.2, "distortion": 0.05, "rcycle_ratio": 0.5}
+    thresholds_a = {"distortion": 0.15, "rcycle_ratio": 2.0, "recon_margin": 1.0}
+    thresholds_b = {"recon_margin": 1.0, "rcycle_ratio": 2.0, "distortion": 0.15}
+
+    verdict_a, _ = c.verdict_from_metrics(metrics_a, thresholds_a)
+    c.write_cae_verdict("byte_stable_a", metrics_a, thresholds_a, verdict_a)
+    path_a = cache.cache_path("cae_verdict_byte_stable_a", "json")
+    bytes_a = path_a.read_bytes()
+
+    verdict_b, _ = c.verdict_from_metrics(metrics_b, thresholds_b)
+    c.write_cae_verdict("byte_stable_b", metrics_b, thresholds_b, verdict_b)
+    path_b = cache.cache_path("cae_verdict_byte_stable_b", "json")
+    bytes_b = path_b.read_bytes()
+
+    # both stems share fit_key-independent content modulo the fit_key field itself
+    text_a = bytes_a.decode().replace("byte_stable_a", "STEM")
+    text_b = bytes_b.decode().replace("byte_stable_b", "STEM")
+    assert text_a == text_b
+
+
+def test_verdict_metrics_are_native_float64_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+
+    metrics = {
+        "distortion": np.float32(0.05),
+        "rcycle_ratio": np.float64(0.5),
+        "recon_margin": np.float32(0.2),
+    }
+    verdict, _ = c.verdict_from_metrics(
+        {k: float(v) for k, v in metrics.items()}, _BASE_THRESHOLDS
+    )
+    written = c.write_cae_verdict("native_roundtrip", metrics, _BASE_THRESHOLDS, verdict)
+
+    for key, value in written["metrics"].items():
+        assert isinstance(value, float)
+        assert value == pytest.approx(float(metrics[key]))
+
+    path = cache.cache_path("cae_verdict_native_roundtrip", "json")
+    reread = json.loads(path.read_text())
+    for key, value in reread["metrics"].items():
+        assert isinstance(value, float)
+        assert value == pytest.approx(float(metrics[key]))
+
+
+def test_cae_verdict_cache_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+
+    verdict, _ = c.verdict_from_metrics(_BASE_METRICS, _BASE_THRESHOLDS)
+    first = c.write_cae_verdict("cache_roundtrip", _BASE_METRICS, _BASE_THRESHOLDS, verdict)
+
+    # identical cfg (same fit_key/phase) -> returns the stored artifact unchanged
+    second = c.write_cae_verdict("cache_roundtrip", _BASE_METRICS, _BASE_THRESHOLDS, verdict)
+    assert second == first
+
+    # a cfg-mismatched sidecar manifest for the same stem (simulates a stale/tampered
+    # manifest, same technique as test_pu_manifold.py's manifest-mismatch test) -> raise,
+    # never a silent overwrite or a silently-returned stale artifact
+    manifest_path = cache.cache_path("cae_verdict_cache_roundtrip", "meta.json")
+    manifest_path.write_text(json.dumps({"fit_key": "cache_roundtrip", "phase": "01"}))
+    with pytest.raises(ValueError):
+        c.write_cae_verdict("cache_roundtrip", _BASE_METRICS, _BASE_THRESHOLDS, verdict)
