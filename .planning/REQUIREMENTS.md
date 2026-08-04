@@ -53,9 +53,9 @@ Added 2026-08-03 with Phase 02.2 (INSERTED), to empirically test whether the Cha
 
 - [x] **CAE-01**: Gate metrics and numeric PASS/FAIL thresholds pre-registered and committed before any CAE fit runs, with the ordering proved by git ancestry rather than asserted
 - [x] **CAE-02**: Chart Auto-Encoder trained on the frozen Phase 1 10,000-row normalized subsample and reproducible from recorded seeds, with the full architecture named — initial encoder to R^l, N over-specified chart encoders into chart spaces `(0,1)^d`, per-chart decoders, one shared embedding decoder, and a partition-of-unity chart predictor — trained under the paper's loss with Lipschitz regularization on chart-encoder spectral norms and FPS-seeded per-chart pre-training
-- [ ] **CAE-03**: Held-out reconstruction error shown as an aggregate metric plus a per-output-dimension distribution against a matched-capacity single-chart autoencoder control and the classical-MDS/Isomap reconstruction, so a CAE that merely ties the control cannot be read as a success
-- [ ] **CAE-04**: Chart-transition cycle residual `R_cycle` shown over held-out points
-- [ ] **CAE-05**: Chart count obtained a posteriori after weight-decay pruning by a stated decoder-weight-norm tolerance, with the over-specified initial `N`, the surviving count, its stability across seeds, and the paper's unfaithfulness and coverage measures shown
+- [x] **CAE-03**: Held-out reconstruction error shown as an aggregate metric plus a per-output-dimension distribution against a matched-capacity single-chart autoencoder control and the classical-MDS/Isomap reconstruction, so a CAE that merely ties the control cannot be read as a success
+- [x] **CAE-04**: Chart-transition cycle residual `R_cycle` shown over held-out points
+- [x] **CAE-05**: Chart count obtained a posteriori after weight-decay pruning by a stated decoder-weight-norm tolerance, with the over-specified initial `N`, the surviving count, its stability across seeds, and the paper's unfaithfulness and coverage measures shown
 - [x] **CAE-06**: Decoders trained with a C2-smooth activation rather than the reference implementation's ReLU, since DEC-02 and CURV-01..03 need a non-zero second derivative, with the substitution and any reconstruction cost stated; the compact-manifold-with-positive-reach assumption behind the paper's Thm 2 recorded as an unverified assumption about the PU point cloud, not a verified one
 - [x] **CAE-07**: `cae_verdict_{fit_key}.json` written as a machine-readable PASS/FAIL artifact carrying every pre-registered metric and threshold, checked by downstream notebooks before any expensive cell; on FAIL the notebook halts, findings are documented, and that documented failure is itself a complete milestone outcome
 
@@ -172,9 +172,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GEOM-05 | Phase 02.1 | Complete |
 | CAE-01 | Phase 02.2 | Complete |
 | CAE-02 | Phase 02.2 | Complete |
-| CAE-03 | Phase 02.2 | Pending |
-| CAE-04 | Phase 02.2 | Pending |
-| CAE-05 | Phase 02.2 | Pending |
+| CAE-03 | Phase 02.2 | Complete |
+| CAE-04 | Phase 02.2 | Complete |
+| CAE-05 | Phase 02.2 | Complete |
 | CAE-06 | Phase 02.2 | Complete |
 | CAE-07 | Phase 02.2 | Complete |
 | DEC-01 | Phase 3 | Pending |

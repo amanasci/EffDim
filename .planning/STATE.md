@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.2
 current_phase_name: chart-autoencoder-validity-test-inserted
 status: executing
-stopped_at: Completed 02.2-03-PLAN.md
-last_updated: "2026-08-04T14:36:02.971Z"
+stopped_at: Completed 02.2-04-PLAN.md
+last_updated: "2026-08-04T14:54:12.612Z"
 last_activity: 2026-08-04
 last_activity_desc: Phase 02.2 execution started
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 17
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.2 (chart-autoencoder-validity-test-inserted) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-08-04 — Phase 02.2 execution started
 
@@ -56,7 +56,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [███████░░░] 71% (0/4 v1.1 phases complete; none yet planned)
+Progress: [████████░░] 76% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [███████░░░] 71% (0/4 v1.1 phases complete; none y
 | Phase 02.2 P01 | 7min | 3 tasks | 1 files |
 | Phase 02.2 P02 | 5min | 3 tasks | 2 files |
 | Phase 02.2 P03 | ~15min | 3 tasks | 2 files |
+| Phase 02.2 P04 | ~2min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.2-02: Tracer feedback gate satisfied via automated <verify> re-run under this session's Auto Mode Active configuration, in place of an interactive checkpoint:human-verify stop, before proceeding to Task 2's expansion work
 - [Phase ?]: Split the combined Task 1-3 implementation pass into three atomic per-task commits (87a04c2/673bbb6/2bf36d9) by reconstructing intermediate file states from HEAD, since git checkout was blocked by the destructive-git-operation guard
 - [Phase ?]: eq. 5 FPS pre-training is required for the two-chart model to activate its second chart -- without it a one-chart and two-chart CAE converge identically (the dead-chart failure mode eq. 5 prevents)
+- [Phase ?]: chart_survival/r_cycle/unfaithfulness_coverage accept a duck-typed model object (not necessarily a full ChartAutoEncoder) so known-answer test fixtures can be minimal, fully floating-point-controllable stand-ins
+- [Phase ?]: Pruning boundary test nudges the tolerance by one ULP against a bit-exact-computed mass ratio rather than trying to hit an arbitrary target ratio via weights, since exp(log(w)) does not round-trip bit-exactly
+- [Phase ?]: embedding_distortion raises when handed a chart-dimensional array instead of the global embedding (T-02.2-11), demonstrated to differ >2x from the correct computation on a synthetic two-chart fixture
 
 ### Pending Todos
 
@@ -154,8 +158,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-04T14:36:02.961Z
-Stopped at: Completed 02.2-03-PLAN.md
+Last session: 2026-08-04T14:54:12.602Z
+Stopped at: Completed 02.2-04-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
