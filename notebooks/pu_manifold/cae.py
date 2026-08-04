@@ -237,15 +237,32 @@ def chart_loss(x: torch.Tensor, y_charts: torch.Tensor, p: torch.Tensor) -> Dict
 # --- Lipschitz regularizer (eq. 4) -------------------------------------------------------
 
 
+def _robust_spectral_norm(weight: torch.Tensor) -> torch.Tensor:
+    """``torch.linalg.matrix_norm(weight, ord=2)`` -- the exact largest singular value --
+    with a numerical-precision fallback: LAPACK's SVD occasionally raises
+    ``torch.linalg.LinAlgError`` ("failed to converge") on a real trained weight matrix
+    that is ill-conditioned or has near-repeated singular values, a failure mode the small
+    random matrices in this module's unit tests never happened to hit. Retrying the
+    identical decomposition in float64 resolves this in practice (double precision uses a
+    different, more numerically stable LAPACK code path) without changing the quantity
+    being computed -- still the exact spectral norm, not an approximation -- and the
+    float64 result is cast back to the input's dtype so gradients keep flowing through the
+    original dtype's computation graph."""
+    try:
+        return torch.linalg.matrix_norm(weight, ord=2)
+    except torch.linalg.LinAlgError:
+        return torch.linalg.matrix_norm(weight.double(), ord=2).to(weight.dtype)
+
+
 def _chart_encoder_spectral_product(encoder: nn.Module) -> torch.Tensor:
     """Product, over an encoder's ``nn.Linear`` layers in forward order, of that layer's
-    exact spectral norm (largest singular value) via ``torch.linalg.matrix_norm(...,
-    ord=2)``. Exact SVD, not the power-iteration reparametrization route -- see
+    exact spectral norm (largest singular value) via :func:`_robust_spectral_norm`. Exact
+    SVD, not the power-iteration reparametrization route -- see
     :func:`lipschitz_penalty`'s docstring."""
     prod = torch.ones((), dtype=torch.float64)
     for layer in encoder.modules():
         if isinstance(layer, nn.Linear):
-            prod = prod * torch.linalg.matrix_norm(layer.weight, ord=2)
+            prod = prod * _robust_spectral_norm(layer.weight)
     return prod
 
 
@@ -762,7 +779,7 @@ def _chart_decoder_logmass(decoder: nn.Module) -> float:
     total = 0.0
     for layer in decoder.modules():
         if isinstance(layer, nn.Linear):
-            sv = float(torch.linalg.matrix_norm(layer.weight, ord=2).item())
+            sv = float(_robust_spectral_norm(layer.weight).item())
             total += -math.inf if sv <= 0.0 else math.log(sv)
     return total
 

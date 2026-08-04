@@ -334,6 +334,32 @@ def test_lipschitz_regularizer_matches_svd():
         assert torch.any(lin.weight.grad != 0)
 
 
+def test_robust_spectral_norm_falls_back_to_float64_on_svd_nonconvergence(monkeypatch):
+    """Real training (plan 02.2-05, Task 2) hit torch.linalg.LinAlgError: "failed to
+    converge" from torch.linalg.matrix_norm on an actual trained chart-encoder weight --
+    a failure mode the small random matrices used elsewhere in this test file never
+    happened to trigger. _robust_spectral_norm must retry in float64 and return the
+    correct spectral norm rather than propagating the error."""
+    weight = torch.tensor([[3.0, 0.0], [0.0, 4.0]])
+    expected = torch.linalg.matrix_norm(weight, ord=2)
+
+    real_matrix_norm = torch.linalg.matrix_norm
+    call_count = {"n": 0}
+
+    def _flaky_matrix_norm(w, ord=None):
+        call_count["n"] += 1
+        if w.dtype == torch.float32:
+            raise torch.linalg.LinAlgError("linalg.svd: The algorithm failed to converge")
+        return real_matrix_norm(w, ord=ord)
+
+    monkeypatch.setattr(torch.linalg, "matrix_norm", _flaky_matrix_norm)
+    result = c._robust_spectral_norm(weight)
+
+    assert result.dtype == weight.dtype
+    assert result.item() == pytest.approx(expected.item(), rel=1e-10)
+    assert call_count["n"] == 2  # one failed float32 attempt, one successful float64 retry
+
+
 def test_fps_selects_farthest_points():
     square = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
     idx = c.farthest_point_sample(square, 4, seed=0)
