@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.2
 current_phase_name: chart-autoencoder-validity-test-inserted
-status: executing
-stopped_at: Completed 02.2-05-PLAN.md
-last_updated: "2026-08-04T18:06:49.331Z"
+status: verifying
+stopped_at: Completed 02.2-06-PLAN.md -- CAE_VERDICT=FAIL, user elected to iterate; Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
+last_updated: "2026-08-04T21:35:24.428Z"
 last_activity: 2026-08-04
 last_activity_desc: Phase 02.2 execution started
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 02.2 (chart-autoencoder-validity-test-inserted) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-04 — Phase 02.2 execution started
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
@@ -56,7 +56,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 82% (0/4 v1.1 phases complete; none yet planned)
+Progress: [█████████░] 88% (0/4 v1.1 phases complete; none yet planned)
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [████████░░] 82% (0/4 v1.1 phases complete; none y
 | Phase 02.2 P03 | ~15min | 3 tasks | 2 files |
 | Phase 02.2 P04 | ~2min | 3 tasks | 2 files |
 | Phase 02.2 P05 | ~3h | 3 tasks | 3 files |
+| Phase 02.2 P06 | ~15min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: embedding_distortion raises when handed a chart-dimensional array instead of the global embedding (T-02.2-11), demonstrated to differ >2x from the correct computation on a synthetic two-chart fixture
 - [Phase ?]: 02.2-05: [Rule 1] Fixed LAPACK SVD non-convergence in lipschitz_penalty/chart_survival with a float64 retry (_robust_spectral_norm) discovered by real training, not by unit tests; no pre-registered constant changed
 - [Phase ?]: 02.2-05: All eight pre-registered fits complete and cached (three CAE seeds, ReLU control, two plain-AE controls, two MDS-decoder baselines), all within wall-clock ceiling, cache-hit re-invocation verified
+- [Phase ?]: 02.2-06: CAE_VERDICT=FAIL (T1 distortion 0.296981 vs <0.15; T3 worst-case reconstruction ratio 3.586350 vs <0.90; T2 passed 1.089366 vs <2.0) -- measured, not tuned toward PASS
+- [Phase ?]: 02.2-06: T3's compound two-control AND condition encoded as max(mse_cae/mse_control_A, mse_cae/mse_control_B) < (1-THRESH_RECON_MARGIN), algebraically identical to the ratified rule, never a reinterpretation
+- [Phase ?]: 02.2-06: phase gate resolved -- user chose iterate over adopt-Krein or stop-and-report; Phase 02.3 (Chart Auto-Encoder Iteration) proposed in ROADMAP.md, not yet planned; Phase 3 now depends on Phase 02.3 PASS, not Phase 02.2 (sealed FAIL)
 
 ### Pending Todos
 
@@ -161,8 +165,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-04T18:06:49.311Z
-Stopped at: Completed 02.2-05-PLAN.md
+Last session: 2026-08-04T21:35:24.406Z
+Stopped at: Completed 02.2-06-PLAN.md -- CAE_VERDICT=FAIL, user elected to iterate; Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
