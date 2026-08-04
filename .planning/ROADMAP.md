@@ -18,7 +18,8 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 1: Data Loading & Manifold Reconstruction** — Reproducible, row-aligned PU subsample loaded and an Isomap fit produced, validated for connectivity and `n_neighbors` stability (completed 2026-07-31)
 - [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** — Full classical-MDS eigenspectrum audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
 - [ ] **Phase 02.1: Geometry Representation Research** (INSERTED) — A non-Euclidean-embeddable representation identified and justified against the literature, replacing the Isomap coordinates that Phase 2's gate invalidated
-- [ ] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) is empirically validity-tested on the PU data behind a PASS/FAIL gate that decides whether Phase 3 proceeds
+- [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
+- [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit; Phase 3 now depends on this phase reaching PASS, not on 02.2 directly
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -129,7 +130,9 @@ A theorem about compact manifolds with positive reach is not evidence about this
 
 **Hard gate**: Terminal artifact is `cae_verdict.json` (PASS/FAIL). PASS unblocks Phase 3, which then decodes from the CAE representation. FAIL blocks Phase 3, the findings are documented, and the milestone remains at the phase-2 stage — a legitimate and complete outcome, not an error to be worked around.
 
-**Plans**: 5/6 plans executed
+**Outcome (2026-08-04): `CAE_VERDICT = FAIL`.** T1 geodesic distortion 0.296981 (threshold `<0.15`, ~2x over, worse than both of 02.1's classical reference rungs) and T3 held-out reconstruction margin (worst-case ratio) 3.586350 (threshold `<0.90` — the CAE reconstructs materially worse than every matched-capacity control, not a near-miss) both failed; T2 chart-transition cycle residual passed (1.089366 `<2.0`). No `cae_handoff_{fit_key}.json` was written; no downstream artifact fell back to the 02.1 Krein representation (D-02). Full record: `02.2-FINDINGS.md`. **User decision at the phase gate: iterate.** The FAIL stands on the record exactly as measured — not reinterpreted, softened, or revisited. Rather than adopting the 02.1 Krein representation or stopping here, the user elected to open a follow-up investigation into *why* the CAE failed (candidate axes: chart count, chart latent dimension `D_CHART=20`, training budget/epochs, loss weighting, the Lipschitz penalty schedule) before any new pre-registration. Any changed constant requires a fresh, separately-ratified pre-registration and a full re-run per the sealed pre-registration's own prohibition (§6) — this FAIL is permanent history regardless of what that investigation finds. Phase 3's representation question remains open pending it; **Phase 02.2 does not hand off to Phase 3.** See proposed Phase 02.3 below.
+
+**Plans**: 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -151,15 +154,27 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 02.2-06-PLAN.md — Evaluate, write cae_verdict_{fit_key}.json and 02.2-FINDINGS.md, PASS-only Phase 3 handoff, blocking phase gate (CAE-03..07)
+- [x] 02.2-06-PLAN.md — Evaluate, write cae_verdict_{fit_key}.json and 02.2-FINDINGS.md, PASS-only Phase 3 handoff, blocking phase gate (CAE-03..07) — **CAE_VERDICT = FAIL**; user decision: iterate (see Outcome above)
+
+### Phase 02.3: Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
+
+**Goal**: Investigate why the pre-registered Chart Auto-Encoder fit failed (`02.2-06`'s `CAE_VERDICT = FAIL`) and produce a fresh, separately-ratified pre-registration before any new fit is run — never a quiet edit of the sealed `02.2-PREREGISTRATION.md`.
+
+**Why proposed**: At the 02.2-06 phase gate the user chose to iterate rather than adopt 02.1's Krein representation or stop and report. The FAIL itself is not revisited by this phase — `02.2-FINDINGS.md` and `cae_verdict_43cf438bc944c509.json` stand as the permanent record of that measured outcome regardless of what this phase finds. Candidate investigation axes named at the decision point: chart count (`N_CHARTS_INIT=16`, all 16 survived pruning yet T3 failed by a wide margin), chart latent dimension (`D_CHART=20`), training budget/epochs, loss weighting between the reconstruction and cross-entropy terms (eq. 3), and the Lipschitz penalty schedule (eq. 4, `LIP_WEIGHT`/`LIP_EVERY_N_STEPS`).
+
+**Depends on**: Phase 02.2 (consumes its FAIL finding, measured metrics, and the eight cached fit artifacts as evidence — does not require a PASS, same posture as 02.1/02.2's own insertion).
+**Requirements**: Not yet defined — needs a `/gsd-discuss-phase` or `/gsd-phase` session to scope before planning.
+**Status**: Proposed only. Not discussed, not researched, not planned. Phase 3 depends on this phase reaching a PASS before it can decode from a CAE representation; until this phase is planned and run, Phase 3 remains blocked and the milestone stays at the 02.2 stage.
+
+**Plans**: TBD
 
 ### Phase 3: Decoder & Curvature Field
 
 **Goal**: A C2-smooth decoder trained from Phase 02.1's chosen representation back to the 768-d embedding, its analytically-derived mean curvature field validated against a synthetic-control falsification test before being trusted as a property of the data manifold rather than a decoder artifact.
 
-> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap* coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL (`m = 0.412071`), so those coordinates are the output of an invalidated step: the pullback metric would conflate real curvature with parameterization damage, undetectable by CURV-06/07's synthetic control (a synthetic manifold passing the gate never reproduces the pathology). Working dimension also open — `D_FROZEN = 5` flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18-25. Phase 02.1 supplies both the representation and the dimension. Re-plan against its output; DEC/CURV requirement text still refers to Isomap coordinates and needs the same amendment. **Further amended after Phase 02.2's insertion.** Phase 02.2 now tests whether a Chart Auto-Encoder representation is a valid input for this decoding step; Phase 3 does not start until `cae_verdict.json` reads PASS.
+> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap* coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL (`m = 0.412071`), so those coordinates are the output of an invalidated step: the pullback metric would conflate real curvature with parameterization damage, undetectable by CURV-06/07's synthetic control (a synthetic manifold passing the gate never reproduces the pathology). Working dimension also open — `D_FROZEN = 5` flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18-25. Phase 02.1 supplies both the representation and the dimension. Re-plan against its output; DEC/CURV requirement text still refers to Isomap coordinates and needs the same amendment. **Further amended after Phase 02.2's insertion.** Phase 02.2 tested whether a Chart Auto-Encoder representation is a valid input for this decoding step; Phase 3 does not start until a CAE verdict reads PASS. **Further amended after Phase 02.2's FAIL (2026-08-04).** `CAE_VERDICT = FAIL` (see Phase 02.2's Outcome above); the user chose to iterate rather than adopt Krein or stop. Phase 3 now depends on the proposed Phase 02.3's *own* PASS verdict from a freshly re-registered protocol — not on 02.2's sealed (and permanently FAIL) verdict, and not on an automatic fallback to 02.1's Krein representation.
 
-**Depends on**: Phase 02.1 (requires its chosen representation and working dimension) and Phase 02.2 **PASS** (a precondition — Phase 3 decodes from the CAE representation and must check `cae_verdict.json` before running any expensive cell; on FAIL, Phase 3 stays blocked and the milestone remains at the phase-2 stage). Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the change; a Phase 2 PASS is no longer a precondition.
+**Depends on**: Phase 02.1 (requires its chosen representation and working dimension) and Phase 02.3 **PASS** (a precondition, once that phase is planned and run — Phase 3 decodes from the iterated CAE representation and must check its `cae_verdict.json` before running any expensive cell; until Phase 02.3 exists and passes, Phase 3 stays blocked and the milestone remains at the 02.2 stage). Phase 02.2's own verdict is sealed at FAIL and is not itself a Phase 3 precondition — it is the finding that motivated Phase 02.3. Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the original change; a Phase 2 PASS was never a precondition.
 **Requirements**: DEC-01..05, CURV-01..08
 **Success Criteria**:
 
@@ -225,14 +240,15 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 -> 2 -> 02.1 -> 02.2 -> 3 -> 4, gated as described above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output rather than on a Phase 2 PASS. Phase 02.2 was inserted after 02.1 to empirically test the Chart Auto-Encoder representation before Phase 3 commits to decoding from it; Phase 3 now also depends on a Phase 02.2 PASS.
+**Execution Order:** Phases execute in numeric order: 1 -> 2 -> 02.1 -> 02.2 -> 02.3 -> 3 -> 4, gated as described above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output rather than on a Phase 2 PASS. Phase 02.2 was inserted after 02.1 to empirically test the Chart Auto-Encoder representation before Phase 3 commits to decoding from it. Phase 02.2 completed all six plans and returned `CAE_VERDICT = FAIL`; at that phase gate the user chose to iterate rather than adopt 02.1's Krein representation or stop, so Phase 02.3 (Chart Auto-Encoder Iteration) is proposed — not yet discussed, researched, or planned — and Phase 3 now depends on *that* phase's PASS rather than on 02.2's (sealed, permanently FAIL) verdict.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete | 2026-07-31 |
 | 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress | |
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress | |
-| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 5/6 | In Progress|  |
-| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started | - |
+| 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 6/6 | Complete — `CAE_VERDICT = FAIL`, iterate | 2026-08-04 |
+| 02.3. Chart Auto-Encoder Iteration (INSERTED, proposed) | v1.1 | 0/TBD | Proposed — not planned | - |
+| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started (blocked on 02.3) | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
