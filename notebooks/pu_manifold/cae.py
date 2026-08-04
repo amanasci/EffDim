@@ -10,6 +10,7 @@ genuinely needs it. For the same reason ``curvature.py`` and ``mknn.py`` are exc
 installed to import the package), this module is deliberately NOT re-exported there either.
 """
 
+import math
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -348,6 +349,13 @@ def to_native(obj: Any) -> Any:
 
 GATING_METRICS: Tuple[str, ...] = ("distortion", "rcycle_ratio", "recon_margin")
 
+VERDICT_RULE = (
+    "PASS requires all three gates to hold. Every comparison is strict less-than -- a "
+    "value exactly at a threshold does not clear it. There is no MARGINAL tier: every "
+    "non-PASS outcome routes to the same halt-for-user-decision consequence, so a middle "
+    "tier would carry no distinct consequence."
+)
+
 
 def verdict_from_metrics(
     metrics: Dict[str, float], thresholds: Dict[str, float]
@@ -356,11 +364,26 @@ def verdict_from_metrics(
     applies strict less-than against each threshold, and returns ``(verdict,
     gate_detail)`` where ``verdict`` is ``"PASS"`` or ``"FAIL"`` and ``gate_detail`` maps
     each gate name to its measured value, its threshold, and its boolean outcome.
-    Hardening for absent and non-finite metrics is Task 3's expansion."""
+
+    Before evaluating any gate, asserts that each of the three gating metric names is
+    present in ``metrics`` and that its value is finite, raising ``ValueError`` naming the
+    offending metric otherwise -- a missing or non-finite measurement must never be able
+    to become a PASS. This is the terminal artifact of a hard gate, so halting is the
+    honest behaviour; emitting a FAIL would be indistinguishable from a measured FAIL."""
+    for gate in GATING_METRICS:
+        if gate not in metrics:
+            raise ValueError(f"verdict_from_metrics: gating metric {gate!r} is absent from metrics")
+        value = float(metrics[gate])
+        if not math.isfinite(value):
+            raise ValueError(
+                f"verdict_from_metrics: gating metric {gate!r} is non-finite ({value!r}) "
+                "-- a missing or non-finite measurement can never become a PASS"
+            )
+
     gate_detail: Dict[str, Dict[str, Any]] = {}
     all_pass = True
     for gate in GATING_METRICS:
-        value = metrics[gate]
+        value = float(metrics[gate])
         threshold = thresholds[gate]
         passed = bool(value < threshold)
         gate_detail[gate] = {"value": value, "threshold": threshold, "passed": passed}
@@ -381,7 +404,8 @@ def write_cae_verdict(
     ``f"cae_verdict_{fit_key}"`` with cfg ``{"fit_key": ..., "phase": "02.2"}``. The
     schema precedent ``gate_verdict_43cf438bc944c509.json`` used a plain ``verdict`` key,
     but CAE-07 names this field ``CAE_VERDICT``, so that name is used here. Every value
-    passes through :func:`to_native` before it reaches ``json_cache``."""
+    passes through :func:`to_native` before it reaches ``json_cache``, so the encoder
+    never sees a numpy or torch scalar."""
     cfg = {"fit_key": fit_key, "phase": "02.2"}
 
     def _compute() -> Dict[str, Any]:
@@ -391,6 +415,7 @@ def write_cae_verdict(
             "CAE_VERDICT": verdict,
             "metrics": metrics,
             "thresholds": thresholds,
+            "verdict_rule": VERDICT_RULE,
         }
         if extra:
             payload.update(extra)
