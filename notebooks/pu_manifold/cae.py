@@ -883,6 +883,130 @@ def select_overlap_pairs(
     return {"rows": admitted_rows, "alpha": alpha, "beta": beta}
 
 
+# --- CAE-05 non-gating topology-preservation measures (eqs. 20/21) --------------------------
+
+
+def unfaithfulness_coverage(
+    model: "ChartAutoEncoder",
+    x_train: torch.Tensor,
+    surviving_indices: Sequence[int],
+    n_samples: int,
+    seed: int,
+) -> Dict[str, Any]:
+    """eqs. 20 and 21, CAE-05's reported, non-gating topology-preservation measures.
+    Samples ``n_samples`` points uniformly in the chart space of the surviving
+    (post-pruning) charts -- split round-robin across ``surviving_indices`` so the
+    sample-to-chart assignment is deterministic given ``seed`` and needs no separate
+    random draw of its own -- decodes each through its chart decoder and the shared
+    embedding decoder, and for each decoded sample finds its nearest training point.
+
+    Unfaithfulness (eq. 20) is the mean squared distance from each decoded sample to that
+    nearest training point; coverage (eq. 21) is the number of *distinct* training points
+    that are some sample's nearest neighbour, divided by ``n_samples``. The paper's own
+    runs used a hundred samples; the pre-registered value here (``UNFAITHFUL_SAMPLES``)
+    is larger for a less noisy coverage estimate. Returns ``unfaithfulness``,
+    ``coverage``, ``n_samples``, ``n_distinct`` as native Python floats/ints."""
+    surviving = list(surviving_indices)
+    n_surv = len(surviving)
+    chart_idx = torch.tensor([surviving[i % n_surv] for i in range(n_samples)], dtype=torch.long)
+
+    g = torch.Generator().manual_seed(seed)
+    coords = torch.rand((n_samples, model.chart_dim), generator=g)
+
+    decoded = torch.empty((n_samples, model.out_dim), dtype=x_train.dtype)
+    with torch.no_grad():
+        for alpha in surviving:
+            mask = chart_idx == alpha
+            if bool(mask.any()):
+                w = model.chart_decoders[alpha](coords[mask])
+                decoded[mask] = model.embedding_decoder(w)
+
+        d2 = torch.cdist(decoded, x_train) ** 2
+        nearest_dist2, nearest_idx = d2.min(dim=1)
+
+    unfaithfulness = float(nearest_dist2.mean().item())
+    n_distinct = int(torch.unique(nearest_idx).numel())
+    coverage = n_distinct / n_samples
+
+    return {
+        "unfaithfulness": unfaithfulness,
+        "coverage": coverage,
+        "n_samples": int(n_samples),
+        "n_distinct": n_distinct,
+    }
+
+
+def fit_global_scale(d2_rep: np.ndarray, d2_geo: np.ndarray, mask: np.ndarray) -> float:
+    """The one global isotropic scale factor T1's pre-registration grants: the median
+    ratio of target (geodesic) to representation squared distances, fit on the supplied
+    training-split-only subset and then applied by the caller to every pair. A neural
+    encoder carries no constraint tying its output scale to the geodesic scale, unlike the
+    classical and Krein coordinates 02.1 measured, whose scale comes from the
+    eigendecomposition by construction; without this one disclosed scalar the statistic
+    would be dominated by an arbitrary global factor and would measure nothing about
+    geometry."""
+    d2_rep = np.asarray(d2_rep, dtype=np.float64)
+    d2_geo = np.asarray(d2_geo, dtype=np.float64)
+    mask = np.asarray(mask, dtype=bool)
+    return float(np.median(d2_geo[mask] / d2_rep[mask]))
+
+
+def embedding_distortion(
+    z: np.ndarray,
+    geo_pairs: np.ndarray,
+    rows: np.ndarray,
+    cols: np.ndarray,
+    train_mask: np.ndarray,
+    chart_dim: int,
+    embed_dim: int,
+) -> Dict[str, Any]:
+    """T1: the geodesic-distortion statistic, computed on the initial encoder's **global**
+    embedding ``z`` in ``R^embed_dim`` -- never on chart-local coordinates. Two points
+    assigned to different charts have coordinates in unrelated parameterisations, so a
+    pairwise distance between them carries no geometric meaning; the initial encoder's
+    output is the one global, near-isometric coordinate system a Chart Auto-Encoder
+    produces, and it is the correct analogue of 02.1's classical and Krein coordinates.
+
+    Squares ``geo_pairs`` before use, because the cached array it is drawn from holds
+    **unsquared** geodesic distances despite the ``r2`` in its name (that ``r2`` refers to
+    the pair-draw random seed, not to squaring). Fits exactly one global isotropic scale
+    factor on the pairs whose both endpoints are in the training split
+    (:func:`fit_global_scale`), applies it to every supplied pair, and delegates to
+    ``geometry_probes.distortion_stats`` -- the same statistic 02.1 already validated,
+    imported rather than reimplemented, so the number stays bit-comparable with 02.1's own
+    measurement. Returns that function's dict plus ``global_scale_factor`` and
+    ``n_pairs``.
+
+    Raises ``ValueError`` when the supplied array's feature dimension equals
+    ``chart_dim`` while differing from ``embed_dim`` -- exactly the chart-local-instead-
+    of-global misuse T-02.2-11 mitigates against."""
+    z = np.asarray(z, dtype=np.float64)
+    if z.shape[1] == chart_dim and chart_dim != embed_dim:
+        raise ValueError(
+            f"embedding_distortion: supplied array has feature dimension {z.shape[1]}, "
+            f"equal to the model's chart dimension ({chart_dim}) and differing from its "
+            f"embedding dimension ({embed_dim}) -- this looks like a chart-local "
+            "coordinate array, not the initial encoder's global embedding. Distortion "
+            "must be computed on the global embedding only (RESEARCH.md Pitfall 3)."
+        )
+
+    rows = np.asarray(rows)
+    cols = np.asarray(cols)
+    geo_pairs = np.asarray(geo_pairs, dtype=np.float64)
+    train_mask = np.asarray(train_mask, dtype=bool)
+
+    d2_rep = ((z[rows] - z[cols]) ** 2).sum(axis=1)
+    d2_geo = geo_pairs**2  # cached array holds unsquared geodesic distances -- square first
+
+    scale = fit_global_scale(d2_rep, d2_geo, train_mask)
+    stats = geometry_probes.distortion_stats(scale * d2_rep, d2_geo)
+
+    result: Dict[str, Any] = dict(stats)
+    result["global_scale_factor"] = scale
+    result["n_pairs"] = int(len(rows))
+    return result
+
+
 # --- native casting ------------------------------------------------------------------------
 
 

@@ -818,3 +818,101 @@ def test_overlap_selection_halts_below_min_points():
         assert p_dense[row, a] >= 0.05
         assert p_dense[row, b] >= 0.05
 
+
+# --- Plan 02.2-04 Task 3: unfaithfulness/coverage and the geodesic-distortion statistic -
+
+
+def test_unfaithfulness_coverage_hand_check():
+    chart_dim = 2
+    out_dim = 2
+    model = _IdentityChartModel(n_charts=1)
+    model.chart_dim = chart_dim
+    model.out_dim = out_dim
+
+    x_train = torch.tensor(
+        [[0.1, 0.1], [0.9, 0.9], [0.1, 0.9], [0.9, 0.1]], dtype=torch.float32
+    )
+    n_samples = 6
+    seed = 0
+
+    result = c.unfaithfulness_coverage(
+        model, x_train, surviving_indices=[0], n_samples=n_samples, seed=seed
+    )
+
+    # independently reconstruct the exact same deterministic sample -- round-robin over a
+    # single surviving chart routes every sample through chart 0, and the identity
+    # chart-decoder/embedding-decoder fixture means the decoded sample equals the sampled
+    # chart-space coordinate directly
+    g = torch.Generator().manual_seed(seed)
+    coords = torch.rand((n_samples, chart_dim), generator=g)
+    d2 = torch.cdist(coords, x_train) ** 2
+    nearest_dist2, nearest_idx = d2.min(dim=1)
+    expected_unfaithfulness = float(nearest_dist2.mean().item())
+    expected_n_distinct = int(torch.unique(nearest_idx).numel())
+    expected_coverage = expected_n_distinct / n_samples
+
+    assert result["unfaithfulness"] == pytest.approx(expected_unfaithfulness)
+    assert result["coverage"] == pytest.approx(expected_coverage)
+    assert result["n_samples"] == n_samples
+    assert result["n_distinct"] == expected_n_distinct
+    assert 0.0 <= result["coverage"] <= 1.0
+
+
+def test_distortion_uses_global_embedding_not_chart_coords():
+    rng = np.random.default_rng(0)
+    n = 60
+    chart_dim = 2
+    embed_dim = 4
+    t = rng.uniform(-1, 1, size=(n, chart_dim))
+    chart_id = np.array([0] * (n // 2) + [1] * (n - n // 2))
+
+    # global embedding: near-isometric, the same low-dimensional structure zero-padded
+    # to embed_dim
+    global_z = np.zeros((n, embed_dim))
+    global_z[:, :chart_dim] = t
+
+    # chart-local "coordinates": each chart's local frame is offset from the other's --
+    # unrelated parameterisations, exactly RESEARCH.md Pitfall 3's failure mode
+    chart_local = t.copy()
+    chart_local[chart_id == 1] += 50.0
+
+    rows_list, cols_list = [], []
+    for i in range(n):
+        for j in range(i + 1, n):
+            rows_list.append(i)
+            cols_list.append(j)
+    rows = np.array(rows_list)
+    cols = np.array(cols_list)
+
+    geo_pairs = np.linalg.norm(t[rows] - t[cols], axis=1)  # unsquared, matching the
+    # cached geo_pairs_r2 contract
+    train_mask = np.ones(len(rows), dtype=bool)
+
+    global_result = c.embedding_distortion(
+        global_z, geo_pairs, rows, cols, train_mask, chart_dim=chart_dim, embed_dim=embed_dim
+    )
+    # exact isometry (same t, zero-padded) plus a scale of exactly 1 -> distortion below
+    # 1e-12, which only holds if the squaring convention is applied on exactly one side
+    assert global_result["median_abs_rel"] < 1e-12
+    assert set(global_result.keys()) == {
+        "median_abs_rel",
+        "median_signed_rel",
+        "p95_abs_rel",
+        "global_scale_factor",
+        "n_pairs",
+    }
+
+    # replicate the identical formula on the chart-local coordinates directly (bypassing
+    # the guard on purpose -- this is the exact number the guard exists to prevent a
+    # caller from ever reaching through embedding_distortion itself)
+    d2_rep_local = ((chart_local[rows] - chart_local[cols]) ** 2).sum(axis=1)
+    d2_geo = geo_pairs**2
+    scale_local = c.fit_global_scale(d2_rep_local, d2_geo, train_mask)
+    local_stats = c.geometry_probes.distortion_stats(scale_local * d2_rep_local, d2_geo)
+
+    assert local_stats["median_abs_rel"] > 2 * max(global_result["median_abs_rel"], 1e-9)
+
+    with pytest.raises(ValueError):
+        c.embedding_distortion(
+            chart_local, geo_pairs, rows, cols, train_mask, chart_dim=chart_dim, embed_dim=embed_dim
+        )
