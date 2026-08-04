@@ -13,7 +13,7 @@ installed to import the package), this module is deliberately NOT re-exported th
 import math
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -231,6 +231,96 @@ def chart_loss(x: torch.Tensor, y_charts: torch.Tensor, p: torch.Tensor) -> Dict
     xent = -(ell * torch.log(p.clamp_min(1e-12))).sum(dim=1)  # (batch,)
     total = (recon + xent).mean()
     return {"recon": recon.mean(), "xent": xent.mean(), "total": total}
+
+
+# --- Lipschitz regularizer (eq. 4) -------------------------------------------------------
+
+
+def _chart_encoder_spectral_product(encoder: nn.Module) -> torch.Tensor:
+    """Product, over an encoder's ``nn.Linear`` layers in forward order, of that layer's
+    exact spectral norm (largest singular value) via ``torch.linalg.matrix_norm(...,
+    ord=2)``. Exact SVD, not the power-iteration reparametrization route -- see
+    :func:`lipschitz_penalty`'s docstring."""
+    prod = torch.ones((), dtype=torch.float64)
+    for layer in encoder.modules():
+        if isinstance(layer, nn.Linear):
+            prod = prod * torch.linalg.matrix_norm(layer.weight, ord=2)
+    return prod
+
+
+def lipschitz_penalty(chart_encoders: Sequence[nn.Module], weight: float) -> torch.Tensor:
+    """eq. 4: ``R_Lip = max_alpha(prod_k ||W_alpha^k||_2) + mean_alpha(prod_k
+    ||W_alpha^k||_2)``, computed by **exact SVD** (``torch.linalg.matrix_norm(W,
+    ord=2)``) per chart-encoder Linear layer -- cheap at these layer widths (at most
+    250x250 per chart, 768x250 for the initial encoder) and removes the power-iteration
+    convergence-tolerance question entirely. The first term stops one chart's encoder
+    from dominating; the second promotes overall smoothness across every chart.
+
+    This is a **soft additive penalty term on the loss**, not a hard constraint: it must
+    never be replaced by the power-iteration spectral-norm reparametrization helper
+    bundled with ``torch.nn.utils``, which reparametrizes the weight matrix itself to
+    force its spectral norm to approximately one at all times. A hard constraint resists
+    exactly the weight-decay pressure CAE-05's a-posteriori chart pruning depends on -- the
+    warning sign, if this is ever confused, is a chart-encoder weight set that never
+    shrinks under weight decay and a penalty value pinned to a constant across training
+    rather than moving. Returns ``weight`` times the quantity above as a differentiable
+    float64 scalar tensor the optimizer can trade off against reconstruction."""
+    products = torch.stack([_chart_encoder_spectral_product(enc) for enc in chart_encoders])
+    return weight * (products.max() + products.mean())
+
+
+# --- farthest-point sampling and eq. 5 FPS-seeded per-chart pre-training -----------------
+
+
+def farthest_point_sample(x: torch.Tensor, n_seeds: int, seed: int) -> torch.Tensor:
+    """Greedy farthest-point sampling over ``x`` ``(n, features)``. Returns ``n_seeds``
+    row indices as a ``torch.long`` tensor, order ``n_seeds * n`` via a running per-row
+    minimum-distance array -- no O(n^2) all-pairs matrix is ever materialised. The first
+    pick is drawn from a ``torch.Generator`` seeded with ``seed``, so two calls under the
+    same seed return identical index arrays. No new package is installed for this: at
+    ``N_CHARTS_INIT=16`` seeds over ten thousand rows the hand-rolled greedy routine is
+    trivially fast."""
+    g = torch.Generator().manual_seed(seed)
+    n = x.shape[0]
+    chosen = torch.empty(n_seeds, dtype=torch.long)
+    chosen[0] = torch.randint(0, n, (1,), generator=g)
+    min_dist = torch.full((n,), float("inf"))
+    for i in range(n_seeds):
+        d = torch.cdist(x, x[chosen[i]].unsqueeze(0)).squeeze(1)
+        min_dist = torch.minimum(min_dist, d)
+        if i + 1 < n_seeds:
+            chosen[i + 1] = torch.argmax(min_dist)
+    return chosen
+
+
+def fps_pretrain_loss(
+    model: "ChartAutoEncoder", x_seeds: torch.Tensor, seed_chart_index: torch.Tensor
+) -> Dict[str, torch.Tensor]:
+    """eq. 5: for each FPS-selected seed point paired with the chart index it seeds, the
+    sum of (a) the squared ambient reconstruction error of that point through its own
+    chart, (b) the squared distance between that point's chart coordinate and the centre
+    ``[.5]^d`` of the chart space, and (c) the categorical chart-prediction term pushing
+    the predictor toward that chart for that point. Prevents the dead-chart failure mode
+    the paper warns about, where a chart decoder is never activated, receives no gradient
+    signal, and stays at its initialisation forever. Returns a dict with the three named
+    components (``recon``, ``center``, ``xent``) plus their ``total``."""
+    n_seeds = x_seeds.shape[0]
+    idx = torch.arange(n_seeds)
+    z = model.encode(x_seeds)
+    z_charts_all = model.chart_coords(z)  # (n_seeds, n_charts, chart_dim)
+    z_alpha = z_charts_all[idx, seed_chart_index]  # (n_seeds, chart_dim) -- own chart's coord
+    y_charts_all = model._decode_from_chart_coords(z_charts_all)  # (n_seeds, n_charts, out_dim)
+    y_alpha = y_charts_all[idx, seed_chart_index]  # (n_seeds, out_dim) -- own chart's decode
+
+    recon = ((x_seeds - y_alpha) ** 2).sum(dim=-1)
+    center = torch.full_like(z_alpha, 0.5)
+    center_term = ((z_alpha - center) ** 2).sum(dim=-1)
+    p = model.chart_probs(z)
+    p_target = p.gather(1, seed_chart_index.unsqueeze(1)).squeeze(1)
+    xent = -torch.log(p_target.clamp_min(1e-12))
+
+    total = (recon + center_term + xent).mean()
+    return {"recon": recon.mean(), "center": center_term.mean(), "xent": xent.mean(), "total": total}
 
 
 # --- reconstruction statistics (eq. 19 + CAE-03 per-dim distribution) -------------------

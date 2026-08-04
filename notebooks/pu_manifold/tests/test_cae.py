@@ -296,3 +296,125 @@ def test_cae_verdict_cache_roundtrip(tmp_path, monkeypatch):
     manifest_path.write_text(json.dumps({"fit_key": "cache_roundtrip", "phase": "01"}))
     with pytest.raises(ValueError):
         c.write_cae_verdict("cache_roundtrip", _BASE_METRICS, _BASE_THRESHOLDS, verdict)
+
+
+# --- Plan 02.2-03 Task 1: eq. 4 Lipschitz penalty, FPS, eq. 5 pre-training loss ---------
+
+
+def test_lipschitz_regularizer_matches_svd():
+    torch.manual_seed(0)
+    encoder = c.ChartEncoder(embed_dim=3, chart_dim=2, hidden=[4], activation="tanh").double()
+
+    linears = [m for m in encoder.modules() if isinstance(m, torch.nn.Linear)]
+    assert len(linears) == 2  # Linear(3,4) -> tanh -> Linear(4,2) -> sigmoid
+
+    w0 = np.array([[1.0, 0.5, -0.3], [0.2, -1.5, 0.7], [0.1, 0.4, 2.0], [-0.6, 0.3, 0.9]])
+    w1 = np.array([[0.5, -0.2, 1.1, 0.3], [1.2, 0.4, -0.6, 0.8]])
+    with torch.no_grad():
+        linears[0].weight.copy_(torch.tensor(w0, dtype=torch.float64))
+        linears[1].weight.copy_(torch.tensor(w1, dtype=torch.float64))
+
+    s0 = np.linalg.svd(w0, compute_uv=False)[0]
+    s1 = np.linalg.svd(w1, compute_uv=False)[0]
+    expected_product = s0 * s1
+    lip_weight = 0.5
+    # a single chart encoder -> products has one element -> max == mean == expected_product
+    expected_penalty = lip_weight * (expected_product + expected_product)
+
+    penalty = c.lipschitz_penalty([encoder], lip_weight)
+    assert penalty.item() == pytest.approx(expected_penalty, rel=1e-10)
+
+    # differentiable: .backward() populates non-None, non-zero gradients on every Linear
+    # weight in the chart encoder
+    for lin in linears:
+        lin.weight.grad = None
+    penalty.backward()
+    for lin in linears:
+        assert lin.weight.grad is not None
+        assert torch.any(lin.weight.grad != 0)
+
+
+def test_fps_selects_farthest_points():
+    square = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]])
+    idx = c.farthest_point_sample(square, 4, seed=0)
+    assert idx.shape == (4,)
+    picks = idx.tolist()
+    assert set(picks) == {0, 1, 2, 3}  # all four corners chosen, no repeats
+
+    # each successive pick is a genuinely farthest remaining point relative to what's
+    # already been chosen -- verified generally rather than assuming a fixed tie-break
+    chosen: list = []
+    remaining = set(range(4))
+    for i, pick in enumerate(picks):
+        if i > 0:
+            min_dists = {
+                cand: min(torch.dist(square[cand], square[ch]).item() for ch in chosen)
+                for cand in remaining
+            }
+            best = max(min_dists.values())
+            assert min_dists[pick] == pytest.approx(best)
+        chosen.append(pick)
+        remaining.discard(pick)
+
+
+def test_fps_reproducible_under_fixed_seed():
+    x = torch.randn(50, 5, generator=torch.Generator().manual_seed(123))
+    a = c.farthest_point_sample(x, 8, seed=42)
+    b = c.farthest_point_sample(x, 8, seed=42)
+    assert np.array_equal(a.numpy(), b.numpy())
+
+    d = c.farthest_point_sample(x, 8, seed=43)
+    assert not np.array_equal(a.numpy(), d.numpy())
+
+
+def test_loss_matches_hand_computation():
+    x = torch.tensor([[0.0, 0.0], [1.0, 1.0]])
+    y_charts = torch.tensor(
+        [
+            [[0.1, 0.1], [2.0, 2.0]],
+            [[1.1, 1.1], [0.0, 0.0]],
+        ]
+    )
+    p = torch.tensor([[0.9, 0.1], [0.2, 0.8]])
+
+    e_np = np.array([[0.02, 8.0], [0.02, 2.0]])  # ||x - y_charts||^2 by hand
+    ell_np = np.exp(-e_np) / np.exp(-e_np).sum(axis=1, keepdims=True)
+    p_np = p.numpy()
+    xent_np = -(ell_np * np.log(p_np)).sum(axis=1)
+    recon_np = e_np.min(axis=1)
+    expected_total = (recon_np + xent_np).mean()
+    expected_recon = recon_np.mean()
+    expected_xent = xent_np.mean()
+
+    out = c.chart_loss(x, y_charts, p)
+    assert out["recon"].item() == pytest.approx(expected_recon, rel=1e-6)
+    assert out["xent"].item() == pytest.approx(expected_xent, rel=1e-6)
+    assert out["total"].item() == pytest.approx(expected_total, rel=1e-6)
+
+
+def test_fps_pretrain_loss_returns_named_components_and_is_differentiable():
+    torch.manual_seed(0)
+    model = c.ChartAutoEncoder(
+        in_dim=6, embed_dim=4, chart_dim=2, n_charts=3, hidden=[8], activation="silu"
+    )
+    x_seeds = torch.randn(3, 6)
+    seed_chart_index = torch.arange(3)
+
+    loss_dict = c.fps_pretrain_loss(model, x_seeds, seed_chart_index)
+    assert set(loss_dict.keys()) == {"recon", "center", "xent", "total"}
+
+    model.zero_grad()
+    loss_dict["total"].backward()
+    grads = [p.grad for p in model.chart_encoders.parameters() if p.grad is not None]
+    assert len(grads) > 0
+    assert any(torch.any(g != 0) for g in grads)
+
+    # nudging a chart encoder toward mapping its seed point to the chart-space centre
+    # decreases the center term
+    before = loss_dict["center"].item()
+    optimizer = torch.optim.SGD(model.chart_encoders.parameters(), lr=0.5)
+    optimizer.step()
+    after = c.fps_pretrain_loss(model, x_seeds, seed_chart_index)["center"].item()
+    assert after < before
+
+
