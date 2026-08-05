@@ -27,7 +27,7 @@ across every model makes the results comparable to each other, which is most of 
 ### What the notebook must do
 
 Name it `notebooks/<phase>_swiss_roll_<model>_check.ipynb`. Reference implementation:
-`notebooks/02.3_swiss_roll_cae_check.ipynb` — copy its shape.
+`notebooks/02.2_swiss_roll_cae_check.ipynb` — copy its shape.
 
 1. **Import the model code unchanged** from `notebooks/pu_manifold/`. Never reimplement,
    simplify, or inline a variant of it — the point is to test the code that will actually
