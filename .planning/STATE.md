@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.3
 current_phase_name: INSERTED, proposed — not yet planned
 status: planning
-stopped_at: Completed 02.2-06-PLAN.md -- CAE_VERDICT=FAIL, user elected to iterate; Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
-last_updated: "2026-08-04T21:51:27.840Z"
-last_activity: 2026-08-04
-last_activity_desc: Phase 02.2 complete, transitioned to Phase 02.3
+stopped_at: Phase 2 sealed 2026-08-05 (02-03 Task 3 human-verify approved, GATE_VERDICT=FAIL). Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
+last_updated: "2026-08-05T00:00:00.000Z"
+last_activity: 2026-08-05
+last_activity_desc: Phase 2 sealed at the 02-03 phase-sealing checkpoint with GATE_VERDICT=FAIL as its complete outcome
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.2 — chart-autoencoder-validity-test-inserted
+**Current focus:** Phase 02.3 — chart-autoencoder-iteration (proposed, not yet planned)
 
 ## Current Position
 
 Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-05 — Completed quick task 260805-brr: distill the CAE experiment into a notebook
+Last activity: 2026-08-05 — Phase 2 sealed at the 02-03 phase-sealing checkpoint
 
-**!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
+**Phase 2 is SEALED (2026-08-05) with `GATE_VERDICT = FAIL` as its complete, legitimate outcome.** Plan 02-03's blocking `checkpoint:human-verify` gate — held open since 2026-07-31 — was approved against the surviving `gate_verdict_43cf438bc944c509.json` rather than a fresh Restart-and-Run-All, because quick task `260801-ovf` (commit `8958488`) deleted `notebooks/01_manifold_and_gate.ipynb` during the hold. 8 of the 10 verification steps were re-verified (artifact self-containment judged directly, verdict re-derived from the artifact's own r/m/thresholds, git-ancestry pre-registration ordering, spectrum shape/dtype, elbow agreement, boundary cleanliness, pytest 14 passed); the 2 unrepeatable steps (Restart-and-Run-All, scratch-session enforcement run) are named in `02-03-SUMMARY.md`. Remediation option 3 accepted. Notebook recoverable at `a2ca11f` (115 cells, §6.0–§6.9 intact). No `02-VERIFICATION.md` — the phase-sealing checkpoint plus `02-03-SUMMARY.md` are the verification record. Phase 02.1 remains open at 3/4 plans.
 
 **Gate outcome (settled).** 02-01 measured R_STAT=0.052419 (passes r<0.10) and M_STAT=0.412071 (fails m<0.15 MARGINAL) on the frozen k*=15 fit: GATE_VERDICT=FAIL. A pre-registered k-sensitivity re-fit (`02-REFIT-PREREGISTRATION.md`, committed 057b084 before any fit ran) tested k in {5,10,30} against incumbent k=15, all other parameters pinned:
 
@@ -56,7 +56,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 88% (0/4 v1.1 phases complete; none yet planned)
+Progress: [█████████░] 94% (16/17 plans; Phases 1, 2, 02.2 complete — 02.1 open at 3/4, 02.3 proposed)
 
 ## Performance Metrics
 
@@ -118,6 +118,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.2-02: Built a generic three-named-gate verdict engine (GATING_METRICS) decoupled from T1/T2/T3's actual statistic computation, which lands in plan 02.2-04; verdict_from_metrics hardened to raise ValueError on any absent/non-finite gating metric rather than ever silently resolving to FAIL
 - [Phase ?]: 02.2-02: Tracer feedback gate satisfied via automated <verify> re-run under this session's Auto Mode Active configuration, in place of an interactive checkpoint:human-verify stop, before proceeding to Task 2's expansion work
 - [Phase ?]: Split the combined Task 1-3 implementation pass into three atomic per-task commits (87a04c2/673bbb6/2bf36d9) by reconstructing intermediate file states from HEAD, since git checkout was blocked by the destructive-git-operation guard
+- [Phase 2]: 02-03 Task 3 phase-sealing checkpoint approved 2026-08-05 on the surviving artifact, not a fresh notebook re-run — `260801-ovf` deleted the verification target during the hold. 8/10 steps re-verified, 2 recorded as unrepeatable. Precedent: a checkpoint whose target was removed by later work is closed on independently reconstructible evidence with the gaps named, never silently marked verified.
 - [Phase ?]: eq. 5 FPS pre-training is required for the two-chart model to activate its second chart -- without it a one-chart and two-chart CAE converge identically (the dead-chart failure mode eq. 5 prevents)
 - [Phase ?]: chart_survival/r_cycle/unfaithfulness_coverage accept a duck-typed model object (not necessarily a full ChartAutoEncoder) so known-answer test fixtures can be minimal, fully floating-point-controllable stand-ins
 - [Phase ?]: Pruning boundary test nudges the tolerance by one ULP against a bit-exact-computed mass ratio rather than trying to hit an arbitrary target ratio via weights, since exp(log(w)) does not round-trip bit-exactly

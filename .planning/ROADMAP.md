@@ -16,7 +16,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 **Phase Numbering:** Integer phases (1, 2, 3, ...) = planned milestone work. Decimal phases (2.1, 2.2) = urgent insertions (marked INSERTED). Numbering restarts at 1 each milestone; v1.1's phases are 1-4.
 
 - [x] **Phase 1: Data Loading & Manifold Reconstruction** — Reproducible, row-aligned PU subsample loaded and an Isomap fit produced, validated for connectivity and `n_neighbors` stability (completed 2026-07-31)
-- [ ] **Phase 2: Eigenspectrum Audit & Validity Gate** — Full classical-MDS eigenspectrum audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d`
+- [x] **Phase 2: Eigenspectrum Audit & Validity Gate** — Full classical-MDS eigenspectrum audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d` (sealed 2026-08-05, **GATE_VERDICT = FAIL**, `r=0.052419`, `m=0.412071`, `d_frozen=5` — see Phase Details)
 - [ ] **Phase 02.1: Geometry Representation Research** (INSERTED) — A non-Euclidean-embeddable representation identified and justified against the literature, replacing the Isomap coordinates that Phase 2's gate invalidated
 - [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
 - [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit; Phase 3 now depends on this phase reaching PASS, not on 02.2 directly
@@ -61,14 +61,16 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
   4. Chosen embedding dimension `d` frozen and recorded before any decoder is trained (SPEC-05)
   5. PASS/MARGINAL/FAIL verdict written as a machine-readable artifact downstream notebooks check before running; on FAIL the notebook halts with remediation options enumerated (SPEC-06, SPEC-07)
 
-**Plans**: 2/3 executed
+**Plans**: 3/3 plans executed
 
 - [x] 02-01-PLAN.md — Pre-register gate constants, compute the full 10,000-value classical-MDS eigenspectrum by hand from the memory-mapped geodesic matrix, reduce to `r`/`m` plus leading-spectrum dropoff (SPEC-01..03)
 - [x] 02-02-PLAN.md — Both residual-variance curves, the deterministic kneedle elbow with pair-sample stability check, one-way freeze of embedding dimension `d` (SPEC-04, SPEC-05)
-- [ ] 02-03-PLAN.md — Self-contained `gate_verdict_{fit_key}.json`, copyable downstream enforcement block with three-way FAIL-path self-test, phase close-out (SPEC-06, SPEC-07)
+- [x] 02-03-PLAN.md — Self-contained `gate_verdict_{fit_key}.json`, copyable downstream enforcement block with three-way FAIL-path self-test, phase close-out (SPEC-06, SPEC-07)
 
 **Research**: Standard patterns (classical-MDS double-centering, eigenspectrum audit) — skippable per SUMMARY.md. Together with Phase 1, covers what SUMMARY.md calls "the Isomap/gate phase."
 **Hard gate**: Terminal artifact is `gate_verdict.json` (PASS/MARGINAL/FAIL). A FAIL halts the milestone here — Phase 3 must check this artifact before running any expensive cell and must not proceed on FAIL.
+
+**Sealed 2026-08-05 — `GATE_VERDICT = FAIL`.** `r = 0.052419` (clears its 0.10 bound), `m = 0.412071` (fails even the 0.15 MARGINAL bound), `d_frozen = 5`, `fit_key = 43cf438bc944c509`. 5,029 of 10,000 eigenvalues negative carrying 41% of absolute eigenvalue mass. Remediation option 3 accepted — the documented FAIL is the milestone's reported outcome for this fit; options 1 and 2 were tested anyway and both returned FAIL. The hard gate fired as designed: Phase 3 is not planned against Isomap coordinates, and Phases 02.1/02.2/02.3 exist because of this verdict. `d_frozen = 5` is the dimension of record but is flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18–25 — **not to be inherited downstream**. The `02-03` phase-sealing checkpoint was approved on the surviving `gate_verdict_43cf438bc944c509.json` rather than a fresh notebook re-run, because quick task `260801-ovf` (commit `8958488`) deleted `notebooks/01_manifold_and_gate.ipynb` during the checkpoint hold; 8 of 10 verification steps re-verified, the 2 unrepeatable ones named in `02-03-SUMMARY.md`. Notebook recoverable at `a2ca11f`.
 
 ### Phase 02.1: Geometry Representation Research (INSERTED)
 
@@ -245,7 +247,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Data Loading & Manifold Reconstruction | v1.1 | 4/4 | Complete | 2026-07-31 |
-| 2. Eigenspectrum Audit & Validity Gate | v1.1 | 2/3 | In Progress | |
+| 2. Eigenspectrum Audit & Validity Gate | v1.1 | 3/3 | Complete (FAIL verdict) | 2026-08-05 |
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 3/4 | In Progress | |
 | 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 6/6 | Complete    | 2026-08-04 |
 | 02.3. Chart Auto-Encoder Iteration (INSERTED, proposed) | v1.1 | 0/TBD | Proposed — not planned | - |
