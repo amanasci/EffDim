@@ -36,6 +36,8 @@ EffDim is a research Python library computing "effective dimensionality" (ED) of
 
 `src/effdim/`: `api.py` (orchestration/validation/SVD), `metrics.py` (spectral), `geometry.py` (intrinsic dimension). Core deps: numpy, scipy, scikit-learn, faiss-cpu. `benchmarks/`, `tests/`, `docs/` (mkdocs) exist. `notebooks/` holds `02_k_sensitivity_refit.ipynb` (standalone k-sensitivity gate re-fit) and `pu_manifold/`: `cache.py`+`subsample.py` implemented, `curvature.py`+`mknn.py` stubbed for Phases 3-4. Phase 1 artifacts in gitignored `notebooks/.cache/`: `isomap_43cf438bc944c509.joblib` (~1.55 GiB, carries `dist_matrix_`), `phase1_handoff_43cf438bc944c509.json` (14-key Phase 1->2 interface). Frozen: `k*=15`, `n_components=18`, `d_provisional=18`. `notebooks/requirements-notebooks.txt` duplicates/pins core deps for a user-supplied venv. `TODO.md` tracks testing/CI hardening as standing next work.
 
+**Standing rule (`CLAUDE.md`):** every new manifold model — chart auto-encoder, topological auto-encoder, decoder parameterization, curvature estimator — ships with a Swiss roll sanity-check notebook that imports the model code unchanged, trains it in under two minutes, and plots the reconstruction against the original. A model is not done without it: on a manifold with no known answer, a FAIL cannot be told apart from a broken implementation. Reference: `notebooks/02.3_swiss_roll_cae_check.ipynb`.
+
 ### PU embeddings dataset (v1.1 subject)
 
 `UniverseTBD/pu-embeddings` — foundation-model **image** embeddings for astronomy surveys. 163 configs, 7,050,003 rows, ~93 GB. Never materialize whole; stream one config.
