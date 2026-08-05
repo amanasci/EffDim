@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-04 — Phase 02.2 complete, transitioned to Phase 02.3
+Last activity: 2026-08-05 — Completed quick task 260805-brr: distill the CAE experiment into a notebook
 
 **!! PHASE 2 IS STILL OPEN — do not treat it as sealed.** Plan 02-03 has tasks 1/3 and 2/3 committed (aea04ff, a2ca11f) but Task 3 is a blocking `checkpoint:human-verify` gate the user paused to inspect before approving. No `02-VERIFICATION.md` exists and ROADMAP still shows 2/3 plans. Resume by approving 02-03 Task 3, then `/gsd-execute-phase 2`. Phase 02.1 was started ahead of that deliberately — its work depends only on Phase 2's FAIL verdict, settled and recorded below.
 
@@ -147,6 +147,7 @@ From `TODO.md`:
 |---|-------------|------|--------|-----------|
 | 260801-ovf | cleanup: reduce to barebones isomap-on-dino experiment | 2026-08-02 | 59742af | [260801-ovf-cleanup-reduce-to-barebones-isomap-on-di](./quick/260801-ovf-cleanup-reduce-to-barebones-isomap-on-di/) |
 | 260803-k9n | Insert Phase 02.2: Chart Autoencoder Validity Test (arXiv:1912.10094) with PASS/FAIL gate for Phase 3 | 2026-08-03 | 3357ea5 | [260803-k9n-update-phase-2-of-milestone-to-test-vali](./quick/260803-k9n-update-phase-2-of-milestone-to-test-vali/) |
+| 260805-brr | distill the CAE experiment into a notebook | 2026-08-05 | ccc0bf7 | [260805-brr-distill-the-cae-experiment-into-a-notebo](./quick/260805-brr-distill-the-cae-experiment-into-a-notebo/) |
 
 ### Roadmap Evolution
 
