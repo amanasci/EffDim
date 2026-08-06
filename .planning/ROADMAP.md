@@ -183,6 +183,8 @@ Plans:
 
 ### Phase 02.4: Topological Auto-Encoder Validity Test (INSERTED)
 
+**UI hint**: no
+
 **Goal**: The Topological Auto-Encoder (Moor, Horn, Rieck, Borgwardt — "Topological Autoencoders", ICML 2020, arXiv:1906.00722) is implemented and trained on the frozen Phase 1 10,000-row PU subsample, and put through a pre-registered validity gate whose machine-readable verdict decides whether Phase 3 may decode a curvature field from a TopoAE representation.
 
 **Why inserted**: Chosen at the 02.1 seal gate in preference to 02.3's CAE iteration. TopoAE attacks the failure from a different direction than every method this milestone has tried: it optimises a **topological** signature-matching loss — 0-dimensional persistence pairs of the minibatch distance matrices, compared between input space and latent space — rather than preserving distances.
