@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: Topological Auto-Encoder Validity Test (INSERTED, next — not yet planned)
 status: planning
-stopped_at: All phases before Phase 3 are closed. Phases 1, 2, 02.1, 02.2 complete; 02.3 superseded as next step by 02.4. Phase 02.4 (Topological Auto-Encoder) is next and needs scoping before planning
-last_updated: "2026-08-05T00:00:00.000Z"
-last_activity: 2026-08-05
-last_activity_desc: Phase 02.1 sealed (GEOM-04 = Ollivier-Ricci graph-native, falsifier fired); Phase 02.4 opened for the Topological Auto-Encoder
+stopped_at: Phase 02.4 context gathered
+last_updated: "2026-08-06T20:40:21.275Z"
+last_activity: 2026-08-06
+last_activity_desc: Phase 02.4 scoped (02.4-SPEC.md, ambiguity 0.108) and discussed (02.4-CONTEXT.md, 20 decisions)
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 18
+  total_plans: 17
   completed_plans: 17
 ---
 
@@ -27,10 +27,12 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, next — not yet planned)
+Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, scoped and discussed — not yet planned)
 Plan: Not started
-Status: Needs scoping (`/gsd-spec-phase 02.4` or `/gsd-discuss-phase 02.4`) before planning
-Last activity: 2026-08-05 — Phase 02.1 sealed; Phase 02.4 opened
+Status: Ready to plan — `/gsd-plan-phase 02.4`
+Last activity: 2026-08-06 — Phase 02.4 SPEC (ambiguity 0.108, 8 requirements) and CONTEXT (20 decisions) written
+
+**Phase 02.4 is scoped.** `02.4-SPEC.md` locks 8 requirements, 17 acceptance criteria, 20 resolved edges, 8 prohibitions. `02.4-CONTEXT.md` carries 20 implementation decisions. Two sequencing facts the planner must not miss: **λ is tuned on the Swiss roll fixture and frozen before any PU fit**, so the fixture and its sweep precede the pre-registration (not the other way round); and the λ sweep lives in a separate `notebooks/diagnostics/` runner, because `CLAUDE.md` caps the sanity-check notebook at ~15 cells with no threshold tables. Gate: T1 = the paper's `L_t` held-out (full-set MST gates, worse direction), T2 = reconstruction margin vs matched `PlainAutoEncoder`, T3 = `1 − min(trustworthiness, continuity)` at k=15 — all three baseline-relative, none gating on `DISTORTION`. Ladder `{8,16,20,24,32,40}`, primary `d=20`, 3 seeds primary + 1 elsewhere = 8 fits at a ~1h ceiling (cut from 02.2's 2h to fit the envelope; the 32 and 40 rungs may be under-trained, recorded as a stated limitation).
 
 **Every phase before Phase 3 is now closed.** Phases 1 (4/4), 2 (3/3), 02.1 (4/4), 02.2 (6/6) complete. Phase 02.3 is superseded as the next step and is not a Phase 3 precondition, but stays on the roadmap unretracted as a fallback if 02.4 fails. Phase 3 is blocked on Phase 02.4's verdict.
 
@@ -175,8 +177,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-04T21:35:24.406Z
-Stopped at: Completed 02.2-06-PLAN.md -- CAE_VERDICT=FAIL, user elected to iterate; Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
+Last session: 2026-08-06T20:40:21.249Z
+Stopped at: Phase 02.4 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-CONTEXT.md
 </content>
