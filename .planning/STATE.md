@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.3
-current_phase_name: INSERTED, proposed — not yet planned
+current_phase: 02.4
+current_phase_name: Topological Auto-Encoder Validity Test (INSERTED, next — not yet planned)
 status: planning
-stopped_at: Phase 2 sealed 2026-08-05 (02-03 Task 3 human-verify approved, GATE_VERDICT=FAIL). Phase 02.3 (Chart Auto-Encoder Iteration) proposed, not yet planned
+stopped_at: All phases before Phase 3 are closed. Phases 1, 2, 02.1, 02.2 complete; 02.3 superseded as next step by 02.4. Phase 02.4 (Topological Auto-Encoder) is next and needs scoping before planning
 last_updated: "2026-08-05T00:00:00.000Z"
 last_activity: 2026-08-05
-last_activity_desc: Phase 2 sealed at the 02-03 phase-sealing checkpoint with GATE_VERDICT=FAIL as its complete outcome
+last_activity_desc: Phase 02.1 sealed (GEOM-04 = Ollivier-Ricci graph-native, falsifier fired); Phase 02.4 opened for the Topological Auto-Encoder
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 17
-  completed_plans: 16
+  completed_phases: 4
+  total_plans: 18
+  completed_plans: 17
 ---
 
 # Project State
@@ -23,16 +23,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.3 — chart-autoencoder-iteration (proposed, not yet planned)
+**Current focus:** Phase 02.4 — topological-autoencoder-validity-test (next, not yet planned)
 
 ## Current Position
 
-Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
+Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, next — not yet planned)
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-05 — Phase 2 sealed at the 02-03 phase-sealing checkpoint
+Status: Needs scoping (`/gsd-spec-phase 02.4` or `/gsd-discuss-phase 02.4`) before planning
+Last activity: 2026-08-05 — Phase 02.1 sealed; Phase 02.4 opened
 
-**Phase 2 is SEALED (2026-08-05) with `GATE_VERDICT = FAIL` as its complete, legitimate outcome.** Plan 02-03's blocking `checkpoint:human-verify` gate — held open since 2026-07-31 — was approved against the surviving `gate_verdict_43cf438bc944c509.json` rather than a fresh Restart-and-Run-All, because quick task `260801-ovf` (commit `8958488`) deleted `notebooks/01_manifold_and_gate.ipynb` during the hold. 8 of the 10 verification steps were re-verified (artifact self-containment judged directly, verdict re-derived from the artifact's own r/m/thresholds, git-ancestry pre-registration ordering, spectrum shape/dtype, elbow agreement, boundary cleanliness, pytest 14 passed); the 2 unrepeatable steps (Restart-and-Run-All, scratch-session enforcement run) are named in `02-03-SUMMARY.md`. Remediation option 3 accepted. Notebook recoverable at `a2ca11f` (115 cells, §6.0–§6.9 intact). `02-VERIFICATION.md` records all five success criteria PASS across SPEC-01..07 (verified inline, no verifier subagent). Code review N/A — Phase 2's entire source footprint was that one deleted notebook. `02-SECURITY.md` not produced; run `/gsd-secure-phase 2` if a formal security artifact is wanted. Phase 02.1 remains open at 3/4 plans.
+**Every phase before Phase 3 is now closed.** Phases 1 (4/4), 2 (3/3), 02.1 (4/4), 02.2 (6/6) complete. Phase 02.3 is superseded as the next step and is not a Phase 3 precondition, but stays on the roadmap unretracted as a fallback if 02.4 fails. Phase 3 is blocked on Phase 02.4's verdict.
+
+**Phase 2 SEALED (2026-08-05), `GATE_VERDICT = FAIL`.** Plan 02-03's blocking human-verify gate — held since 2026-07-31 — approved against the surviving `gate_verdict_43cf438bc944c509.json` rather than a fresh Restart-and-Run-All, because quick task `260801-ovf` (`8958488`) deleted `notebooks/01_manifold_and_gate.ipynb` during the hold. 8 of 10 verification steps re-verified; the 2 unrepeatable ones named in `02-03-SUMMARY.md`. Remediation option 3 accepted. Notebook recoverable at `a2ca11f`. `02-VERIFICATION.md` records all five criteria PASS across SPEC-01..07. Code review N/A — the phase's entire source footprint was that one deleted notebook. `02-SECURITY.md` not produced.
+
+**Phase 02.1 SEALED (2026-08-05), `GEOM-04 = Ollivier-Ricci graph-native`.** The pre-registered falsifier fired: (a) trips wide (`delta_rel_max=0.383921` past a `0.360433` flat anchor, threshold `0.036043`); (b) trips under `02.1-AMENDMENT-02.md`'s amended reading requiring the ladder's drop be realisable in a decoder-consumable form. Krein `(40,25)` won the pre-registered criterion at `0.065190` and was rejected twice — user directive (Amendment 01 §1.3) and a pre-registered decoder check giving it only `+1.44%`/`+0.10%` held-out reconstruction against the `+18.37%` promised, with the matched-width signature control negative. Four unrelated families wall at ~0.0796; metric SMACOF reaching it with no eigendecomposition and no PSD constraint shows the constraint is target flatness, not algorithm. `D_FROZEN=5` discarded as inapplicable — a per-edge branch has no embedding dimension; the coordinate branch's `(8,0)` is preserved. Machinery validated on a Swiss roll (`m=0.027292` vs a 0.05 bound; hand double-centring matches sklearn to 1.8e-13). `02.1-VERIFICATION.md` records all five criteria PASS across GEOM-01..05.
+
+**!! CARRY FORWARD — the evaluation criterion may not measure the right thing.** The decoder check found held-out reconstruction nearly **decoupled** from the distance-distortion statistic Phase 02.1 ranked representations by: classical `(40,0)`, worst distortion of the three ladder rungs at `0.179641`, reconstructed *best* of all four arms on both preprocessings. Distortion spanned 2.75×; MSE spanned ~6%. One seed, so few-percent gaps are not separable from initialisation noise and capacity saturation is not excluded — an observation, not a verdict. `02.1-AMENDMENT-02.md` §6.4 records it as the strongest reason to doubt that amendment; §6.5 names the seed-sensitivity study that would settle it. **Not run.** Any phase inheriting 02.1's recommendation should know the criterion that selected its predecessor may have been measuring the wrong thing.
+
+**!! Phase 02.4 sits in tension with Phase 02.1's outcome, deliberately.** TopoAE is coordinate-producing with a Euclidean latent, and 02.1's falsifier just fired against that branch. The reconciliation: 02.1's ~0.0796 wall was measured on a **distance-preservation** statistic, and every arm that hit it was optimising distance preservation; TopoAE optimises topological signature matching instead and does not claim distance preservation. So it must **not** be scored primarily on `DISTORTION` — that would rank it on an axis it never optimised. And if it reaches PASS, `02.1-AMENDMENT-02.md`'s falsifier firing should be revisited by a dated amendment. Both obligations are recorded in the ROADMAP's Phase 02.4 entry.
 
 **Gate outcome (settled).** 02-01 measured R_STAT=0.052419 (passes r<0.10) and M_STAT=0.412071 (fails m<0.15 MARGINAL) on the frozen k*=15 fit: GATE_VERDICT=FAIL. A pre-registered k-sensitivity re-fit (`02-REFIT-PREREGISTRATION.md`, committed 057b084 before any fit ran) tested k in {5,10,30} against incumbent k=15, all other parameters pinned:
 
@@ -56,7 +64,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 94% (16/17 plans; Phases 1, 2, 02.2 complete — 02.1 open at 3/4, 02.3 proposed)
+Progress: [██████████] 100% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
