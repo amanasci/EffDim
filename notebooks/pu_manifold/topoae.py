@@ -18,7 +18,7 @@ gate engine, artifact writers) is imported from it, never copied.
 import math
 import time
 from types import SimpleNamespace
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -499,3 +499,135 @@ def unfaithfulness_adapter(model: "cae_mod.PlainAutoEncoder", z_reference: torch
         chart_decoders=[_affine_box_to_latent],
         embedding_decoder=model.decode,
     )
+
+
+# --- verdict rule (threat T-02.4-11) --------------------------------------------------------
+
+# Exactly the three T1/T2/T3 names, in the fixed order the SPEC's "ordering / R5" edge
+# requires. These are the ONLY names that may appear in any verdict artifact this phase
+# writes -- cae.py's own GATING_METRICS tuple names a different statistic (T1's borrowed
+# slot is literally the geodesic-distortion name) and must never leak into output here.
+GATING_METRICS: Tuple[str, ...] = ("t1_topo_fidelity", "t2_recon_margin", "t3_rank_structure")
+
+# `cae.verdict_from_metrics` reads `cae.py`'s own module-level three-name tuple, so it
+# cannot be called directly against a differently-named metric dict. Reusing those three
+# borrowed names as the gate names in the artifact is rejected (the first of them is the
+# geodesic-distortion name, and an artifact whose gating-metric list printed that name
+# would read as gating on the exact statistic SPEC R4 forbids gating on).
+# Monkeypatching `cae.GATING_METRICS` is also rejected -- it mutates state another
+# module owns. The adopted route is a positional slot remap built by zipping the two
+# tuples (never by hard-coding the borrowed strings), so the tested comparison logic in
+# `cae.verdict_from_metrics` is executed, never re-implemented, and the borrowed names
+# never appear in any artifact this phase writes.
+assert len(GATING_METRICS) == 3 and len(cae_mod.GATING_METRICS) == 3, (
+    "GATING_METRICS and cae.GATING_METRICS must both have exactly three entries for "
+    "the positional slot remap in CAE_SLOT_ALIASES to be well-defined"
+)
+CAE_SLOT_ALIASES: Dict[str, str] = dict(zip(GATING_METRICS, cae_mod.GATING_METRICS))
+
+VERDICT_RULE = (
+    "PASS requires all three gates (t1_topo_fidelity, t2_recon_margin, "
+    "t3_rank_structure) to hold. Every comparison is strict less-than -- a value "
+    "exactly at a threshold does not clear it. There is no MARGINAL tier: every "
+    "non-PASS outcome routes to the same halt-for-user-decision consequence, so a "
+    "middle tier would carry no distinct consequence."
+)
+
+
+def verdict_from_topoae_metrics(
+    metrics: Dict[str, float], thresholds: Dict[str, float]
+) -> Tuple[str, Dict[str, Dict[str, Any]]]:
+    """Delegating verdict wrapper (threat T-02.4-11). For each name in
+    :data:`GATING_METRICS`, raises ``ValueError`` naming **that** topoae name if it is
+    absent from ``metrics`` or if ``float(metrics[name])`` is not finite, before
+    anything else runs -- so a raised error message never leaks a borrowed ``cae.py``
+    slot name, and this check always fires before ``cae.verdict_from_metrics``'s own
+    (slot-named) absent/non-finite guard could.
+
+    Then builds slot-keyed ``metrics``/``thresholds`` dicts through
+    :data:`CAE_SLOT_ALIASES` and calls ``cae.verdict_from_metrics`` on them -- the
+    strict-less-than comparison itself is performed only by that already-tested
+    function, never re-implemented here -- and maps the returned ``gate_detail`` keys
+    back to the topoae names before returning ``(verdict, gate_detail)``.
+
+    The shared ``cae`` module global (``cae.GATING_METRICS``) is never monkeypatched;
+    this wrapper reads it once at import time (see :data:`CAE_SLOT_ALIASES`) and
+    otherwise leaves ``cae.py`` untouched."""
+    for name in GATING_METRICS:
+        if name not in metrics:
+            raise ValueError(f"verdict_from_topoae_metrics: gating metric {name!r} is absent from metrics")
+        value = float(metrics[name])
+        if not math.isfinite(value):
+            raise ValueError(
+                f"verdict_from_topoae_metrics: gating metric {name!r} is non-finite "
+                f"({value!r}) -- a missing or non-finite measurement can never become a PASS"
+            )
+
+    slot_metrics = {CAE_SLOT_ALIASES[name]: float(metrics[name]) for name in GATING_METRICS}
+    slot_thresholds = {CAE_SLOT_ALIASES[name]: thresholds[name] for name in GATING_METRICS}
+
+    verdict, slot_gate_detail = cae_mod.verdict_from_metrics(slot_metrics, slot_thresholds)
+
+    gate_detail = {name: slot_gate_detail[CAE_SLOT_ALIASES[name]] for name in GATING_METRICS}
+    return verdict, gate_detail
+
+
+def write_topoae_verdict(
+    fit_key: str,
+    metrics: Dict[str, Any],
+    thresholds: Dict[str, Any],
+    verdict: str,
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Mirrors ``cae.write_cae_verdict``'s shape but does not call it -- that function
+    hard-codes the ``cae_verdict_`` stem and this phase's stem is
+    ``topoae_verdict_{fit_key}``. Delegates persistence to ``cache.json_cache`` with
+    ``cfg = {"fit_key": fit_key, "phase": "02.4", "thresholds": thresholds}`` --
+    thresholds go **inside** the cfg dict so that editing one afterwards raises
+    ``cache._manifest_matches``'s mismatch ``ValueError`` instead of silently
+    re-verdicting, the guard that already caught the superseded Krein handoff in
+    Phase 02.1.
+
+    Recomputes ``gate_detail`` from ``metrics``/``thresholds`` via
+    :func:`verdict_from_topoae_metrics` (rather than trusting a separately supplied
+    value) and raises ``ValueError`` if the recomputed verdict disagrees with the
+    supplied ``verdict`` -- a verdict artifact whose stored outcome disagrees with its
+    own gates must never be written.
+
+    The payload carries ``fit_key``, ``phase`` (``"02.4"``), ``TOPOAE_VERDICT``,
+    ``gating_metrics`` (:data:`GATING_METRICS` as a list, so the artifact states its own
+    gate list), ``metrics``, ``thresholds``, ``gate_detail``, ``verdict_rule``, and,
+    under the single non-gating key ``context_metrics``, everything reported but never
+    gated (geodesic distortion, unfaithfulness/coverage, the batch-wise T1 average --
+    supplied by the caller through ``extra``). Every value passes through
+    ``cae.to_native`` before it reaches ``json_cache``, unrounded, so full float
+    precision survives.
+
+    Called on PASS and FAIL alike -- there is no branch that skips the write."""
+    computed_verdict, gate_detail = verdict_from_topoae_metrics(metrics, thresholds)
+    if computed_verdict != verdict:
+        raise ValueError(
+            f"write_topoae_verdict: supplied verdict {verdict!r} does not match the "
+            f"verdict computed from metrics/thresholds ({computed_verdict!r}) -- "
+            "refusing to write a verdict artifact whose stored outcome disagrees with "
+            "its own gates"
+        )
+
+    cfg = {"fit_key": fit_key, "phase": "02.4", "thresholds": thresholds}
+
+    def _compute() -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "fit_key": fit_key,
+            "phase": "02.4",
+            "TOPOAE_VERDICT": verdict,
+            "gating_metrics": list(GATING_METRICS),
+            "metrics": metrics,
+            "thresholds": thresholds,
+            "gate_detail": gate_detail,
+            "verdict_rule": VERDICT_RULE,
+        }
+        if extra:
+            payload["context_metrics"] = extra
+        return cae_mod.to_native(payload)
+
+    return cache.json_cache(f"topoae_verdict_{fit_key}", cfg, _compute)

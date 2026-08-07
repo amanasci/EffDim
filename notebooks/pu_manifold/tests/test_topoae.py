@@ -11,6 +11,7 @@ explicitly:
 """
 
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -462,3 +463,88 @@ def test_gate_values_are_baseline_relative_ratios():
     assert t.t3_gate_value(rank_model, rank_model) == pytest.approx(1.0)
     with pytest.raises(ValueError, match="t3_rank_structure"):
         t.t3_gate_value(rank_model, {"gate_value": float("inf")})
+
+
+# --- Plan 02.4-02 Task 2: GATING_METRICS, the delegating verdict wrapper, the artifact -----
+
+_TOPOAE_THRESHOLDS = {"t1_topo_fidelity": 1.0, "t2_recon_margin": 1.0, "t3_rank_structure": 1.0}
+_TOPOAE_METRICS = {"t1_topo_fidelity": 0.5, "t2_recon_margin": 0.5, "t3_rank_structure": 0.5}
+
+
+def test_gating_metrics_exactly_t1_t2_t3():
+    assert t.GATING_METRICS == ("t1_topo_fidelity", "t2_recon_margin", "t3_rank_structure")
+
+
+def test_verdict_strict_less_than_at_threshold():
+    for gate in t.GATING_METRICS:
+        at_threshold = dict(_TOPOAE_METRICS)
+        at_threshold[gate] = _TOPOAE_THRESHOLDS[gate]
+        verdict, gate_detail = t.verdict_from_topoae_metrics(at_threshold, _TOPOAE_THRESHOLDS)
+        assert verdict == "FAIL"
+        assert gate_detail[gate]["passed"] is False
+
+        one_ulp_below = dict(_TOPOAE_METRICS)
+        one_ulp_below[gate] = math.nextafter(_TOPOAE_THRESHOLDS[gate], -math.inf)
+        _, gate_detail_below = t.verdict_from_topoae_metrics(one_ulp_below, _TOPOAE_THRESHOLDS)
+        assert gate_detail_below[gate]["passed"] is True
+
+
+def test_verdict_rejects_absent_or_nonfinite_topoae_metric():
+    missing = dict(_TOPOAE_METRICS)
+    del missing["t2_recon_margin"]
+    with pytest.raises(ValueError, match="t2_recon_margin"):
+        t.verdict_from_topoae_metrics(missing, _TOPOAE_THRESHOLDS)
+
+    for bad_value in (float("nan"), float("inf")):
+        bad = dict(_TOPOAE_METRICS)
+        bad["t2_recon_margin"] = bad_value
+        with pytest.raises(ValueError, match="t2_recon_margin"):
+            t.verdict_from_topoae_metrics(bad, _TOPOAE_THRESHOLDS)
+
+
+def test_verdict_gate_detail_keys_are_topoae_names():
+    _, gate_detail = t.verdict_from_topoae_metrics(_TOPOAE_METRICS, _TOPOAE_THRESHOLDS)
+    assert set(gate_detail.keys()) == set(t.GATING_METRICS)
+    for name in t.GATING_METRICS:
+        assert set(gate_detail[name].keys()) == {"value", "threshold", "passed"}
+
+
+def test_verdict_artifact_carries_thresholds_in_cfg(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    verdict, _ = t.verdict_from_topoae_metrics(_TOPOAE_METRICS, _TOPOAE_THRESHOLDS)
+    t.write_topoae_verdict("thr_test", _TOPOAE_METRICS, _TOPOAE_THRESHOLDS, verdict)
+
+    changed_thresholds = dict(_TOPOAE_THRESHOLDS, t1_topo_fidelity=2.0)
+    verdict2, _ = t.verdict_from_topoae_metrics(_TOPOAE_METRICS, changed_thresholds)
+    with pytest.raises(ValueError):
+        t.write_topoae_verdict("thr_test", _TOPOAE_METRICS, changed_thresholds, verdict2)
+
+
+def test_verdict_artifact_written_on_fail_too(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    fail_metrics = {"t1_topo_fidelity": 5.0, "t2_recon_margin": 5.0, "t3_rank_structure": 5.0}
+    verdict, _ = t.verdict_from_topoae_metrics(fail_metrics, _TOPOAE_THRESHOLDS)
+    assert verdict == "FAIL"
+
+    written = t.write_topoae_verdict("fail_test", fail_metrics, _TOPOAE_THRESHOLDS, verdict)
+    assert written["TOPOAE_VERDICT"] == "FAIL"
+    assert set(written["gate_detail"].keys()) == set(t.GATING_METRICS)
+
+    path = cache.cache_path("topoae_verdict_fail_test", "json")
+    assert path.exists()
+    reloaded = json.loads(path.read_text())
+    assert reloaded["TOPOAE_VERDICT"] == "FAIL"
+    assert set(reloaded["gate_detail"].keys()) == set(t.GATING_METRICS)
+
+
+def test_verdict_metrics_are_full_precision(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    precise = 1.2345678901234567  # 17 significant digits
+    metrics = {"t1_topo_fidelity": precise, "t2_recon_margin": 0.5, "t3_rank_structure": 0.5}
+    verdict, _ = t.verdict_from_topoae_metrics(metrics, _TOPOAE_THRESHOLDS)
+    written = t.write_topoae_verdict("precision_test", metrics, _TOPOAE_THRESHOLDS, verdict)
+    assert written["metrics"]["t1_topo_fidelity"] == precise
+
+    path = cache.cache_path("topoae_verdict_precision_test", "json")
+    reloaded = json.loads(path.read_text())
+    assert reloaded["metrics"]["t1_topo_fidelity"] == precise
