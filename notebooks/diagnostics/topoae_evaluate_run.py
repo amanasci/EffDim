@@ -579,6 +579,71 @@ print(
 )
 
 # =============================================================================================
+_banner(
+    "STEP 7b -- gate-scope annotation (additive; coordinator-directed 2026-08-07 checkpoint "
+    "response): each gate's scope (global vs local), so a downstream reader does not collapse "
+    "the phase's most informative result into one FAIL string"
+)
+
+# The pre-registered gate output (TOPOAE_VERDICT, metrics, thresholds, gate_detail,
+# verdict_rule, gating_metrics, fit_key, phase, context_metrics) is NEVER re-gated or altered
+# here -- this step only ADDS two new top-level keys to the already-written artifact, after
+# asserting every pre-registered field is byte-identical to what write_topoae_verdict produced
+# above. T1 (whole-held-out-set MST / 0-dim persistence structure) and T2 (held-out
+# reconstruction) are GLOBAL statistics; T3 (rank_structure at the gating neighbourhood size
+# T3_K_GATE) is a LOCAL, k-neighbourhood statistic (sklearn.manifold.trustworthiness/
+# continuity) -- the k it was actually gated at is read from the pre-registered constant, never
+# assumed.
+GATE_SCOPE = {
+    "t1_topo_fidelity": "global",
+    "t2_recon_margin": "global",
+    "t3_rank_structure": "local",
+}
+assert set(GATE_SCOPE) == set(topoae_mod.GATING_METRICS), (GATE_SCOPE, topoae_mod.GATING_METRICS)
+
+for _k in (
+    "fit_key",
+    "phase",
+    "TOPOAE_VERDICT",
+    "gating_metrics",
+    "metrics",
+    "thresholds",
+    "gate_detail",
+    "verdict_rule",
+    "context_metrics",
+):
+    assert _written_json[_k] == written[_k], (
+        f"gate-scope annotation step must not alter pre-registered field {_k!r} -- refusing to "
+        "proceed"
+    )
+
+_global_failed = [n for n, s in GATE_SCOPE.items() if s == "global" and not _written_json["gate_detail"][n]["passed"]]
+_local_passed = [n for n, s in GATE_SCOPE.items() if s == "local" and _written_json["gate_detail"][n]["passed"]]
+scope_reading = (
+    f"{len(_global_failed)} global-scoped gate(s) failed ({', '.join(_global_failed) or 'none'}: "
+    "t1_topo_fidelity is the whole-set MST/0-dim persistence structure, t2_recon_margin is "
+    f"held-out reconstruction) and {len(_local_passed)} local-scoped gate(s) passed "
+    f"({', '.join(_local_passed) or 'none'}: t3_rank_structure is the k={T3_K_GATE}-neighbourhood "
+    "rank-ordering statistic via sklearn.manifold.trustworthiness/continuity). "
+    f"TOPOAE_VERDICT is {_written_json['TOPOAE_VERDICT']} because the pre-registered verdict "
+    "rule requires all three gates to hold -- this scope annotation does not change that rule "
+    "or its outcome. A downstream consumer evaluating a locally-scoped use (e.g. local curvature "
+    "estimation, which depends on local fidelity, not global fidelity) must read gate_scope, not "
+    "only TOPOAE_VERDICT."
+)
+
+if _written_json.get("gate_scope") == GATE_SCOPE and _written_json.get("scope_reading") == scope_reading:
+    print("  gate_scope annotation already present and matches -- idempotent, no rewrite")
+else:
+    _written_json["gate_scope"] = GATE_SCOPE
+    _written_json["gate_scope_t3_k"] = T3_K_GATE
+    _written_json["scope_reading"] = scope_reading
+    _verdict_path.write_text(json.dumps(_written_json, indent=2, sort_keys=True))
+    print(f"  gate_scope written additively: {GATE_SCOPE}")
+    print(f"  gate_scope_t3_k = {T3_K_GATE}")
+    print(f"  scope_reading: {scope_reading}")
+
+# =============================================================================================
 _banner("STEP 8 -- PASS handoff / FAIL deletion of any stale handoff (R6)")
 
 if verdict == "PASS":
