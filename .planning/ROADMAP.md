@@ -211,12 +211,12 @@ Plans:
 
 **Hard gate**: a machine-readable verdict artifact on the `gate_verdict` / `cae_verdict` pattern. PASS unblocks Phase 3; FAIL blocks it and is a complete, reportable outcome rather than an error to work around.
 
-**Plans**: 3/8 plans executed
+**Plans**: 4/8 plans executed
 
 - [x] 02.4-01-PLAN.md
 - [x] 02.4-02-PLAN.md
 - [x] 02.4-03-PLAN.md
-- [ ] 02.4-04-PLAN.md
+- [x] 02.4-04-PLAN.md
 - [ ] 02.4-05-PLAN.md
 - [ ] 02.4-06-PLAN.md
 - [ ] 02.4-07-PLAN.md
@@ -341,7 +341,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 4/4 | Complete (graph-native) | 2026-08-05 |
 | 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 6/6 | Complete    | 2026-08-04 |
 | 02.3. Chart Auto-Encoder Iteration (INSERTED, proposed) | v1.1 | 0/TBD | Proposed — not planned | - |
-| 02.4. Topological Auto-Encoder Validity Test (INSERTED) | v1.1 | 3/8 | In Progress|  |
+| 02.4. Topological Auto-Encoder Validity Test (INSERTED) | v1.1 | 4/8 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started (blocked on 02.4) | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
