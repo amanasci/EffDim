@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: "Completed 02.4-05-PLAN.md: gated PU runner built, transfer-ratio estimator mismatch corrected per coordinator direction, all sixteen fits complete and cached"
-last_updated: "2026-08-07T14:53:10.388Z"
+stopped_at: "Plan 02.4-05 reopened and re-completed: stopping-rule defect found by orchestrator verification, fixed in topoae.py, ratified as 02.4-PREREGISTRATION-AMENDMENT-01.md, all sixteen fits re-run under the amended rule with perfect budget parity"
+last_updated: "2026-08-07T15:36:38.772Z"
 last_activity: 2026-08-07
 last_activity_desc: "Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1"
 progress:
@@ -102,6 +102,7 @@ Progress: [█████████░] 88% of planned plans (17/17; Phases 1
 | Phase 02.4 P03 | ~10h30m wall-clock (mostly unattended sweep runs + checkpoint round-trips) | 4 tasks | 4 files |
 | Phase 02.4 P04 | ~1h | 3 tasks | 1 files |
 | Phase 02.4 P05 | 50min | 3 tasks | 1 files |
+| Phase 02.4 P05 | 1h40m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -167,6 +168,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-05: Task 3 checkpoint returned to coordinator rather than auto-approved (auto mode confirmed inactive); coordinator directed fix-transfer-ratio-then-approve
 - [Phase ?]: 02.4-05: transfer-ratio estimator corrected to match topoae_lambda_sweep_run.py's own definition (lambda-weighted, single post-ramp epoch, documented fallback) after coordinator found the runner's original unweighted all-epoch-average produced a spurious ~307.5x reading vs. the true ~0.373x -- no order-of-magnitude transfer gap survives under the corrected, shared estimator
 - [Phase ?]: 02.4-05: all sixteen pre-registered fits complete and cached (8 TopoAE + 8 matched baselines); every TopoAE fit early-stopped cleanly at epoch 15/40, no divergence, no wall-clock truncation at any rung or seed; plan 02.4-06 will find everything already cached and complete as a cache-hit verification pass
+- [Phase ?]: 02.4-05 REOPENED: orchestrator verification of the first sixteen-fit run found train_topoae's plateau early-stop fired against the non-stationary warm-up/ramp objective, truncating every TopoAE fit at epochs_run=15 with lambda_t stuck at half of LAMBDA_TOPO (identical across 6 dims x 3 seeds), and leaving every rung's two arms on different training budgets (15 vs 40 epochs) -- a confound T1/T2/T3's ratios cannot tolerate
+- [Phase ?]: 02.4-05: user decision on the reopened defect -- amend the pre-registration and re-run all sixteen fits (ratified 02.4-PREREGISTRATION-AMENDMENT-01.md, commit 9f9a74a, its own ancestry proof), not a silent fix, per 02.4-PREREGISTRATION.md Section 10's own stated consequence for changing a rule. LAMBDA_TOPO, THRESH_T1/T2/T3, the ladder, the seeds, and the fit schedule all confirmed unchanged -- only the stopping rule changed
+- [Phase ?]: 02.4-05: stopping-rule fix (commit ee54858) -- early stopping suspended until floor(warmup_frac*max_epochs)+floor(ramp_frac*max_epochs); best_loss/plateau_count reset at that epoch. All sixteen fits re-run under amend01-tagged cache stems (pre-amendment buggy artifacts left intact on disk): every TopoAE fit now runs the full 40-epoch budget, reaches lambda_t=LAMBDA_TOPO=0.1, and has perfect budget parity with its matched baseline at all 8 rungs. Transfer_ratio (now measured at the true post-ramp epoch, no fallback) ranges 0.227701-0.313072, 0.54x-0.74x of the Swiss roll sweep's 0.422840 -- no order-of-magnitude gap
 
 ### Pending Todos
 
@@ -207,8 +211,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T14:53:10.362Z
-Stopped at: Completed 02.4-05-PLAN.md: gated PU runner built, transfer-ratio estimator mismatch corrected per coordinator direction, all sixteen fits complete and cached
+Last session: 2026-08-07T15:36:38.745Z
+Stopped at: Plan 02.4-05 reopened and re-completed: stopping-rule defect found by orchestrator verification, fixed in topoae.py, ratified as 02.4-PREREGISTRATION-AMENDMENT-01.md, all sixteen fits re-run under the amended rule with perfect budget parity
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
