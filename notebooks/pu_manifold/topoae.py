@@ -122,6 +122,19 @@ def topological_loss(d_x: torch.Tensor, d_z: torch.Tensor) -> Dict[str, torch.Te
     or ``d_z`` themselves -- only this function's internal numpy step touches a
     detached copy.
 
+    Each directional term carries the paper's own ``1/2`` factor (Section 3:
+    ``L_{X->Z} := (1/2)||A^X[pi^X] - A^Z[pi^X]||^2``, and symmetrically for
+    ``L_{Z->X}``; the reference implementation's ``sig_error`` sums the squared
+    difference with no further division, so the ``1/2`` is the only scalar this
+    function applies). A fidelity correction from plan 02.4-03's Swiss roll checkpoint
+    (2026-08-07): the ``1/2`` was previously missing entirely. It is a uniform
+    multiplicative constant on both directional terms, so any **ratio** of two
+    ``topological_loss`` outputs (T1's baseline-relative gate value) is unaffected --
+    proved in ``test_t1_gate_value_is_invariant_to_the_one_half_factor``. It does
+    change absolute values, including the training-loss magnitude relative to
+    ``lambda_topo`` -- correctness of the constant matters for training dynamics even
+    though it cancels in the gate ratio.
+
     Returns ``{"loss_x_to_z": ..., "loss_z_to_x": ..., "total": loss_x_to_z +
     loss_z_to_x}`` as torch scalars. The **training** loss uses ``total``; the T1
     **gate** evaluates the two directional terms separately and gates on the worse one
@@ -147,8 +160,8 @@ def topological_loss(d_x: torch.Tensor, d_z: torch.Tensor) -> Dict[str, torch.Te
     ix, jx = pairs_x[:, 0], pairs_x[:, 1]
     iz, jz = pairs_z[:, 0], pairs_z[:, 1]
 
-    loss_x_to_z = ((d_x[ix, jx] - d_z[ix, jx]) ** 2).sum()
-    loss_z_to_x = ((d_z[iz, jz] - d_x[iz, jz]) ** 2).sum()
+    loss_x_to_z = 0.5 * ((d_x[ix, jx] - d_z[ix, jx]) ** 2).sum()
+    loss_z_to_x = 0.5 * ((d_z[iz, jz] - d_x[iz, jz]) ** 2).sum()
     return {
         "loss_x_to_z": loss_x_to_z,
         "loss_z_to_x": loss_z_to_x,
@@ -206,27 +219,51 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
     ``np.random.default_rng(seed)`` seeding, same ``torch.optim.AdamW`` optimizer, same
     per-epoch ``rng.permutation(n)`` batching, the same three-way stopping rule
     (``max_epochs`` cap, relative-plateau early stop, ``wallclock_ceiling_s`` checked
-    every epoch), and the same returned dict keys (``history``, ``epochs_run``,
-    ``wallclock_s``, ``wallclock_truncated``, ``early_stopped``, ``cfg``). Does NOT
-    import the private ``_train_decoder_protocol`` helper and does NOT reuse
-    ``cae.train_cae``'s two-stage FPS-pre-training structure -- a TopoAE has no charts,
-    so there is nothing to pre-train per chart (RESEARCH.md Pitfall 8).
+    every epoch), and the same returned dict keys plus ``latent_norm_final`` (see
+    below). Does NOT import the private ``_train_decoder_protocol`` helper and does NOT
+    reuse ``cae.train_cae``'s two-stage FPS-pre-training structure -- a TopoAE has no
+    charts, so there is nothing to pre-train per chart (RESEARCH.md Pitfall 8).
 
     Differences from the mirrored protocol are recorded explicitly in the returned
     ``cfg["protocol_difference"]`` string, the way ``cae.train_plain_ae`` does: batches
     use ``drop_last=True`` -- a final batch holding fewer than 2 points is dropped and
     never reaches :func:`persistence_pairs`, since persistence is undefined below 2
-    points -- and the per-batch loss is ``recon + lambda_schedule(epoch, cfg) * topo``
-    where ``d_x = pairwise_distances_f64(xb)``, ``z = model.encode(xb.float())``,
-    ``d_z = pairwise_distances_f64(z)``, ``recon = ((xb.double() -
-    model.decode(z).double()) ** 2).sum(-1).mean()``, and ``topo =
-    topological_loss(d_x, d_z)["total"] / xb.shape[0]`` (batch-size normalized, the
-    paper's own convention). Each ``history`` entry records ``epoch``, ``stage``,
-    ``recon``, ``topo``, ``lambda_t``, ``total``.
+    points.
+
+    **Fidelity correction (plan 02.4-03's Swiss roll checkpoint, 2026-08-07):** the
+    per-batch loss now matches the paper's own (arXiv:1906.00722 Section 3; reference
+    implementation ``TopologicallyRegularizedAutoencoder`` at
+    github.com/BorgwardtLab/topological-autoencoders) non-image training convention in
+    every respect this module implements distance normalization for:
+
+    - ``d_x = pairwise_distances_f64(xb)`` is divided by its own per-batch maximum
+      (``x_distances = x_distances / x_distances.max()`` in the reference) before
+      reaching :func:`topological_loss`.
+    - ``d_z = pairwise_distances_f64(z)`` is divided by a **learnable scalar**
+      parameter, ``latent_norm`` -- a ``torch.nn.Parameter`` initialised to ``1.0``
+      (float64, matching this module's determinism discipline; the reference uses
+      float32, a stated intentional divergence, see Pattern 1's determinism rationale)
+      and added to the same ``AdamW`` parameter group as ``model.parameters()``, so it
+      trains jointly exactly as ``self.latent_norm`` does in the reference. Its final
+      value is returned under ``latent_norm_final`` so it is inspectable after a fit.
+    - The per-batch loss is ``recon + lambda_schedule(epoch, cfg) * topo`` where
+      ``topo = topological_loss(d_x / d_x.max(), d_z / latent_norm)["total"]`` -- **no
+      batch-size division**. An earlier version of this function divided ``topo`` by
+      ``xb.shape[0]`` and its docstring called that "the paper's own convention"; that
+      claim was false. The reference's ``sig_error`` (``TopologicalSignatureDistance``)
+      sums the squared difference with no division by batch size at all -- verified
+      directly against the reference source during the 2026-08-07 fidelity correction.
+      :func:`topological_loss` itself now carries the paper's ``1/2`` factor on each
+      directional term instead.
+
+    Each ``history`` entry records ``epoch``, ``stage``, ``recon``, ``topo``,
+    ``lambda_t``, ``total``.
 
     Raises ``ValueError`` naming the epoch and batch index if a batch's total loss is
     non-finite -- a rung whose loss diverges halts the run rather than being silently
-    dropped from the ladder."""
+    dropped from the ladder. A batch where every point coincides (``d_x.max() == 0``)
+    would produce a non-finite ``topo`` via ``0 / 0`` and is caught by this same guard,
+    not handled as a special case."""
     seed = cfg.get("seed", 0)
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
@@ -246,15 +283,27 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
         "structure (a TopoAE has no charts, nothing to pre-train per chart); batches "
         "use drop_last=True so a final batch holding fewer than 2 points is dropped, "
         "never reaching persistence_pairs; per-batch loss adds "
-        "lambda_schedule(epoch, cfg) * topological_loss(d_x, d_z)['total'] / "
-        "batch_size to the reconstruction term"
+        "lambda_schedule(epoch, cfg) * topological_loss(d_x / d_x.max(), "
+        "d_z / latent_norm)['total'] to the reconstruction term, with no batch-size "
+        "division -- ambient distances normalized by their own per-batch max and "
+        "latent distances normalized by a jointly-trained scalar latent_norm "
+        "parameter, matching the paper's non-image training convention "
+        "(fidelity correction, 2026-08-07)"
     )
 
     early_stop_min_delta = effective_cfg["early_stop_min_delta"]
     early_stop_patience = effective_cfg["early_stop_patience"]
     wallclock_ceiling_s = effective_cfg["wallclock_ceiling_s"]
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
+    # The paper's jointly-trained latent distance scale (reference: self.latent_norm,
+    # torch.nn.Parameter(data=torch.ones(1), requires_grad=True)). float64 to match
+    # this module's determinism discipline -- a stated, intentional divergence from the
+    # reference's float32.
+    latent_norm = torch.nn.Parameter(torch.ones(1, dtype=torch.float64))
+
+    optimizer = torch.optim.AdamW(
+        list(model.parameters()) + [latent_norm], lr=cfg["lr"], weight_decay=cfg["weight_decay"]
+    )
 
     history: list = []
     start = time.monotonic()
@@ -283,8 +332,10 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
             z = model.encode(xb.float()).double()
             d_x = pairwise_distances_f64(xb)
             d_z = pairwise_distances_f64(z)
+            d_x_norm = d_x / d_x.max()
+            d_z_norm = d_z / latent_norm
             recon = ((xb - model.decode(z.float()).double()) ** 2).sum(-1).mean()
-            topo = topological_loss(d_x, d_z)["total"] / xb.shape[0]
+            topo = topological_loss(d_x_norm, d_z_norm)["total"]
             total = recon + lam_t * topo
 
             if not math.isfinite(total.item()):
@@ -345,6 +396,7 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
         "wallclock_truncated": wallclock_truncated,
         "early_stopped": early_stopped,
         "cfg": effective_cfg,
+        "latent_norm_final": float(latent_norm.detach().item()),
     }
 
 
@@ -361,10 +413,15 @@ def topological_fidelity(x: torch.Tensor, z: torch.Tensor) -> Dict[str, float]:
     resolves RESEARCH.md Open Question 1: the PU ambient data is L2-normalized onto the
     unit sphere so its Euclidean distances are already bounded in [0, 2], and the Swiss
     roll fixture is divided by one global standard deviation, so both are O(1) without
-    any per-batch-maximum rescaling. The paper's own per-batch-max convention is
-    deliberately not adopted: a per-batch maximum differs between the batch-wise
-    *training* loss and this whole-set *gate*, which would make the two numbers
-    incomparable.
+    any per-batch-maximum rescaling. This is a **deliberate divergence from
+    :func:`train_topoae`**, not an oversight: ``train_topoae`` does normalize ``d_x`` by
+    its own per-batch maximum (matching the paper's training convention, see its
+    docstring's 2026-08-07 fidelity correction), but a per-batch maximum has no single
+    well-defined value over a whole held-out set the way it does over one batch, and
+    using a different denominator for every model being gated would make the T1
+    statistic incomparable across models -- exactly the comparability D-02's
+    baseline-relative margin depends on. The gate therefore stays on raw, unnormalized
+    ``d_x`` on purpose, even though training now normalizes.
 
     ``d_z = pairwise_distances_f64(z * latent_unit_scale(z))`` applies D-05's global
     isotropic latent rescaling to the latent side only, before distances are computed.

@@ -61,7 +61,8 @@ def test_topoae_tracer_end_to_end(tmp_path, monkeypatch):
     topoae_model = c.PlainAutoEncoder(30, latent_dim)
     fit = t.train_topoae(topoae_model, x_train, train_cfg)
 
-    # the returned shape matches cae._train_decoder_protocol's contract exactly
+    # the returned shape matches cae._train_decoder_protocol's contract, plus the
+    # fidelity-correction addition latent_norm_final (2026-08-07)
     assert set(fit.keys()) == {
         "history",
         "epochs_run",
@@ -69,6 +70,7 @@ def test_topoae_tracer_end_to_end(tmp_path, monkeypatch):
         "wallclock_truncated",
         "early_stopped",
         "cfg",
+        "latent_norm_final",
     }
     assert fit["epochs_run"] == 3
     assert set(fit["history"][0].keys()) == {"epoch", "stage", "recon", "topo", "lambda_t", "total"}
@@ -375,6 +377,124 @@ def test_train_topoae_halts_on_non_finite_loss():
     model = c.PlainAutoEncoder(20, 3)
     with pytest.raises(ValueError, match="non-finite"):
         t.train_topoae(model, x, cfg)
+
+
+# --- Plan 02.4-03 Swiss roll checkpoint: fidelity correction (2026-08-07) ------------------
+#
+# The Swiss roll gate found train_topoae() did not faithfully translate the paper
+# (arXiv:1906.00722) / reference implementation (BorgwardtLab/topological-autoencoders):
+# a missing jointly-trained latent_norm scale, a missing per-batch ambient d_x/d_x.max()
+# normalization, a spurious /batch_size division, and a missing 1/2 factor on each
+# directional term. These tests cover the correction.
+
+
+def test_train_topoae_latent_norm_is_learned():
+    # A dedicated, jointly-trained scalar (the paper's self.latent_norm) must actually
+    # move away from its initial value of 1.0 when the topological term contributes to
+    # the loss -- proving it receives gradient and is optimized, not just present.
+    x = _make_synthetic_fixture(n=64, ambient_dim=10, seed=9)
+    cfg = dict(_TOPOAE_CFG, max_epochs=3, warmup_frac=0.0, ramp_frac=0.0, lambda_topo=1.0)
+    torch.manual_seed(123)
+    model = c.PlainAutoEncoder(10, 3)
+    fit = t.train_topoae(model, x, cfg)
+
+    assert "latent_norm_final" in fit
+    assert isinstance(fit["latent_norm_final"], float)
+    assert fit["latent_norm_final"] != 1.0
+
+
+def test_latent_norm_receives_gradient_directly():
+    # Lower-level check, independent of the training loop: latent_norm's gradient is
+    # nonzero when it participates in topological_loss through d_z / latent_norm --
+    # the exact expression train_topoae now uses.
+    rng = np.random.default_rng(2)
+    n = 12
+    x_np = rng.standard_normal((n, 4))
+    z_np = rng.standard_normal((n, 3))
+    d_x = t.pairwise_distances_f64(torch.tensor(x_np, dtype=torch.float64))
+    d_x_norm = d_x / d_x.max()
+
+    latent_norm = torch.nn.Parameter(torch.ones(1, dtype=torch.float64))
+    z = torch.tensor(z_np, dtype=torch.float64)
+    d_z = t.pairwise_distances_f64(z)
+    d_z_norm = d_z / latent_norm
+
+    loss = t.topological_loss(d_x_norm, d_z_norm)["total"]
+    loss.backward()
+
+    assert latent_norm.grad is not None
+    assert latent_norm.grad.item() != 0.0
+
+
+def test_ambient_normalization_is_invariant_to_global_rescale():
+    # The whole point of dividing d_x by its own per-batch max: the topological loss
+    # must not care whether the ambient input is measured in millimetres or metres.
+    # d_x_norm is scale-invariant to a global rescale of x, so the loss value must be
+    # identical whether x or 100*x is passed in (with everything else held fixed).
+    rng = np.random.default_rng(5)
+    n = 20
+    x_np = rng.standard_normal((n, 4))
+    z_np = rng.standard_normal((n, 2))
+    z = torch.tensor(z_np, dtype=torch.float64)
+    d_z = t.pairwise_distances_f64(z)
+    fixed_latent_norm = torch.tensor(1.7, dtype=torch.float64)
+    d_z_norm = d_z / fixed_latent_norm
+
+    def normalized_loss(scale: float) -> float:
+        x = torch.tensor(x_np * scale, dtype=torch.float64)
+        d_x = t.pairwise_distances_f64(x)
+        d_x_norm = d_x / d_x.max()
+        return t.topological_loss(d_x_norm, d_z_norm)["total"].item()
+
+    loss_unit_scale = normalized_loss(1.0)
+    loss_rescaled = normalized_loss(100.0)
+    assert loss_unit_scale == pytest.approx(loss_rescaled, rel=1e-9)
+
+    # A raw (unnormalized) comparison would NOT be invariant -- proves the assertion
+    # above is testing the normalization, not an accidental invariance of the loss itself.
+    def raw_loss(scale: float) -> float:
+        x = torch.tensor(x_np * scale, dtype=torch.float64)
+        d_x = t.pairwise_distances_f64(x)
+        return t.topological_loss(d_x, d_z_norm)["total"].item()
+
+    assert raw_loss(1.0) != pytest.approx(raw_loss(100.0), rel=1e-9)
+
+
+def test_t1_gate_value_is_invariant_to_the_one_half_factor():
+    # T1's gate value is a baseline-relative RATIO of the worse direction (D-02). The
+    # paper's 1/2 factor on each directional term is a uniform multiplicative constant
+    # applied identically to the model side and the baseline side of that ratio, so it
+    # must cancel -- proved here by recomputing the same worse-of-two-directions
+    # statistic with a hand-rolled loss that omits the 1/2, and confirming the ratio is
+    # unchanged.
+    rng_x = np.random.default_rng(41)
+    rng_z1 = np.random.default_rng(42)
+    rng_z2 = np.random.default_rng(43)
+    x = torch.tensor(rng_x.standard_normal((30, 5)), dtype=torch.float64)
+    z_model = torch.tensor(rng_z1.standard_normal((30, 3)), dtype=torch.float64)
+    z_baseline = torch.tensor(rng_z2.standard_normal((30, 3)), dtype=torch.float64)
+
+    fid_model = t.topological_fidelity(x, z_model)
+    fid_baseline = t.topological_fidelity(x, z_baseline)
+    ratio_with_half = t.t1_gate_value(fid_model, fid_baseline)
+
+    def worse_without_half(x_: torch.Tensor, z_: torch.Tensor) -> float:
+        d_x = t.pairwise_distances_f64(x_)
+        z_scaled = z_ * t.latent_unit_scale(z_)
+        d_z = t.pairwise_distances_f64(z_scaled)
+        pairs_x = t.persistence_pairs(d_x.numpy())
+        pairs_z = t.persistence_pairs(d_z.numpy())
+        ix, jx = pairs_x[:, 0], pairs_x[:, 1]
+        iz, jz = pairs_z[:, 0], pairs_z[:, 1]
+        loss_x_to_z = ((d_x[ix, jx] - d_z[ix, jx]) ** 2).sum().item()
+        loss_z_to_x = ((d_z[iz, jz] - d_x[iz, jz]) ** 2).sum().item()
+        return max(loss_x_to_z, loss_z_to_x)
+
+    model_worse = worse_without_half(x, z_model)
+    baseline_worse = worse_without_half(x, z_baseline)
+    ratio_without_half = model_worse / baseline_worse
+
+    assert ratio_with_half == pytest.approx(ratio_without_half, rel=1e-9)
 
 
 # --- Plan 02.4-02 Task 1: T1/T3 gate statistics and baseline-relative gate values ----------
