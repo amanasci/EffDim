@@ -17,10 +17,12 @@ gate engine, artifact writers) is imported from it, never copied.
 
 import math
 import time
+from types import SimpleNamespace
 from typing import Any, Dict
 
 import numpy as np
 import torch
+from sklearn.manifold import trustworthiness
 
 from . import cache
 from . import cae as cae_mod
@@ -343,3 +345,157 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
         "early_stopped": early_stopped,
         "cfg": effective_cfg,
     }
+
+
+# --- T1: topological fidelity -------------------------------------------------------------
+
+
+def topological_fidelity(x: torch.Tensor, z: torch.Tensor) -> Dict[str, float]:
+    """T1's raw statistic (CONTEXT.md D-01/D-03/D-04/D-05): the **entire** held-out
+    array in one pass (n ~ 2,000; a 2,000x2,000 float64 distance matrix is trivial), not
+    a batch-wise average -- a latent can preserve every 64-point neighbourhood while
+    scrambling how regions connect, and D-03 gates on global topology.
+
+    ``d_x = pairwise_distances_f64(x)`` uses **no ambient normalization** -- this
+    resolves RESEARCH.md Open Question 1: the PU ambient data is L2-normalized onto the
+    unit sphere so its Euclidean distances are already bounded in [0, 2], and the Swiss
+    roll fixture is divided by one global standard deviation, so both are O(1) without
+    any per-batch-maximum rescaling. The paper's own per-batch-max convention is
+    deliberately not adopted: a per-batch maximum differs between the batch-wise
+    *training* loss and this whole-set *gate*, which would make the two numbers
+    incomparable.
+
+    ``d_z = pairwise_distances_f64(z * latent_unit_scale(z))`` applies D-05's global
+    isotropic latent rescaling to the latent side only, before distances are computed.
+
+    Returns ``{"loss_x_to_z", "loss_z_to_x", "worse"}`` as native floats, where
+    ``worse = max(loss_x_to_z, loss_z_to_x)``. input->latent (``loss_x_to_z``) catches
+    destroyed structure; latent->input (``loss_z_to_x``) catches invented structure --
+    these are different failure modes (D-04). Summing them, which is what the
+    *training* loss's ``total`` does, would collapse the two failure modes D-04 keeps
+    apart -- this function never returns ``total``."""
+    d_x = pairwise_distances_f64(x)
+    z_scaled = z * latent_unit_scale(z)
+    d_z = pairwise_distances_f64(z_scaled)
+    loss = topological_loss(d_x, d_z)
+    loss_x_to_z = float(loss["loss_x_to_z"].item())
+    loss_z_to_x = float(loss["loss_z_to_x"].item())
+    return {
+        "loss_x_to_z": loss_x_to_z,
+        "loss_z_to_x": loss_z_to_x,
+        "worse": max(loss_x_to_z, loss_z_to_x),
+    }
+
+
+# --- T3: rank structure ---------------------------------------------------------------------
+
+
+def rank_structure(x_ambient: torch.Tensor, z_latent: torch.Tensor, k: int) -> Dict[str, float]:
+    """T3's raw statistic (D-06/D-07/D-10): two calls to
+    ``sklearn.manifold.trustworthiness`` -- ``trustworthiness(x_ambient, z_latent,
+    n_neighbors=k)`` and ``trustworthiness(z_latent, x_ambient, n_neighbors=k)``, the
+    second being continuity by definition (the same identity the paper's own reference
+    ``measures.py`` uses -- continuity is never hand-rolled here).
+
+    Returns ``{"trustworthiness", "continuity", "gate_value"}`` where ``gate_value =
+    1.0 - min(trustworthiness, continuity)`` -- the inversion D-10 requires so that
+    higher-is-better (both quantities lie in [0, 1]) becomes lower-is-better and the
+    strict-less-than gate comparison runs the same direction as T1 and T2.
+
+    ``sklearn`` raises when ``n_neighbors >= n_samples / 2``; at the planned holdout
+    size of ~2,000 and the k sweep {5, 15, 30} this is far from binding, so a future
+    holdout-fraction change would surface as an explicit error rather than a silent
+    ``nan``."""
+    x_raw = x_ambient.detach().cpu().numpy() if isinstance(x_ambient, torch.Tensor) else x_ambient
+    z_raw = z_latent.detach().cpu().numpy() if isinstance(z_latent, torch.Tensor) else z_latent
+    x_np = np.asarray(x_raw, dtype=np.float64)
+    z_np = np.asarray(z_raw, dtype=np.float64)
+    trust = float(trustworthiness(x_np, z_np, n_neighbors=k))
+    cont = float(trustworthiness(z_np, x_np, n_neighbors=k))  # continuity = swapped args
+    return {
+        "trustworthiness": trust,
+        "continuity": cont,
+        "gate_value": 1.0 - min(trust, cont),
+    }
+
+
+# --- baseline-relative gate values -----------------------------------------------------------
+
+
+def _baseline_relative_ratio(name: str, model_value: float, baseline_value: float) -> float:
+    """Shared division-by-baseline guard for the three gate-value functions below:
+    raises ``ValueError`` naming ``name`` when ``baseline_value`` is zero or
+    non-finite, because a silent division producing ``inf``/``nan`` must never reach
+    the verdict."""
+    baseline_value = float(baseline_value)
+    if baseline_value == 0.0 or not math.isfinite(baseline_value):
+        raise ValueError(
+            f"{name}: baseline quantity is zero or non-finite ({baseline_value!r}) -- "
+            "refusing to divide, which would silently produce inf or nan"
+        )
+    return float(model_value) / baseline_value
+
+
+def t1_gate_value(fid_model: Dict[str, float], fid_baseline: Dict[str, float]) -> float:
+    """T1's baseline-relative margin (D-02/D-08): ``model_quantity / baseline_quantity``
+    using each side's ``worse`` -- the max over the two *directional* terms, taken
+    before the ratio, exactly as ``cae_evaluate_run.py`` takes a max over two controls.
+    Rejected alternative: forming one ratio from the summed ``total`` would collapse
+    D-04's two failure modes back together. Raises ``ValueError`` naming the metric
+    when the baseline quantity is zero or non-finite."""
+    return _baseline_relative_ratio("t1_topo_fidelity", fid_model["worse"], fid_baseline["worse"])
+
+
+def t2_gate_value(stats_model: Dict[str, float], stats_baseline: Dict[str, float]) -> float:
+    """T2's baseline-relative margin (CAE-03's inherited convention): ``model
+    mse_per_dim / baseline mse_per_dim``. Raises ``ValueError`` naming the metric when
+    the baseline quantity is zero or non-finite."""
+    return _baseline_relative_ratio(
+        "t2_recon_margin", stats_model["mse_per_dim"], stats_baseline["mse_per_dim"]
+    )
+
+
+def t3_gate_value(rank_model: Dict[str, float], rank_baseline: Dict[str, float]) -> float:
+    """T3's baseline-relative margin: ``model gate_value / baseline gate_value``.
+    Raises ``ValueError`` naming the metric when the baseline quantity is zero or
+    non-finite."""
+    return _baseline_relative_ratio(
+        "t3_rank_structure", rank_model["gate_value"], rank_baseline["gate_value"]
+    )
+
+
+# --- non-gating context metric: unfaithfulness / coverage shim -------------------------------
+
+
+def unfaithfulness_adapter(model: "cae_mod.PlainAutoEncoder", z_reference: torch.Tensor) -> SimpleNamespace:
+    """The non-gating context metric's shim: returns a lightweight duck-typed object
+    exposing exactly the attributes ``cae.unfaithfulness_coverage`` reads --
+    ``chart_dim``, ``out_dim``, ``chart_decoders``, ``embedding_decoder`` -- so
+    ``cae.unfaithfulness_coverage(adapter, x_holdout, [0], n_samples, seed)`` runs
+    unmodified against a TopoAE, which has one global latent and no charts at all.
+
+    ``chart_dim = model.latent_dim``, ``out_dim`` is read off the last ``nn.Linear`` in
+    ``model.decoder`` (the ambient dimension), ``chart_decoders = [f]`` where ``f`` is
+    the affine map carrying the unit box ``[0, 1]^chart_dim`` onto the componentwise
+    min/max bounding box of ``z_reference``, and ``embedding_decoder = model.decode``.
+
+    The affine map is what keeps the numbers comparable with 02.2's: CAE chart
+    coordinates live in ``(0, 1)^d`` by construction while a TopoAE latent is unbounded,
+    so without the map the uniform ``[0, 1]^d`` sample ``cae.unfaithfulness_coverage``
+    draws would fall almost entirely outside the latent's support. This rescaling is a
+    stated difference from 02.2's measurement, the same way D-05 records T1's
+    non-comparability."""
+    z_ref = z_reference.detach()
+    lo = z_ref.min(dim=0).values
+    hi = z_ref.max(dim=0).values
+    span = hi - lo
+
+    def _affine_box_to_latent(coords: torch.Tensor) -> torch.Tensor:
+        return coords.to(span.dtype) * span + lo
+
+    return SimpleNamespace(
+        chart_dim=int(model.latent_dim),
+        out_dim=int(model.decoder[-1].out_features),
+        chart_decoders=[_affine_box_to_latent],
+        embedding_decoder=model.decode,
+    )

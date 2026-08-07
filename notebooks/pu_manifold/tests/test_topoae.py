@@ -374,3 +374,91 @@ def test_train_topoae_halts_on_non_finite_loss():
     model = c.PlainAutoEncoder(20, 3)
     with pytest.raises(ValueError, match="non-finite"):
         t.train_topoae(model, x, cfg)
+
+
+# --- Plan 02.4-02 Task 1: T1/T3 gate statistics and baseline-relative gate values ----------
+
+
+def test_topological_fidelity_zero_on_identical_spaces():
+    # every entry is +-1 and every column has zero mean, so mean per-dimension
+    # variance is exactly 1.0 and latent_unit_scale(x) is exactly 1.0 -- multiplying by
+    # exactly 1.0 is bit-identical, so d_x and d_z are bit-identical and the loss is
+    # exactly zero, not just close to zero
+    x = torch.tensor(
+        [
+            [1.0, 1.0, 1.0],
+            [1.0, -1.0, -1.0],
+            [-1.0, 1.0, -1.0],
+            [-1.0, -1.0, 1.0],
+        ],
+        dtype=torch.float64,
+    )
+    result = t.topological_fidelity(x, x)
+    assert result["loss_x_to_z"] == 0.0
+    assert result["loss_z_to_x"] == 0.0
+    assert result["worse"] == 0.0
+
+
+def test_topological_fidelity_gates_on_worse_direction():
+    # x and z are drawn independently (no shared structure), so the two directional
+    # terms are essentially guaranteed to differ
+    rng_x = np.random.default_rng(11)
+    rng_z = np.random.default_rng(97)
+    x = torch.tensor(rng_x.standard_normal((40, 6)), dtype=torch.float64)
+    z = torch.tensor(rng_z.standard_normal((40, 3)), dtype=torch.float64)
+
+    result = t.topological_fidelity(x, z)
+    a, b = result["loss_x_to_z"], result["loss_z_to_x"]
+    assert a != b
+    assert result["worse"] == max(a, b)
+    # max of two distinct non-negative numbers is strictly greater than their mean --
+    # proves the reduction is a max, not an average or a sum
+    assert result["worse"] > (a + b) / 2
+
+
+def test_topological_fidelity_is_scale_invariant_in_the_latent():
+    rng_x = np.random.default_rng(21)
+    rng_z = np.random.default_rng(22)
+    x = torch.tensor(rng_x.standard_normal((40, 6)), dtype=torch.float64)
+    z = torch.tensor(rng_z.standard_normal((40, 4)), dtype=torch.float64)
+
+    result_a = t.topological_fidelity(x, z)
+    result_b = t.topological_fidelity(x, z * 37.5)
+    assert result_a["worse"] == pytest.approx(result_b["worse"], rel=1e-9)
+
+
+def test_rank_structure_continuity_is_swapped_trustworthiness():
+    rng = np.random.default_rng(31)
+    x_np = rng.standard_normal((60, 8))
+    z_np = rng.standard_normal((60, 3))
+    k = 10
+
+    result = t.rank_structure(torch.tensor(x_np), torch.tensor(z_np), k)
+    expected_continuity = trustworthiness(z_np, x_np, n_neighbors=k)
+    assert result["continuity"] == pytest.approx(expected_continuity)
+    assert result["gate_value"] == pytest.approx(
+        1.0 - min(result["trustworthiness"], result["continuity"])
+    )
+
+
+def test_gate_values_are_baseline_relative_ratios():
+    fid_model = {"worse": 4.0}
+    fid_baseline = {"worse": 2.0}
+    assert t.t1_gate_value(fid_model, fid_baseline) == pytest.approx(2.0)
+    assert t.t1_gate_value(fid_model, fid_model) == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="t1_topo_fidelity"):
+        t.t1_gate_value(fid_model, {"worse": 0.0})
+
+    stats_model = {"mse_per_dim": 0.5}
+    stats_baseline = {"mse_per_dim": 0.25}
+    assert t.t2_gate_value(stats_model, stats_baseline) == pytest.approx(2.0)
+    assert t.t2_gate_value(stats_model, stats_model) == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="t2_recon_margin"):
+        t.t2_gate_value(stats_model, {"mse_per_dim": float("nan")})
+
+    rank_model = {"gate_value": 0.3}
+    rank_baseline = {"gate_value": 0.15}
+    assert t.t3_gate_value(rank_model, rank_baseline) == pytest.approx(2.0)
+    assert t.t3_gate_value(rank_model, rank_model) == pytest.approx(1.0)
+    with pytest.raises(ValueError, match="t3_rank_structure"):
+        t.t3_gate_value(rank_model, {"gate_value": float("inf")})
