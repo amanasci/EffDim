@@ -379,6 +379,158 @@ def test_train_topoae_halts_on_non_finite_loss():
         t.train_topoae(model, x, cfg)
 
 
+# --- Plan 02.4-05 amendment: stopping-rule correction (2026-08-07) -------------------------
+#
+# The first sixteen-fit PU run halted every one of the eight TopoAE fits at
+# epochs_run=15 with lambda_t stuck at half of lambda_topo -- identical across six
+# latent dimensions and three seeds. Mechanism: the plateau detector's best_loss was set
+# under the recon-only warm-up objective (lambda_t=0) and the ramp's early, still-
+# improving epochs could not beat that mark within early_stop_patience, even though both
+# recon and topo kept falling every epoch. Fix: early stopping is suspended until the
+# ramp completes, and best_loss/plateau_count reset at the epoch the ramp completes, so
+# the plateau detector measures the final, stationary objective from a mark set under
+# that same objective. These tests cover the three guarantees the fix must provide.
+
+
+def test_train_topoae_early_stop_never_fires_before_ramp_completes():
+    # The most aggressive possible stopping config (patience=1, min_delta=0) maximizes
+    # the chance early stopping fires somewhere, so this is a meaningful test of the
+    # invariant rather than one that passes vacuously because the run never stops.
+    x = _make_synthetic_fixture(n=96, ambient_dim=12, seed=11)
+    cfg = dict(
+        _TOPOAE_CFG,
+        max_epochs=12,
+        warmup_frac=0.25,
+        ramp_frac=0.25,
+        early_stop_patience=1,
+        early_stop_min_delta=0.0,
+        lambda_topo=0.5,
+        seed=42,
+    )
+    ramp_complete_epoch = math.floor(cfg["warmup_frac"] * cfg["max_epochs"]) + math.floor(
+        cfg["ramp_frac"] * cfg["max_epochs"]
+    )
+
+    torch.manual_seed(cfg["seed"])
+    model = c.PlainAutoEncoder(12, 3)
+    fit = t.train_topoae(model, x, cfg)
+
+    assert fit["early_stopped"] is True, (
+        "fixture must actually trigger early stopping for this test to exercise the "
+        "invariant it is checking"
+    )
+    last_epoch = fit["epochs_run"] - 1
+    assert last_epoch > ramp_complete_epoch, (
+        f"early stopping fired at epoch {last_epoch}, at or before the ramp completes "
+        f"at epoch {ramp_complete_epoch} -- the plateau detector must never fire "
+        "against a non-stationary (still warming up or ramping) objective"
+    )
+
+
+def _replay_pre_fix_plateau_stop(history: list, patience: int, min_delta: float):
+    """Replays the pre-fix stopping logic (plateau-only, no ramp-awareness) against an
+    already-computed history, to prove a fix changes behaviour rather than merely
+    asserting a property the fixture happens to satisfy. Returns the epoch the old logic
+    would have stopped at, or None if it never would have."""
+    best_loss = float("inf")
+    plateau_count = 0
+    for h in history:
+        total = h["total"]
+        if total < best_loss * (1 - min_delta):
+            best_loss = total
+            plateau_count = 0
+        else:
+            plateau_count += 1
+            if plateau_count >= patience:
+                return h["epoch"]
+    return None
+
+
+def test_train_topoae_best_loss_resets_at_ramp_completion():
+    # This fixture/cfg pair is chosen because it reproduces the original bug's
+    # mechanism: replaying the pre-fix (reset-free) plateau logic against the resulting
+    # history stops well before the ramp completes, even though the fixed run (which
+    # resets best_loss/plateau_count exactly when the ramp completes) does not stop at
+    # all. If this stops being true (e.g. after an unrelated change to the fixture),
+    # the meta-assertion below fails loudly rather than the test silently passing
+    # vacuously.
+    seed = 8
+    n = 40
+    x = _make_synthetic_fixture(n=n, ambient_dim=6, seed=seed)
+    cfg = dict(
+        _TOPOAE_CFG,
+        batch=n,
+        max_epochs=20,
+        warmup_frac=0.5,
+        ramp_frac=0.2,
+        early_stop_patience=5,
+        early_stop_min_delta=1e-4,
+        lambda_topo=0.3,
+        seed=seed,
+    )
+    ramp_complete_epoch = math.floor(cfg["warmup_frac"] * cfg["max_epochs"]) + math.floor(
+        cfg["ramp_frac"] * cfg["max_epochs"]
+    )
+
+    torch.manual_seed(seed)
+    model = c.PlainAutoEncoder(6, 2)
+    fit = t.train_topoae(model, x, cfg)
+
+    old_stop_epoch = _replay_pre_fix_plateau_stop(
+        fit["history"], cfg["early_stop_patience"], cfg["early_stop_min_delta"]
+    )
+    assert old_stop_epoch is not None and old_stop_epoch < ramp_complete_epoch, (
+        "fixture must reproduce the pre-fix bug (reset-free plateau logic stopping "
+        "before the ramp completes) for this test to demonstrate the reset changes "
+        f"the outcome -- got old_stop_epoch={old_stop_epoch}, "
+        f"ramp_complete_epoch={ramp_complete_epoch}"
+    )
+
+    # The fixed code, given the identical fixture/cfg, must not stop at (or before)
+    # where the reset-free logic would have -- the reset gives the post-ramp objective
+    # a fair mark to be judged against, rather than the stale pre-ramp one.
+    assert fit["early_stopped"] is False
+    assert fit["epochs_run"] == cfg["max_epochs"]
+
+
+def test_train_topoae_still_improving_at_ramp_boundary_is_not_halted():
+    # Same fixture as the reset test above: after the ramp completes at epoch 14, the
+    # objective (total) falls every single remaining epoch through epoch 19 -- a fit
+    # that is still improving at the ramp boundary must run to completion, not be
+    # halted on a stale mark.
+    seed = 8
+    n = 40
+    x = _make_synthetic_fixture(n=n, ambient_dim=6, seed=seed)
+    cfg = dict(
+        _TOPOAE_CFG,
+        batch=n,
+        max_epochs=20,
+        warmup_frac=0.5,
+        ramp_frac=0.2,
+        early_stop_patience=5,
+        early_stop_min_delta=1e-4,
+        lambda_topo=0.3,
+        seed=seed,
+    )
+    ramp_complete_epoch = math.floor(cfg["warmup_frac"] * cfg["max_epochs"]) + math.floor(
+        cfg["ramp_frac"] * cfg["max_epochs"]
+    )
+
+    torch.manual_seed(seed)
+    model = c.PlainAutoEncoder(6, 2)
+    fit = t.train_topoae(model, x, cfg)
+
+    post_ramp_totals = [h["total"] for h in fit["history"] if h["epoch"] >= ramp_complete_epoch]
+    assert len(post_ramp_totals) >= 2, "fixture must run past the ramp boundary for this test to mean anything"
+    assert all(a > b for a, b in zip(post_ramp_totals, post_ramp_totals[1:])), (
+        "fixture must be genuinely improving every epoch past the ramp boundary for "
+        "this test to demonstrate anything -- got a non-monotonic post-ramp total "
+        f"sequence: {post_ramp_totals}"
+    )
+    assert fit["early_stopped"] is False
+    assert fit["epochs_run"] == cfg["max_epochs"]
+
+
 # --- Plan 02.4-03 Swiss roll checkpoint: fidelity correction (2026-08-07) ------------------
 #
 # The Swiss roll gate found train_topoae() did not faithfully translate the paper

@@ -263,7 +263,37 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
     non-finite -- a rung whose loss diverges halts the run rather than being silently
     dropped from the ladder. A batch where every point coincides (``d_x.max() == 0``)
     would produce a non-finite ``topo`` via ``0 / 0`` and is caught by this same guard,
-    not handled as a special case."""
+    not handled as a special case.
+
+    **Stopping-rule correction (02.4-05 amendment, found when the first sixteen-fit PU
+    run halted every TopoAE fit at ``epochs_run=15`` with ``lambda_t`` stuck at half of
+    ``lambda_topo``):** the objective this loss trains is non-stationary while
+    ``lambda_t`` is ramping -- it changes shape every epoch of the warm-up and the ramp,
+    since a different multiple of ``topo`` is being added to ``recon`` each time. A
+    plateau test is only a convergence test against a *stationary* objective; run
+    against a ramping one, it stops as soon as the (moving) total stops improving *by
+    the recon-only ``best_loss`` warm-up set before the ramp even began* -- which the
+    ramp's first few epochs, restarting from ``recon + small_lambda * topo``, generally
+    cannot beat within ``early_stop_patience`` even while both ``recon`` and ``topo``
+    are still falling every single epoch. Two changes fix this, both required:
+
+    1. Early stopping cannot fire before the ramp completes (before ``epoch >=
+       floor(warmup_frac * max_epochs) + floor(ramp_frac * max_epochs)``, the same
+       threshold :func:`lambda_schedule` uses to hold ``lambda_t`` at ``lambda_topo``).
+       ``best_loss``/``plateau_count`` are left untouched during warm-up and ramp --
+       suspending the stop alone is not sufficient.
+    2. At the epoch the ramp completes, ``best_loss`` is reset to that epoch's
+       ``epoch_mean_total`` and ``plateau_count`` reset to 0, so the plateau detector
+       measures the final, stationary (``lambda_t == lambda_topo``) objective from a
+       mark set under that same objective, not a stale mark carried over from a
+       different one. Without this reset, suspending the stop alone would still leave
+       the post-ramp objective racing against a warm-up-era ``best_loss`` it may never
+       beat.
+
+    This changes only *when* the plateau detector starts counting and what it compares
+    against -- it does not change the ``max_epochs`` cap, the ``wallclock_ceiling_s``
+    check, ``early_stop_patience``/``early_stop_min_delta``, or any other pre-registered
+    constant."""
     seed = cfg.get("seed", 0)
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
@@ -304,6 +334,14 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
     optimizer = torch.optim.AdamW(
         list(model.parameters()) + [latent_norm], lr=cfg["lr"], weight_decay=cfg["weight_decay"]
     )
+
+    # Same threshold lambda_schedule uses to hold lambda_t constant at lambda_topo: the
+    # first epoch where the per-batch objective stops changing shape. Early stopping is
+    # suspended before this epoch (see the stopping-rule correction docstring above),
+    # and best_loss/plateau_count are reset exactly at it.
+    _warmup_epochs = math.floor(effective_cfg["warmup_frac"] * max_epochs)
+    _ramp_epochs = math.floor(effective_cfg["ramp_frac"] * max_epochs)
+    ramp_complete_epoch = _warmup_epochs + _ramp_epochs
 
     history: list = []
     start = time.monotonic()
@@ -378,7 +416,21 @@ def train_topoae(model: "cae_mod.PlainAutoEncoder", x_train: torch.Tensor, cfg: 
             wallclock_truncated = True
             break
 
-        if epoch_mean_total < best_loss * (1 - early_stop_min_delta):
+        if epoch < ramp_complete_epoch:
+            # Warm-up or ramp: lambda_t is still zero or still changing, so the
+            # objective is non-stationary and a plateau test against it is not a
+            # convergence test. Never fire early stopping here; best_loss/
+            # plateau_count are left untouched until the ramp completes.
+            pass
+        elif epoch == ramp_complete_epoch:
+            # The ramp has just completed -- lambda_t is constant at lambda_topo for
+            # the first time this fit. Reset the plateau detector's mark to this
+            # epoch's loss under the now-stationary objective, rather than carrying
+            # over a mark set under the recon-only warm-up objective (or a still-
+            # ramping one).
+            best_loss = epoch_mean_total
+            plateau_count = 0
+        elif epoch_mean_total < best_loss * (1 - early_stop_min_delta):
             best_loss = epoch_mean_total
             plateau_count = 0
         else:
