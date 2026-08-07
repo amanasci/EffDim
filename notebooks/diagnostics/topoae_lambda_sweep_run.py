@@ -58,9 +58,17 @@ SPLIT_SEED = 20260806
 HOLDOUT_FRACTION = 0.2
 
 # --- lambda grid and the binding selection rule ---------------------------------------------
+#
+# 2026-08-07 fidelity correction: train_topoae's loss previously carried a spurious
+# /batch_size division and was missing the paper's 1/2 factor on each directional term
+# (see topoae.py's train_topoae/topological_loss docstrings). Those two gaps compound to
+# roughly a 32x lambda-scale error at batch 64 -- the prior grid {0.1 .. 2.0} was actually
+# probing an effective lambda of roughly {0.003 .. 0.06}, never entering the range the
+# paper itself searched. This grid is redrawn log-uniformly over the paper's own searched
+# range [0.1, 3] (arXiv:1906.00722's experiments sample lambda log-uniformly in [10^-1, 3]
+# at batch sizes 16-128), now that the loss the grid multiplies is faithful to the paper.
 
-LAMBDA_GRID = (0.0, 0.1, 0.25, 0.5, 1.0, 2.0)  # spans the paper's own best-run 0.43-0.50
-                                                # range with roughly a decade either side
+LAMBDA_GRID = (0.0, 0.1, 0.3, 1.0, 3.0)  # 0.0 control arm, then log-uniform over [0.1, 3]
 
 LAMBDA_SELECT_RULE = (
     "The selected lambda is the largest value in LAMBDA_GRID whose Swiss-roll held-out "
