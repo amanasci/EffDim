@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 3
-current_phase_name: Decoder & Curvature Field
+current_phase: 02.5
+current_phase_name: Local Curvature Feasibility and CAE Local Re-Gate
 status: planning
-stopped_at: Completed 02.4-08-PLAN.md -- Phase 02.4 fully executed (8/8 plans), TOPOAE_VERDICT=FAIL sealed, reconciliation confirmed no-op
-last_updated: "2026-08-07T18:10:06.968Z"
+stopped_at: Phase 02.5 context gathered
+last_updated: "2026-08-07T20:17:55.894Z"
 last_activity: 2026-08-07
-last_activity_desc: Phase 02.4 complete, transitioned to Phase 3
+last_activity_desc: Phase 02.4 sealed (TOPOAE_VERDICT=FAIL, global-scoped); Phase 02.5 inserted
 progress:
-  total_phases: 5
+  total_phases: 7
   completed_phases: 5
   total_plans: 25
   completed_plans: 25
@@ -23,14 +23,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.4 — topological-auto-encoder-validity-test-inserted
+**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate
 
 ## Current Position
 
-Phase: 3 — Decoder & Curvature Field
+Phase: 02.5 — Local Curvature Feasibility & CAE Local Re-Gate (INSERTED)
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-07 — Phase 02.4 complete, transitioned to Phase 3
+Status: Context gathered (`02.5-CONTEXT.md`, 16 decisions) — ready for planning
+Last activity: 2026-08-07 — Phase 02.5 context gathered
+
+**Why 02.5 exists.** Phase 3 is blocked on a **PASS** no method has produced, and `02.4-FINDINGS.md` argues that gate may ask the wrong question: every FAIL in this milestone (Phase 2's `m = 0.412071`, 02.2's T1/T3, 02.4's T1/T2) is a *global* statistic, while every *local*-scoped gate measured has passed (02.2's chart-transition residual `1.089366 < 2.0`; 02.4's T3 `0.671980` at `k=15`). Mean curvature is a **local invariant** — `II_p` depends only on an arbitrarily small neighbourhood — so failing to obtain *global* coordinates does not by itself block a curvature field. Two stages, the first gating the second: (1) a Swiss roll feasibility probe with analytic `H`, degraded toward the PU regime, to find where local second-fundamental-form estimation breaks; (2) a locally-scoped CAE re-gate, **only if stage 1 clears**. A stage-1 negative is a complete, reportable outcome.
+
+**The "binding constraint" was overstated — corrected during discussion (`02.5-CONTEXT.md` D-00).** The `d(d+1)/2`-coefficient count (171 at `d=18`, 210 at `d=20`, 325 at `d=25`, against `k* = 15`) is the cost of the **full second fundamental form**. Mean curvature is only its *trace*, and the identity `Δ_M x = H` — equivalently, a neighbourhood's centroid is displaced from its centre point along the mean curvature vector — estimates the trace as an **average over `k` vectors**: one unknown with `k` samples, not 210 unknowns with 15 equations. The underdetermination recorded in the ROADMAP re-scope may not bind at all. Real remaining risks are different ones: bias growing like `r²` at finite radius, and non-uniform sampling density drifting the centroid in a way indistinguishable from curvature (D-06 pre-registers a correction and proves it on deliberately non-uniform fixtures — a Swiss roll is evenly sampled and would never catch it). `D_FROZEN = 5` **must not be inherited**: `02-FINDINGS.md` §6.4 records the residual-curve elbow saturating early under 41% negative eigenvalue mass, so it measured the flatness failure, not the dimension; three estimates cluster at 18–25, and D-07 uses `d = 20` per 02.2's D-04.
+
+**Why the CAE is the candidate.** It is an atlas of local charts by construction, its local consistency gate passed on real PU data, and it is the only model in this milestone to pass its Swiss roll outright (4.8% relative error vs a `<10%` bound, 2.2× better than a matched plain-AE, 8/8 charts surviving). Its sealed FAIL rests on *global* T1/T3. That makes it not-disqualified, **not** licensed — a local PASS must be earned under a fresh pre-registration, never inherited from 02.2's gate.
 
 **Phase 02.4 is planned (2026-08-06).** 8 plans across 7 waves. Requirement coverage R1–R8 complete; decision coverage 20/20 against `02.4-CONTEXT.md`. Plan-checker returned **0 blockers, 1 warning**. Wave order: `01` topoae.py tracer (R1,R2) → `02` gate layer (R4,R5,R6) + `03` λ sweep and the mandatory Swiss roll notebook (R8) → `04` pre-registration (R3) → `05` gated PU train runner, primary rung (R2,R3) → `06` remaining 13 fits (R2) → `07` evaluate runner and verdict artifact (R4,R5,R6) → `08` reconciliation and the TOPO-01..08 register (R7). Plans `03`, `04`, `05`, `07` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -210,6 +216,7 @@ From `TODO.md`:
 - Phase 02.1 inserted after Phase 2: Geometry Representation Research — Phase 2 gate FAIL invalidated the Isomap coordinates Phase 3 was specified to decode from (URGENT)
 - Phase 02.1 planned: 4 plans across 3 waves; plan-checker VERIFICATION PASSED first iteration; GEOM-01..05 coverage complete
 - Phase 02.2 inserted after Phase 02.1: Chart Autoencoder Validity Test — empirically tests arXiv:1912.10094 on the PU data behind a PASS/FAIL gate; PASS unblocks Phase 3 to decode from the CAE representation, FAIL documents the finding and leaves the milestone at the phase-2 stage. Doc-only insertion; the phase itself is unplanned
+- Phase 02.5 inserted after Phase 2: Local curvature feasibility probe, then a locally-scoped CAE re-gate — resolves Phase 3's blocking dependency on a global-scoped PASS no method has produced (URGENT)
 
 ## Deferred Items
 
@@ -222,8 +229,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T17:17:57.260Z
-Stopped at: Completed 02.4-08-PLAN.md -- Phase 02.4 fully executed (8/8 plans), TOPOAE_VERDICT=FAIL sealed, reconciliation confirmed no-op
+Last session: 2026-08-07T20:17:55.866Z
+Stopped at: Phase 02.5 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-CONTEXT.md
 </content>
