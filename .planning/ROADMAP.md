@@ -280,6 +280,56 @@ Plans:
 **Research**: Needs a research pass during planning — SUMMARY.md flags the mean-curvature-in-high-codimension math (first/second fundamental form, `‖H‖` derivation, `torch.func` batched Jacobian/Hessian via `vmap`) as dense, easy to get subtly wrong on tensor shapes/index conventions.
 **Hard gate**: The synthetic-control falsification test (CURV-06, CURV-07) must complete and be reported before Phase 4 starts, not run alongside it.
 
+> **RE-SCOPED to local curvature (2026-08-07, additive — nothing above is deleted or retracted).**
+> Everything above this note describes Phase 3 as it was specified before this re-scope: a *global*
+> C2-smooth decoder over a single parameterization, with mean curvature computed via first/second
+> fundamental forms over that global chart. The re-scope changes the target of what Phase 3
+> estimates, not whether it can proceed — Phase 3's blocking dependency on a PASS verdict (line
+> above) is untouched by this note and is not resolved here.
+>
+> **Why.** Mean curvature is a *local* invariant — the second fundamental form `II_p` at a point `p`
+> depends only on an arbitrarily small neighbourhood of `p`. A manifold need not admit any single
+> global chart to have a well-defined curvature field everywhere (the sphere is the standard
+> counterexample: no single chart covers it, yet its curvature is defined and known at every point).
+> So the milestone's repeated failure to obtain *global* coordinates — Phase 2's `GATE_VERDICT =
+> FAIL`, Phase 02.2's `CAE_VERDICT = FAIL`, Phase 02.4's `TOPOAE_VERDICT = FAIL` — does not, by
+> itself, block a curvature field built from *local* charts. See
+> `.planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-FINDINGS.md` for the
+> full cross-phase argument: every one of those three FAILs is a failure of a *global* statistic
+> (flat-target Euclidean embeddability, whole-embedding distance/reconstruction fidelity,
+> whole-held-out-set topological/reconstruction fidelity), and every *local*-scoped gate measured in
+> this milestone (02.2's chart-transition cycle residual, 02.4's rank-structure statistic) passed.
+>
+> **Re-scoped goal.** Phase 3 now targets estimating the second fundamental form **locally, per
+> point**, and assembling the curvature field piecewise across the point cloud — not a single global
+> parameterization's Jacobian/Hessian. Phase 4 is **preserved unchanged**: it partitions on curvature
+> quantiles and compares regional crossmodal MKNN, a question that survives intact under a
+> piecewise-local curvature field exactly as it did under a global one.
+>
+> **Open questions this re-scope inherits, recorded without resolving them:**
+>
+> - **Sample density is the binding constraint, not geometry.** A local quadratic fit needs
+>   `d(d+1)/2` coefficients per normal direction — 15 at `d=5`, 171 at `d=18`, 210 at `d=20`, 325 at
+>   `d=25` — against the `k*=15` neighbourhood size this milestone's gates have used throughout and
+>   `n=10,000` points in ambient dimension 768. At the intrinsic dimensions the measured evidence
+>   actually clusters around (18–25, per `02.4-FINDINGS.md` §2.2), this is badly underdetermined at
+>   `k*=15`. Raising `k` buys more equations but costs locality — the tradeoff is unresolved.
+> - **Which vehicle.** Two candidate routes are open and neither is licensed by anything measured so
+>   far: (a) local PCA plus quadric/jet fitting, which needs no learned model; (b) using a learned
+>   decoder as the local parameterization. On (b): 02.4's TopoAE decoder is C-infinity under SiLU and
+>   passed its own *local* gate (T3, rank structure) while failing the *global* ones (T1, T2) — so the
+>   gate that failed tested a property local curvature estimation does not require. This is noted as
+>   a reason (b) is not obviously disqualified, **not** as evidence it is licensed — any such use
+>   would need its own locally-scoped pre-registration, not an inheritance from 02.4's gate as
+>   measured.
+> - **Feasibility should be settled on a manifold with a known answer first**, per `CLAUDE.md`'s
+>   standing Swiss roll rule: a Swiss roll with analytic mean curvature, degrading ambient dimension,
+>   intrinsic dimension, and sample density toward the PU regime, to find empirically where the local
+>   curvature estimator breaks down — before it is trusted on data with no known answer.
+>
+> None of these questions is resolved by this note; they are the questions Phase 3's next
+> `/gsd-discuss-phase` or `/gsd-spec-phase` session must take up before planning.
+
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 
 **Goal**: With all upstream hyperparameters (`n_neighbors`, `d`, decoder architecture, curvature quantile threshold) frozen from Phases 1-3's own diagnostics and the synthetic-control falsification test complete, points are pre-specified into density-checked high/low curvature regions and crossmodal MKNN alignment compared between them against region-specific permutation nulls and bootstrap CIs.
