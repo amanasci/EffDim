@@ -11,12 +11,15 @@ explicitly:
 """
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+PU_MANIFOLD_ROOT = str(Path(__file__).resolve().parents[2])
 
 import numpy as np
+import pytest
 import torch
 from sklearn.manifold import trustworthiness
 
@@ -147,3 +150,130 @@ def test_topoae_tracer_end_to_end(tmp_path, monkeypatch):
         assert isinstance(detail["value"], float)
         assert isinstance(detail["threshold"], float)
         assert isinstance(detail["passed"], bool)
+
+
+# --- Task 2: R1 hardening -- deterministic tie-break, batch floor, float64 precision ------
+
+
+def test_persistence_pairs_deterministic_on_ties(tmp_path):
+    # small integers guarantee exact ties rather than hoping for them
+    D = np.array(
+        [
+            [0, 1, 1, 2, 2],
+            [1, 0, 2, 1, 2],
+            [1, 2, 0, 2, 1],
+            [2, 1, 2, 0, 1],
+            [2, 2, 1, 1, 0],
+        ],
+        dtype=np.float64,
+    )
+
+    results = [t.persistence_pairs(D) for _ in range(10)]
+    for r in results[1:]:
+        assert np.array_equal(r, results[0])
+
+    # cross-process half: an in-process repeat alone would not catch a hash-seed or
+    # ordering dependency
+    script_path = tmp_path / "recompute_persistence_pairs.py"
+    script_path.write_text(
+        "import json, sys\n"
+        "import numpy as np\n"
+        f"sys.path.insert(0, {PU_MANIFOLD_ROOT!r})\n"
+        "from pu_manifold import topoae as t\n"
+        f"D = np.array({D.tolist()!r}, dtype=np.float64)\n"
+        "pairs = t.persistence_pairs(D)\n"
+        "print(json.dumps(pairs.tolist()))\n"
+    )
+    proc = subprocess.run(
+        [sys.executable, str(script_path)], capture_output=True, text=True, check=True
+    )
+    subprocess_pairs = np.array(json.loads(proc.stdout.strip()), dtype=np.int64)
+    assert np.array_equal(subprocess_pairs, results[0])
+
+
+def test_persistence_pairs_batch_below_two_raises():
+    with pytest.raises(ValueError, match="1"):
+        t.persistence_pairs(np.zeros((1, 1)))
+
+    D = np.array([[0.0, 1.0], [1.0, 0.0]])
+    pairs = t.persistence_pairs(D)
+    assert pairs.shape == (1, 2)
+
+
+def test_persistence_pairs_is_a_spanning_tree():
+    rng = np.random.default_rng(7)
+    n = 40
+    pts = rng.standard_normal((n, 5))
+    D = np.sqrt(((pts[:, None, :] - pts[None, :, :]) ** 2).sum(-1))
+
+    pairs = t.persistence_pairs(D)
+    assert pairs.shape == (n - 1, 2)
+
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i, j in pairs.tolist():
+        ri, rj = find(i), find(j)
+        assert ri != rj, f"cycle detected at edge ({i}, {j}) -- not a valid spanning tree"
+        parent[ri] = rj
+
+    roots = {find(i) for i in range(n)}
+    assert len(roots) == 1, "returned pairs do not span all vertices"
+
+
+def test_persistence_pairs_rejects_float32():
+    # persistence_pairs up-casts to float64 before any comparison (the chosen
+    # behaviour, asserted here rather than left implicit) -- a float32 input and its
+    # float64-cast equivalent must produce the identical pairing
+    D_f32 = np.array(
+        [
+            [0, 2, 2, 4],
+            [2, 0, 4, 2],
+            [2, 4, 0, 2],
+            [4, 2, 2, 0],
+        ],
+        dtype=np.float32,
+    )
+    pairs_f32 = t.persistence_pairs(D_f32)
+    pairs_f64 = t.persistence_pairs(D_f32.astype(np.float64))
+    assert np.array_equal(pairs_f32, pairs_f64)
+    assert pairs_f32.dtype == np.int64
+
+
+def test_topological_loss_gradient_flows_through_values_not_selection():
+    n = 6
+    rng = np.random.default_rng(0)
+    d_x_np = rng.uniform(0.1, 5.0, size=(n, n))
+    d_x_np = (d_x_np + d_x_np.T) / 2
+    np.fill_diagonal(d_x_np, 0.0)
+    d_x = torch.tensor(d_x_np, dtype=torch.float64)
+
+    d_z_np = np.random.default_rng(1).uniform(0.1, 5.0, size=(n, n))
+    d_z_np = (d_z_np + d_z_np.T) / 2
+    np.fill_diagonal(d_z_np, 0.0)
+    d_z = torch.tensor(d_z_np, dtype=torch.float64, requires_grad=True)
+
+    loss = t.topological_loss(d_x, d_z)
+    loss["total"].backward()
+
+    assert d_z.grad is not None
+    pairs_x = t.persistence_pairs(d_x.detach().cpu().numpy())
+    pairs_z = t.persistence_pairs(d_z.detach().cpu().numpy())
+    selected = set()
+    for i, j in pairs_x.tolist():
+        selected.add((i, j))
+    for i, j in pairs_z.tolist():
+        selected.add((i, j))
+
+    grad = d_z.grad.numpy()
+    for i in range(n):
+        for j in range(n):
+            if (i, j) in selected or (j, i) in selected:
+                continue
+            assert grad[i, j] == 0.0, f"gradient leaked into unselected position ({i}, {j})"
+    assert np.any(grad != 0.0), "no gradient reached any selected position"

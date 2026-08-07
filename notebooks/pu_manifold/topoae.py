@@ -44,9 +44,10 @@ def pairwise_distances_f64(a: torch.Tensor) -> torch.Tensor:
 def persistence_pairs(D: np.ndarray) -> np.ndarray:
     """0-dimensional persistence pairs -- the minimum spanning tree edge set of the
     complete graph on ``D``'s pairwise distances. ``D`` must be a square, symmetric
-    array with ``n >= 2`` points; it is cast to float64 before any comparison, so tie
-    detection is exact equality after float64 computation and never depends on a
-    float32 rounding accident.
+    array with ``n >= 2`` points; whatever dtype it arrives in (including float32), it
+    is cast with ``np.asarray(D, dtype=np.float64)`` before any comparison -- explicitly,
+    not left implicit -- so tie detection is exact equality after float64 computation
+    and never depends on a float32 rounding accident.
 
     Ties are broken lexicographically on ``(distance, row_index, col_index)``: because
     ``np.triu_indices`` already emits row-major upper-triangular index order, a
@@ -63,15 +64,24 @@ def persistence_pairs(D: np.ndarray) -> np.ndarray:
 
     Raises ``ValueError`` naming the received batch size when ``n < 2``: a zero-loss
     fallback is deliberately rejected here because it would silently disable the
-    topological term rather than surfacing the batch as unusable.
+    topological term rather than surfacing the batch as unusable. Also raises
+    ``ValueError`` if ``D`` is not a square 2-d array or is not symmetric.
 
     Do NOT reach for scipy's sparse-graph MST routine here -- its internal tie-break
     order is not a documented, version-stable API contract, and this loss's value
     depends on which edges were selected (RESEARCH.md Pitfall 1)."""
     D = np.asarray(D, dtype=np.float64)
+    if D.ndim != 2 or D.shape[0] != D.shape[1]:
+        raise ValueError(f"persistence_pairs: D must be a square 2-d array, got shape {D.shape!r}")
     n = D.shape[0]
     if n < 2:
-        raise ValueError(f"persistence_pairs: batch size {n} < 2 -- undefined below 2 points")
+        raise ValueError(
+            f"persistence_pairs: batch size {n} < 2 -- undefined below 2 points. A "
+            "zero-loss fallback is deliberately rejected: it would silently disable "
+            "the topological term rather than surfacing the batch as unusable."
+        )
+    if not np.allclose(D, D.T):
+        raise ValueError("persistence_pairs: D must be symmetric")
 
     iu, ju = np.triu_indices(n, k=1)
     order = np.argsort(D[iu, ju], kind="stable")
@@ -113,7 +123,22 @@ def topological_loss(d_x: torch.Tensor, d_z: torch.Tensor) -> Dict[str, torch.Te
     loss_z_to_x}`` as torch scalars. The **training** loss uses ``total``; the T1
     **gate** evaluates the two directional terms separately and gates on the worse one
     (CONTEXT.md D-04) -- callers computing a gate value must not collapse them back to
-    ``total``."""
+    ``total``.
+
+    Raises ``ValueError`` if ``d_x`` and ``d_z`` do not share a shape, or if either is
+    not float64 -- distance matrices must go through :func:`pairwise_distances_f64` (or
+    an equivalent float64 cast) before reaching this function, matching SPEC's
+    determinism constraint."""
+    if d_x.shape != d_z.shape:
+        raise ValueError(
+            f"topological_loss: d_x and d_z must have the same shape, got "
+            f"{tuple(d_x.shape)} vs {tuple(d_z.shape)}"
+        )
+    if d_x.dtype != torch.float64 or d_z.dtype != torch.float64:
+        raise ValueError(
+            f"topological_loss: d_x and d_z must both be float64, got d_x.dtype="
+            f"{d_x.dtype} and d_z.dtype={d_z.dtype}"
+        )
     pairs_x = persistence_pairs(d_x.detach().cpu().numpy())
     pairs_z = persistence_pairs(d_z.detach().cpu().numpy())
     ix, jx = pairs_x[:, 0], pairs_x[:, 1]
