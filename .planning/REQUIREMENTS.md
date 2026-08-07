@@ -59,6 +59,19 @@ Added 2026-08-03 with Phase 02.2 (INSERTED), to empirically test whether the Cha
 - [x] **CAE-06**: Decoders trained with a C2-smooth activation rather than the reference implementation's ReLU, since DEC-02 and CURV-01..03 need a non-zero second derivative, with the substitution and any reconstruction cost stated; the compact-manifold-with-positive-reach assumption behind the paper's Thm 2 recorded as an unverified assumption about the PU point cloud, not a verified one
 - [x] **CAE-07**: `cae_verdict_{fit_key}.json` written as a machine-readable PASS/FAIL artifact carrying every pre-registered metric and threshold, checked by downstream notebooks before any expensive cell; on FAIL the notebook halts, findings are documented, and that documented failure is itself a complete milestone outcome
 
+### Topological Autoencoder Validity (TOPO)
+
+Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Topological Auto-Encoder of arXiv:1906.00722 (Moor, Horn, Rieck, Borgwardt, ICML 2020) — which optimises topological signature matching rather than distance preservation — yields a representation Phase 3 can validly decode from.
+
+- [x] **TOPO-01**: 0-dimensional persistence pairings computed from the minimum spanning tree of each batch's pairwise distance matrix in both input and latent space, ties broken lexicographically on distance then row index then column index, combined into the paper's topological loss
+- [x] **TOPO-02**: A Topological Auto-Encoder trained on the frozen Phase 1 10,000-row normalized subsample, reproducible from recorded seeds, C2-smooth throughout encoder and decoder, across a pre-registered latent-dimension ladder, reusing `cae.py` by import and never editing it
+- [x] **TOPO-03**: Gate metric definitions and numeric thresholds pre-registered and committed before any fit runs, with the ordering proved by git ancestry rather than asserted
+- [x] **TOPO-04**: Exactly three gating metrics — topological fidelity, reconstruction margin against a matched-capacity plain autoencoder, and a rank-structure measure; geodesic distortion and the paper's unfaithfulness and coverage measures reported for comparability and never gating
+- [x] **TOPO-05**: `topoae_verdict_{fit_key}.json` written on PASS and FAIL alike, self-contained and reproducible from its own recorded metrics and thresholds, with an absent or non-finite gating metric halting the run and writing nothing
+- [x] **TOPO-06**: A Phase 3 handoff written on PASS only, with any existing handoff at that fit key actively deleted on FAIL rather than merely not written
+- [x] **TOPO-07**: On PASS, a new dated amendment revisiting Phase 02.1's falsifier reading and a marker-guarded traceability update for the reinstated DEC and CURV requirements, both existence-guarded so a second run is a reported no-op and no sealed 02.1 artifact is edited
+- [x] **TOPO-08**: The mandatory Swiss roll sanity check, `notebooks/02.4_swiss_roll_topoae_check.ipynb`, importing the model unchanged and compared against a matched `cae.PlainAutoEncoder` baseline at the same 2-D bottleneck
+
 ### Decoder (DEC)
 
 > **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1 selects the replacement representation; re-read "Isomap coordinates" throughout this section and the next as "the coordinates of the representation chosen in Phase 02.1," and re-plan Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control — is unchanged.
@@ -177,6 +190,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CAE-05 | Phase 02.2 | Complete |
 | CAE-06 | Phase 02.2 | Complete |
 | CAE-07 | Phase 02.2 | Complete |
+| TOPO-01 | Phase 02.4 | Complete |
+| TOPO-02 | Phase 02.4 | Complete |
+| TOPO-03 | Phase 02.4 | Complete |
+| TOPO-04 | Phase 02.4 | Complete |
+| TOPO-05 | Phase 02.4 | Complete |
+| TOPO-06 | Phase 02.4 | Complete |
+| TOPO-07 | Phase 02.4 | Complete |
+| TOPO-08 | Phase 02.4 | Complete |
 | DEC-01 | Phase 3 | Pending |
 | DEC-02 | Phase 3 | Pending |
 | DEC-03 | Phase 3 | Pending |
