@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: Completed 02.4-04-PLAN.md, then corrected a documentation defect via additive erratum commit 9f5bd9e -- Section 1's false ambient-normalization claim fixed, ancestry proof re-confirmed
-last_updated: "2026-08-07T14:13:50.253Z"
+stopped_at: "Completed 02.4-05-PLAN.md: gated PU runner built, transfer-ratio estimator mismatch corrected per coordinator direction, all sixteen fits complete and cached"
+last_updated: "2026-08-07T14:53:10.388Z"
 last_activity: 2026-08-07
 last_activity_desc: "Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 25
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Plan 02.4-03 COMPLETE. Task 4's Swiss roll checkpoint is APPROVED after two correction rounds (a train_topoae fidelity correction, then adding a matched baseline to the topological structural check): TopoAE beats the plain-AE baseline on the topological check (r=0.680 vs 0.471, its own stated objective) while losing to it on plain MSE reconstruction (ratio 1.382) -- read as the trade the method makes on purpose. LAMBDA_TOPO=0.1 frozen for 02.4-PREREGISTRATION.md; three named limitations carry forward (see 02.4-03-SUMMARY.md § Known Limitations). Ready to proceed to plan 02.4-04.
 Last activity: 2026-08-07 — Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1
 
@@ -72,7 +72,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 84% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: [████████░░] 84% of planned plans (17/17; Phases 1
 | Phase 02.4 P02 | 5min | 3 tasks | 2 files |
 | Phase 02.4 P03 | ~10h30m wall-clock (mostly unattended sweep runs + checkpoint round-trips) | 4 tasks | 4 files |
 | Phase 02.4 P04 | ~1h | 3 tasks | 1 files |
+| Phase 02.4 P05 | 50min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -163,6 +164,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-04: coordinator reframing recorded in Known Limitation 2 -- the lambda grid (0.0,0.1,0.3,1.0,3.0) already spans the paper's own log-uniform-[0.1,3] searched range, so LAMBDA_TOPO=0.1 is the smallest lambda the authors themselves considered, alongside (not instead of) the existing mis-specified-selection-rule finding
 - [Phase ?]: 02.4-04: 02.4-PREREGISTRATION.md committed alone at 744c1c1 (no file under notebooks/); ancestry SHA 744c1c1d73a9e788a67768e2b397ad453045062a proved an ancestor of HEAD via git merge-base --is-ancestor
 - [Phase ?]: 02.4-04 erratum (2026-08-07, additive commit 9f5bd9e): orchestrator verification found 02.4-PREREGISTRATION.md Section 1 falsely claimed AMBIENT_DIST_NORM=none applies identically at training time and the T1 gate. train_topoae actually normalizes ambient distances by their own per-batch max (d_x/d_x.max()) plus the jointly-trained latent_norm -- the paper's convention, closed as fidelity gap #2 in 02.4-03 (4b9b6c9); only the T1 gate uses raw d_x. Corrected Sections 1/4, added Section 11 erratum record. No constant or threshold moved; 744c1c1 stays in the record unmodified; ancestry proof re-confirmed
+- [Phase ?]: 02.4-05: Task 3 checkpoint returned to coordinator rather than auto-approved (auto mode confirmed inactive); coordinator directed fix-transfer-ratio-then-approve
+- [Phase ?]: 02.4-05: transfer-ratio estimator corrected to match topoae_lambda_sweep_run.py's own definition (lambda-weighted, single post-ramp epoch, documented fallback) after coordinator found the runner's original unweighted all-epoch-average produced a spurious ~307.5x reading vs. the true ~0.373x -- no order-of-magnitude transfer gap survives under the corrected, shared estimator
+- [Phase ?]: 02.4-05: all sixteen pre-registered fits complete and cached (8 TopoAE + 8 matched baselines); every TopoAE fit early-stopped cleanly at epoch 15/40, no divergence, no wall-clock truncation at any rung or seed; plan 02.4-06 will find everything already cached and complete as a cache-hit verification pass
 
 ### Pending Todos
 
@@ -203,8 +207,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T14:13:50.226Z
-Stopped at: Completed 02.4-04-PLAN.md, then corrected a documentation defect via additive erratum commit 9f5bd9e -- Section 1's false ambient-normalization claim fixed, ancestry proof re-confirmed
+Last session: 2026-08-07T14:53:10.362Z
+Stopped at: Completed 02.4-05-PLAN.md: gated PU runner built, transfer-ratio estimator mismatch corrected per coordinator direction, all sixteen fits complete and cached
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
