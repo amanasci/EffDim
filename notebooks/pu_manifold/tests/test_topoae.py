@@ -548,3 +548,64 @@ def test_verdict_metrics_are_full_precision(tmp_path, monkeypatch):
     path = cache.cache_path("topoae_verdict_precision_test", "json")
     reloaded = json.loads(path.read_text())
     assert reloaded["metrics"]["t1_topo_fidelity"] == precise
+
+
+# --- Plan 02.4-02 Task 3: PASS-only handoff and R6's active deletion on FAIL ---------------
+
+_HANDOFF_PAYLOAD = {
+    "primary_d": 20,
+    "fit_artifact_keys": ["topoae_fit_abc123_seed1"],
+    "encoder_state_key": "topoae_fit_abc123_seed1_encoder",
+    "gate_values": {"t1_topo_fidelity": 0.5, "t2_recon_margin": 0.6, "t3_rank_structure": 0.4},
+    "thresholds": {"t1_topo_fidelity": 1.0, "t2_recon_margin": 1.0, "t3_rank_structure": 1.0},
+    "evidence_criteria": "all three gates PASS on the primary rung, three seeds",
+    "reinstated_requirements": ["DEC-01", "CURV-01"],
+    "activation": "silu",
+}
+
+
+def test_handoff_refuses_non_pass(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    with pytest.raises(ValueError):
+        t.write_topoae_handoff("fk_refuse", "FAIL", _HANDOFF_PAYLOAD)
+    assert not cache.cache_path("topoae_handoff_fk_refuse", "json").exists()
+
+
+def test_handoff_carries_all_named_fields(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    t.write_topoae_handoff("fk_fields", "PASS", _HANDOFF_PAYLOAD)
+
+    path = cache.cache_path("topoae_handoff_fk_fields", "json")
+    assert path.exists()
+    reloaded = json.loads(path.read_text())
+    for key in (
+        "representation_id",
+        "primary_d",
+        "fit_artifact_keys",
+        "encoder_state_key",
+        "gate_values",
+        "thresholds",
+        "evidence_criteria",
+        "reinstated_requirements",
+        "activation",
+        "timestamp",
+    ):
+        assert key in reloaded
+    assert reloaded["representation_id"] == "topoae"
+
+
+def test_fail_deletes_stale_handoff(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    json_path = cache.cache_path("topoae_handoff_fk_stale", "json")
+    meta_path = cache.cache_path("topoae_handoff_fk_stale", "meta.json")
+    json_path.write_text("{}")
+    meta_path.write_text("{}")
+
+    assert t.clear_stale_handoff("fk_stale") is True
+    assert not json_path.exists()
+    assert not meta_path.exists()
+
+
+def test_clear_stale_handoff_is_a_noop_when_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+    assert t.clear_stale_handoff("fk_absent") is False

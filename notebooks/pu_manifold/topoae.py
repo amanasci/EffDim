@@ -17,6 +17,7 @@ gate engine, artifact writers) is imported from it, never copied.
 
 import math
 import time
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any, Dict, Optional, Tuple
 
@@ -631,3 +632,77 @@ def write_topoae_verdict(
         return cae_mod.to_native(payload)
 
     return cache.json_cache(f"topoae_verdict_{fit_key}", cfg, _compute)
+
+
+# --- PASS-only handoff and R6's active deletion of a stale handoff on FAIL -----------------
+
+
+def write_topoae_handoff(fit_key: str, verdict: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Mirrors ``cae.write_cae_handoff``'s shape and its refusal: raises ``ValueError``
+    unless ``verdict == "PASS"``, so a non-PASS caller cannot produce a handoff even by
+    mistake. Persists through ``cache.json_cache`` under stem
+    ``topoae_handoff_{fit_key}`` with ``cfg = {"fit_key": fit_key, "phase": "02.4"}``.
+
+    Fields, modelled on ``gate_verdict_{fit_key}.json`` and Phase 02.1's
+    ``geometry_handoff_{fit_key}.json`` and naming exactly what Phase 3 consumes:
+    ``representation_id`` (the string ``"topoae"``, the identity field this milestone's
+    handoffs now key on rather than the method's prose name), ``primary_d``,
+    ``fit_artifact_keys`` (the npz stems of the primary-rung fits), ``encoder_state_key``,
+    ``gate_values`` and ``thresholds`` for all three gates, ``evidence_criteria`` (the
+    criteria Phase 3 should judge the representation by, in prose),
+    ``reinstated_requirements`` (the DEC and CURV requirement IDs a coordinate-producing
+    win reinstates), ``activation``, ``torch_version``, ``numpy_version``, and a UTC
+    ``timestamp``. Every value through ``cae.to_native``."""
+    if verdict != "PASS":
+        raise ValueError(
+            f"write_topoae_handoff refuses to write a handoff for a non-PASS verdict: {verdict!r}"
+        )
+
+    cfg = {"fit_key": fit_key, "phase": "02.4"}
+
+    def _compute() -> Dict[str, Any]:
+        result = {
+            "fit_key": fit_key,
+            "phase": "02.4",
+            "representation_id": "topoae",
+            "primary_d": payload["primary_d"],
+            "fit_artifact_keys": payload["fit_artifact_keys"],
+            "encoder_state_key": payload["encoder_state_key"],
+            "gate_values": payload["gate_values"],
+            "thresholds": payload["thresholds"],
+            "evidence_criteria": payload["evidence_criteria"],
+            "reinstated_requirements": payload["reinstated_requirements"],
+            "activation": payload["activation"],
+            "torch_version": torch.__version__,
+            "numpy_version": np.__version__,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        return cae_mod.to_native(result)
+
+    return cache.json_cache(f"topoae_handoff_{fit_key}", cfg, _compute)
+
+
+def clear_stale_handoff(fit_key: str) -> bool:
+    """R6's active deletion. Unlinks both
+    ``cache.cache_path(f"topoae_handoff_{fit_key}", "json")`` and its
+    ``cache.cache_path(f"topoae_handoff_{fit_key}", "meta.json")`` sidecar when present,
+    returning ``True`` if anything was removed and ``False`` otherwise, and never
+    raising when nothing is there.
+
+    Deliberate deviation from precedent: Phase 02.1 archived its superseded Krein
+    handoff as a ``.superseded-krein.json`` variant rather than removing it. R6 chooses
+    deletion instead, because the failure this guards against is a stale PASS handoff
+    from an earlier run surviving a later FAIL and being read by Phase 3 as live. The
+    sidecar must go too -- leaving it behind would let a later ``json_cache`` call see a
+    manifest with no artifact."""
+    json_path = cache.cache_path(f"topoae_handoff_{fit_key}", "json")
+    meta_path = cache.cache_path(f"topoae_handoff_{fit_key}", "meta.json")
+
+    removed = False
+    if json_path.exists():
+        json_path.unlink()
+        removed = True
+    if meta_path.exists():
+        meta_path.unlink()
+        removed = True
+    return removed
