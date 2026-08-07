@@ -21,6 +21,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
 - [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
 - [x] **Phase 02.4: Topological Auto-Encoder Validity Test** (INSERTED) — The Topological Auto-Encoder (Moor et al., arXiv:1906.00722) implemented and put through a pre-registered validity gate on the PU data (sealed 2026-08-07, **TOPOAE_VERDICT = FAIL** — both *global*-scoped gates failed, the *local*-scoped gate passed; see Phase Details and `02.4-FINDINGS.md`)
+- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -265,6 +266,59 @@ Plans:
 - Ladder rungs are independent fits; no rung interacts with another — *`02.4-05`, `02.4-06`*
 - Rungs are trained in the pre-registered ladder order, each carrying its own recorded seed — *`02.4-05`, `02.4-06`*
 - A rung whose loss goes non-finite halts the run rather than being dropped from the ladder — *`02.4-05`, `02.4-06`*
+
+### Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate (INSERTED)
+
+**UI hint**: no
+
+**Goal**: Establish empirically whether a **local** second fundamental form is estimable at the PU data's sampling density, and — if it is — pre-register and run a **locally**-scoped validity gate on the Chart Auto-Encoder, producing a machine-readable verdict that either resolves or explicitly does not resolve Phase 3's blocking dependency.
+
+**Why inserted**: Phase 3 is blocked on a **PASS** that no method has produced, and `02.4-FINDINGS.md` establishes why that gate may be asking the wrong question. Every FAIL in this milestone — Phase 2's `m = 0.412071`, 02.2's T1/T3, 02.4's T1/T2 — is a failure of a *global* statistic, while every *local*-scoped gate measured has passed (02.2's chart-transition cycle residual `1.089366 < 2.0`; 02.4's T3 `0.671980 < 0.90` at `k=15`). Mean curvature is a **local invariant**: the second fundamental form `II_p` depends only on an arbitrarily small neighbourhood of `p`, and a manifold need not admit any global chart to have well-defined curvature everywhere. So the milestone's repeated failure to obtain *global* coordinates does not by itself block a curvature field — but nothing measured so far licenses proceeding either, and that gap is what this phase closes.
+
+**Why the CAE is the candidate vehicle**: it is an atlas of local charts by construction (arXiv:1912.10094), its *local* consistency gate passed on the real PU data, and it is the **only** model in this milestone to pass its mandatory Swiss roll check outright — 4.8% held-out relative reconstruction error against a `<10%` bound, 2.2× better than a matched plain-AE, 8/8 charts surviving pruning, printed `Swiss roll recovered: True`. Its sealed `CAE_VERDICT = FAIL` rests on T1 global geodesic distortion and T3 global reconstruction margin; neither is a property local curvature estimation requires. **This is a reason the CAE is not disqualified, not evidence it is licensed** — a locally-scoped PASS must be earned under its own fresh pre-registration, never inherited from 02.2's gate as measured.
+
+**Depends on**: Phase 02.4 (its `02.4-FINDINGS.md` cross-phase re-reading and the sealed `TOPOAE_VERDICT` with its `gate_scope` annotation), Phase 02.2 (the sealed CAE gate, `cae.py`, and its passing Swiss roll notebook), Phase 02.1 (the sealed representation analysis, and its own §6.4 record that the `DISTORTION` statistic its falsifier fired on is "nearly decoupled" from held-out reconstruction), Phase 1 (the frozen 10,000-row subsample). Requires a PASS from none of them.
+
+**Requirements**: No milestone-level REQ-IDs were minted for this phase. Its de-facto requirement set is `02.5-CONTEXT.md`'s sixteen implementation decisions, **D-00..D-15**, and every plan traces against those IDs. Recorded here so the absence is a stated choice rather than an omission.
+
+**Status**: Inserted 2026-08-07. Discussed 2026-08-07 (`02.5-CONTEXT.md`, 16 decisions). Researched 2026-08-07 (`02.5-RESEARCH.md`, `02.5-PATTERNS.md`, `02.5-VALIDATION.md`). Planned 2026-08-07 — 13 plans across 12 waves, decision coverage 16/16.
+
+**The two stages, in order** — the first gates the second:
+
+  1. **Feasibility probe, on a manifold with a known answer.** Per `CLAUDE.md`'s standing rule: a Swiss roll with *analytic* mean curvature, estimating `II` by local PCA plus quadric/jet fitting, then degrading ambient dimension, intrinsic dimension and sample density toward the PU regime (768 ambient, `n = 10,000`, intrinsic 18–25) to find empirically where the estimator breaks. **If local curvature is not estimable in that regime, the CAE re-gate is moot and must not be run** — that negative result is itself a complete and reportable outcome for this phase.
+  2. **Locally-scoped CAE re-gate**, only if stage 1 clears. Fresh, separately-ratified pre-registration with git-ancestry proof, gates chosen on *local* criteria, run against the sealed 02.2 fits or fresh ones as the pre-registration specifies.
+
+**Open questions this phase must resolve, not assume**:
+
+  - **Sample density is the binding constraint, not geometry.** A local quadratic fit needs `d(d+1)/2` coefficients per normal direction — 15 at `d=5`, 171 at `d=18`, 210 at `d=20`, 325 at `d=25` — against `k* = 15` and `n = 10,000` in ambient 768. At the intrinsic dimensions the evidence clusters around (18–25), this is badly underdetermined. Raising `k` buys equations but costs locality; that tradeoff is unresolved.
+  - **Which working dimension.** `D_FROZEN = 5` is flagged suspect and **must not be inherited** — `02-FINDINGS.md` §6.4 and `STATE.md` record the residual-curve elbow saturating early under 41% negative eigenvalue mass, so it measured the flatness failure rather than the manifold's dimension. Three independent estimates cluster at 18–25 (local PCA 25.0, TwoNN 19.5, eight `compute_dim` geometric estimators at 18), and 02.4's T3 improving monotonically with latent dimension to `d=32` is weak independent corroboration that the true dimension sits well above 5.
+  - **What a local-scoped PASS is allowed to unblock.** Phase 3's dependency currently names a global-scoped PASS. Whether a local PASS resolves it, or whether that dependency must itself be amended, is a decision this phase must make explicitly rather than by implication.
+  - **Whether a PASS here should revisit 02.1's falsifier.** `02.1-AMENDMENT-02.md` carries a *symmetric* falsifier that overturns graph-native when a coordinate candidate clears a validity gate. A locally-scoped PASS is not identical to the condition it names — and arguing that difference is exactly what any such amendment would have to do.
+
+**Constraints carried in from the sealed phases** — binding on whatever gets planned:
+
+  - **Swiss roll sanity check is mandatory** for any new manifold model or curvature estimator (`CLAUDE.md` names curvature estimators explicitly). Stage 1 *is* a Swiss roll check by construction; any model introduced in stage 2 needs its own.
+  - **Pre-register the gate before any fit**, ordering proved by git ancestry. A changed constant requires a fresh, separately-ratified pre-registration and a full re-run.
+  - **No sealed verdict may be reopened, softened, or recomputed.** `GATE_VERDICT`, `CAE_VERDICT` and `TOPOAE_VERDICT` all remain FAIL as measured. This phase adds a new, differently-scoped measurement; it does not revise an old one.
+  - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
+  - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
+
+**Plans**: 13 plans across 12 waves. Stage 1 is plans 01–07; stage 2 is plans 08–12 and runs **only** if plan 07's blocking go/no-go checkpoint returns GO; plan 13 discharges the outward-facing obligations on either branch. Plans 05, 06, 07, 09, 10, 12, 13 are non-autonomous — each carries a blocking checkpoint.
+
+Plans:
+- [ ] 02.5-01-PLAN.md — Tracer: Swiss roll → centroid/Laplace–Beltrami estimator → Spearman vs analytic H, end to end (D-00, D-01, D-03, D-05, D-07)
+- [ ] 02.5-02-PLAN.md — Graph-of-function fixture family at arbitrary (d, D, codimension), non-uniform sampling, and the density correction (D-03, D-06, D-07)
+- [ ] 02.5-03-PLAN.md — Non-gating quadric cross-check, estimator agreement, and permutation-null calibration (D-01, D-02, D-05)
+- [ ] 02.5-04-PLAN.md — Direction-aware verdict functions and the R6 verdict/handoff writers at 02.5 scope (D-01, D-12, D-15)
+- [ ] 02.5-05-PLAN.md — **[checkpoint]** Mandatory CLAUDE.md Swiss roll sanity notebook for the curvature estimator (D-03, D-05, D-07)
+- [ ] 02.5-06-PLAN.md — **[checkpoint]** Stage-1 pre-registration: ratified, committed alone, git-ancestry proved (D-00..D-08, D-12)
+- [ ] 02.5-07-PLAN.md — **[checkpoint]** Stage-1 feasibility sweep, the boundary report, and the **GO/NO-GO gate that decides whether stage 2 runs at all** (D-01..D-08)
+- [ ] 02.5-08-PLAN.md — Exact chart-decoder curvature via `torch.func`, C2-smoothness guard, sealed-fit load check (D-09, D-10)
+- [ ] 02.5-09-PLAN.md — **[checkpoint]** Mandatory Swiss roll sanity notebook for the chart-curvature model (D-03, D-09)
+- [ ] 02.5-10-PLAN.md — **[checkpoint]** Stage-2 pre-registration: the D-09/D-10 reconciliation and D-12's neither-clears branch resolved (D-09..D-12, D-15)
+- [ ] 02.5-11-PLAN.md — Gate A: CAE charts vs raw points, both scored against analytic H at the PU-matched regime (D-09, D-10)
+- [ ] 02.5-12-PLAN.md — **[checkpoint]** Gate B seed stability on the three sealed fits, sealed stage-2 verdict, handoff or stale deletion, routing (D-10..D-12, D-15)
+- [ ] 02.5-13-PLAN.md — **[checkpoint]** Retarget Phase 3's dead-pointer dependency, revisit 02.1's falsifier, complete the phase record (D-04, D-13, D-14, D-15)
 
 ### Phase 3: Decoder & Curvature Field
 
