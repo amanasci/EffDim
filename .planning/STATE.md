@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.4
-current_phase_name: Topological Auto-Encoder Validity Test (INSERTED, next — not yet planned)
+current_phase_name: Topological Auto-Encoder Validity Test (INSERTED, planned — ready to execute)
 status: planning
-stopped_at: Phase 02.4 context gathered
-last_updated: "2026-08-06T20:40:21.275Z"
+stopped_at: Phase 02.4 planned — 8 plans across 7 waves, ready to execute
+last_updated: "2026-08-06T21:45:00.000Z"
 last_activity: 2026-08-06
-last_activity_desc: Phase 02.4 scoped (02.4-SPEC.md, ambiguity 0.108) and discussed (02.4-CONTEXT.md, 20 decisions)
+last_activity_desc: Phase 02.4 planned — 8 plans in 7 waves; plan-checker returned 0 blockers and 1 non-blocking warning
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 17
+  total_plans: 25
   completed_plans: 17
 ---
 
@@ -23,14 +23,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.4 — topological-autoencoder-validity-test (next, not yet planned)
+**Current focus:** Phase 02.4 — topological-autoencoder-validity-test (planned, ready to execute)
 
 ## Current Position
 
-Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, scoped and discussed — not yet planned)
-Plan: Not started
-Status: Ready to plan — `/gsd-plan-phase 02.4`
-Last activity: 2026-08-06 — Phase 02.4 SPEC (ambiguity 0.108, 8 requirements) and CONTEXT (20 decisions) written
+Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, planned — 8 plans, 7 waves)
+Plan: Not started — 0/8 executed
+Status: Ready to execute — `/gsd-execute-phase 02.4`
+Last activity: 2026-08-06 — Phase 02.4 planned; RESEARCH, PATTERNS, VALIDATION, COVERAGE and 8 PLAN files written
+
+**Phase 02.4 is planned (2026-08-06).** 8 plans across 7 waves. Requirement coverage R1–R8 complete; decision coverage 20/20 against `02.4-CONTEXT.md`. Plan-checker returned **0 blockers, 1 warning**. Wave order: `01` topoae.py tracer (R1,R2) → `02` gate layer (R4,R5,R6) + `03` λ sweep and the mandatory Swiss roll notebook (R8) → `04` pre-registration (R3) → `05` gated PU train runner, primary rung (R2,R3) → `06` remaining 13 fits (R2) → `07` evaluate runner and verdict artifact (R4,R5,R6) → `08` reconciliation and the TOPO-01..08 register (R7). Plans `03`, `04`, `05`, `07` are non-autonomous — each carries a blocking human checkpoint.
+
+**Open warning carried into execution.** `02.4-RESEARCH.md` § Open Questions is not marked resolved. Its three questions — ambient X-space distance normalization, baseline-fit coverage across the ladder, and warm-up/ramp shape — are all resolved inside `02.4-04-PLAN.md` Tasks 1–2 (`AMBIENT_DIST_NORM = "none"`; one matched baseline per TopoAE fit, so eight baselines; a quarter/quarter/half warm-up-ramp-constant split) and committed into `02.4-PREREGISTRATION.md` before any PU fit. The annotation back into RESEARCH.md is deferred because it can only be written after that pre-registration exists. Nothing stalls on it; the research record simply reads as still-open until then.
+
+**Note on the compute budget.** `02.4-RESEARCH.md` flagged that per-rung baseline `PlainAutoEncoder` fits appeared uncounted in D-19's ~8h estimate. Plan `04` resolves this as one matched baseline per TopoAE fit — eight baselines, not one — so the real fit count is 16, not 8. Confirm the wall-clock envelope still holds when plan `05`'s timing probe runs.
 
 **Phase 02.4 is scoped.** `02.4-SPEC.md` locks 8 requirements, 17 acceptance criteria, 20 resolved edges, 8 prohibitions. `02.4-CONTEXT.md` carries 20 implementation decisions. Two sequencing facts the planner must not miss: **λ is tuned on the Swiss roll fixture and frozen before any PU fit**, so the fixture and its sweep precede the pre-registration (not the other way round); and the λ sweep lives in a separate `notebooks/diagnostics/` runner, because `CLAUDE.md` caps the sanity-check notebook at ~15 cells with no threshold tables. Gate: T1 = the paper's `L_t` held-out (full-set MST gates, worse direction), T2 = reconstruction margin vs matched `PlainAutoEncoder`, T3 = `1 − min(trustworthiness, continuity)` at k=15 — all three baseline-relative, none gating on `DISTORTION`. Ladder `{8,16,20,24,32,40}`, primary `d=20`, 3 seeds primary + 1 elsewhere = 8 fits at a ~1h ceiling (cut from 02.2's 2h to fit the envelope; the 32 and 40 rungs may be under-trained, recorded as a stated limitation).
 
