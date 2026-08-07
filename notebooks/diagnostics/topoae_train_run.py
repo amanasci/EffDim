@@ -432,6 +432,43 @@ print(f"  selected MAX_EPOCHS = {MAX_EPOCHS} (the pre-registered rule, applied -
 _banner(f"STEP 3 -- fit registry ({len(selected_runs)} of {len(ALL_RUN_IDS)} selected)")
 
 
+def _transfer_ratio_from_history(history: list, warmup_frac: float, ramp_frac: float, max_epochs: int) -> dict:
+    """The lambda sweep's own transfer-diagnostic estimator
+    (topoae_lambda_sweep_run.py's `_run_arm`), reproduced verbatim here so both sides of
+    the Swiss-roll-vs-PU comparison share exactly one definition: the LAMBDA-WEIGHTED
+    topological term divided by the reconstruction term, read at the first epoch after
+    the ramp completes (`lambda_t == lambda_topo`, constant) -- never an unweighted,
+    all-epoch average, which would let large un-regularized warm-up-epoch topo values
+    (`lambda_t == 0`) dominate an estimate of the trained topo/recon balance.
+
+    Falls back to the last recorded epoch, exactly as the sweep script's own comment
+    documents, when training (early stop or wallclock) stopped before reaching the
+    post-ramp epoch -- never fabricating a value. Returns the ratio plus which epoch and
+    lambda_t it was actually read at, and whether that fallback fired, so a caller can
+    tell a like-for-like comparison from a partial-ramp one without re-deriving it from
+    the raw history."""
+    warmup_epochs = math.floor(warmup_frac * max_epochs)
+    ramp_epochs = math.floor(ramp_frac * max_epochs)
+    post_ramp_epoch = warmup_epochs + ramp_epochs
+    post_ramp_entries = [h for h in history if h["epoch"] == post_ramp_epoch]
+    if post_ramp_entries:
+        h0 = post_ramp_entries[0]
+        reached_post_ramp_epoch = True
+    else:
+        h0 = history[-1]
+        reached_post_ramp_epoch = False
+    recon_term = h0["recon"]
+    topo_term = h0["lambda_t"] * h0["topo"]
+    ratio = topo_term / recon_term if recon_term != 0.0 else float("inf")
+    return {
+        "transfer_ratio": ratio,
+        "transfer_ratio_epoch_used": h0["epoch"],
+        "transfer_ratio_lambda_t_used": h0["lambda_t"],
+        "transfer_ratio_post_ramp_epoch_target": post_ramp_epoch,
+        "transfer_ratio_reached_post_ramp_epoch": reached_post_ramp_epoch,
+    }
+
+
 def _run_topoae(d: int, seed: int):
     cfg = _topoae_cfg(seed, d)
 
@@ -448,22 +485,14 @@ def _run_topoae(d: int, seed: int):
         arrays["y_holdout"] = y_all[torch.from_numpy(holdout_idx)].numpy().astype(np.float64)
 
         history = fit["history"]
-        epoch_mean_topo = float(np.mean([h["topo"] for h in history])) if history else float("nan")
-        epoch_mean_recon = float(np.mean([h["recon"] for h in history])) if history else float("nan")
-        transfer_ratio = (
-            epoch_mean_topo / epoch_mean_recon
-            if math.isfinite(epoch_mean_recon) and epoch_mean_recon != 0.0
-            else float("nan")
-        )
+        transfer_fields = _transfer_ratio_from_history(history, WARMUP_FRAC, RAMP_FRAC, MAX_EPOCHS)
         meta = _finalize_meta(
             fit,
             seed,
             ACTIVATION,
             d=d,
             max_epochs=MAX_EPOCHS,
-            epoch_mean_topo=epoch_mean_topo,
-            epoch_mean_recon=epoch_mean_recon,
-            transfer_ratio=transfer_ratio,
+            **transfer_fields,
         )
         return arrays, meta
 
