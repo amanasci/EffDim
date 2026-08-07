@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: Completed 02.4-01-PLAN.md
-last_updated: "2026-08-07T02:56:40.343Z"
+stopped_at: Completed 02.4-02-PLAN.md
+last_updated: "2026-08-07T03:14:08.941Z"
 last_activity: 2026-08-06
 last_activity_desc: Phase 02.4 execution started
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 25
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-08-06 — Phase 02.4 execution started
 
@@ -72,7 +72,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [███████░░░] 72% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 76% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Progress: [███████░░░] 72% of planned plans (17/17; Phases 1
 | Phase 02.2 P05 | ~3h | 3 tasks | 3 files |
 | Phase 02.2 P06 | ~15min | 3 tasks | 4 files |
 | Phase 02.4 P01 | 10min | 3 tasks | 2 files |
+| Phase 02.4 P02 | 5min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-01: Task 1's tracer feedback gate (interactive checkpoint:human-verify) approved by user after independent re-verification of all <verify> commands and T1/T2/T3 ratio directions; Tasks 2-3 proceeded
 - [Phase ?]: 02.4-01: tracer artifact's gate_detail intentionally still uses cae's borrowed GATING_METRICS slot names (distortion/rcycle_ratio/recon_margin) -- orchestrator confirmed replacing them is plan 02.4-02's job (threat T-02.4-11), out of scope for 02.4-01
 - [Phase ?]: 02.4-01: train_topoae's non-finite-loss check runs per-batch (not per-epoch-mean), raising ValueError naming the epoch and batch index at the point of divergence; empirically confirmed to trip at lr=1e8
+- [Phase ?]: 02.4-02: T-02.4-11 resolved via positional slot remap (CAE_SLOT_ALIASES = dict(zip(GATING_METRICS, cae.GATING_METRICS))); the three borrowed cae.py slot names never appear in any topoae artifact
+- [Phase ?]: 02.4-02: write_topoae_verdict recomputes gate_detail internally and refuses to write if the supplied verdict disagrees with the recomputed one -- a stored verdict may never disagree with its own gates
+- [Phase ?]: 02.4-02: requirements.mark-complete found no R4/R5/R6 entries in REQUIREMENTS.md -- phase 02.4's R1..R8 are scoped locally to 02.4-SPEC.md and were never mirrored into the milestone-level REQUIREMENTS.md (no TOPO section exists there); not a blocker for this plan, noted for a future ledger sync
 
 ### Pending Todos
 
@@ -187,8 +191,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T02:56:40.316Z
-Stopped at: Completed 02.4-01-PLAN.md
+Last session: 2026-08-07T03:13:33.499Z
+Stopped at: Completed 02.4-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
