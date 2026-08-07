@@ -10,6 +10,7 @@ explicitly:
     python -m pytest notebooks/pu_manifold/tests/test_topoae.py -q
 """
 
+import hashlib
 import json
 import math
 import subprocess
@@ -881,3 +882,148 @@ def test_fail_deletes_stale_handoff(tmp_path, monkeypatch):
 def test_clear_stale_handoff_is_a_noop_when_absent(tmp_path, monkeypatch):
     monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
     assert t.clear_stale_handoff("fk_absent") is False
+
+
+# --- Plan 02.4-08 Task 2: the R7 reconciliation runner and its idempotency proof ----------
+
+DIAGNOSTICS_ROOT = str(Path(__file__).resolve().parents[2] / "diagnostics")
+if DIAGNOSTICS_ROOT not in sys.path:
+    sys.path.insert(0, DIAGNOSTICS_ROOT)
+
+import topoae_reconcile_run as reconcile_run  # noqa: E402  (path inserted just above)
+
+
+def _write_verdict_json(fit_key: str, verdict: str) -> None:
+    """Writes a minimal-but-schema-faithful topoae_verdict_{fit_key}.json directly at
+    cache.cache_path -- callers must first monkeypatch cache.CACHE_DIR to a tmp_path."""
+    payload = {
+        "fit_key": fit_key,
+        "phase": "02.4",
+        "TOPOAE_VERDICT": verdict,
+        "gating_metrics": list(t.GATING_METRICS),
+        "metrics": {"t1_topo_fidelity": 1.026379, "t2_recon_margin": 1.211939, "t3_rank_structure": 0.671980},
+        "thresholds": {"t1_topo_fidelity": 0.9, "t2_recon_margin": 1.0, "t3_rank_structure": 0.9},
+    }
+    path = cache.cache_path(f"topoae_verdict_{fit_key}", "json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _make_fake_planning_tree(tmp_path) -> Path:
+    """A tmp_path-scoped fake planning tree: a stub REQUIREMENTS.md and a stub sealed
+    02.1 directory holding a couple of files whose content is recorded for a
+    before/after hash comparison. Never the real repository files."""
+    planning_root = tmp_path / "fake_planning"
+    (planning_root / "phases" / "02.1-geometry-representation-research").mkdir(parents=True)
+    (planning_root / "REQUIREMENTS.md").write_text(
+        "# Requirements\n\n## Traceability\n\n| DEC-01 | Phase 3 | Pending |\n", encoding="utf-8"
+    )
+    (planning_root / "phases" / "02.1-geometry-representation-research" / "02.1-RECOMMENDATION.md").write_text(
+        "# 02.1 Recommendation\n\nGEOM-04 = Ollivier-Ricci graph-native.\n", encoding="utf-8"
+    )
+    (planning_root / "phases" / "02.1-geometry-representation-research" / "02.1-AMENDMENT-02.md").write_text(
+        "# Amendment 02\n\nThe falsifier fires.\n", encoding="utf-8"
+    )
+    return planning_root
+
+
+def _sealed_hashes(planning_root: Path) -> dict:
+    sealed_dir = planning_root / "phases" / "02.1-geometry-representation-research"
+    return {
+        p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(sealed_dir.iterdir())
+        if p.name != reconcile_run.AMENDMENT_FILENAME
+    }
+
+
+def test_reconciliation_idempotent(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path / "cache")
+    planning_root = _make_fake_planning_tree(tmp_path)
+    _write_verdict_json("fk_idem", "PASS")
+
+    first = reconcile_run.reconcile("fk_idem", planning_root=planning_root, today="2026-08-07")
+    assert first["amendment"]["action"] == "written"
+    assert first["traceability"]["action"] == "written"
+
+    amendment_path = (
+        planning_root / "phases" / "02.1-geometry-representation-research" / reconcile_run.AMENDMENT_FILENAME
+    )
+    assert amendment_path.exists()
+    req_text = (planning_root / "REQUIREMENTS.md").read_text(encoding="utf-8")
+    assert req_text.count(reconcile_run.TRACEABILITY_END_MARKER) == 1
+
+    second = reconcile_run.reconcile("fk_idem", planning_root=planning_root, today="2026-08-07")
+    assert second["amendment"]["action"] == "already_written"
+    assert second["traceability"]["action"] == "already_written"
+
+    # Exactly one amendment file, exactly one REQUIREMENTS.md marker pair after two runs.
+    sealed_dir = planning_root / "phases" / "02.1-geometry-representation-research"
+    amendment_files = [p for p in sealed_dir.iterdir() if p.name == reconcile_run.AMENDMENT_FILENAME]
+    assert len(amendment_files) == 1
+    req_text_after = (planning_root / "REQUIREMENTS.md").read_text(encoding="utf-8")
+    assert req_text_after.count(reconcile_run.TRACEABILITY_START_MARKER) == 1
+    assert req_text_after.count(reconcile_run.TRACEABILITY_END_MARKER) == 1
+
+
+def test_reconciliation_noop_on_fail(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path / "cache")
+    planning_root = _make_fake_planning_tree(tmp_path)
+    _write_verdict_json("fk_fail", "FAIL")
+
+    result = reconcile_run.reconcile("fk_fail", planning_root=planning_root, today="2026-08-07")
+
+    assert result["amendment"]["action"] == "skipped"
+    assert "FAIL" in result["amendment"]["reason"]
+    assert result["traceability"]["action"] == "skipped"
+    assert "FAIL" in result["traceability"]["reason"]
+
+    amendment_path = (
+        planning_root / "phases" / "02.1-geometry-representation-research" / reconcile_run.AMENDMENT_FILENAME
+    )
+    assert not amendment_path.exists()
+    req_text = (planning_root / "REQUIREMENTS.md").read_text(encoding="utf-8")
+    assert reconcile_run.TRACEABILITY_START_MARKER not in req_text
+    assert "DEC-01 | Phase 3 | Pending" in req_text  # untouched
+
+
+def test_reconciliation_refuses_without_verdict_artifact(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path / "cache")
+    planning_root = _make_fake_planning_tree(tmp_path)
+
+    with pytest.raises(FileNotFoundError):
+        reconcile_run.reconcile("fk_missing", planning_root=planning_root, today="2026-08-07")
+
+
+def test_reconciliation_never_opens_sealed_artifacts_for_writing(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path / "cache")
+    planning_root = _make_fake_planning_tree(tmp_path)
+    _write_verdict_json("fk_sealed", "PASS")
+
+    before = _sealed_hashes(planning_root)
+    reconcile_run.reconcile("fk_sealed", planning_root=planning_root, today="2026-08-07")
+    after = _sealed_hashes(planning_root)
+
+    assert before == after
+
+
+def test_traceability_marker_guard_is_a_string_search(tmp_path, monkeypatch):
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path / "cache")
+    planning_root = _make_fake_planning_tree(tmp_path)
+    req_path = planning_root / "REQUIREMENTS.md"
+    # Body differs from what a fresh write would produce, but the end marker is
+    # already present -- the guard must be the marker string, not a diff heuristic.
+    req_path.write_text(
+        req_path.read_text(encoding="utf-8")
+        + f"\n{reconcile_run.TRACEABILITY_START_MARKER}\nSOME DIFFERENT PRIOR BODY\n"
+        f"{reconcile_run.TRACEABILITY_END_MARKER}\n",
+        encoding="utf-8",
+    )
+    before_text = req_path.read_text(encoding="utf-8")
+
+    verdict_payload = {"TOPOAE_VERDICT": "PASS", "fit_key": "fk_marker"}
+    result = reconcile_run.apply_traceability_update_if_absent(planning_root, verdict_payload, today="2026-08-07")
+
+    assert result["action"] == "already_written"
+    after_text = req_path.read_text(encoding="utf-8")
+    assert after_text == before_text
+    assert "SOME DIFFERENT PRIOR BODY" in after_text
