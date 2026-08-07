@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: Completed 02.4-04-PLAN.md -- 02.4-PREREGISTRATION.md committed and ancestry-proved, LAMBDA_TOPO=0.1 and three planner-resolved constants frozen
-last_updated: "2026-08-07T14:07:22.784Z"
+stopped_at: Completed 02.4-04-PLAN.md, then corrected a documentation defect via additive erratum commit 9f5bd9e -- Section 1's false ambient-normalization claim fixed, ancestry proof re-confirmed
+last_updated: "2026-08-07T14:13:50.253Z"
 last_activity: 2026-08-07
 last_activity_desc: "Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1"
 progress:
@@ -162,6 +162,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-04: Task 1 blocking checkpoint returned to user (auto mode confirmed inactive); resolved option-a -- froze LAMBDA_TOPO=0.1 and the three planner-resolved constants (AMBIENT_DIST_NORM=none, one PlainAutoEncoder baseline per TopoAE fit, quarter-warmup/quarter-ramp/half-constant schedule) exactly as proposed
 - [Phase ?]: 02.4-04: coordinator reframing recorded in Known Limitation 2 -- the lambda grid (0.0,0.1,0.3,1.0,3.0) already spans the paper's own log-uniform-[0.1,3] searched range, so LAMBDA_TOPO=0.1 is the smallest lambda the authors themselves considered, alongside (not instead of) the existing mis-specified-selection-rule finding
 - [Phase ?]: 02.4-04: 02.4-PREREGISTRATION.md committed alone at 744c1c1 (no file under notebooks/); ancestry SHA 744c1c1d73a9e788a67768e2b397ad453045062a proved an ancestor of HEAD via git merge-base --is-ancestor
+- [Phase ?]: 02.4-04 erratum (2026-08-07, additive commit 9f5bd9e): orchestrator verification found 02.4-PREREGISTRATION.md Section 1 falsely claimed AMBIENT_DIST_NORM=none applies identically at training time and the T1 gate. train_topoae actually normalizes ambient distances by their own per-batch max (d_x/d_x.max()) plus the jointly-trained latent_norm -- the paper's convention, closed as fidelity gap #2 in 02.4-03 (4b9b6c9); only the T1 gate uses raw d_x. Corrected Sections 1/4, added Section 11 erratum record. No constant or threshold moved; 744c1c1 stays in the record unmodified; ancestry proof re-confirmed
 
 ### Pending Todos
 
@@ -202,8 +203,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T14:07:22.756Z
-Stopped at: Completed 02.4-04-PLAN.md -- 02.4-PREREGISTRATION.md committed and ancestry-proved, LAMBDA_TOPO=0.1 and three planner-resolved constants frozen
+Last session: 2026-08-07T14:13:50.226Z
+Stopped at: Completed 02.4-04-PLAN.md, then corrected a documentation defect via additive erratum commit 9f5bd9e -- Section 1's false ambient-normalization claim fixed, ancestry proof re-confirmed
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
