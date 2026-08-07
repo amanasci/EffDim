@@ -2,7 +2,7 @@
 subsample at fit_key = 43cf438bc944c509 (the identical `legacysurvey` array Phase 2's audited
 FAIL was measured on, and the same array Phase 02.2's Chart Auto-Encoder fits used).
 
-Two preconditions run before any fit:
+Three preconditions run before any fit:
 
   0a. The Phase 1 subsample npz and the Phase 2 mds_eigenspectrum npz must both exist under
       notebooks/.cache/ (gitignored, irreproducible here) -- this script halts rather than
@@ -11,11 +11,19 @@ Two preconditions run before any fit:
   0b. 02.4-PREREGISTRATION.md's adding commit must be a proven git ancestor of HEAD (re-resolved
       by `git log --diff-filter=A ... | tail -1` at every invocation, never hard-coded), so no
       threshold or constant below could have been chosen after a fit ran.
+  0c. 02.4-PREREGISTRATION-AMENDMENT-01.md's adding commit must ALSO be a proven git ancestor of
+      HEAD, resolved the identical way. Amendment 1 (2026-08-07) corrects train_topoae's
+      stopping rule -- see its own file for the defect, the mechanism, and what stayed
+      unchanged -- and every fit trained under the corrected rule is tagged AMENDMENT_TAG in
+      its cache stem, distinct from the pre-amendment (buggy, epochs_run=15 at every rung)
+      artifacts, which remain on disk untouched.
 
 Every constant below is fixed in 02.4-PREREGISTRATION.md Sections 3-4 before any PU fit exists
 -- copied here verbatim as named module-level values, never inlined as a magic number at a call
 site. `MAX_EPOCHS` is the one exception: it is a *rule*, not a number (MAX_EPOCHS_CANDIDATES),
 resolved by a real timing probe run inside this gated runner, after both preconditions pass.
+Amendment 1 changes none of these constants -- it changes only train_topoae's stopping rule,
+see 02.4-PREREGISTRATION-AMENDMENT-01.md Section 3 for the explicit unchanged-constants list.
 
 Training itself reuses `pu_manifold.topoae.train_topoae` and `pu_manifold.cae.train_plain_ae`
 unchanged -- this runner does not reimplement or "correct" either training loop. In particular,
@@ -34,6 +42,7 @@ Invoke: PYTHONPATH=notebooks python notebooks/diagnostics/topoae_train_run.py [-
 
 import argparse
 import hashlib
+import json
 import math
 import subprocess
 import time
@@ -89,6 +98,17 @@ MAX_EPOCHS_CANDIDATES = (40, 30, 20, 15, 10)
 PREREG_PATH = (
     ".planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-PREREGISTRATION.md"
 )
+
+# Amendment 1 (2026-08-07): corrects train_topoae's stopping rule (a plateau test firing
+# against a non-stationary warm-up/ramp objective, which truncated every TopoAE fit at
+# epochs_run=15 with lambda_t stuck at half of LAMBDA_TOPO, and left the two arms of every
+# rung on different effective training budgets). Not a pre-registered constant -- a second,
+# additional ancestry-proof target (STEP 0c) and the cache-stem tag every amended fit carries.
+AMENDMENT_PATH = (
+    ".planning/phases/02.4-topological-auto-encoder-validity-test-inserted/"
+    "02.4-PREREGISTRATION-AMENDMENT-01.md"
+)
+AMENDMENT_TAG = "amend01"
 
 # --- fit registry order (02.4-PREREGISTRATION.md Section 7) -----------------------------
 # The primary rung's first seed-matched TopoAE/baseline pair first, then the other two
@@ -167,6 +187,7 @@ def _topoae_cfg(seed: int, d: int) -> dict:
     return {
         "fit_key": FIT_KEY,
         "kind": "topoae",
+        "amendment_tag": AMENDMENT_TAG,
         "seed": seed,
         "d": d,
         "lr": ADAM_LR,
@@ -189,6 +210,7 @@ def _baseline_cfg(seed: int, d: int) -> dict:
     return {
         "fit_key": FIT_KEY,
         "kind": "baseline",
+        "amendment_tag": AMENDMENT_TAG,
         "seed": seed,
         "d": d,
         "lr": ADAM_LR,
@@ -313,6 +335,32 @@ if _ancestor_check.returncode != 0:
         "fit begins."
     )
 print(f"  pre-registration commit {_prereg_sha} confirmed an ancestor of HEAD -- proved, not asserted")
+
+# =============================================================================================
+_banner("STEP 0c -- precondition: Amendment 1 (stopping-rule correction) commit is a proven git ancestor of HEAD")
+
+_amend_log_out = subprocess.run(
+    ["git", "log", "--diff-filter=A", "--format=%H", "--", AMENDMENT_PATH],
+    capture_output=True,
+    text=True,
+    check=True,
+)
+_amend_add_commits = [line for line in _amend_log_out.stdout.strip().splitlines() if line]
+if not _amend_add_commits:
+    raise RuntimeError(
+        f"No commit found that added {AMENDMENT_PATH} -- cannot prove Amendment 1's "
+        "stopping-rule correction precedes every amend01-tagged fit."
+    )
+_amend_sha = _amend_add_commits[-1]
+
+_amend_ancestor_check = subprocess.run(["git", "merge-base", "--is-ancestor", _amend_sha, "HEAD"])
+if _amend_ancestor_check.returncode != 0:
+    raise RuntimeError(
+        f"Ordering violated: Amendment 1 commit {_amend_sha} is NOT an ancestor of HEAD. A "
+        "fit trained under the corrected stopping rule must never run ahead of the amendment "
+        "that ratifies it -- halting before any fit begins."
+    )
+print(f"  Amendment 1 commit {_amend_sha} confirmed an ancestor of HEAD -- proved, not asserted")
 
 # =============================================================================================
 _banner("STEP 1 -- data and holdout split")
@@ -496,8 +544,13 @@ def _run_topoae(d: int, seed: int):
         )
         return arrays, meta
 
-    npz_stem = f"topoae_fit_{FIT_KEY}_seed{seed}_d{d}"
-    meta_stem = f"topoae_fit_meta_{FIT_KEY}_seed{seed}_d{d}"
+    # Amendment 1's new stem suffix (AMENDMENT_TAG) -- the pre-amendment stem
+    # (topoae_fit_{FIT_KEY}_seed{seed}_d{d}) is deliberately never reused: its cfg is
+    # otherwise unchanged (train_topoae's internal stopping logic is not itself a cfg
+    # key), so reusing it would risk a false cache hit on the pre-amendment, buggy
+    # (epochs_run=15) artifact rather than training under the corrected rule.
+    npz_stem = f"topoae_fit_{FIT_KEY}_{AMENDMENT_TAG}_seed{seed}_d{d}"
+    meta_stem = f"topoae_fit_meta_{FIT_KEY}_{AMENDMENT_TAG}_seed{seed}_d{d}"
     arrays, meta, cache_hit = run_and_cache(f"topoae_d{d}_seed{seed}", npz_stem, cfg, meta_stem, cfg, train_fn)
     return arrays, meta, cache_hit, cfg
 
@@ -519,8 +572,12 @@ def _run_baseline(d: int, seed: int):
         meta = _finalize_meta(fit, seed, ACTIVATION, d=d, max_epochs=MAX_EPOCHS)
         return arrays, meta
 
-    npz_stem = f"topoae_baseline_{FIT_KEY}_seed{seed}_d{d}"
-    meta_stem = f"topoae_baseline_meta_{FIT_KEY}_seed{seed}_d{d}"
+    # Same rationale as _run_topoae: tag the stem so a re-run under Amendment 1 cannot
+    # collide with (or false-cache-hit) the pre-amendment baseline artifact -- even
+    # though the baseline's own stopping rule (cae.train_plain_ae) did not change, the
+    # tag keeps every rung's TopoAE/baseline pair on matching, unambiguous stems.
+    npz_stem = f"topoae_baseline_{FIT_KEY}_{AMENDMENT_TAG}_seed{seed}_d{d}"
+    meta_stem = f"topoae_baseline_meta_{FIT_KEY}_{AMENDMENT_TAG}_seed{seed}_d{d}"
     arrays, meta, cache_hit = run_and_cache(f"baseline_d{d}_seed{seed}", npz_stem, cfg, meta_stem, cfg, train_fn)
     return arrays, meta, cache_hit, cfg
 
@@ -602,6 +659,77 @@ else:
 
 if halted_for_nonconvergence:
     _banner("RUN HALTED -- D-19 non-convergence at the primary rung (measured, not tuned around)")
+
+# =============================================================================================
+_banner("STEP 4 -- budget-parity check (T1/T2/T3 are model/baseline ratios; the two arms must be comparable)")
+
+_all_rungs = [(D_PRIMARY, seed) for seed in SEEDS_PRIMARY] + [
+    (d, SEEDS_PRIMARY[0]) for d in _SENSITIVITY_RUNGS
+]
+_parity_rows = []
+for _d, _seed in _all_rungs:
+    _topo_json = cache.cache_path(f"topoae_fit_meta_{FIT_KEY}_{AMENDMENT_TAG}_seed{_seed}_d{_d}", "json")
+    _base_json = cache.cache_path(f"topoae_baseline_meta_{FIT_KEY}_{AMENDMENT_TAG}_seed{_seed}_d{_d}", "json")
+    if not (_topo_json.exists() and _base_json.exists()):
+        continue  # this rung was not part of the current selection; nothing to compare yet
+
+    _topo_meta = json.loads(_topo_json.read_text())
+    _base_meta = json.loads(_base_json.read_text())
+    _topo_epochs = _topo_meta["epochs_run"]
+    _base_epochs = _base_meta["epochs_run"]
+    _final_lambda_t = _topo_meta["history"][-1]["lambda_t"] if _topo_meta.get("history") else None
+    _reached_lambda_topo = _final_lambda_t is not None and _final_lambda_t >= LAMBDA_TOPO
+    _parity_ok = _topo_epochs == _base_epochs
+
+    # Record each arm's own AND its paired arm's epochs_run directly in both cached
+    # meta records, so a reader inspecting either artifact alone sees both budgets
+    # without cross-referencing a second file. Direct rewrite under the unchanged cfg
+    # manifest (never through cache.json_cache, which would treat an unchanged cfg as
+    # a cache hit and skip the write) -- no retraining, cfg/provenance untouched.
+    _topo_meta["paired_baseline_epochs_run"] = _base_epochs
+    _topo_meta["budget_parity_ok"] = _parity_ok
+    _base_meta["paired_topoae_epochs_run"] = _topo_epochs
+    _base_meta["budget_parity_ok"] = _parity_ok
+    _topo_json.write_text(json.dumps(_topo_meta, indent=2, sort_keys=True))
+    _base_json.write_text(json.dumps(_base_meta, indent=2, sort_keys=True))
+
+    _parity_rows.append(
+        {
+            "d": _d,
+            "seed": _seed,
+            "topoae_epochs_run": _topo_epochs,
+            "baseline_epochs_run": _base_epochs,
+            "parity_ok": _parity_ok,
+            "final_lambda_t": _final_lambda_t,
+            "reached_lambda_topo": _reached_lambda_topo,
+        }
+    )
+
+if _parity_rows:
+    _phdr = f"{'d':>4s} {'seed':>10s} {'topoae_epochs':>14s} {'baseline_epochs':>16s} {'parity':>7s} {'final_lambda_t':>15s} {'reached_LAMBDA_TOPO':>20s}"
+    print(_phdr)
+    print("-" * len(_phdr))
+    _any_asymmetry = False
+    for _r in _parity_rows:
+        if not _r["parity_ok"]:
+            _any_asymmetry = True
+        print(
+            f"{_r['d']:>4} {_r['seed']:>10} {_r['topoae_epochs_run']:>14} "
+            f"{_r['baseline_epochs_run']:>16} {str(_r['parity_ok']):>7s} "
+            f"{_r['final_lambda_t']:>15} {str(_r['reached_lambda_topo']):>20s}"
+        )
+    if _any_asymmetry:
+        print()
+        print(
+            "  ASYMMETRY: at least one rung's TopoAE and matched baseline received a "
+            "different effective training budget (epochs_run differs). Reported as "
+            "measured -- see the table above for exact numbers, per rung."
+        )
+    else:
+        print()
+        print("  Budget parity holds at every rung reported above: TopoAE and its matched baseline ran the same epochs_run.")
+else:
+    print("  (no rung has both arms cached yet -- nothing to compare)")
 
 print()
 print("Done.")
