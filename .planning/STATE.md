@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.4
-current_phase_name: topological-auto-encoder-validity-test-inserted
-status: executing
+current_phase: 3
+current_phase_name: Decoder & Curvature Field
+status: planning
 stopped_at: Completed 02.4-08-PLAN.md -- Phase 02.4 fully executed (8/8 plans), TOPOAE_VERDICT=FAIL sealed, reconciliation confirmed no-op
-last_updated: "2026-08-07T17:17:57.287Z"
+last_updated: "2026-08-07T18:10:06.968Z"
 last_activity: 2026-08-07
-last_activity_desc: "Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1"
+last_activity_desc: Phase 02.4 complete, transitioned to Phase 3
 progress:
   total_phases: 5
   completed_phases: 5
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
-Plan: 8 of 8
-Status: Plan 02.4-03 COMPLETE. Task 4's Swiss roll checkpoint is APPROVED after two correction rounds (a train_topoae fidelity correction, then adding a matched baseline to the topological structural check): TopoAE beats the plain-AE baseline on the topological check (r=0.680 vs 0.471, its own stated objective) while losing to it on plain MSE reconstruction (ratio 1.382) -- read as the trade the method makes on purpose. LAMBDA_TOPO=0.1 frozen for 02.4-PREREGISTRATION.md; three named limitations carry forward (see 02.4-03-SUMMARY.md § Known Limitations). Ready to proceed to plan 02.4-04.
-Last activity: 2026-08-07 — Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1
+Phase: 3 — Decoder & Curvature Field
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-07 — Phase 02.4 complete, transitioned to Phase 3
 
 **Phase 02.4 is planned (2026-08-06).** 8 plans across 7 waves. Requirement coverage R1–R8 complete; decision coverage 20/20 against `02.4-CONTEXT.md`. Plan-checker returned **0 blockers, 1 warning**. Wave order: `01` topoae.py tracer (R1,R2) → `02` gate layer (R4,R5,R6) + `03` λ sweep and the mandatory Swiss roll notebook (R8) → `04` pre-registration (R3) → `05` gated PU train runner, primary rung (R2,R3) → `06` remaining 13 fits (R2) → `07` evaluate runner and verdict artifact (R4,R5,R6) → `08` reconciliation and the TOPO-01..08 register (R7). Plans `03`, `04`, `05`, `07` are non-autonomous — each carries a blocking human checkpoint.
 
