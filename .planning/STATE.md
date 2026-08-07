@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.5
-current_phase_name: Local Curvature Feasibility and CAE Local Re-Gate
+current_phase_name: Local Curvature Feasibility and CAE Local Re-Gate (INSERTED, planned — ready to execute)
 status: planning
-stopped_at: Phase 02.5 context gathered
-last_updated: "2026-08-07T20:17:55.894Z"
+stopped_at: Phase 02.5 planned — 13 plans across 12 waves, ready to execute
+last_updated: "2026-08-07T23:55:00.000Z"
 last_activity: 2026-08-07
-last_activity_desc: Phase 02.4 sealed (TOPOAE_VERDICT=FAIL, global-scoped); Phase 02.5 inserted
+last_activity_desc: Phase 02.5 planned — 13 plans in 12 waves; plan-checker returned 0 blockers, 0 warnings
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 25
+  total_plans: 38
   completed_plans: 25
 ---
 
@@ -23,14 +23,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate
+**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate (planned, ready to execute)
 
 ## Current Position
 
-Phase: 02.5 — Local Curvature Feasibility & CAE Local Re-Gate (INSERTED)
-Plan: Not started
-Status: Context gathered (`02.5-CONTEXT.md`, 16 decisions) — ready for planning
-Last activity: 2026-08-07 — Phase 02.5 context gathered
+Phase: 02.5 — Local Curvature Feasibility & CAE Local Re-Gate (INSERTED, planned — 13 plans, 12 waves)
+Plan: Not started — 0/13 executed
+Status: Ready to execute — `/gsd-execute-phase 02.5`
+Last activity: 2026-08-07 — Phase 02.5 planned; RESEARCH, PATTERNS, VALIDATION, COVERAGE and 13 PLAN files written
+
+**Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
+
+**Stage 1 gates stage 2 structurally, and the NO-GO branch is written down.** Plans `08`–`12` depend transitively on plan `07`, whose Task 3 is a blocking `checkpoint:human-verify` — the sole gate deciding whether stage 2 runs at all. On NO-GO, plan `07` directs an explicit human-gated re-pointing of plan `13`'s `depends_on` from `["02.5-12"]` to `["02.5-07"]`, and plan `13` documents writing a stage-1-only FINDINGS/amendment set from `02.5-07-SUMMARY.md`. A stage-1 negative is a complete, reportable phase outcome, not a stall.
+
+**Two substantive things the planner found and resolved, both verified by the checker.** (1) A **curvature-convention mismatch inside `02.5-RESEARCH.md`**: its Pattern 1 derivation, Pattern 4, and `curvature.py`'s stub docstrings all use `H = tr(II)`, but its `swiss_roll_analytic_H` returns the *averaged* `κ/2` — off by a factor of `d` (2 at the Swiss roll, 20 at the PU regime). Spearman is invariant to the factor, so D-01's gate would never have caught it, but D-01's non-gating median relative error and D-05's estimator-agreement check would both have been wrong by `d`. Resolved to the **trace convention** in `02.5-01-PLAN.md`, pinned by `test_curvature_convention_is_trace_not_averaged`. (2) **D-09 and D-10 are not jointly satisfiable as written** — D-09 wants both arms scored against known `H`, D-10 wants the three *sealed* fits re-measured rather than retrained, and the sealed fits are trained on PU data, which has no known `H`. Plan `10` splits the gate: **Gate A** (margin) on analytic-`H` fixtures with CAEs fitted at the sealed fits' verbatim architecture, **Gate B** (seed stability) on the sealed PU fits where agreement needs no ground truth — with the reconciliation itself put in front of the user at the ratification checkpoint rather than resolved silently.
+
+**Performance trap flagged into the plans.** `02.5-RESEARCH.md`'s Pattern 1 uses `np.linalg.eigh` on the `(D, D)` covariance — O(D³), unusable at `D = 768`, `n = 10,000`. The plans specify the O(k²D) SVD route instead, with a negative grep on `eigh` as an acceptance criterion.
+
+**Carried into execution.** `02.5-VALIDATION.md`'s per-task map is still `TBD`-keyed. Its ten pre-seeded pytest names all appear verbatim in the plans (kept in one `notebooks/pu_manifold/tests/test_curvature_probe.py` so the map reconciles cleanly), but `/gsd-validate-phase` still needs to fill in the Task IDs. `notebooks/pu_manifold/curvature.py`'s `NotImplementedError` stubs — labelled "Implemented in Phase 3 (CURV-0N)" — are explicitly **never filled and never imported**; stage 2 builds a phase-scoped `chart_curvature.py` instead, so Phase 3 requirements are not pulled forward.
 
 **Why 02.5 exists.** Phase 3 is blocked on a **PASS** no method has produced, and `02.4-FINDINGS.md` argues that gate may ask the wrong question: every FAIL in this milestone (Phase 2's `m = 0.412071`, 02.2's T1/T3, 02.4's T1/T2) is a *global* statistic, while every *local*-scoped gate measured has passed (02.2's chart-transition residual `1.089366 < 2.0`; 02.4's T3 `0.671980` at `k=15`). Mean curvature is a **local invariant** — `II_p` depends only on an arbitrarily small neighbourhood — so failing to obtain *global* coordinates does not by itself block a curvature field. Two stages, the first gating the second: (1) a Swiss roll feasibility probe with analytic `H`, degraded toward the PU regime, to find where local second-fundamental-form estimation breaks; (2) a locally-scoped CAE re-gate, **only if stage 1 clears**. A stage-1 negative is a complete, reportable outcome.
 

@@ -306,18 +306,53 @@ Plans:
 **Plans**: 13 plans across 12 waves. Stage 1 is plans 01–07; stage 2 is plans 08–12 and runs **only** if plan 07's blocking go/no-go checkpoint returns GO; plan 13 discharges the outward-facing obligations on either branch. Plans 05, 06, 07, 09, 10, 12, 13 are non-autonomous — each carries a blocking checkpoint.
 
 Plans:
+**Wave 1**
+
 - [ ] 02.5-01-PLAN.md — Tracer: Swiss roll → centroid/Laplace–Beltrami estimator → Spearman vs analytic H, end to end (D-00, D-01, D-03, D-05, D-07)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 02.5-02-PLAN.md — Graph-of-function fixture family at arbitrary (d, D, codimension), non-uniform sampling, and the density correction (D-03, D-06, D-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 02.5-03-PLAN.md — Non-gating quadric cross-check, estimator agreement, and permutation-null calibration (D-01, D-02, D-05)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 02.5-04-PLAN.md — Direction-aware verdict functions and the R6 verdict/handoff writers at 02.5 scope (D-01, D-12, D-15)
 - [ ] 02.5-05-PLAN.md — **[checkpoint]** Mandatory CLAUDE.md Swiss roll sanity notebook for the curvature estimator (D-03, D-05, D-07)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 02.5-06-PLAN.md — **[checkpoint]** Stage-1 pre-registration: ratified, committed alone, git-ancestry proved (D-00..D-08, D-12)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 02.5-07-PLAN.md — **[checkpoint]** Stage-1 feasibility sweep, the boundary report, and the **GO/NO-GO gate that decides whether stage 2 runs at all** (D-01..D-08)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 02.5-08-PLAN.md — Exact chart-decoder curvature via `torch.func`, C2-smoothness guard, sealed-fit load check (D-09, D-10)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 02.5-09-PLAN.md — **[checkpoint]** Mandatory Swiss roll sanity notebook for the chart-curvature model (D-03, D-09)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [ ] 02.5-10-PLAN.md — **[checkpoint]** Stage-2 pre-registration: the D-09/D-10 reconciliation and D-12's neither-clears branch resolved (D-09..D-12, D-15)
+
+**Wave 10** *(blocked on Wave 9 completion)*
+
 - [ ] 02.5-11-PLAN.md — Gate A: CAE charts vs raw points, both scored against analytic H at the PU-matched regime (D-09, D-10)
+
+**Wave 11** *(blocked on Wave 10 completion)*
+
 - [ ] 02.5-12-PLAN.md — **[checkpoint]** Gate B seed stability on the three sealed fits, sealed stage-2 verdict, handoff or stale deletion, routing (D-10..D-12, D-15)
+
+**Wave 12** *(blocked on Wave 11 completion)*
+
 - [ ] 02.5-13-PLAN.md — **[checkpoint]** Retarget Phase 3's dead-pointer dependency, revisit 02.1's falsifier, complete the phase record (D-04, D-13, D-14, D-15)
 
 ### Phase 3: Decoder & Curvature Field
