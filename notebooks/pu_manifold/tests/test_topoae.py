@@ -277,3 +277,100 @@ def test_topological_loss_gradient_flows_through_values_not_selection():
                 continue
             assert grad[i, j] == 0.0, f"gradient leaked into unselected position ({i}, {j})"
     assert np.any(grad != 0.0), "no gradient reached any selected position"
+
+
+# --- Task 3: R2 hardening -- reproducibility, drop_last, non-finite halt ------------------
+
+_TOPOAE_CFG = {
+    "lr": 3e-3,
+    "weight_decay": 1e-4,
+    "batch": 32,
+    "max_epochs": 4,
+    "seed": 5,
+    "lambda_topo": 0.3,
+    "warmup_frac": 0.25,
+    "ramp_frac": 0.25,
+}
+
+
+def test_train_topoae_reproducible():
+    x = _make_synthetic_fixture(n=200, ambient_dim=20, seed=2)
+    cfg = dict(_TOPOAE_CFG)
+
+    torch.manual_seed(999)
+    model1 = c.PlainAutoEncoder(20, 3)
+    fit1 = t.train_topoae(model1, x, cfg)
+
+    torch.manual_seed(999)
+    model2 = c.PlainAutoEncoder(20, 3)
+    fit2 = t.train_topoae(model2, x, cfg)
+
+    # bit-identical, asserted with == -- no tolerance-based comparison
+    assert fit1["history"] == fit2["history"]
+
+    with torch.no_grad():
+        y1 = model1.decode(model1.encode(x))
+        y2 = model2.decode(model2.encode(x))
+    stats1 = c.reconstruction_stats(x, y1)
+    stats2 = c.reconstruction_stats(x, y2)
+    assert stats1 == stats2
+
+
+def test_train_topoae_different_seed_differs():
+    x = _make_synthetic_fixture(n=200, ambient_dim=20, seed=2)
+    cfg_a = dict(_TOPOAE_CFG, seed=5)
+    cfg_b = dict(_TOPOAE_CFG, seed=6)
+
+    torch.manual_seed(999)
+    model_a = c.PlainAutoEncoder(20, 3)
+    fit_a = t.train_topoae(model_a, x, cfg_a)
+
+    torch.manual_seed(999)
+    model_b = c.PlainAutoEncoder(20, 3)
+    fit_b = t.train_topoae(model_b, x, cfg_b)
+
+    assert fit_a["history"] != fit_b["history"]
+
+
+def test_lambda_schedule_warmup_then_ramp_then_constant():
+    cfg = {"lambda_topo": 2.0, "max_epochs": 20, "warmup_frac": 0.25, "ramp_frac": 0.25}
+    # warmup_epochs = floor(0.25 * 20) = 5; ramp_epochs = floor(0.25 * 20) = 5
+
+    for epoch in range(5):
+        assert t.lambda_schedule(epoch, cfg) == 0.0
+
+    ramp_values = [t.lambda_schedule(epoch, cfg) for epoch in range(5, 10)]
+    assert all(a < b for a, b in zip(ramp_values, ramp_values[1:]))
+    assert ramp_values[-1] == cfg["lambda_topo"]
+
+    for epoch in range(10, 20):
+        assert t.lambda_schedule(epoch, cfg) == cfg["lambda_topo"]
+
+
+def test_train_topoae_drops_short_final_batch(monkeypatch):
+    calls = []
+    orig_persistence_pairs = t.persistence_pairs
+
+    def spy(D):
+        calls.append(D.shape[0])
+        return orig_persistence_pairs(D)
+
+    monkeypatch.setattr(t, "persistence_pairs", spy)
+
+    n = 65  # 65 % 32 == 1 -- final batch of exactly 1 point, below the persistence floor
+    x = _make_synthetic_fixture(n=n, ambient_dim=20, seed=3)
+    cfg = dict(_TOPOAE_CFG, max_epochs=2, ramp_frac=0.5, warmup_frac=0.0)
+    model = c.PlainAutoEncoder(20, 3)
+    fit = t.train_topoae(model, x, cfg)
+
+    assert fit["epochs_run"] == 2
+    assert len(calls) > 0
+    assert all(batch_n >= 2 for batch_n in calls), "persistence_pairs was called with a batch below 2 points"
+
+
+def test_train_topoae_halts_on_non_finite_loss():
+    x = _make_synthetic_fixture(n=64, ambient_dim=20, seed=4)
+    cfg = dict(_TOPOAE_CFG, lr=1e8, weight_decay=0.0, max_epochs=5)
+    model = c.PlainAutoEncoder(20, 3)
+    with pytest.raises(ValueError, match="non-finite"):
+        t.train_topoae(model, x, cfg)
