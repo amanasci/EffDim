@@ -5,10 +5,10 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: "Plan 02.4-03: fidelity correction complete, Task 4 checkpoint still open (Swiss roll non-PASS)"
-last_updated: "2026-08-07T12:41:06.893Z"
-last_activity: 2026-08-06
-last_activity_desc: Phase 02.4 execution started
+stopped_at: "Plan 02.4-03: two correction rounds complete (fidelity + baseline-relative topology check), Task 4 checkpoint still open (TopoAE beats baseline on topology, loses on reconstruction)"
+last_updated: "2026-08-07T13:46:06.971Z"
+last_activity: 2026-08-07
+last_activity_desc: "Plan 02.4-03: two correction rounds (fidelity correction + baseline-relative topology check); Task 4 checkpoint still open"
 progress:
   total_phases: 5
   completed_phases: 4
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
 Plan: 3 of 8
-Status: BLOCKED on Task 4's checkpoint — Swiss roll sanity check does not clearly recover the roll, even after a mid-plan fidelity correction to topoae.py brought train_topoae into agreement with the paper/reference implementation. Awaiting a human decision (see 02.4-03-SUMMARY.md and the Blockers/Concerns entry below). Plans 02.4-04..08 cannot proceed until this resolves.
-Last activity: 2026-08-07 — Plan 02.4-03: fidelity correction, re-sweep, re-run notebook; Task 4 checkpoint still open
+Status: BLOCKED on Task 4's checkpoint — after two correction rounds (a train_topoae fidelity correction, then adding a matched baseline to the topological structural check), the Swiss roll result is now: TopoAE clearly beats the plain-AE baseline on the topological check (r=0.680 vs 0.471, its own stated objective) while losing to it on plain MSE reconstruction (ratio 1.382). Awaiting a human decision on this reading (see 02.4-03-SUMMARY.md and the Blockers/Concerns entry below). Plans 02.4-04..08 cannot proceed until this resolves.
+Last activity: 2026-08-07 — Plan 02.4-03: two correction rounds (fidelity correction + baseline-relative topology check); Task 4 checkpoint still open
 
 **Phase 02.4 is planned (2026-08-06).** 8 plans across 7 waves. Requirement coverage R1–R8 complete; decision coverage 20/20 against `02.4-CONTEXT.md`. Plan-checker returned **0 blockers, 1 warning**. Wave order: `01` topoae.py tracer (R1,R2) → `02` gate layer (R4,R5,R6) + `03` λ sweep and the mandatory Swiss roll notebook (R8) → `04` pre-registration (R3) → `05` gated PU train runner, primary rung (R2,R3) → `06` remaining 13 fits (R2) → `07` evaluate runner and verdict artifact (R4,R5,R6) → `08` reconciliation and the TOPO-01..08 register (R7). Plans `03`, `04`, `05`, `07` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -155,6 +155,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-03 mid-plan fidelity correction (2026-08-07): topoae.py's train_topoae did not faithfully implement the paper (arXiv:1906.00722)/reference (BorgwardtLab/topological-autoencoders) -- missing jointly-trained latent_norm scale, missing per-batch d_x/d_x.max() ambient normalization, a spurious /batch_size division, and a missing 1/2 factor on each directional term. All four fixed, 4 new tests added (106 total in the suite), float64 confirmed as a deliberate retained divergence from the reference's float32
 - [Phase ?]: 02.4-03 lambda re-swept over the paper's actual log-uniform-[0.1,3] range after the fidelity correction (prior grid was ~32x mis-scaled due to the batch-size division + missing 1/2 factor bugs); re-measured selection is again the grid floor, lambda=0.1, same value as before but now a faithful measurement
 - [Phase ?]: 02.4-03 Task 4's blocking Swiss roll checkpoint is NOT approved as of this SUMMARY -- the corrected implementation still does not clearly recover the Swiss roll (22.6% relative error, does not beat the matched plain-AE baseline, 0.680 persistence-pair correlation vs a 0.8 bound). Plans 02.4-04..08 remain blocked pending a human decision
+- [Phase ?]: 02.4-03 round 2 (2026-08-07): the notebook's topological structural check had no matched baseline (absolute r>0.8 bound only) -- added the same ambient MST pairing applied to both TopoAE and plain-AE latents, gate now baseline-relative. Result: TopoAE r=0.680 vs plain-AE r=0.471 -- TopoAE clearly beats the baseline on its own stated objective while losing to it on plain MSE reconstruction (ratio 1.382). Read as the trade the method makes on purpose (paper evaluates with KL divergence/trustworthiness-continuity, never MSE), not tuned toward this reading
 
 ### Pending Todos
 
@@ -168,7 +169,7 @@ From `TODO.md`:
 - `UniverseTBD/pu-embeddings` is ~93 GB across 163 configs — v1.1 streams exactly one config (`legacysurvey_dinov3_vitb16`) and subsamples 10k of 101,725 rows; never materialize the whole dataset
 - Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) need a dedicated research pass during planning per `research/SUMMARY.md`; Phase 1/2 are standard sklearn/MDS patterns and can skip it
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 is now blocked on Phase 02.2's `cae_verdict.json` reading PASS, and a FAIL there leaves the milestone at the phase-2 stage
-- Plan 02.4-03's Task 4 blocking checkpoint is open: the Swiss roll sanity check does not clearly recover the roll (relative error 22.6%, does not beat the matched plain-AE baseline, persistence-pair edge-length correlation 0.680) even after a mid-plan fidelity correction to topoae.py's training loss brought it into agreement with the paper/reference implementation. Selected lambda=0.1 is again the grid floor. Plans 02.4-04..08 are blocked pending a human decision on this result.
+- Plan 02.4-03's Task 4 blocking checkpoint is open, after two correction rounds: (1) a train_topoae fidelity correction bringing it into agreement with the paper/reference implementation, and (2) adding a matched plain-AE baseline to the topological structural check, which had none. Current result: TopoAE beats the plain-AE baseline on the topological structural check (r=0.680 vs 0.471, its own stated objective) while losing to it on plain MSE reconstruction (ratio 1.382, relative error 22.6%). Selected lambda=0.1 is again the grid floor. Plans 02.4-04..08 are blocked pending a human decision on this reading.
 
 ### Quick Tasks Completed
 
@@ -195,8 +196,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T12:41:06.867Z
-Stopped at: Plan 02.4-03: fidelity correction complete, Task 4 checkpoint still open (Swiss roll non-PASS)
+Last session: 2026-08-07T13:46:06.944Z
+Stopped at: Plan 02.4-03: two correction rounds complete (fidelity + baseline-relative topology check), Task 4 checkpoint still open (TopoAE beats baseline on topology, loses on reconstruction)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
