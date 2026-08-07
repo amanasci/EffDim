@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.4
 current_phase_name: topological-auto-encoder-validity-test-inserted
 status: executing
-stopped_at: Completed 02.4-06-PLAN.md
-last_updated: "2026-08-07T15:45:10.918Z"
+stopped_at: Completed 02.4-07-PLAN.md
+last_updated: "2026-08-07T16:58:12.289Z"
 last_activity: 2026-08-07
 last_activity_desc: "Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1"
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 25
-  completed_plans: 23
+  completed_plans: 24
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Plan 02.4-03 COMPLETE. Task 4's Swiss roll checkpoint is APPROVED after two correction rounds (a train_topoae fidelity correction, then adding a matched baseline to the topological structural check): TopoAE beats the plain-AE baseline on the topological check (r=0.680 vs 0.471, its own stated objective) while losing to it on plain MSE reconstruction (ratio 1.382) -- read as the trade the method makes on purpose. LAMBDA_TOPO=0.1 frozen for 02.4-PREREGISTRATION.md; three named limitations carry forward (see 02.4-03-SUMMARY.md § Known Limitations). Ready to proceed to plan 02.4-04.
 Last activity: 2026-08-07 — Plan 02.4-03 complete: Swiss roll gate APPROVED, lambda frozen at 0.1
 
@@ -72,7 +72,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [██████████] 96% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 02.4 P05 | 50min | 3 tasks | 1 files |
 | Phase 02.4 P05 | 1h40m | 3 tasks | 4 files |
 | Phase 02.4 P06 | ~20min | 3 tasks | 0 files |
+| Phase 02.4 P07 | 45min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-05: stopping-rule fix (commit ee54858) -- early stopping suspended until floor(warmup_frac*max_epochs)+floor(ramp_frac*max_epochs); best_loss/plateau_count reset at that epoch. All sixteen fits re-run under amend01-tagged cache stems (pre-amendment buggy artifacts left intact on disk): every TopoAE fit now runs the full 40-epoch budget, reaches lambda_t=LAMBDA_TOPO=0.1, and has perfect budget parity with its matched baseline at all 8 rungs. Transfer_ratio (now measured at the true post-ramp epoch, no fallback) ranges 0.227701-0.313072, 0.54x-0.74x of the Swiss roll sweep's 0.422840 -- no order-of-magnitude gap
 - [Phase ?]: 02.4-06: verified (not re-ran) that plan 02.4-05's reopened re-run already delivered all sixteen amend01-tagged fits -- registry structure, cfg-match, both ancestry proofs, cache-hit reproducibility, and bit-identical reload all independently confirmed; no code changed
 - [Phase ?]: 02.4-06: primary-rung seed-to-seed transfer_ratio spread confirmed 0.227701-0.271348 (about 18% relative), all eight rungs' budget parity True and lambda_t=0.1 reached in full; pre-amendment (epochs_run=15) artifacts confirmed still intact and unmodified, never read as current
+- [Phase ?]: 02.4-07: TOPOAE_VERDICT=FAIL sealed (T1=1.026379 vs <0.90, T2=1.211939 vs <1.00 both FAIL; T3=0.671980 vs <0.90 PASS) -- no threshold/constant/rule adjusted
+- [Phase ?]: 02.4-07: coordinator checkpoint directed an additive gate_scope annotation (global: T1/T2, local: T3=k15) on the sealed verdict artifact rather than a bare FAIL string, since local curvature estimation depends on local not global fidelity; verdict/metrics/thresholds/gate_detail confirmed byte-identical before/after
+- [Phase ?]: 02.4-07: withdrew 02.4-04's 'paper's own minimum searched lambda' justification for LAMBDA_TOPO=0.1 -- a fifth fidelity gap (EffDim sums the reconstruction term over features, reference means it) means LAMBDA_TOPO=0.1 is ~D times smaller in paper convention than stated, well below the searched [0.1,3] range. LAMBDA_TOPO unchanged, no re-fit; flagged for 02.4-08's pre-registration amendment
 
 ### Pending Todos
 
@@ -214,8 +218,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T15:45:10.891Z
-Stopped at: Completed 02.4-06-PLAN.md
+Last session: 2026-08-07T16:58:12.262Z
+Stopped at: Completed 02.4-07-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
