@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.4
-current_phase_name: Topological Auto-Encoder Validity Test (INSERTED, planned — ready to execute)
-status: planning
-stopped_at: Phase 02.4 planned — 8 plans across 7 waves, ready to execute
-last_updated: "2026-08-06T21:45:00.000Z"
+current_phase_name: topological-auto-encoder-validity-test-inserted
+status: executing
+stopped_at: Completed 02.4-01-PLAN.md
+last_updated: "2026-08-07T02:56:40.343Z"
 last_activity: 2026-08-06
-last_activity_desc: Phase 02.4 planned — 8 plans in 7 waves; plan-checker returned 0 blockers and 1 non-blocking warning
+last_activity_desc: Phase 02.4 execution started
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 25
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.4 — topological-autoencoder-validity-test (planned, ready to execute)
+**Current focus:** Phase 02.4 — topological-auto-encoder-validity-test-inserted
 
 ## Current Position
 
-Phase: 02.4 — Topological Auto-Encoder Validity Test (INSERTED, planned — 8 plans, 7 waves)
-Plan: Not started — 0/8 executed
-Status: Ready to execute — `/gsd-execute-phase 02.4`
-Last activity: 2026-08-06 — Phase 02.4 planned; RESEARCH, PATTERNS, VALIDATION, COVERAGE and 8 PLAN files written
+Phase: 02.4 (topological-auto-encoder-validity-test-inserted) — EXECUTING
+Plan: 2 of 8
+Status: Ready to execute
+Last activity: 2026-08-06 — Phase 02.4 execution started
 
 **Phase 02.4 is planned (2026-08-06).** 8 plans across 7 waves. Requirement coverage R1–R8 complete; decision coverage 20/20 against `02.4-CONTEXT.md`. Plan-checker returned **0 blockers, 1 warning**. Wave order: `01` topoae.py tracer (R1,R2) → `02` gate layer (R4,R5,R6) + `03` λ sweep and the mandatory Swiss roll notebook (R8) → `04` pre-registration (R3) → `05` gated PU train runner, primary rung (R2,R3) → `06` remaining 13 fits (R2) → `07` evaluate runner and verdict artifact (R4,R5,R6) → `08` reconciliation and the TOPO-01..08 register (R7). Plans `03`, `04`, `05`, `07` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -72,7 +72,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [██████████] 100% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [███████░░░] 72% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Progress: [██████████] 100% of planned plans (17/17; Phases 
 | Phase 02.2 P04 | ~2min | 3 tasks | 2 files |
 | Phase 02.2 P05 | ~3h | 3 tasks | 3 files |
 | Phase 02.2 P06 | ~15min | 3 tasks | 4 files |
+| Phase 02.4 P01 | 10min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.2-06: CAE_VERDICT=FAIL (T1 distortion 0.296981 vs <0.15; T3 worst-case reconstruction ratio 3.586350 vs <0.90; T2 passed 1.089366 vs <2.0) -- measured, not tuned toward PASS
 - [Phase ?]: 02.2-06: T3's compound two-control AND condition encoded as max(mse_cae/mse_control_A, mse_cae/mse_control_B) < (1-THRESH_RECON_MARGIN), algebraically identical to the ratified rule, never a reinterpretation
 - [Phase ?]: 02.2-06: phase gate resolved -- user chose iterate over adopt-Krein or stop-and-report; Phase 02.3 (Chart Auto-Encoder Iteration) proposed in ROADMAP.md, not yet planned; Phase 3 now depends on Phase 02.3 PASS, not Phase 02.2 (sealed FAIL)
+- [Phase ?]: 02.4-01: Task 1's tracer feedback gate (interactive checkpoint:human-verify) approved by user after independent re-verification of all <verify> commands and T1/T2/T3 ratio directions; Tasks 2-3 proceeded
+- [Phase ?]: 02.4-01: tracer artifact's gate_detail intentionally still uses cae's borrowed GATING_METRICS slot names (distortion/rcycle_ratio/recon_margin) -- orchestrator confirmed replacing them is plan 02.4-02's job (threat T-02.4-11), out of scope for 02.4-01
+- [Phase ?]: 02.4-01: train_topoae's non-finite-loss check runs per-batch (not per-epoch-mean), raising ValueError naming the epoch and batch index at the point of divergence; empirically confirmed to trip at lr=1e8
 
 ### Pending Todos
 
@@ -183,8 +187,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-06T20:40:21.249Z
-Stopped at: Phase 02.4 context gathered
+Last session: 2026-08-07T02:56:40.316Z
+Stopped at: Completed 02.4-01-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-CONTEXT.md
+Resume file: None
 </content>

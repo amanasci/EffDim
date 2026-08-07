@@ -211,31 +211,48 @@ Plans:
 
 **Hard gate**: a machine-readable verdict artifact on the `gate_verdict` / `cae_verdict` pattern. PASS unblocks Phase 3; FAIL blocks it and is a complete, reportable outcome rather than an error to work around.
 
-**Plans**: 8 planned, 0/8 executed (planned 2026-08-06)
+**Plans**: 1/8 plans executed
+
+- [x] 02.4-01-PLAN.md
+- [ ] 02.4-02-PLAN.md
+- [ ] 02.4-03-PLAN.md
+- [ ] 02.4-04-PLAN.md
+- [ ] 02.4-05-PLAN.md
+- [ ] 02.4-06-PLAN.md
+- [ ] 02.4-07-PLAN.md
+- [ ] 02.4-08-PLAN.md
 
 **Wave 1**
+
 - `02.4-01` — `topoae.py` tracer: hand-rolled Union-Find persistence pairs, symmetric topological loss, λ schedule, `train_topoae` *(R1, R2 — autonomous)*
 
 **Wave 2** *(blocked on Wave 1 completion)*
+
 - `02.4-02` — Gate layer: T1/T2/T3, `GATING_METRICS` positional-slot remap, delegating verdict wrapper, verdict and handoff writers *(R4, R5, R6 — autonomous)*
 - `02.4-03` — λ sweep runner in `notebooks/diagnostics/`, plus the mandatory Swiss roll sanity notebook and its blocking visual check *(R8 — **human checkpoint**)*
 
 **Wave 3** *(blocked on Wave 2 completion)*
+
 - `02.4-04` — `02.4-PREREGISTRATION.md`, committed with git-ancestry proof; resolves the three RESEARCH.md open questions *(R3 — **human checkpoint**)*
 
 **Wave 4** *(blocked on Wave 3 completion)*
+
 - `02.4-05` — Gated PU train runner, halt-not-regenerate preconditions, timing probe, primary rung *(R2, R3 — **human checkpoint**)*
 
 **Wave 5** *(blocked on Wave 4 completion)*
+
 - `02.4-06` — Remaining 13 fits, registry audit *(R2 — autonomous)*
 
 **Wave 6** *(blocked on Wave 5 completion)*
+
 - `02.4-07` — Evaluate runner, verdict artifact, PASS handoff / FAIL deletion *(R4, R5, R6 — **human checkpoint**)*
 
 **Wave 7** *(blocked on Wave 6 completion)*
+
 - `02.4-08` — `TOPO-01`..`TOPO-08` register, reconciliation runner, idempotency proof *(R7 — autonomous)*
 
 **Cross-cutting constraints** — `must_haves.truths` shared by two or more plans:
+
 - `git diff --quiet -- notebooks/pu_manifold/cae.py` exits 0 after the plan — *`02.4-01`, `02.4-02`*
 - Gate comparisons run in float64 and measured values are stored at full precision, never pre-rounded — *`02.4-02`, `02.4-07`*
 - Metrics are stored as full-precision floats through `cae.to_native`, never pre-rounded — *`02.4-02`, `02.4-07`*
@@ -324,7 +341,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.1. Geometry Representation Research (INSERTED) | v1.1 | 4/4 | Complete (graph-native) | 2026-08-05 |
 | 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 6/6 | Complete    | 2026-08-04 |
 | 02.3. Chart Auto-Encoder Iteration (INSERTED, proposed) | v1.1 | 0/TBD | Proposed — not planned | - |
-| 02.4. Topological Auto-Encoder Validity Test (INSERTED) | v1.1 | 0/TBD | Next — not yet planned | - |
+| 02.4. Topological Auto-Encoder Validity Test (INSERTED) | v1.1 | 1/8 | In Progress|  |
 | 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started (blocked on 02.4) | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
