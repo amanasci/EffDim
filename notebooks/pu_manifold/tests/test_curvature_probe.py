@@ -385,3 +385,90 @@ def test_graph_fixture_padding_and_codimension():
 
     with pytest.raises(ValueError, match=r"d=.*n_bumps=.*D="):
         cp.make_graph_of_function_fixture(n=10, d=5, D=4, n_bumps=2, seed=1)
+
+
+# --- Plan 02.5-02 Task 2: non-uniform sampling and the density correction ---------------
+
+
+def test_density_correction_removes_bias():
+    """D-06 in two parts, because the plan's original "flat fixture shows big fake
+    curvature" premise turned out to be mathematically unsatisfiable for the estimator
+    actually shipped here -- see this plan's SUMMARY.md for the full derivation, kept
+    short here:
+
+    PART A (flat, `H_norm == 0` exactly): an exactly-linear point cloud is exactly
+    rank-`d`, so `local_tangent_basis`'s SVD recovers the TRUE tangent subspace exactly
+    REGARDLESS of how neighbours are weighted within it (remaining singular values sit
+    at the float64 noise floor, independent of sampling density). Any centroid
+    displacement -- weighted or not -- therefore lies exactly in that subspace, and the
+    normal projection removes it completely. This generalizes plan 02.5-01's Pitfall-3
+    guard to this density model: BOTH corrected and uncorrected report `||H||` at the
+    float64 noise floor here, not just the corrected one. There is nothing for the
+    correction to remove on a purely linear fixture, and this asserts that directly
+    (also covers `centroid_mean_curvature`'s `k_density`-required ValueError path).
+
+    PART B (genuinely curved, strongly skewed): density bias can only leak through an
+    IMPERFECTLY estimated tangent basis, which requires real curvature. On a curved,
+    strongly-skewed fixture, the corrected estimator's median relative error against the
+    known analytic `H` is measurably and consistently smaller than the uncorrected
+    estimator's -- the real, if modest, effect the correction has.
+    """
+    # --- Part A: flat + skew -> both corrected and uncorrected are at noise floor ---
+    fix_flat = cp.make_flat_fixture(n=4000, d=2, D=10, seed=20260807, density_skew=3.0)
+    assert fix_flat["realized_skew"] > 2.0  # the skew genuinely bit
+    assert np.all(fix_flat["H_norm"] == 0.0)  # analytic ground truth, exactly
+
+    with pytest.raises(ValueError, match="k_density"):
+        cp.centroid_mean_curvature(fix_flat["X"], k=20, d=2, density_correct=True)
+
+    H_flat_uncorrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(fix_flat["X"], k=20, d=2, density_correct=False)
+    )
+    H_flat_corrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(fix_flat["X"], k=20, d=2, density_correct=True, k_density=20)
+    )
+    assert np.median(H_flat_uncorrected) < 1e-8
+    assert np.median(H_flat_corrected) < 1e-8
+
+    # --- Part B: curved + skew -> corrected has measurably lower error vs ground truth ---
+    fix_curved = cp.make_graph_of_function_fixture(
+        n=8000, d=2, D=10, n_bumps=1, seed=20260807, density_skew=5.0, amplitude=3.0, sigma=0.4
+    )
+    assert fix_curved["realized_skew"] > 2.0
+    H_true = fix_curved["H_norm"]
+
+    H_curved_uncorrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(fix_curved["X"], k=15, d=2, density_correct=False)
+    )
+    H_curved_corrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(
+            fix_curved["X"], k=15, d=2, density_correct=True, k_density=15
+        )
+    )
+    floor = 1e-3 * np.median(H_true)
+    err_uncorrected = np.median(
+        np.abs(H_curved_uncorrected - H_true) / np.maximum(H_true, floor)
+    )
+    err_corrected = np.median(
+        np.abs(H_curved_corrected - H_true) / np.maximum(H_true, floor)
+    )
+    assert err_corrected < 0.95 * err_uncorrected
+
+
+def test_density_correction_is_noop_on_uniform_sampling():
+    """A correction that changes the answer where there is nothing to correct is itself
+    a bug: on a uniformly sampled curved fixture, corrected and uncorrected ||H|| agree
+    to within 10% median relative difference."""
+    fix = cp.make_graph_of_function_fixture(
+        n=2000, d=2, D=6, n_bumps=1, seed=2024, density_skew=0.0
+    )
+    H_uncorrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(fix["X"], k=20, d=2, density_correct=False)
+    )
+    H_corrected = cp.mean_curvature_norm(
+        cp.centroid_mean_curvature(fix["X"], k=20, d=2, density_correct=True, k_density=20)
+    )
+    rel_diff = np.median(
+        np.abs(H_corrected - H_uncorrected) / np.maximum(H_uncorrected, 1e-8)
+    )
+    assert rel_diff < 0.10

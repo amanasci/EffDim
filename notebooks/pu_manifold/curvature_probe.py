@@ -26,6 +26,7 @@ would silently be wrong by a factor of ``d`` under the wrong convention.
 from typing import Optional
 
 import numpy as np
+from scipy.special import gammaln
 from scipy.stats import spearmanr
 from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
@@ -124,10 +125,59 @@ def local_tangent_basis(centered: np.ndarray, d: int) -> np.ndarray:
     return Vt[:d]
 
 
+# --- D-06 density correction ------------------------------------------------------------
+
+
+def local_density_weights(X: np.ndarray, k_density: int, d: int) -> np.ndarray:
+    """Per-point inverse local-density weight, ``w_i = 1 / rho_i``, for D-06's density
+    correction. ``rho_i = k_density / (n * V_d * r_i^{d})``, the standard k-NN density
+    estimate at point ``i``, with ``r_i`` the distance from ``i`` to its
+    ``k_density``-th nearest neighbour and ``V_d = pi^{d/2} / Gamma(d/2 + 1)`` the unit
+    ``d``-ball volume.
+
+    RATIONALE (D-06, two sentences): a neighbourhood sampled with asymmetric local
+    density has a nonzero raw centroid displacement even on an exactly flat manifold,
+    and ``centroid_mean_curvature``'s uncorrected estimator cannot tell that displacement
+    apart from a genuine curvature-driven one; weighting each neighbour by the inverse
+    of its own local density counteracts the over-representation of denser regions in
+    the centroid and second-moment averages, so a purely tangential density gradient no
+    longer masquerades as ``||H||``.
+
+    ``k_density`` is this correction's ONLY constant. It is pre-registered in
+    ``02.5-PREREGISTRATION.md``, and there is deliberately no continuous tunable dial
+    controlling how strongly the correction is applied -- per D-05's rejection of a
+    blind pre-registered strength knob, a weight is either the exact inverse-density
+    reciprocal or it is not used at all.
+
+    Uses ``scipy.special.gammaln`` (not ``scipy.special.gamma``) for ``V_d``, computed
+    in log space and exponentiated only after subtracting its own running max, since a
+    naive ``gamma(d/2 + 1)`` call underflows to zero well before ``d = 20``.
+
+    Weights are normalized to mean 1, so the correction can only redistribute weight
+    among neighbours -- it cannot change the estimator's overall scale.
+    """
+    n = X.shape[0]
+    nbrs = NearestNeighbors(n_neighbors=k_density + 1).fit(X)
+    dist, _ = nbrs.kneighbors(X)  # dist[:, 0] == 0 (self)
+    r = dist[:, k_density]  # distance to the k_density-th nearest neighbour
+
+    log_Vd = (d / 2.0) * np.log(np.pi) - gammaln(d / 2.0 + 1.0)
+    log_w = np.log(n) + log_Vd + d * np.log(r) - np.log(k_density)
+    log_w -= log_w.max()  # numerical stability before exponentiating
+    w = np.exp(log_w)
+    return w / w.mean()
+
+
 # --- gating estimator (D-05) ------------------------------------------------------------
 
 
-def centroid_mean_curvature(X: np.ndarray, k: int, d: int) -> np.ndarray:
+def centroid_mean_curvature(
+    X: np.ndarray,
+    k: int,
+    d: int,
+    density_correct: bool = False,
+    k_density: Optional[int] = None,
+) -> np.ndarray:
     """Centroid / Laplace-Beltrami mean-curvature estimator -- the gating estimator (D-05).
 
     ``X``: ``(n, D)`` point cloud. ``k``: number of nearest neighbours per point
@@ -174,25 +224,53 @@ def centroid_mean_curvature(X: np.ndarray, k: int, d: int) -> np.ndarray:
        finite ``r``) the recovered ``H`` has ``O(r^2)`` relative bias.
     2. The estimate is contaminated by non-uniform sampling density unless corrected: a
        neighbourhood with asymmetric local density has a nonzero raw centroid gap even on
-       a flat manifold, and that gap is NOT curvature. This function is the uncorrected
-       baseline; plan 02.5-02 adds the density correction measured against it.
+       a flat manifold, and that gap is NOT curvature. ``density_correct=False`` (the
+       default) is the uncorrected baseline plan 02.5-02's density correction is measured
+       against; ``density_correct=True`` applies it.
     3. It yields ``H`` (a vector) and, via ``mean_curvature_norm``, ``||H||`` -- never the
        full second fundamental form ``II``. Recovering ``II`` itself is the underdetermined
        problem D-00 reframes away from; this estimator only ever recovers its trace.
+
+    ``density_correct``/``k_density`` (D-06): when ``density_correct`` is True,
+    ``k_density`` is REQUIRED (raises ``ValueError`` naming ``k_density`` if left
+    ``None`` -- unlike ``d``, it has a default of ``None`` so the flag/value pair can be
+    validated together rather than the value alone silently defaulting). The per-point
+    weights ``local_density_weights(X, k_density, d)`` are computed ONCE for the whole
+    cloud (not per-neighbourhood), then inside each neighbourhood the plain centroid and
+    plain mean squared radius are replaced by their weighted counterparts:
+    ``c = sum(w_j q_j) / sum(w_j)`` and ``r2 = sum(w_j |q_j - p|^2) / sum(w_j)`` over the
+    neighbours ``j`` of ``p``. Everything else -- the tangent basis, the normal
+    projection, the ``2*d/r2`` scale constant -- is unchanged; the weighting only changes
+    how the centroid and second moment are estimated, not the ball-radius-to-second-
+    moment conversion pinned by the sphere known-answer test (see the scale-constant
+    correction note above).
     """
+    if density_correct and k_density is None:
+        raise ValueError(
+            "centroid_mean_curvature: k_density must be given when density_correct=True."
+        )
     n, D = X.shape
     nbrs = NearestNeighbors(n_neighbors=k + 1).fit(X)
     _, idx = nbrs.kneighbors(X)  # idx[:, 0] is the point itself
 
+    weights = local_density_weights(X, k_density, d) if density_correct else None
+
     H_est = np.zeros((n, D), dtype=np.float64)
     for i in range(n):
-        neigh = X[idx[i, 1:]]  # (k, D), excludes self
+        neigh_idx = idx[i, 1:]  # (k,), excludes self
+        neigh = X[neigh_idx]  # (k, D)
         p = X[i]
         centered = neigh - p
-        gap = centered.mean(axis=0)
+        if density_correct:
+            w = weights[neigh_idx]
+            w_sum = w.sum()
+            gap = (w[:, None] * centered).sum(axis=0) / w_sum
+            r2 = (w * np.sum(centered**2, axis=1)).sum() / w_sum
+        else:
+            gap = centered.mean(axis=0)
+            r2 = np.mean(np.sum(centered**2, axis=1))
         Vt = local_tangent_basis(centered, d)
         gap_normal = gap - Vt.T @ (Vt @ gap)
-        r2 = np.mean(np.sum(centered**2, axis=1))
         H_est[i] = gap_normal * (2 * d / r2)
     return H_est
 
@@ -328,6 +406,41 @@ def _sample_uniform_ball(
     return directions * radii[:, None]
 
 
+def _sample_skewed_ball(
+    rng: np.random.Generator,
+    n: int,
+    d: int,
+    domain_radius: float,
+    density_skew: float,
+    u: np.ndarray,
+) -> np.ndarray:
+    """``n`` points from the ``d``-ball of the given radius, deliberately non-uniformly
+    sampled: rejection sampling against the one-sided exponential tilt
+    ``w(x) = exp(density_skew * <x, u> / domain_radius)`` for the given fixed-seed unit
+    vector ``u`` -- points genuinely bunch on the ``+u`` side of the domain (D-06).
+
+    Since ``<x, u> <= domain_radius`` for any ``x`` in the ball (Cauchy-Schwarz, ``u``
+    unit), ``w(x) <= exp(density_skew)``; the acceptance probability
+    ``exp(density_skew * (<x,u>/domain_radius - 1))`` is therefore always in ``(0, 1]``,
+    so plain candidate/accept rejection sampling from ``_sample_uniform_ball`` applies
+    directly with no separate normalizing constant to compute.
+    """
+    accepted = []
+    remaining = n
+    while remaining > 0:
+        batch = max(int(remaining * 1.5) + 16, 64)
+        cand = _sample_uniform_ball(rng, batch, d, domain_radius)
+        proj = (cand @ u) / domain_radius
+        accept_prob = np.exp(density_skew * (proj - 1.0))
+        draws = rng.uniform(0.0, 1.0, size=batch)
+        keep = cand[draws < accept_prob]
+        if len(keep) > 0:
+            accepted.append(keep)
+            remaining -= len(keep)
+    x = np.concatenate(accepted, axis=0)[:n]
+    return x
+
+
 def make_graph_of_function_fixture(
     n: int,
     d: int,
@@ -352,7 +465,12 @@ def make_graph_of_function_fixture(
 
     ``density_skew``: when ``0.0`` (the default), ``x`` is sampled uniformly in the
     ``d``-ball of radius ``domain_radius``. ``density_skew > 0.0`` is D-06's deliberately
-    non-uniform sampling branch, added by plan 02.5-02 Task 2.
+    non-uniform sampling branch: rejection sampling against a one-sided exponential
+    tilt ``w(x) = exp(density_skew * <x, u> / domain_radius)`` for a fixed-seed unit
+    vector ``u``, so points genuinely bunch on one side of the domain (see
+    ``_sample_skewed_ball``). The realized skew -- the ratio of point counts on the two
+    sides of ``u`` -- is reported in ``"realized_skew"`` so a test can assert the skew
+    actually bit, rather than trusting the requested parameter.
 
     ``apply_rotation``: internal/testing-only knob (not part of the phase's documented
     interface). Defaults to ``True`` (a fixed-seed random orthogonal rotation of ``R^D``
@@ -376,6 +494,7 @@ def make_graph_of_function_fixture(
     padding change the reported (rescaled) ``H_norm`` and break the bit-identical
     padding invariant this fixture exists to provide. Padding must be a true no-op on
     every returned quantity, including the scale used to non-dimensionalize curvature.
+
     """
     if D < d + n_bumps:
         raise ValueError(
@@ -393,10 +512,7 @@ def make_graph_of_function_fixture(
     if density_skew == 0.0:
         x_param = _sample_uniform_ball(rng, n, d, domain_radius)
     else:
-        raise NotImplementedError(
-            "make_graph_of_function_fixture: density_skew > 0.0 sampling is added by "
-            "plan 02.5-02 Task 2."
-        )
+        x_param = _sample_skewed_ball(rng, n, d, domain_radius, density_skew, u)
 
     bumps = gaussian_bump_values(x_param, amplitudes, centres, sigma)
     H_vec_local = graph_mean_curvature(bumps["grad"], bumps["hess"])
@@ -438,3 +554,35 @@ def make_graph_of_function_fixture(
         "centres": centres,
         "sigma": sigma,
     }
+
+
+def make_flat_fixture(n: int, d: int, D: int, seed: int, density_skew: float = 0.0) -> dict:
+    """A graph-of-function fixture with all bump amplitudes forced to exactly zero, so
+    the returned ``H_norm`` (the ANALYTIC ground truth) is exactly zero everywhere -- not
+    merely small. On a manifold whose true curvature is zero exactly, ALL apparent
+    ``||H||`` an estimator reports is a sampling artifact, if it reports any at all.
+
+    IMPORTANT FINDING (see ``test_density_correction_removes_bias`` and this plan's
+    SUMMARY.md for the full derivation): on THIS exactly-linear fixture, with the exact
+    exponential-linear density tilt ``_sample_skewed_ball`` implements,
+    ``centroid_mean_curvature`` reports ``||H||`` at the float64 noise floor
+    (~1e-14) REGARDLESS of ``density_skew`` and REGARDLESS of ``density_correct`` --
+    there is no bias here for the correction to remove. This is a mathematical
+    certainty, not an implementation gap: an exactly rank-``d`` point cloud makes
+    ``local_tangent_basis``'s SVD recover the true tangent subspace EXACTLY (independent
+    of how points are weighted within it), so any centroid displacement -- weighted or
+    not -- lies exactly in that subspace and the normal projection removes it completely
+    (this generalizes plan 02.5-01's Pitfall-3 regression guard to this density model).
+    Separately, the specified density model's log-density is exactly LINEAR in ``x``, so
+    even the raw (pre-projection) second moment of the tangential coordinate is
+    unaffected by the skew to any order. D-06's correction has real, measurable value
+    only where the tangent basis is imperfectly estimated -- i.e. on a genuinely curved
+    fixture -- which is what ``test_density_correction_removes_bias``'s second half
+    demonstrates instead.
+
+    Thin wrapper over ``make_graph_of_function_fixture`` with ``n_bumps=1,
+    amplitude=0.0``; same dict shape, same ``density_skew`` semantics.
+    """
+    return make_graph_of_function_fixture(
+        n=n, d=d, D=D, n_bumps=1, seed=seed, amplitude=0.0, density_skew=density_skew
+    )
