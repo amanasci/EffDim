@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: Completed 02.5-05-PLAN.md
-last_updated: "2026-08-08T12:34:51.042Z"
+stopped_at: Completed 02.5-06-PLAN.md
+last_updated: "2026-08-08T13:44:53.608Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 02.5 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 6 of 13
+Plan: 7 of 13
 Status: Ready to execute
 Last activity: 2026-08-07 — Phase 02.5 execution started
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 79% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 82% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -127,6 +127,7 @@ Progress: [████████░░] 79% of planned plans (17/17; Phases 1
 | Phase 02.5 P03 | ~45min | 3 tasks | 2 files |
 | Phase 02.5 P04 | ~34min | 3 tasks | 2 files |
 | Phase 02.5 P05 | ~20min active (checkpoint hold between segments) | 3 tasks | 1 files |
+| Phase 02.5 P06 | 66min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -216,6 +217,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.5-04: OQ-5 resolved -- cae.verdict_from_metrics not delegated to (its 3-slot positional remap doesn't fit 1/2-gate stages, and it applies uniform strict-less-than while spearman_rho/chart_vs_raw_margin are greater-than gates); _apply_gates implements its own guard-then-compare with an explicit GATE_DIRECTIONS map
 - [Phase ?]: 02.5-04: thresholds live inside write_curvature_verdict's cache cfg dict, so an edited threshold raises cache._manifest_matches's mismatch ValueError on re-call instead of silently re-verdicting
 - [Phase ?]: 02.5-05: Notebook amended post-checkpoint to report a per-point Spearman scale-bias/noise decomposition (median ratio h_est/h_true=0.8934 ~11% scale bias, within-band CV 0.20-0.28 interior/0.42-0.52 edges, region-median 20-band Spearman=0.8406) as notebook-level diagnostics only -- no gate/threshold changed; whether stage 1 gates at per-point or region scale is left open for 02.5-06 to propose and ratify
+- [Phase ?]: Stage-1 gates on BOTH spearman_rho_pointwise AND quantile_bin_concordance independently (option-scale-C), after the first region-scale statistic proposal was rejected at checkpoint as saturated and redesigned from scratch
+- [Phase ?]: REGION_ABSOLUTE_FLOOR=0.4750 derived from the Swiss roll's own noise-oracle ceiling (same 50%-noise tolerance as SPEARMAN_ABSOLUTE_FLOOR); BASE_CELL's graph-of-function fixture found to saturate the noise-oracle calibration technique for every region-statistic design tried (max/median=4708.8x true-curvature dynamic range)
 
 ### Pending Todos
 
@@ -257,8 +260,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-08T12:34:51.011Z
-Stopped at: Completed 02.5-05-PLAN.md
+Last session: 2026-08-08T13:44:53.575Z
+Stopped at: Completed 02.5-06-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
