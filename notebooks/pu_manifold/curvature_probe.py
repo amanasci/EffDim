@@ -23,8 +23,11 @@ factor, but the non-gating median relative error and any cross-estimator agreeme
 would silently be wrong by a factor of ``d`` under the wrong convention.
 """
 
+from typing import Optional
+
 import numpy as np
 from scipy.stats import spearmanr
+from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
 
 CURVATURE_CONVENTION = "trace"
@@ -73,6 +76,24 @@ def swiss_roll_analytic_H_scaled(t: np.ndarray, global_std: float) -> np.ndarray
     which the estimator computes in the already-scaled coordinates it actually sees.
     """
     return swiss_roll_analytic_H(t) * global_std
+
+
+def make_swiss_roll_fixture(n: int, seed: int) -> dict:
+    """The mandatory Swiss roll anchor, through the same ``{"X", ..., "H_norm",
+    "global_std"}``-shaped interface as ``make_graph_of_function_fixture``, so plan
+    02.5-07's sweep runner can treat the anchor and the graph-of-function family
+    uniformly. Applies exactly CLAUDE.md's preprocessing convention: centre and divide
+    by one global scalar standard deviation, no axis argument.
+
+    Returns a dict with keys ``"X"`` ``(n, 3)``, ``"t"`` ``(n,)`` (the generator's own
+    arc-length parameter, kept for plotting/diagnostics), ``"H_norm"`` ``(n,)``, and
+    ``"global_std"`` ``(float)``.
+    """
+    X_raw, t = make_swiss_roll(n_samples=n, noise=0.0, random_state=seed)
+    global_std = float(X_raw.std())
+    X = (X_raw - X_raw.mean(axis=0)) / global_std
+    H_norm = swiss_roll_analytic_H_scaled(t, global_std)
+    return {"X": X, "t": t, "H_norm": H_norm, "global_std": global_std}
 
 
 # --- local tangent space --------------------------------------------------------------
@@ -201,3 +222,219 @@ def spearman_gate_statistic(h_est_norm: np.ndarray, h_true_norm: np.ndarray) -> 
     OQ-CONV, only affects the magnitude of, never the rank).
     """
     return float(spearmanr(h_est_norm, h_true_norm).statistic)
+
+
+# --- graph-of-function fixture family, arbitrary (d, D, codimension) (D-03) ------------
+
+
+def gaussian_bump_values(
+    x: np.ndarray, amplitudes: np.ndarray, centres: np.ndarray, sigma: float
+) -> dict:
+    """Closed-form value/gradient/Hessian of ``m`` independent Gaussian bumps
+    ``f_j(x) = A_j * exp(-||x - c_j||^2 / (2*sigma^2))``, batched over ``n`` query points
+    and ``m`` bumps at once via ``np.einsum`` -- no Python loop over ``n``.
+
+    ``x``: ``(n, d)``. ``amplitudes``: ``(m,)``. ``centres``: ``(m, d)``. ``sigma``:
+    scalar, shared across bumps.
+
+    Returns a dict:
+      ``"f"``: ``(n, m)`` -- ``f_j(x_i)``
+      ``"grad"``: ``(n, m, d)`` -- ``grad[i, j, k] = d f_j / d x_k`` at ``x_i``
+      ``"hess"``: ``(n, m, d, d)`` -- ``hess[i, j, k, l] = d^2 f_j / (d x_k d x_l)`` at ``x_i``
+
+    Closed forms: ``grad f_j = -((x - c_j) / sigma^2) * f_j`` and
+    ``hess f_j = f_j * (outer(x - c_j, x - c_j) / sigma^4 - I / sigma^2)``.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    amplitudes = np.asarray(amplitudes, dtype=np.float64)
+    centres = np.asarray(centres, dtype=np.float64)
+    n, d = x.shape
+
+    diff = x[:, None, :] - centres[None, :, :]  # (n, m, d)
+    sqdist = np.sum(diff**2, axis=-1)  # (n, m)
+    f = amplitudes[None, :] * np.exp(-sqdist / (2.0 * sigma**2))  # (n, m)
+
+    grad = -(diff / sigma**2) * f[:, :, None]  # (n, m, d)
+
+    outer = np.einsum("nmi,nmj->nmij", diff, diff)  # (n, m, d, d)
+    eye = np.eye(d)[None, None, :, :]
+    hess = f[:, :, None, None] * (outer / sigma**4 - eye / sigma**2)  # (n, m, d, d)
+
+    return {"f": f, "grad": grad, "hess": hess}
+
+
+def graph_mean_curvature(grad: np.ndarray, hess: np.ndarray) -> np.ndarray:
+    """Exact graph mean curvature (this module's trace convention) for
+    ``M = {(x, f(x))}``, ``f: R^d -> R^m``, batched over ``n`` points.
+
+    ``grad``: ``(n, m, d)`` -- ``Df[i, j, k] = d f_j / d x_k`` at point ``i`` (the
+    ``(m, d)`` Jacobian of ``f`` per point). ``hess``: ``(n, m, d, d)`` -- the ``m``
+    Hessians of ``f`` per point.
+
+    Construction: the tangent frame ``J = [I_d ; Df]`` (shape ``(d+m, d)``) per point;
+    the induced metric ``g = I_d + Df^T Df`` (shape ``(d, d)``); the ambient second
+    derivative of the embedding is zero on its first ``d`` ("identity") components and
+    equal to ``hess`` on its last ``m`` ("graph") components, because the first ``d``
+    coordinates of the embedding are linear in ``x``; the mean curvature vector is the
+    ``g``-trace of the normal projection of that ambient Hessian:
+    ``H = P_normal(einsum('ij,cij->c', inv(g), Hess_embedding))``, with
+    ``P_normal = I_{d+m} - J g^{-1} J^T``.
+
+    For ``m = 1`` this is the general graph-mean-curvature identity that reduces to the
+    textbook ``div(grad f / sqrt(1 + |grad f|^2))`` result under this module's trace
+    convention -- Task 1's own test pins this against a central-finite-difference
+    computation of the exact parametric surface, not against a hand-transcribed formula
+    (``02.5-RESEARCH.md``'s Pattern 3 snippet is explicitly illustrative-only and is not
+    what is implemented here).
+
+    Returns the ``(n, d + m)`` mean curvature vectors.
+    """
+    grad = np.asarray(grad, dtype=np.float64)
+    hess = np.asarray(hess, dtype=np.float64)
+    n, m, d = grad.shape
+    Df = grad  # (n, m, d): Df[i, j, k] = d f_j / d x_k
+
+    g = np.eye(d)[None, :, :] + np.einsum("nji,njk->nik", Df, Df)  # (n, d, d)
+    ginv = np.linalg.inv(g)
+
+    # trace(ginv @ hess_j) per bump j, per point -- the raw (unprojected) ambient
+    # Hessian trace on the "graph" components; the "identity" components contribute
+    # zero because their ambient second derivative is exactly zero.
+    trace_j = np.einsum("nik,njik->nj", ginv, hess)  # (n, m)
+
+    raw = np.zeros((n, d + m), dtype=np.float64)
+    raw[:, d:] = trace_j
+
+    J = np.zeros((n, d + m, d), dtype=np.float64)
+    J[:, :d, :] = np.eye(d)[None, :, :]
+    J[:, d:, :] = Df
+
+    JginvJt = np.einsum("nai,nij,nbj->nab", J, ginv, J)  # (n, d+m, d+m)
+    P_normal = np.eye(d + m)[None, :, :] - JginvJt
+
+    H = np.einsum("nab,nb->na", P_normal, raw)  # (n, d+m)
+    return H
+
+
+def _sample_uniform_ball(
+    rng: np.random.Generator, n: int, d: int, domain_radius: float
+) -> np.ndarray:
+    """``n`` points drawn uniformly (by volume) from the closed ``d``-ball of the given
+    radius, via a normalized-Gaussian direction and the standard radius-CDF inverse
+    ``domain_radius * U^(1/d)``."""
+    directions = rng.standard_normal((n, d))
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    radii = domain_radius * rng.uniform(0.0, 1.0, size=n) ** (1.0 / d)
+    return directions * radii[:, None]
+
+
+def make_graph_of_function_fixture(
+    n: int,
+    d: int,
+    D: int,
+    n_bumps: int,
+    seed: int,
+    sigma: float = 0.6,
+    amplitude: float = 1.0,
+    density_skew: float = 0.0,
+    domain_radius: float = 2.0,
+    apply_rotation: bool = True,
+) -> dict:
+    """Graph-of-function fixture ``M = {(x, f_1(x), ..., f_{n_bumps}(x), 0, ..., 0)}``
+    with exact analytic mean curvature, at any ``(d, D, n_bumps)`` up to the PU regime.
+
+    ``n_bumps`` independent Gaussian bumps give a spatially varying curvature field with
+    a real ordering to score Spearman against, unlike a sphere's constant ``H``.
+    Padding with ``D - d - n_bumps`` EXACT ZEROS keeps ambient dimension independently
+    controllable from codimension-of-curvature: the padded directions are totally
+    geodesic and carry no curvature, which ``test_graph_fixture_padding_and_codimension``
+    pins by checking bit-identical ``H_norm`` under padding (rotation disabled).
+
+    ``density_skew``: when ``0.0`` (the default), ``x`` is sampled uniformly in the
+    ``d``-ball of radius ``domain_radius``. ``density_skew > 0.0`` is D-06's deliberately
+    non-uniform sampling branch, added by plan 02.5-02 Task 2.
+
+    ``apply_rotation``: internal/testing-only knob (not part of the phase's documented
+    interface). Defaults to ``True`` (a fixed-seed random orthogonal rotation of ``R^D``
+    is always applied in normal use, so no coordinate axis is privileged -- an
+    axis-aligned fixture would let a broken tangent estimator pass by accident). Set to
+    ``False`` only to obtain bit-identical cross-``D``/cross-``n_bumps`` comparisons in
+    tests, where the rotation matrix itself (drawn at size ``(D, D)``) would otherwise
+    differ between configurations and reintroduce floating-point noise that has nothing
+    to do with the property under test.
+
+    Returns a dict with keys ``"X"`` ``(n, D)``, ``"x_param"`` ``(n, d)``, ``"H_vec"``
+    ``(n, D)``, ``"H_norm"`` ``(n,)``, ``"global_std"`` ``(float)``, ``"realized_skew"``
+    ``(float)`` (the ratio of point counts on the two sides of the density-skew axis;
+    ``~1.0`` when ``density_skew == 0.0``), and ``"amplitudes"``/``"centres"``/``"sigma"``
+    (the realized bump parameters, exposed for independent finite-difference testing).
+
+    Preprocessing note: ``global_std`` is computed on the UNPADDED ``(n, d+n_bumps)``
+    local embedding, before padding to ``D`` and before rotation -- not on the full
+    padded ``(n, D)`` array. Computing it after padding would make the flattened-array
+    scalar ``.std()`` depend on how many zero columns were added, which would make
+    padding change the reported (rescaled) ``H_norm`` and break the bit-identical
+    padding invariant this fixture exists to provide. Padding must be a true no-op on
+    every returned quantity, including the scale used to non-dimensionalize curvature.
+    """
+    if D < d + n_bumps:
+        raise ValueError(
+            f"make_graph_of_function_fixture: d={d}, n_bumps={n_bumps}, D={D} -- "
+            f"D must be >= d + n_bumps."
+        )
+    rng = np.random.default_rng(seed)
+    centres = rng.uniform(-0.5 * domain_radius, 0.5 * domain_radius, size=(n_bumps, d))
+    signs = rng.integers(0, 2, size=n_bumps) * 2 - 1
+    amplitudes = amplitude * signs.astype(np.float64)
+
+    u = rng.standard_normal(d)
+    u = u / np.linalg.norm(u)
+
+    if density_skew == 0.0:
+        x_param = _sample_uniform_ball(rng, n, d, domain_radius)
+    else:
+        raise NotImplementedError(
+            "make_graph_of_function_fixture: density_skew > 0.0 sampling is added by "
+            "plan 02.5-02 Task 2."
+        )
+
+    bumps = gaussian_bump_values(x_param, amplitudes, centres, sigma)
+    H_vec_local = graph_mean_curvature(bumps["grad"], bumps["hess"])
+    X_local = np.concatenate([x_param, bumps["f"]], axis=1)
+
+    global_std = float(X_local.std())
+
+    m = d + n_bumps
+    X_padded = np.zeros((n, D), dtype=np.float64)
+    X_padded[:, :m] = X_local
+    H_padded = np.zeros((n, D), dtype=np.float64)
+    H_padded[:, :m] = H_vec_local
+
+    if apply_rotation:
+        Q, _ = np.linalg.qr(rng.standard_normal((D, D)))
+        X_rot = X_padded @ Q.T
+        H_rot = H_padded @ Q.T
+    else:
+        X_rot = X_padded
+        H_rot = H_padded
+
+    X = (X_rot - X_rot.mean(axis=0)) / global_std
+    H_vec = H_rot * global_std
+    H_norm = np.linalg.norm(H_vec, axis=-1)
+
+    proj = x_param @ u
+    count_pos = int(np.sum(proj > 0))
+    count_neg = int(np.sum(proj <= 0))
+    realized_skew = count_pos / max(count_neg, 1)
+
+    return {
+        "X": X,
+        "x_param": x_param,
+        "H_vec": H_vec,
+        "H_norm": H_norm,
+        "global_std": global_std,
+        "realized_skew": realized_skew,
+        "amplitudes": amplitudes,
+        "centres": centres,
+        "sigma": sigma,
+    }

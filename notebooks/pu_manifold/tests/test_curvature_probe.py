@@ -302,3 +302,86 @@ def test_spearman_gate_recovers_ordering():
     h_true_c, h_est_c = _monotone_noised_pair(seed=43)
     rho_c = cp.spearman_gate_statistic(h_est_c, h_true_c)
     assert rho_c != rho
+
+
+# --- Plan 02.5-02 Task 1: graph-of-function fixture family ------------------------------
+
+
+def test_graph_of_function_analytic_H_matches_numerical():
+    """`H_norm` from `make_graph_of_function_fixture` (d=2, D=3, n_bumps=1) matches an
+    INDEPENDENT central-finite-difference computation of the same parametric surface's
+    mean curvature -- the analytic Hessian-based path is never used to check itself.
+    Also asserts the field genuinely varies (IQR at least 30% of the median), so
+    Spearman has a real ordering to score.
+    """
+    fix = cp.make_graph_of_function_fixture(
+        n=500, d=2, D=3, n_bumps=1, seed=20260807, apply_rotation=False
+    )
+    x_param = fix["x_param"]
+    amplitudes = fix["amplitudes"]
+    centres = fix["centres"]
+    sigma = fix["sigma"]
+    global_std = fix["global_std"]
+
+    def f_scalar(x):
+        diff = x - centres[0]
+        return amplitudes[0] * np.exp(-np.dot(diff, diff) / (2 * sigma**2))
+
+    def X_surface(x):
+        return np.array([x[0], x[1], f_scalar(x)])
+
+    h = 1e-4
+    H_numeric = np.zeros(len(x_param))
+    for i, x in enumerate(x_param):
+        du = np.array([h, 0.0])
+        dv = np.array([0.0, h])
+        Xu = (X_surface(x + du) - X_surface(x - du)) / (2 * h)
+        Xv = (X_surface(x + dv) - X_surface(x - dv)) / (2 * h)
+        Xuu = (X_surface(x + du) - 2 * X_surface(x) + X_surface(x - du)) / h**2
+        Xvv = (X_surface(x + dv) - 2 * X_surface(x) + X_surface(x - dv)) / h**2
+        Xuv = (
+            (X_surface(x + du + dv) - X_surface(x + du - dv))
+            - (X_surface(x - du + dv) - X_surface(x - du - dv))
+        ) / (4 * h**2)
+
+        normal = np.cross(Xu, Xv)
+        normal = normal / np.linalg.norm(normal)
+
+        E = Xu @ Xu
+        F = Xu @ Xv
+        G = Xv @ Xv
+        L = Xuu @ normal
+        M = Xuv @ normal
+        N = Xvv @ normal
+
+        H_trace = (E * N - 2 * F * M + G * L) / (E * G - F**2)
+        H_numeric[i] = abs(H_trace) * global_std  # CLAUDE.md scaling; H_norm >= 0
+
+    assert np.allclose(H_numeric, fix["H_norm"], rtol=1e-4, atol=1e-8)
+
+    iqr = np.percentile(fix["H_norm"], 75) - np.percentile(fix["H_norm"], 25)
+    median = np.median(fix["H_norm"])
+    assert iqr >= 0.3 * median
+
+
+def test_graph_fixture_padding_and_codimension():
+    """Padding to `D=768` leaves `H_norm` bit-identical to the unpadded
+    `D=d+n_bumps` case (rotation disabled, so no extra floating-point noise from a
+    differently-sized rotation matrix); `n_bumps=8` gives a different `H_norm`
+    distribution than `n_bumps=1` at the same `(d, D, seed)`; and `D < d + n_bumps`
+    raises `ValueError` naming all three.
+    """
+    fix_small = cp.make_graph_of_function_fixture(
+        n=300, d=2, D=3, n_bumps=1, seed=20260807, apply_rotation=False
+    )
+    fix_padded = cp.make_graph_of_function_fixture(
+        n=300, d=2, D=768, n_bumps=1, seed=20260807, apply_rotation=False
+    )
+    assert np.array_equal(fix_small["H_norm"], fix_padded["H_norm"])
+
+    fix_m1 = cp.make_graph_of_function_fixture(n=300, d=2, D=768, n_bumps=1, seed=20260807)
+    fix_m8 = cp.make_graph_of_function_fixture(n=300, d=2, D=768, n_bumps=8, seed=20260807)
+    assert not np.allclose(fix_m1["H_norm"], fix_m8["H_norm"])
+
+    with pytest.raises(ValueError, match=r"d=.*n_bumps=.*D="):
+        cp.make_graph_of_function_fixture(n=10, d=5, D=4, n_bumps=2, seed=1)
