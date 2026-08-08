@@ -585,11 +585,166 @@ def test_permutation_null_rejects_random_pairing():
         )
 
 
+def test_permutation_null_statistic_fn_generalizes_calibration():
+    """`statistic_fn` (added by plan 02.5-07) defaults to reproducing the original
+    Spearman-only behaviour exactly, and can be swapped for a different rank statistic
+    (here, `quantile_bin_concordance`) to calibrate the SAME null-quantile/permutation-
+    count machinery against Section 3h's second gating statistic."""
+    from scipy.stats import spearmanr
+
+    h_true, h_est = _monotone_noised_pair(seed=7, n=300)
+
+    default_result = cp.permutation_null(h_true, h_est, n_resamples=99, seed=2, quantile=0.9)
+    explicit_spearman_result = cp.permutation_null(
+        h_true,
+        h_est,
+        n_resamples=99,
+        seed=2,
+        quantile=0.9,
+        statistic_fn=lambda x, y: float(spearmanr(x, y).statistic),
+    )
+    assert default_result["observed_rho"] == pytest.approx(explicit_spearman_result["observed_rho"])
+    assert default_result["null_threshold"] == pytest.approx(explicit_spearman_result["null_threshold"])
+
+    def _region_stat(x: np.ndarray, y: np.ndarray) -> float:
+        return cp.quantile_bin_concordance(
+            h_est_norm=y, h_true_norm=x, n_bins=4, pair_seed=20260731, n_pairs=5000
+        )
+
+    region_result = cp.permutation_null(
+        h_true, h_est, n_resamples=99, seed=2, quantile=0.9, statistic_fn=_region_stat
+    )
+    assert region_result["observed_rho"] == pytest.approx(
+        cp.quantile_bin_concordance(h_est, h_true, n_bins=4, pair_seed=20260731, n_pairs=5000)
+    )
+    # A different statistic generally calibrates to a different null threshold than
+    # Spearman's -- not asserted equal, just independently computed and finite.
+    assert np.isfinite(region_result["null_threshold"])
+
+
+# --- Plan 02.5-07 Task 1: quantile_bin_concordance (Section 3h's second, independently
+# gating region-scale statistic) ---------------------------------------------------------
+
+
+def test_quantile_bin_concordance_basic_behavior():
+    """Perfect rank agreement -> +1; perfect rank reversal -> -1; independent (shuffled)
+    pairing lands near 0 -- the same three sanity checks `spearman_gate_statistic`-style
+    functions are held to. Only cross-true-bin pairs are ever compared: same-true-bin
+    pairs, which Phase 4 never distinguishes, are dropped before scoring."""
+    rng = np.random.default_rng(0)
+    h_true = rng.uniform(0, 1, size=2000)
+
+    assert cp.quantile_bin_concordance(
+        h_true, h_true, n_bins=4, pair_seed=1, n_pairs=50_000
+    ) == pytest.approx(1.0)
+
+    assert cp.quantile_bin_concordance(
+        -h_true, h_true, n_bins=4, pair_seed=1, n_pairs=50_000
+    ) == pytest.approx(-1.0)
+
+    h_shuffled = rng.permutation(h_true)
+    val = cp.quantile_bin_concordance(h_shuffled, h_true, n_bins=4, pair_seed=1, n_pairs=50_000)
+    assert abs(val) < 0.05
+
+    # a degenerate case (n_bins=1 -- every point in the same bin, so no pair is ever
+    # cross-bin) raises rather than silently computing mean() over an empty array
+    with pytest.raises(ValueError, match="cross-bin"):
+        cp.quantile_bin_concordance(h_true, h_true, n_bins=1, pair_seed=1, n_pairs=100)
+
+
+def test_quantile_bin_concordance_scale_invariance():
+    """Section 3g's R4 scale-free check: rescaling `h_est_norm` by any positive constant
+    leaves the statistic unchanged to float64 precision -- bin assignment and the sign
+    comparison both depend only on rank, invariant to positive monotonic rescaling of the
+    estimate."""
+    rng = np.random.default_rng(3)
+    h_true = rng.uniform(0, 1, size=2000)
+    h_est = h_true * (1 + 0.2 * rng.standard_normal(2000))
+
+    v1 = cp.quantile_bin_concordance(h_est, h_true, n_bins=4, pair_seed=20260731, n_pairs=200_000)
+    v2 = cp.quantile_bin_concordance(
+        5.37 * h_est, h_true, n_bins=4, pair_seed=20260731, n_pairs=200_000
+    )
+    assert v1 == pytest.approx(v2, abs=1e-6)
+
+
+def test_quantile_bin_concordance_reproduces_preregistration_ceiling_and_null():
+    """Section 3g's acceptance criteria: reproduces the Swiss roll noise-oracle ceiling
+    table and the shuffled-pairing null to float64-REASONABLE tolerance, under
+    02.5-PREREGISTRATION.md's own ratified constants (REGION_N_BINS=4,
+    REGION_PAIR_COUNT=200_000, REGION_PAIR_SEED=20260731).
+
+    Noise-oracle protocol (matching Section 3g's own description, "perturbing the
+    analytic truth by unbiased multiplicative noise, then ranking"): perturb the Swiss
+    roll's analytic H_norm field by mean-preserving LOGNORMAL multiplicative noise at a
+    stated coefficient of variation -- h_noisy = h_true * exp(sigma*z - 0.5*sigma^2),
+    sigma chosen so the multiplier's own CV equals noise_cv exactly -- then scores
+    h_noisy against h_true. Lognormal (rather than h_true*(1+noise_cv*z)) is used because
+    it never produces a negative "curvature" value; the linear form was independently
+    cross-checked against this same table and diverges by up to 0.06 at noise_cv=0.80
+    from sign-flipped points at the tail, while this lognormal form reproduces every
+    documented ceiling value here to within 0.01 (well inside the 0.03 tolerance below).
+    The SAME lognormal model, independently cross-checked against 02.5-PREREGISTRATION.md
+    Section 3b's separately-published per-point-Spearman noise-oracle table (5%/10%/
+    14.9%/20%/30% noise -> rho 0.986/0.950/0.897/0.831/0.698), reproduces that table
+    equally closely via `spearman_gate_statistic`.
+
+    This is an ATTEMPTED reproduction under a stated, disclosed protocol -- not a bit-
+    exact replay of the orchestrator's original (private, undisclosed-seed) MC run. The
+    0.03 absolute tolerance reflects Monte-Carlo seed variation at n=3000 (empirically,
+    a 10-trial average's own std is well under 0.02 at every level tested), not
+    implementation slack.
+    """
+    fix = cp.make_swiss_roll_fixture(n=3000, seed=20260807)
+    h_true = fix["H_norm"]
+    n = h_true.shape[0]
+
+    documented_ceiling = {
+        0.05: 0.9804,
+        0.10: 0.9259,
+        0.20: 0.7813,
+        0.30: 0.6514,
+        0.40: 0.5501,
+        0.50: 0.4750,  # == REGION_ABSOLUTE_FLOOR, read directly off this row (Section 3g)
+        0.80: 0.3440,
+    }
+    for noise_cv, expected in documented_ceiling.items():
+        sigma = np.sqrt(np.log(1 + noise_cv**2))
+        vals = []
+        for trial_seed in range(10):
+            rng = np.random.default_rng(90_000 + trial_seed)
+            z = rng.standard_normal(n)
+            h_noisy = h_true * np.exp(sigma * z - 0.5 * sigma**2)
+            vals.append(
+                cp.quantile_bin_concordance(
+                    h_noisy, h_true, n_bins=4, pair_seed=20260731, n_pairs=200_000
+                )
+            )
+        measured = float(np.mean(vals))
+        assert measured == pytest.approx(expected, abs=0.03), (noise_cv, measured, expected)
+
+    # Null: shuffled pairing (chance-level concordance) -- documented mean=0.0007,
+    # std=0.0159 (Section 3g)
+    null_vals = []
+    for trial_seed in range(40):
+        rng = np.random.default_rng(80_000 + trial_seed)
+        h_shuffled = rng.permutation(h_true)
+        null_vals.append(
+            cp.quantile_bin_concordance(
+                h_shuffled, h_true, n_bins=4, pair_seed=20260731, n_pairs=200_000
+            )
+        )
+    null_vals = np.array(null_vals)
+    assert float(null_vals.mean()) == pytest.approx(0.0007, abs=0.01)
+    assert float(null_vals.std()) == pytest.approx(0.0159, abs=0.01)
+
+
 # --- Plan 02.5-03 Task 3: one-call stage-1 measurement bundle ---------------------------
 
 
 def test_measure_cell_returns_flat_native_types():
-    """`measure_cell` returns a flat dict whose gating key (`spearman_rho`) is present
+    """`measure_cell` returns a flat dict whose TWO gating keys (`spearman_rho`,
+    `quantile_bin_concordance` -- Section 3h's option-scale-C, plan 02.5-07) are present
     and finite, every value is a plain Python native type (never a numpy scalar), and the
     whole dict round-trips through `json.dumps` with no custom encoder."""
     import json
@@ -604,10 +759,17 @@ def test_measure_cell_returns_flat_native_types():
         n_resamples=99,
         seed=3,
         quantile=0.95,
+        region_n_bins=4,
+        region_pair_seed=20260731,
+        region_n_pairs=5000,
     )
 
     assert "spearman_rho" in result
     assert np.isfinite(result["spearman_rho"])
+    assert "quantile_bin_concordance" in result
+    assert np.isfinite(result["quantile_bin_concordance"])
+    assert "region_null_threshold" in result
+    assert "region_null_clears_null" in result
 
     for key, value in result.items():
         assert isinstance(value, (float, int, bool, str)), f"{key} is {type(value)}"
@@ -620,29 +782,52 @@ def test_measure_cell_returns_flat_native_types():
 
 
 def test_verdict_gates_are_strict_and_direction_aware():
-    """Stage 1: PASS strictly above threshold, FAIL exactly at, FAIL below. Stage 2: PASS
-    only when BOTH gates clear (margin greater-than AND seed_spread less-than); either
-    alone is FAIL. `gate_detail` carries `direction` for every gate."""
-    # Stage 1: PASS above
-    verdict, detail = cp.verdict_from_stage1_metrics(
-        {"spearman_rho": 0.71}, {"spearman_rho": 0.70}
-    )
+    """Stage 1 (Section 3h's option-scale-C, plan 02.5-07): PASS only when BOTH
+    spearman_rho AND quantile_bin_concordance clear, each strictly above its OWN
+    threshold; either alone failing fails the cell; a value exactly at threshold does not
+    clear. Stage 2: PASS only when BOTH gates clear (margin greater-than AND seed_spread
+    less-than); either alone is FAIL. `gate_detail` carries `direction` for every gate."""
+    stage1_metrics = {"spearman_rho": 0.71, "quantile_bin_concordance": 0.55}
+    stage1_thresholds = {"spearman_rho": 0.70, "quantile_bin_concordance": 0.50}
+
+    # Stage 1: PASS -- both above their own threshold
+    verdict, detail = cp.verdict_from_stage1_metrics(stage1_metrics, stage1_thresholds)
     assert verdict == "PASS"
     assert detail["spearman_rho"]["direction"] == "greater"
     assert detail["spearman_rho"]["passed"] is True
+    assert detail["quantile_bin_concordance"]["direction"] == "greater"
+    assert detail["quantile_bin_concordance"]["passed"] is True
 
-    # Stage 1: FAIL exactly at threshold
+    # Stage 1: FAIL exactly at threshold (spearman_rho)
     verdict, detail = cp.verdict_from_stage1_metrics(
-        {"spearman_rho": 0.70}, {"spearman_rho": 0.70}
+        {"spearman_rho": 0.70, "quantile_bin_concordance": 0.55}, stage1_thresholds
     )
     assert verdict == "FAIL"
     assert detail["spearman_rho"]["passed"] is False
 
-    # Stage 1: FAIL below
+    # Stage 1: FAIL below (spearman_rho)
     verdict, detail = cp.verdict_from_stage1_metrics(
-        {"spearman_rho": 0.69}, {"spearman_rho": 0.70}
+        {"spearman_rho": 0.69, "quantile_bin_concordance": 0.55}, stage1_thresholds
     )
     assert verdict == "FAIL"
+
+    # Stage 1: FAIL when only quantile_bin_concordance misses its own threshold, even
+    # though spearman_rho clears comfortably -- option-scale-C requires BOTH
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": 0.90, "quantile_bin_concordance": 0.40}, stage1_thresholds
+    )
+    assert verdict == "FAIL"
+    assert detail["spearman_rho"]["passed"] is True
+    assert detail["quantile_bin_concordance"]["passed"] is False
+
+    # Stage 1: FAIL when only spearman_rho misses its own threshold, even though
+    # quantile_bin_concordance clears comfortably
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": 0.40, "quantile_bin_concordance": 0.80}, stage1_thresholds
+    )
+    assert verdict == "FAIL"
+    assert detail["spearman_rho"]["passed"] is False
+    assert detail["quantile_bin_concordance"]["passed"] is True
 
     # Stage 2: PASS on both
     verdict, detail = cp.verdict_from_stage2_metrics(
@@ -721,9 +906,10 @@ def test_pass_only_handoff_and_stale_deletion(tmp_path, monkeypatch):
     raises ValueError."""
     monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
 
-    # FAIL: verdict written, no handoff possible
-    fail_metrics = {"spearman_rho": 0.60}
-    thresholds = {"spearman_rho": 0.70}
+    # FAIL: verdict written, no handoff possible (option-scale-C: both gates present,
+    # spearman_rho alone misses its threshold)
+    fail_metrics = {"spearman_rho": 0.60, "quantile_bin_concordance": 0.55}
+    thresholds = {"spearman_rho": 0.70, "quantile_bin_concordance": 0.50}
     fail_result = cp.write_curvature_verdict(
         "failkey", 1, fail_metrics, thresholds, "FAIL"
     )
@@ -734,8 +920,8 @@ def test_pass_only_handoff_and_stale_deletion(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="FAIL"):
         cp.write_curvature_handoff("failkey", "FAIL", _valid_handoff_payload())
 
-    # PASS: verdict and handoff both written
-    pass_metrics = {"spearman_rho": 0.80}
+    # PASS: verdict and handoff both written (both gates clear their own threshold)
+    pass_metrics = {"spearman_rho": 0.80, "quantile_bin_concordance": 0.60}
     pass_result = cp.write_curvature_verdict(
         "passkey", 1, pass_metrics, thresholds, "PASS"
     )
@@ -761,13 +947,21 @@ def test_threshold_edit_raises_manifest_mismatch(tmp_path, monkeypatch):
     re-verdicting."""
     monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
 
-    metrics = {"spearman_rho": 0.80}
+    metrics = {"spearman_rho": 0.80, "quantile_bin_concordance": 0.60}
     cp.write_curvature_verdict(
-        "editkey", 1, metrics, {"spearman_rho": 0.70}, "PASS"
+        "editkey",
+        1,
+        metrics,
+        {"spearman_rho": 0.70, "quantile_bin_concordance": 0.50},
+        "PASS",
     )
     with pytest.raises(ValueError, match="manifest mismatch"):
         cp.write_curvature_verdict(
-            "editkey", 1, metrics, {"spearman_rho": 0.75}, "PASS"
+            "editkey",
+            1,
+            metrics,
+            {"spearman_rho": 0.75, "quantile_bin_concordance": 0.50},
+            "PASS",
         )
 
 

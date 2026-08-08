@@ -26,7 +26,7 @@ would silently be wrong by a factor of ``d`` under the wrong convention.
 import math
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 from scipy.special import gammaln
@@ -327,6 +327,109 @@ def median_relative_error(
         floor = 1e-3 * np.median(np.abs(h_true_norm))
     denom = np.maximum(np.abs(h_true_norm), floor)
     return float(np.median(np.abs(h_est_norm - h_true_norm) / denom))
+
+
+# --- Section 3h's SECOND, independently-gating statistic (region scale, plan 02.5-07) --
+
+
+def _quantile_bin_labels(values: np.ndarray, n_bins: int) -> np.ndarray:
+    """Equal-count quantile bin labels ``0..n_bins-1`` for ``values``, via a rank-based
+    partition (``np.array_split`` over the ascending sort order) rather than
+    ``np.quantile``-derived bin EDGES -- so bin membership is always well-defined (no
+    edge-tie ambiguity from repeated values) and every bin gets as close to
+    ``n / n_bins`` points as integer division allows. Private helper for
+    :func:`quantile_bin_concordance` -- ``02.5-PREREGISTRATION.md`` Section 3e's
+    ``quantile_bin(...)`` pseudocode step.
+    """
+    n = values.shape[0]
+    order = np.argsort(values, kind="stable")
+    labels = np.empty(n, dtype=np.int64)
+    for bin_idx, idx_group in enumerate(np.array_split(order, n_bins)):
+        labels[idx_group] = bin_idx
+    return labels
+
+
+def quantile_bin_concordance(
+    h_est_norm: np.ndarray,
+    h_true_norm: np.ndarray,
+    n_bins: int,
+    pair_seed: int,
+    n_pairs: int,
+) -> float:
+    """The region-scale gating statistic ``02.5-PREREGISTRATION.md`` Section 3e/3h
+    ratifies alongside ``spearman_gate_statistic`` as option-scale-C: BOTH statistics
+    gate INDEPENDENTLY (Section 3h) -- a cell PASSES stage 1 only if both clear their own
+    null-calibrated threshold and their own absolute floor. Neither is demoted to
+    non-gating context.
+
+    Added here by plan 02.5-07 per Section 9's own forward dependency: plan 02.5-06
+    (the pre-registration) deliberately specified this function by exact pseudocode and
+    numeric acceptance criteria (Section 3g's ceiling/null/scale-invariance tables)
+    WITHOUT implementing it, to keep that plan's ``files_modified`` scoped to the
+    pre-registration document alone (Section 3g's own "Scope, flagged explicitly" note).
+    This is the TESTED module function that scope note obliges.
+
+    Answers a genuinely different question from per-point Spearman: for a pair of points
+    that truly belong to DIFFERENT quantile buckets of the TRUE curvature field -- exactly
+    the buckets Phase 4's own quantile partitioning computes -- does the estimate
+    correctly identify which one has more curvature? Within-true-bin pairs are dropped
+    entirely, because Phase 4 never distinguishes them.
+
+    Implements Section 3e's pseudocode exactly:
+      1. ``bin_true = quantile_bin(h_true_norm, n_bins)`` -- each point's TRUE quantile
+         bin (equal-count, via :func:`_quantile_bin_labels`). Deliberately ``bin_true``,
+         never ``bin_est`` -- the pair-selection denominator (which pairs count at all)
+         must stay independent of the estimator being scored, so a bad estimator cannot
+         narrow its own evaluation set by mis-binning.
+      2. ``n_pairs`` point-index pairs ``(i, j)`` drawn i.i.d. via
+         ``np.random.default_rng(pair_seed).integers(0, n, size=n_pairs)`` -- the same
+         fixed-seed/fixed-count pair-sampling discipline 02.1/02.2's ``draw_geo_pairs``
+         uses.
+      3. Keep only CROSS-bin pairs: ``bin_true[i] != bin_true[j]``.
+      4. ``concordant = sign(h_true[i]-h_true[j]) == sign(h_est_norm[i]-h_est_norm[j])``.
+      5. Return ``2 * mean(concordant) - 1``, rescaled to Spearman-like ``[-1, 1]``: ``0``
+         under the null (chance pairing), ``1`` if every cross-bin pair is ordered
+         correctly, ``-1`` if every cross-bin pair is ordered oppositely.
+
+    No default for ``n_bins``/``pair_seed``/``n_pairs`` -- all three are pre-registered
+    constants (``REGION_N_BINS=4``, ``REGION_PAIR_SEED=20260731``,
+    ``REGION_PAIR_COUNT=200_000``, Section 3g), and a default is exactly how such a value
+    gets inherited by accident rather than chosen explicitly at every call site -- the
+    same discipline :func:`permutation_null`'s ``quantile`` argument already applies.
+
+    Scale-free by construction (Section 3g's R4 check): bin assignment and the sign
+    comparison both depend only on rank, so rescaling ``h_est_norm`` by any positive
+    constant leaves the returned value unchanged to float64 precision
+    (``test_quantile_bin_concordance_scale_invariance`` pins this).
+
+    Raises ``ValueError`` if no cross-bin pairs survive the filter (e.g. ``n_bins`` too
+    large relative to the number of distinct values in ``h_true_norm``) -- a silently
+    empty pair set would otherwise produce a ``NaN`` from ``np.mean`` on an empty array,
+    which must never reach a gate (the same "a missing or non-finite measurement can never
+    become a PASS" discipline :func:`permutation_null` and ``_apply_gates`` already apply).
+    """
+    h_est_norm = np.asarray(h_est_norm, dtype=np.float64)
+    h_true_norm = np.asarray(h_true_norm, dtype=np.float64)
+    n = h_true_norm.shape[0]
+    bin_true = _quantile_bin_labels(h_true_norm, n_bins)
+
+    rng = np.random.default_rng(pair_seed)
+    i = rng.integers(0, n, size=n_pairs)
+    j = rng.integers(0, n, size=n_pairs)
+    keep = bin_true[i] != bin_true[j]
+    i, j = i[keep], j[keep]
+
+    if i.size == 0:
+        raise ValueError(
+            "quantile_bin_concordance: no cross-bin pairs survived sampling -- check "
+            f"n_bins={n_bins}, n_pairs={n_pairs}, and whether h_true_norm has enough "
+            "distinct values to support that many bins."
+        )
+
+    concordant = np.sign(h_true_norm[i] - h_true_norm[j]) == np.sign(
+        h_est_norm[i] - h_est_norm[j]
+    )
+    return float(2.0 * np.mean(concordant) - 1.0)
 
 
 # --- graph-of-function fixture family, arbitrary (d, D, codimension) (D-03) ------------
@@ -818,11 +921,42 @@ def estimator_agreement(h_centroid_norm: np.ndarray, h_quadric_norm: np.ndarray)
 # --- D-02 permutation-null calibration of the Spearman threshold ----------------------
 
 
-def permutation_null(h_true_norm: np.ndarray, h_est_norm: np.ndarray, n_resamples: int, seed: int, quantile: float) -> dict:
+def permutation_null(
+    h_true_norm: np.ndarray,
+    h_est_norm: np.ndarray,
+    n_resamples: int,
+    seed: int,
+    quantile: float,
+    statistic_fn: Optional[Callable[[np.ndarray, np.ndarray], float]] = None,
+) -> dict:
     """D-02's permutation-null calibration: shuffles the pairing between the true and
-    estimated curvature fields to build a chance distribution of Spearman values, and
-    reads a threshold off a caller-supplied quantile of it -- so D-01's gate is
+    estimated curvature fields to build a chance distribution of the gating statistic,
+    and reads a threshold off a caller-supplied quantile of it -- so the gate is
     calibrated against measured chance, never invented.
+
+    ``statistic_fn`` (added by plan 02.5-07, generalizing this function to Section 3h's
+    SECOND, independently-gating statistic): an optional ``(x, y) -> float`` callable.
+    Defaults to ``None``, which reproduces this function's ORIGINAL behaviour exactly --
+    ``lambda x, y: spearmanr(x, y).statistic`` -- so every existing call site (D-01's
+    ``spearman_rho`` calibration, unchanged since plan 02.5-03) is unaffected. Passing a
+    different callable (e.g. a closure over :func:`quantile_bin_concordance` with its own
+    pre-registered ``n_bins``/``pair_seed``/``n_pairs`` already bound in) calibrates the
+    SAME null-quantile/permutation-count machinery against a different rank statistic --
+    Section 3g's "clears_null(0.99, 999)" phrasing applies generically to whichever gating
+    statistic it is asked of, not only to Spearman.
+
+    ``permutation_test``'s ``permutation_type="pairings"`` re-pairs the two samples
+    independently on each resample (confirmed directly against this scipy version: both
+    ``h_true_norm``'s and ``h_est_norm``'s row order are permuted on every resample, not
+    just one held fixed) -- for any statistic (Spearman included) this reproduces the
+    correct "any pairing is equally likely" null, since a statistic evaluated on two
+    independently-permuted samples has the same distribution as one evaluated with only
+    one sample permuted relative to a fixed other. ``statistic_fn`` MUST therefore treat
+    its two arguments purely as a self-consistent, already-paired dataset (never assume
+    either argument is the caller's original, unshuffled array) -- exactly how
+    :func:`quantile_bin_concordance`'s own ``bin_true`` construction already works, since
+    it derives bin membership from whichever array is passed as ``h_true_norm``, not from
+    any external, unshuffled reference.
 
     Uses ``scipy.stats.permutation_test`` (already pinned, scipy 1.18.0) with
     ``permutation_type="pairings"``, ``alternative="greater"``, and
@@ -847,8 +981,10 @@ def permutation_null(h_true_norm: np.ndarray, h_est_norm: np.ndarray, n_resample
     ruled out as a fixture (D-03): a constant true-curvature field leaves Spearman
     undefined against ANY estimate, however good.
 
-    Returns a dict with ``"observed_rho"`` (``float``, the actual, unshuffled Spearman
-    statistic), ``"null_quantile"`` (``float``, the requested quantile, echoed back),
+    Returns a dict with ``"observed_rho"`` (``float``, the actual, unshuffled value of
+    ``statistic_fn`` -- named ``observed_rho`` for backward compatibility even when
+    ``statistic_fn`` is not Spearman), ``"null_quantile"`` (``float``, the requested
+    quantile, echoed back),
     ``"null_threshold"`` (``float``,
     ``np.quantile(result.null_distribution, quantile)``), ``"null_mean"`` (``float``),
     ``"null_std"`` (``float``), ``"n_resamples"`` (``int``, echoed), ``"seed"`` (``int``,
@@ -885,7 +1021,9 @@ def permutation_null(h_true_norm: np.ndarray, h_est_norm: np.ndarray, n_resample
         )
 
     def _stat(x: np.ndarray, y: np.ndarray) -> float:
-        return float(spearmanr(x, y).statistic)
+        if statistic_fn is None:
+            return float(spearmanr(x, y).statistic)
+        return float(statistic_fn(x, y))
 
     rng = np.random.default_rng(seed)
     result = permutation_test(
@@ -924,6 +1062,9 @@ def measure_cell(
     n_resamples: int,
     seed: int,
     quantile: float,
+    region_n_bins: int,
+    region_pair_seed: int,
+    region_n_pairs: int,
 ) -> dict:
     """The single call plan 02.5-07's sweep runner makes per grid cell, so the runner
     contains orchestration only and no statistics of its own.
@@ -931,31 +1072,55 @@ def measure_cell(
     ``fixture``: a dict from ``make_swiss_roll_fixture``, ``make_graph_of_function_fixture``,
     or ``make_flat_fixture`` -- anything shaped ``{"X", "H_norm", ...}``.
 
-    Exactly ONE returned key is gating: ``"spearman_rho"``. Every other key is context --
-    the same gating/non-gating split every phase since 02.2 has used (each sibling
-    module's own gating-metrics tuple vs. its respective ``context_metrics`` block).
-    Consuming code must never branch a PASS/FAIL decision on any key other than
-    ``"spearman_rho"``.
+    Exactly TWO returned keys are gating: ``"spearman_rho"`` and
+    ``"quantile_bin_concordance"`` -- Section 3h's ratified option-scale-C, added by plan
+    02.5-07 and SUPERSEDING this function's original single-gate design as shipped by plan
+    02.5-03. A cell passes stage 1 only if BOTH clear their own null-calibrated threshold
+    (Section 3h); this function does not itself apply that rule -- it only measures both
+    statistics and both of their calibrated nulls, leaving the threshold comparison to
+    :func:`verdict_from_stage1_metrics`, called by the runner. Every other key is
+    context -- the same gating/non-gating split every phase since 02.2 has used. Consuming
+    code must never branch a PASS/FAIL decision on any key other than these two.
+
+    ``region_n_bins``/``region_pair_seed``/``region_n_pairs``: pre-registered constants
+    (``REGION_N_BINS``, ``REGION_PAIR_SEED``, ``REGION_PAIR_COUNT``, Section 3g) threaded
+    through to :func:`quantile_bin_concordance` and its own null calibration -- no
+    defaults, same discipline as every other pre-registered argument this function and
+    :func:`permutation_null` already apply.
 
     Returns a flat dict:
       - gating: ``"spearman_rho"`` (``float``, from ``spearman_gate_statistic`` on the
-        centroid estimator's ``||H||`` against the fixture's ``H_norm``)
-      - null (D-02): every key ``permutation_null`` returns, prefixed ``"null_"`` where
-        the key does not already start with that prefix (``"null_quantile"``,
+        centroid estimator's ``||H||`` against the fixture's ``H_norm``) and
+        ``"quantile_bin_concordance"`` (``float``, from :func:`quantile_bin_concordance`
+        on the same two fields)
+      - spearman null (D-02): every key ``permutation_null`` returns, prefixed ``"null_"``
+        where the key does not already start with that prefix (``"null_quantile"``,
         ``"null_threshold"``, ``"null_mean"``, ``"null_std"`` are already prefixed and
         pass through unchanged; ``"observed_rho"``, ``"n_resamples"``, ``"seed"``, and
         ``"clears_null"`` become ``"null_observed_rho"``, ``"null_n_resamples"``,
         ``"null_seed"``, and ``"null_clears_null"``)
+      - region null (Section 3h, plan 02.5-07): the SAME ``permutation_null`` machinery,
+        recalibrated against :func:`quantile_bin_concordance` via its ``statistic_fn``
+        argument, with every key prefixed ``"region_null_"`` instead (distinct prefix, so
+        the two null dicts never collide) -- ``"region_null_observed_rho"`` is this cell's
+        unshuffled ``quantile_bin_concordance`` value (named ``observed_rho`` inside
+        ``permutation_null`` for both statistics, per that function's own backward-
+        compatible key naming), ``"region_null_threshold"``, ``"region_null_mean"``,
+        ``"region_null_std"``, ``"region_null_clears_null"``, etc.
       - non-gating context: ``"median_relative_error"``, ``"quadric_spearman_rho"``,
         ``"agreement_spearman"``, ``"agreement_median_rel_diff"``,
         ``"quadric_underdetermined"``, ``"quadric_n_coefficients"``,
         ``"quadric_coefficient_deficit"``, ``"realized_skew"`` (only when the fixture
         dict itself carries one -- ``make_swiss_roll_fixture`` does not), ``"n"``,
-        ``"d"``, ``"D"``, ``"k"``, ``"k_density"``, ``"density_correct"``, ``"seed"``
+        ``"d"``, ``"D"``, ``"k"``, ``"k_density"``, ``"density_correct"``,
+        ``"region_n_bins"``, ``"region_pair_seed"``, ``"region_n_pairs"``, ``"seed"``
         (this plain top-level echo of the caller's ``seed``, distinct from
-        ``"null_seed"`` above, which is the same value but reached through
-        ``permutation_null``'s own return dict)
-      - timing: ``"elapsed_s"`` (``float``, wall-clock seconds for this whole call)
+        ``"null_seed"``/``"region_null_seed"`` above, which are the same value but reached
+        through ``permutation_null``'s own return dicts)
+      - timing: ``"elapsed_s"`` (``float``, wall-clock seconds for this whole call --
+        dominated, at the PU regime's own ``D=768``, by the non-gating quadric
+        cross-check's per-point least-squares fit, not by either gating statistic;
+        see plan 02.5-07-SUMMARY.md's Performance section for the measured breakdown)
 
     Every value is a plain Python ``float``, ``int``, ``bool``, or ``str`` -- never a
     numpy scalar -- so the runner can hand this dict straight to ``cache.json_cache``
@@ -985,13 +1150,49 @@ def measure_cell(
         pref_key = key if key.startswith("null_") else f"null_{key}"
         null_prefixed[pref_key] = value
 
+    region_rho = quantile_bin_concordance(
+        h_est_norm,
+        h_true_norm,
+        n_bins=region_n_bins,
+        pair_seed=region_pair_seed,
+        n_pairs=region_n_pairs,
+    )
+
+    def _region_stat(x: np.ndarray, y: np.ndarray) -> float:
+        # permutation_null's samples tuple is (h_true_norm, h_est_norm); quantile_bin_concordance's
+        # own signature is (h_est_norm, h_true_norm) -- map x (h_true-side) to h_true_norm
+        # and y (h_est-side) to h_est_norm here, matching that convention.
+        return quantile_bin_concordance(
+            h_est_norm=y,
+            h_true_norm=x,
+            n_bins=region_n_bins,
+            pair_seed=region_pair_seed,
+            n_pairs=region_n_pairs,
+        )
+
+    region_null_result = permutation_null(
+        h_true_norm, h_est_norm, n_resamples, seed, quantile, statistic_fn=_region_stat
+    )
+    region_null_prefixed = {}
+    for key, value in region_null_result.items():
+        # permutation_null's own keys already carry a "null_" prefix on 4 of 8 entries
+        # (null_quantile/null_threshold/null_mean/null_std) -- REPLACE that prefix with
+        # "region_" (giving region_null_threshold, not the double-prefixed
+        # region_null_null_threshold); the remaining 4 (observed_rho/n_resamples/seed/
+        # clears_null) get "region_null_" prepended directly, exactly mirroring the
+        # spearman null's own "null_" prefixing logic above one level up.
+        pref_key = f"region_{key}" if key.startswith("null_") else f"region_null_{key}"
+        region_null_prefixed[pref_key] = value
+
     quadric_result = quadric_mean_curvature(X, k=k, d=d)
     agreement = estimator_agreement(h_est_norm, quadric_result["H_norm"])
     quadric_spearman_rho = spearman_gate_statistic(quadric_result["H_norm"], h_true_norm)
 
     result = {
         "spearman_rho": float(spearman_rho),
+        "quantile_bin_concordance": float(region_rho),
         **null_prefixed,
+        **region_null_prefixed,
         "median_relative_error": float(med_rel_err),
         "quadric_spearman_rho": float(quadric_spearman_rho),
         "agreement_spearman": float(agreement["agreement_spearman"]),
@@ -1005,6 +1206,9 @@ def measure_cell(
         "k": int(k),
         "k_density": int(k_density),
         "density_correct": bool(density_correct),
+        "region_n_bins": int(region_n_bins),
+        "region_pair_seed": int(region_pair_seed),
+        "region_n_pairs": int(region_n_pairs),
         "seed": int(seed),
         "elapsed_s": float(time.perf_counter() - t0),
     }
@@ -1015,33 +1219,48 @@ def measure_cell(
 
 # --- gate constants and direction-aware verdict functions (D-01, D-12) ----------------
 
-STAGE1_GATING_METRICS: Tuple[str, ...] = ("spearman_rho",)
+STAGE1_GATING_METRICS: Tuple[str, ...] = ("spearman_rho", "quantile_bin_concordance")
 STAGE2_GATING_METRICS: Tuple[str, ...] = ("chart_vs_raw_margin", "seed_spread")
+
+# Extended by plan 02.5-07 (Section 3h's ratified option-scale-C): stage 1 now gates on
+# TWO independent statistics, not one. `spearman_rho` alone was this tuple's sole entry
+# as shipped by plan 02.5-04; `quantile_bin_concordance` (Section 3e/3g, implemented by
+# plan 02.5-07) is added because the ratified pre-registration requires BOTH to clear,
+# each against its own null-calibrated threshold and its own absolute floor, for a cell
+# to pass -- neither is demoted to non-gating context (Section 3h's own wording: "Both
+# statistics are gating ... only *which measurements decide PASS/FAIL* is now 'both', not
+# 'one, with the other as context'"). `_apply_gates` below needed no change to support
+# this -- it already iterates `gate_names` generically; only this tuple and the
+# `GATE_DIRECTIONS` entry below needed extending.
 
 # OQ-5 (surfaced during planning, not in RESEARCH.md): `cae.verdict_from_metrics` is not
 # delegated to here. First, its `topoae.py`-style positional slot remap requires both
-# tuples to have exactly three entries (`topoae.py:632-636`); stage 1 has one gating
-# metric and stage 2 has two, so no such remap exists at either count. Second,
+# tuples to have exactly three entries (`topoae.py:632-636`); stage 1 now has two gating
+# metrics and stage 2 has two, so no such remap exists at either count. Second,
 # `cae.verdict_from_metrics` applies strict less-than to every gate, while
-# `spearman_rho` and `chart_vs_raw_margin` are greater-than gates -- sign-flipping the
-# metric before delegating would put a transformation between the measurement and the
-# tested comparison, precisely the opacity the delegation pattern exists to avoid.
-# `_apply_gates` below therefore mirrors `cae.py:1077-1097`'s guard-then-compare
-# discipline line for line but does not call it; the sealed module's own gating-metric
-# tuple is never monkeypatched and its verdict function is never called.
+# `spearman_rho`, `quantile_bin_concordance`, and `chart_vs_raw_margin` are greater-than
+# gates -- sign-flipping the metric before delegating would put a transformation between
+# the measurement and the tested comparison, precisely the opacity the delegation pattern
+# exists to avoid. `_apply_gates` below therefore mirrors `cae.py:1077-1097`'s
+# guard-then-compare discipline line for line but does not call it; the sealed module's
+# own gating-metric tuple is never monkeypatched and its verdict function is never
+# called.
 GATE_DIRECTIONS: Dict[str, str] = {
     "spearman_rho": "greater",
+    "quantile_bin_concordance": "greater",
     "chart_vs_raw_margin": "greater",
     "seed_spread": "less",
 }
 
 STAGE1_VERDICT_RULE = (
-    "PASS requires spearman_rho strictly greater than its threshold; a value exactly at "
-    "the threshold does not clear it. There is no MARGINAL tier: every non-PASS outcome "
-    "routes to the same halt-for-user-decision consequence (D-04), so a middle tier would "
-    "carry no distinct consequence. The threshold itself is the maximum of a "
-    "permutation-null quantile and an absolute floor, both fixed in "
-    "02.5-PREREGISTRATION.md."
+    "PASS requires BOTH spearman_rho AND quantile_bin_concordance strictly greater than "
+    "their OWN thresholds (Section 3h's ratified option-scale-C, added by plan 02.5-07); "
+    "a value exactly at either threshold does not clear it, and either gate alone failing "
+    "fails the cell. There is no MARGINAL tier: every non-PASS outcome routes to the same "
+    "halt-for-user-decision consequence (D-04), so a middle tier would carry no distinct "
+    "consequence. Each threshold is the maximum of that statistic's OWN permutation-null "
+    "quantile and its OWN absolute floor (SPEARMAN_ABSOLUTE_FLOOR=0.50 / "
+    "REGION_ABSOLUTE_FLOOR=0.4750), both fixed in 02.5-PREREGISTRATION.md."
 )
 
 STAGE2_VERDICT_RULE = (
