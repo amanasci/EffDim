@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: Completed 02.5-03-PLAN.md
-last_updated: "2026-08-08T03:36:41.518Z"
+stopped_at: Completed 02.5-04-PLAN.md
+last_updated: "2026-08-08T04:19:10.590Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 02.5 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 28
+  completed_plans: 29
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 4 of 13
+Plan: 5 of 13
 Status: Ready to execute
 Last activity: 2026-08-07 — Phase 02.5 execution started
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [███████░░░] 74% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 76% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -125,6 +125,7 @@ Progress: [███████░░░] 74% of planned plans (17/17; Phases 1
 | Phase 02.5 P01 | ~30min | 3 tasks | 2 files |
 | Phase 02.5 P02 | ~1h20min | 3 tasks | 2 files |
 | Phase 02.5 P03 | ~45min | 3 tasks | 2 files |
+| Phase 02.5 P04 | ~34min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -210,6 +211,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.5-03: Preserved 02.5-01's 2*d/r2 scale constant and 02.5-02's density correction; quadric_fit_curvature rewrites Pattern 2's dead-branch trace accumulation (H += 2.0*c over i==j columns only)
 - [Phase ?]: 02.5-03: [Rule 3 - blocking] quadric_mean_curvature needed its own _quadric_tangent_basis (full_matrices=True SVD) rather than reusing local_tangent_basis, which hard-raises whenever d > k -- exactly the underdetermined d=20/k=15 regime Task 1's own acceptance criteria require it to run and report on
 - [Phase ?]: 02.5-03: estimator_agreement resolved report-never-block per D-05/CONTEXT.md discretion; permutation_null uses scipy.stats.permutation_test (not mknn.py's hand-rolled precedent) with no default for quantile; measure_cell bundles all of it into one flat, JSON-serializable dict with exactly one gating key (spearman_rho)
+- [Phase ?]: 02.5-04: OQ-4 resolved -- mirror (not import) topoae.py's R6 verdict/handoff/stale-deletion functions at 02.5-scoped stems; topoae.py never edited or called
+- [Phase ?]: 02.5-04: OQ-5 resolved -- cae.verdict_from_metrics not delegated to (its 3-slot positional remap doesn't fit 1/2-gate stages, and it applies uniform strict-less-than while spearman_rho/chart_vs_raw_margin are greater-than gates); _apply_gates implements its own guard-then-compare with an explicit GATE_DIRECTIONS map
+- [Phase ?]: 02.5-04: thresholds live inside write_curvature_verdict's cache cfg dict, so an edited threshold raises cache._manifest_matches's mismatch ValueError on re-call instead of silently re-verdicting
 
 ### Pending Todos
 
@@ -251,8 +255,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-08T03:36:41.487Z
-Stopped at: Completed 02.5-03-PLAN.md
+Last session: 2026-08-08T04:19:10.559Z
+Stopped at: Completed 02.5-04-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
