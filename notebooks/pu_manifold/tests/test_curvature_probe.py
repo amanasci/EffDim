@@ -613,3 +613,79 @@ def test_measure_cell_returns_flat_native_types():
         assert type(value).__module__ != "numpy", f"{key} is a numpy scalar: {type(value)}"
 
     json.dumps(result)  # succeeds without a custom encoder
+
+
+# --- Plan 02.5-04 Task 1: gate constants and direction-aware verdict functions ----------
+
+
+def test_verdict_gates_are_strict_and_direction_aware():
+    """Stage 1: PASS strictly above threshold, FAIL exactly at, FAIL below. Stage 2: PASS
+    only when BOTH gates clear (margin greater-than AND seed_spread less-than); either
+    alone is FAIL. `gate_detail` carries `direction` for every gate."""
+    # Stage 1: PASS above
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": 0.71}, {"spearman_rho": 0.70}
+    )
+    assert verdict == "PASS"
+    assert detail["spearman_rho"]["direction"] == "greater"
+    assert detail["spearman_rho"]["passed"] is True
+
+    # Stage 1: FAIL exactly at threshold
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": 0.70}, {"spearman_rho": 0.70}
+    )
+    assert verdict == "FAIL"
+    assert detail["spearman_rho"]["passed"] is False
+
+    # Stage 1: FAIL below
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": 0.69}, {"spearman_rho": 0.70}
+    )
+    assert verdict == "FAIL"
+
+    # Stage 2: PASS on both
+    verdict, detail = cp.verdict_from_stage2_metrics(
+        {"chart_vs_raw_margin": 0.10, "seed_spread": 0.02},
+        {"chart_vs_raw_margin": 0.05, "seed_spread": 0.05},
+    )
+    assert verdict == "PASS"
+    assert detail["chart_vs_raw_margin"]["direction"] == "greater"
+    assert detail["seed_spread"]["direction"] == "less"
+
+    # Stage 2: FAIL when only the margin clears (seed_spread does not)
+    verdict, detail = cp.verdict_from_stage2_metrics(
+        {"chart_vs_raw_margin": 0.10, "seed_spread": 0.08},
+        {"chart_vs_raw_margin": 0.05, "seed_spread": 0.05},
+    )
+    assert verdict == "FAIL"
+    assert detail["chart_vs_raw_margin"]["passed"] is True
+    assert detail["seed_spread"]["passed"] is False
+
+    # Stage 2: FAIL when only the seed spread clears (margin does not)
+    verdict, detail = cp.verdict_from_stage2_metrics(
+        {"chart_vs_raw_margin": 0.02, "seed_spread": 0.02},
+        {"chart_vs_raw_margin": 0.05, "seed_spread": 0.05},
+    )
+    assert verdict == "FAIL"
+    assert detail["chart_vs_raw_margin"]["passed"] is False
+    assert detail["seed_spread"]["passed"] is True
+
+
+def test_verdict_raises_on_absent_or_nonfinite_gate():
+    """An absent gating metric, a NaN/inf gating metric, or an absent threshold each raise
+    `ValueError` naming the offending gate before any comparison runs."""
+    with pytest.raises(ValueError, match="spearman_rho"):
+        cp.verdict_from_stage1_metrics({}, {"spearman_rho": 0.70})
+
+    with pytest.raises(ValueError, match="spearman_rho"):
+        cp.verdict_from_stage1_metrics(
+            {"spearman_rho": float("nan")}, {"spearman_rho": 0.70}
+        )
+
+    with pytest.raises(ValueError, match="spearman_rho"):
+        cp.verdict_from_stage1_metrics(
+            {"spearman_rho": float("inf")}, {"spearman_rho": 0.70}
+        )
+
+    with pytest.raises(ValueError, match="spearman_rho"):
+        cp.verdict_from_stage1_metrics({"spearman_rho": 0.71}, {})

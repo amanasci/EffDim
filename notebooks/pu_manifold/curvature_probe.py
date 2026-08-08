@@ -23,14 +23,17 @@ factor, but the non-gating median relative error and any cross-estimator agreeme
 would silently be wrong by a factor of ``d`` under the wrong convention.
 """
 
+import math
 import time
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 from scipy.special import gammaln
 from scipy.stats import permutation_test, spearmanr
 from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
+
+from . import cache
 
 CURVATURE_CONVENTION = "trace"
 """This module's single curvature convention: ``H = tr(II)``, the unnormalized trace of
@@ -928,10 +931,10 @@ def measure_cell(
     or ``make_flat_fixture`` -- anything shaped ``{"X", "H_norm", ...}``.
 
     Exactly ONE returned key is gating: ``"spearman_rho"``. Every other key is context --
-    the same gating/non-gating split every phase since 02.2 has used
-    (``cae.GATING_METRICS`` / ``topoae.GATING_METRICS`` vs. their respective
-    ``context_metrics`` blocks). Consuming code must never branch a PASS/FAIL decision on
-    any key other than ``"spearman_rho"``.
+    the same gating/non-gating split every phase since 02.2 has used (each sibling
+    module's own gating-metrics tuple vs. its respective ``context_metrics`` block).
+    Consuming code must never branch a PASS/FAIL decision on any key other than
+    ``"spearman_rho"``.
 
     Returns a flat dict:
       - gating: ``"spearman_rho"`` (``float``, from ``spearman_gate_statistic`` on the
@@ -1007,3 +1010,135 @@ def measure_cell(
     if "realized_skew" in fixture:
         result["realized_skew"] = float(fixture["realized_skew"])
     return result
+
+
+# --- gate constants and direction-aware verdict functions (D-01, D-12) ----------------
+
+STAGE1_GATING_METRICS: Tuple[str, ...] = ("spearman_rho",)
+STAGE2_GATING_METRICS: Tuple[str, ...] = ("chart_vs_raw_margin", "seed_spread")
+
+# OQ-5 (surfaced during planning, not in RESEARCH.md): `cae.verdict_from_metrics` is not
+# delegated to here. First, its `topoae.py`-style positional slot remap requires both
+# tuples to have exactly three entries (`topoae.py:632-636`); stage 1 has one gating
+# metric and stage 2 has two, so no such remap exists at either count. Second,
+# `cae.verdict_from_metrics` applies strict less-than to every gate, while
+# `spearman_rho` and `chart_vs_raw_margin` are greater-than gates -- sign-flipping the
+# metric before delegating would put a transformation between the measurement and the
+# tested comparison, precisely the opacity the delegation pattern exists to avoid.
+# `_apply_gates` below therefore mirrors `cae.py:1077-1097`'s guard-then-compare
+# discipline line for line but does not call it; the sealed module's own gating-metric
+# tuple is never monkeypatched and its verdict function is never called.
+GATE_DIRECTIONS: Dict[str, str] = {
+    "spearman_rho": "greater",
+    "chart_vs_raw_margin": "greater",
+    "seed_spread": "less",
+}
+
+STAGE1_VERDICT_RULE = (
+    "PASS requires spearman_rho strictly greater than its threshold; a value exactly at "
+    "the threshold does not clear it. There is no MARGINAL tier: every non-PASS outcome "
+    "routes to the same halt-for-user-decision consequence (D-04), so a middle tier would "
+    "carry no distinct consequence. The threshold itself is the maximum of a "
+    "permutation-null quantile and an absolute floor, both fixed in "
+    "02.5-PREREGISTRATION.md."
+)
+
+STAGE2_VERDICT_RULE = (
+    "PASS requires chart_vs_raw_margin strictly greater than its threshold AND "
+    "seed_spread strictly less than its threshold; both strict; no MARGINAL tier. "
+    "Routing (D-12): charts win -> Phase 3 uses CAE charts; raw points win or tie inside "
+    "the margin -> fork to the Ollivier-Ricci phase; neither clears the null -> the "
+    "branch resolved at 02.5-PREREGISTRATION-STAGE2.md's ratification checkpoint (plan "
+    "02.5-10)."
+)
+
+
+def _apply_gates(
+    metrics: Dict[str, float],
+    thresholds: Dict[str, float],
+    gate_names: Tuple[str, ...],
+    rule_name: str,
+) -> Tuple[str, Dict[str, Dict[str, Any]]]:
+    """One tested, direction-aware, guard-first comparison function both stage verdict
+    functions call -- the strict comparison itself is performed only here, never
+    re-implemented at either call site.
+
+    Guard first, compare second (mirrors ``cae.py:1077-1085``'s discipline in intent):
+    for every name in ``gate_names``, before any comparison runs, raises ``ValueError``
+    naming that gate if it is absent from ``metrics``; raises ``ValueError`` naming the
+    gate and its value if ``float(metrics[name])`` is not finite (via ``math.isfinite``);
+    raises ``ValueError`` naming the gate if it is absent from ``thresholds``; and raises
+    ``ValueError`` naming the gate if it is absent from :data:`GATE_DIRECTIONS`. A
+    missing or non-finite measurement can never become a PASS -- halting is the honest
+    behaviour, since emitting a FAIL would be indistinguishable from a measured FAIL.
+
+    Then, for each gate, looks up ``GATE_DIRECTIONS[name]``: ``"greater"`` means
+    ``passed = value > threshold``, ``"less"`` means ``passed = value < threshold``.
+    Both strict.
+
+    Returns ``(verdict, gate_detail)`` with ``verdict = "PASS"`` only if every gate
+    passed, else ``"FAIL"``, and ``gate_detail[name] = {"value", "threshold",
+    "direction", "passed"}``.
+    """
+    for name in gate_names:
+        if name not in metrics:
+            raise ValueError(
+                f"_apply_gates ({rule_name}): gating metric {name!r} is absent from metrics"
+            )
+        value = float(metrics[name])
+        if not math.isfinite(value):
+            raise ValueError(
+                f"_apply_gates ({rule_name}): gating metric {name!r} is non-finite "
+                f"({value!r}) -- a missing or non-finite measurement can never become a PASS"
+            )
+        if name not in thresholds:
+            raise ValueError(
+                f"_apply_gates ({rule_name}): gate {name!r} is absent from thresholds"
+            )
+        if name not in GATE_DIRECTIONS:
+            raise ValueError(
+                f"_apply_gates ({rule_name}): gate {name!r} is absent from GATE_DIRECTIONS"
+            )
+
+    gate_detail: Dict[str, Dict[str, Any]] = {}
+    all_pass = True
+    for name in gate_names:
+        value = float(metrics[name])
+        threshold = thresholds[name]
+        direction = GATE_DIRECTIONS[name]
+        passed = bool(value > threshold) if direction == "greater" else bool(value < threshold)
+        gate_detail[name] = {
+            "value": value,
+            "threshold": threshold,
+            "direction": direction,
+            "passed": passed,
+        }
+        if not passed:
+            all_pass = False
+    verdict = "PASS" if all_pass else "FAIL"
+    return verdict, gate_detail
+
+
+def verdict_from_stage1_metrics(
+    metrics: Dict[str, float], thresholds: Dict[str, float]
+) -> Tuple[str, Dict[str, Dict[str, Any]]]:
+    """Stage 1's verdict: PASS iff ``spearman_rho`` strictly exceeds its threshold (see
+    :data:`STAGE1_VERDICT_RULE`). The strict comparison is performed only inside
+    :func:`_apply_gates`, never re-implemented here."""
+    return _apply_gates(metrics, thresholds, STAGE1_GATING_METRICS, "stage1")
+
+
+def verdict_from_stage2_metrics(
+    metrics: Dict[str, float], thresholds: Dict[str, float]
+) -> Tuple[str, Dict[str, Dict[str, Any]]]:
+    """Stage 2's verdict: PASS iff ``chart_vs_raw_margin`` strictly exceeds its threshold
+    AND ``seed_spread`` is strictly below its threshold (see :data:`STAGE2_VERDICT_RULE`).
+    The strict comparison is performed only inside :func:`_apply_gates`, never
+    re-implemented here."""
+    return _apply_gates(metrics, thresholds, STAGE2_GATING_METRICS, "stage2")
+
+
+# --- persistence boundary --------------------------------------------------------------
+# Everything above this line is pure: arrays/dicts in, arrays/dicts out, no file I/O.
+# Everything below persists through ``cache`` -- the same layout ``cae.py`` uses (see
+# that module's own pure-estimator / cache-writer split).
