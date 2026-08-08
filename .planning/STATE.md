@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: Completed 02.5-06-PLAN.md
-last_updated: "2026-08-08T13:44:53.608Z"
+stopped_at: Paused at 02.5-07 Task 3 checkpoint (stage-1 GO/NO-GO) -- 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written; checkpoint unresolved
+last_updated: "2026-08-08T19:43:06.438Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 02.5 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
 Plan: 7 of 13
-Status: Ready to execute
-Last activity: 2026-08-07 — Phase 02.5 execution started
+Status: Paused — 02.5-07's Task 3 blocking checkpoint (stage-1 GO/NO-GO) awaiting user decision; CURVATURE_VERDICT=FAIL (marginal, seed-sensitive) on the base cell; 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written
+Last activity: 2026-08-08 — Stage-1 feasibility sweep completed and findings written; halted at the GO/NO-GO checkpoint per D-04
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -219,6 +219,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.5-05: Notebook amended post-checkpoint to report a per-point Spearman scale-bias/noise decomposition (median ratio h_est/h_true=0.8934 ~11% scale bias, within-band CV 0.20-0.28 interior/0.42-0.52 edges, region-median 20-band Spearman=0.8406) as notebook-level diagnostics only -- no gate/threshold changed; whether stage 1 gates at per-point or region scale is left open for 02.5-06 to propose and ratify
 - [Phase ?]: Stage-1 gates on BOTH spearman_rho_pointwise AND quantile_bin_concordance independently (option-scale-C), after the first region-scale statistic proposal was rejected at checkpoint as saturated and redesigned from scratch
 - [Phase ?]: REGION_ABSOLUTE_FLOOR=0.4750 derived from the Swiss roll's own noise-oracle ceiling (same 50%-noise tolerance as SPEARMAN_ABSOLUTE_FLOOR); BASE_CELL's graph-of-function fixture found to saturate the noise-oracle calibration technique for every region-statistic design tried (max/median=4708.8x true-curvature dynamic range)
+- [Phase ?]: 02.5-07: CURVATURE_VERDICT=FAIL on the base cell (spearman_rho=0.5205 clears, quantile_bin_concordance=0.4444 misses threshold 0.4750 by -0.0306); reported alongside a seed-instability disclosure -- 2 of 3 tested seeds at the identical base configuration clear both gates, and the across-seed spread (0.0792) exceeds the base cell's own margin to threshold (0.0306)
+- [Phase ?]: 02.5-07: ambient dimension D found bit-identical (to the last printed digit) across D=28,50,200,768 -- the base-cell failure is entirely an intrinsic-d effect, not an ambient-scale effect, correcting a framing risk in 02.5-PREREGISTRATION.md Section 13b
+- [Phase ?]: 02.5-07: the non-gating quadric cross-check (D-05) could not complete beyond the d=2 Swiss roll anchor within the sweep's 30-minute wall-clock budget (measured ~6-8 min/cell at PU scale); reported as a genuine evidentiary gap in 02.5-FINDINGS.md Section 6, with the d(d+1)/2-vs-k coefficient boundary reported structurally (determined through d=5, underdetermined from d=8) rather than empirically
 
 ### Pending Todos
 
@@ -233,6 +236,7 @@ From `TODO.md`:
 - Phase 3 (decoder/curvature) and Phase 4 (regional MKNN) need a dedicated research pass during planning per `research/SUMMARY.md`; Phase 1/2 are standard sklearn/MDS patterns and can skip it
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 is now blocked on Phase 02.2's `cae_verdict.json` reading PASS, and a FAIL there leaves the milestone at the phase-2 stage
 - Plan 02.4-03's three named Swiss roll limitations (RESOLVED as blockers -- Task 4 approved 2026-08-07, but carried forward as facts 02.4-04 must inherit): absolute topological correlation r=0.680 remains below the originally-set 0.8 bound despite beating the matched baseline; the lambda selection rule ("<=10% reconstruction degradation") is mis-specified for a method that trades reconstruction for topology by design and bound at the grid floor on both the broken and corrected loss -- documented in 02.4-03-SUMMARY.md, not fixed; loss_x_to_z/loss_z_to_x are measured under a different normalization than training optimizes and are not clean evidence on their own -- the scale-free correlation r is the trustworthy number. See `02.4-03-SUMMARY.md` § Known Limitations for full detail.
+- Phase 02.5 blocked at plan 02.5-07's Task 3 blocking checkpoint (stage-1 GO/NO-GO): CURVATURE_VERDICT=FAIL (marginal, seed-sensitive) on the base cell. Per 02.5-PREREGISTRATION.md Section 10, the phase halts for a user decision with no auto-fallback. Plans 02.5-08 through 02.5-13 do not execute until this checkpoint is resolved.
 
 ### Quick Tasks Completed
 
@@ -260,8 +264,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-08T13:44:53.575Z
-Stopped at: Completed 02.5-06-PLAN.md
+Last session: 2026-08-08T19:42:53.324Z
+Stopped at: Paused at 02.5-07 Task 3 checkpoint (stage-1 GO/NO-GO) -- 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written; checkpoint unresolved
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>

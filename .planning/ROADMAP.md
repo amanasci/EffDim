@@ -303,7 +303,7 @@ Plans:
   - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
   - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
 
-**Plans**: 6/13 plans executed
+**Plans**: 7/13 plans executed
 
 Plans:
 **Wave 1**
@@ -329,7 +329,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 02.5-07-PLAN.md — **[checkpoint]** Stage-1 feasibility sweep, the boundary report, and the **GO/NO-GO gate that decides whether stage 2 runs at all** (D-01..D-08)
+- [x] 02.5-07-PLAN.md — **[checkpoint]** Stage-1 feasibility sweep, the boundary report, and the **GO/NO-GO gate that decides whether stage 2 runs at all** (D-01..D-08)
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
