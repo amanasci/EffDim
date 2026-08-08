@@ -303,7 +303,7 @@ Plans:
   - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
   - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
 
-**Plans**: 2/13 plans executed
+**Plans**: 3/13 plans executed
 
 Plans:
 **Wave 1**
@@ -316,7 +316,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02.5-03-PLAN.md — Non-gating quadric cross-check, estimator agreement, and permutation-null calibration (D-01, D-02, D-05)
+- [x] 02.5-03-PLAN.md — Non-gating quadric cross-check, estimator agreement, and permutation-null calibration (D-01, D-02, D-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
