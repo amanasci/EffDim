@@ -769,3 +769,67 @@ def test_threshold_edit_raises_manifest_mismatch(tmp_path, monkeypatch):
         cp.write_curvature_verdict(
             "editkey", 1, metrics, {"spearman_rho": 0.75}, "PASS"
         )
+
+
+# --- Plan 02.5-04 Task 3: full-suite green and sealed-artifact audit --------------------
+
+
+def test_phase3_curvature_stubs_remain_unimplemented():
+    """The executable form of OQ-1's resolution -- phase 02.5 builds parallel machinery in
+    curvature_probe.py (and chart_curvature.py) and does NOT deliver Phase 3's
+    CURV-01..04 ahead of schedule. This test is NOT coverage of curvature.py; it only
+    pins that its four stubs still raise NotImplementedError, unedited by this phase."""
+    from pu_manifold import curvature as curv
+
+    with pytest.raises(NotImplementedError):
+        curv.first_fundamental_form(None)
+    with pytest.raises(NotImplementedError):
+        curv.second_fundamental_form(None, None)
+    with pytest.raises(NotImplementedError):
+        curv.mean_curvature_vector(None, None)
+    with pytest.raises(NotImplementedError):
+        curv.metric_condition_number(None)
+
+
+def test_curvature_probe_module_is_numpy_only():
+    """`"torch" not in sys.modules` is not a reliable check under a shared pytest session
+    (a sibling test module may have already imported torch), so instead this parses
+    curvature_probe.py's own source via `ast` and asserts every `Import`/`ImportFrom`
+    node naming `torch` has a non-module (i.e. function-local) parent scope -- the module
+    itself never imports torch at the top level, even though `write_curvature_handoff`
+    imports it lazily inside its own function body."""
+    import ast
+    import inspect
+
+    source = inspect.getsource(cp)
+    tree = ast.parse(source)
+
+    def _names_torch(node) -> bool:
+        if isinstance(node, ast.Import):
+            return any(
+                alias.name == "torch" or alias.name.startswith("torch.")
+                for alias in node.names
+            )
+        if isinstance(node, ast.ImportFrom):
+            return node.module is not None and (
+                node.module == "torch" or node.module.startswith("torch.")
+            )
+        return False
+
+    # Direct children of the module body are the ONLY module-scope statements; anything
+    # naming torch there would be a module-level import.
+    for node in tree.body:
+        assert not _names_torch(node), f"module-scope torch import: {ast.dump(node)}"
+
+    # Every torch-naming Import/ImportFrom anywhere in the file (found via ast.walk, which
+    # descends into function bodies too) must have a non-module parent -- i.e. must live
+    # inside a function, never directly in the module body.
+    found_any = False
+    for parent in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent):
+            if _names_torch(child):
+                found_any = True
+                assert not isinstance(parent, ast.Module), (
+                    f"torch import {ast.dump(child)} has a module-level parent scope"
+                )
+    assert found_any, "expected at least one lazy, function-scoped torch import"
