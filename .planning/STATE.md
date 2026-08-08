@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: Completed 02.5-01-PLAN.md
-last_updated: "2026-08-08T01:14:29.285Z"
+stopped_at: Completed 02.5-02-PLAN.md
+last_updated: "2026-08-08T01:44:08.672Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 02.5 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 26
+  completed_plans: 27
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 2 of 13
+Plan: 3 of 13
 Status: Ready to execute
 Last activity: 2026-08-07 — Phase 02.5 execution started
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [███████░░░] 68% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [███████░░░] 71% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -123,6 +123,7 @@ Progress: [███████░░░] 68% of planned plans (17/17; Phases 1
 | Phase 02.4 P07 | 45min | 3 tasks | 1 files |
 | Phase 02.4 P08 | ~25min | 3 tasks | 6 files |
 | Phase 02.5 P01 | ~30min | 3 tasks | 2 files |
+| Phase 02.5 P02 | ~1h20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -203,6 +204,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.5-01: Rule 1 auto-fix -- centroid_mean_curvature's scale constant corrected from 2*(d+2)/r2 (RESEARCH.md Pattern 1 / plan's own Task 1 text) to 2*d/r2, after the sphere known-answer test caught it returning H=d+2 instead of H=d; confirmed exact for d in {2,3,5,8}
 - [Phase ?]: 02.5-01: Tracer feedback checkpoint (auto mode inactive) held after Task 1; user approved rho=0.5806 before Tasks 2-3 ran
 - [Phase ?]: 02.5-01: requirements.mark-complete found no D-00/D-01/D-03/D-05/D-07 entries in REQUIREMENTS.md -- phase 02.5's D-00..D-15 are scoped locally to 02.5-CONTEXT.md and were never mirrored into the milestone-level REQUIREMENTS.md, same pre-existing gap noted at 02.4-02; not a blocker for this plan
+- [Phase ?]: 02.5-02: Preserved 02.5-01's 2*d/r2 scale constant; graph_mean_curvature implements the exact (not leading-order) graph curvature formula; global_std computed on the unpadded local embedding so padding is a true no-op
+- [Phase ?]: 02.5-02: [Rule 1 - math-level] D-06's flat-fixture test premise (density skew alone produces large fake H on an exactly-linear embedding) proven mathematically impossible for the shipped normal-projecting estimator -- both empirically and analytically (exact-rank-d SVD, log-linear density model). Test redesigned: flat fixture proven at noise floor regardless of correction; correction's real ~8-10% effect demonstrated on a genuinely curved, skewed fixture instead. Flagged human_judgment:true in SUMMARY coverage since it amends a plan must-have
 
 ### Pending Todos
 
@@ -244,8 +247,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-08T01:14:00.905Z
-Stopped at: Completed 02.5-01-PLAN.md
+Last session: 2026-08-08T01:44:08.641Z
+Stopped at: Completed 02.5-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
