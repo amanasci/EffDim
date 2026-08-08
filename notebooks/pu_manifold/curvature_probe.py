@@ -27,7 +27,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.special import gammaln
-from scipy.stats import spearmanr
+from scipy.stats import permutation_test, spearmanr
 from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
 
@@ -808,3 +808,100 @@ def estimator_agreement(h_centroid_norm: np.ndarray, h_quadric_norm: np.ndarray)
     rel_diff = float(np.median(np.abs(a - b) / denom))
 
     return {"agreement_spearman": rho, "agreement_median_rel_diff": rel_diff}
+
+
+# --- D-02 permutation-null calibration of the Spearman threshold ----------------------
+
+
+def permutation_null(h_true_norm: np.ndarray, h_est_norm: np.ndarray, n_resamples: int, seed: int, quantile: float) -> dict:
+    """D-02's permutation-null calibration: shuffles the pairing between the true and
+    estimated curvature fields to build a chance distribution of Spearman values, and
+    reads a threshold off a caller-supplied quantile of it -- so D-01's gate is
+    calibrated against measured chance, never invented.
+
+    Uses ``scipy.stats.permutation_test`` (already pinned, scipy 1.18.0) with
+    ``permutation_type="pairings"``, ``alternative="greater"``, and
+    ``rng=np.random.default_rng(seed)``, rather than a hand-rolled shuffle-and-recompute
+    loop -- the same choice RESEARCH.md's Don't-Hand-Roll table recommends, and
+    ``mknn.permutation_null``'s hand-rolled loop (read for this codebase's naming
+    convention only, never copied) is not repeated a third, different way here.
+
+    ``quantile`` has NO default value. It is a pre-registered constant (plan
+    02.5-06), and giving it a default here is exactly how such a constant gets inherited
+    by accident rather than chosen explicitly at every call site -- the same discipline
+    ``centroid_mean_curvature`` already applies to its own ``d`` argument (D-07).
+
+    Before computing anything, guards the inputs and raises ``ValueError`` naming the
+    offending array if either array contains a non-finite value, if the two arrays have
+    different lengths, or if either array is constant (``np.ptp(arr) == 0``) -- a
+    constant array makes Spearman rank correlation undefined, and the resulting ``NaN``
+    must never be allowed to reach a gate. This mirrors ``cae.py``'s own discipline
+    (``verdict_from_metrics``, ~lines 1077-1085: "a missing or non-finite measurement can
+    never become a PASS") applied one layer earlier, at calibration time rather than
+    verdict time. It is also exactly why a ``d``-sphere (constant ``H`` everywhere) was
+    ruled out as a fixture (D-03): a constant true-curvature field leaves Spearman
+    undefined against ANY estimate, however good.
+
+    Returns a dict with ``"observed_rho"`` (``float``, the actual, unshuffled Spearman
+    statistic), ``"null_quantile"`` (``float``, the requested quantile, echoed back),
+    ``"null_threshold"`` (``float``,
+    ``np.quantile(result.null_distribution, quantile)``), ``"null_mean"`` (``float``),
+    ``"null_std"`` (``float``), ``"n_resamples"`` (``int``, echoed), ``"seed"`` (``int``,
+    echoed), and ``"clears_null"`` (``bool``, ``observed_rho > null_threshold`` --
+    strictly greater-than).
+
+    CALIBRATES, does NOT SET, the gate: stage 1's actual gate is fixed only by the
+    ratified ``02.5-PREREGISTRATION.md`` (plan 02.5-06), which pre-registers
+    ``n_resamples``, ``quantile``, and an additional absolute floor before this function
+    is ever run on a real fixture. Anyone reading a ``clears_null`` value computed before
+    that document is committed is reading a diagnostic, not a verdict.
+    """
+    h_true_norm = np.asarray(h_true_norm, dtype=np.float64)
+    h_est_norm = np.asarray(h_est_norm, dtype=np.float64)
+
+    if not np.all(np.isfinite(h_true_norm)):
+        raise ValueError("permutation_null: h_true_norm contains a non-finite value.")
+    if not np.all(np.isfinite(h_est_norm)):
+        raise ValueError("permutation_null: h_est_norm contains a non-finite value.")
+    if h_true_norm.shape[0] != h_est_norm.shape[0]:
+        raise ValueError(
+            f"permutation_null: h_true_norm (len={h_true_norm.shape[0]}) and "
+            f"h_est_norm (len={h_est_norm.shape[0]}) have different lengths."
+        )
+    if np.ptp(h_true_norm) == 0:
+        raise ValueError(
+            "permutation_null: h_true_norm is constant -- Spearman rank correlation is "
+            "undefined against a constant field."
+        )
+    if np.ptp(h_est_norm) == 0:
+        raise ValueError(
+            "permutation_null: h_est_norm is constant -- Spearman rank correlation is "
+            "undefined against a constant field."
+        )
+
+    def _stat(x: np.ndarray, y: np.ndarray) -> float:
+        return float(spearmanr(x, y).statistic)
+
+    rng = np.random.default_rng(seed)
+    result = permutation_test(
+        (h_true_norm, h_est_norm),
+        _stat,
+        permutation_type="pairings",
+        alternative="greater",
+        n_resamples=n_resamples,
+        rng=rng,
+    )
+
+    observed_rho = float(result.statistic)
+    null_threshold = float(np.quantile(result.null_distribution, quantile))
+
+    return {
+        "observed_rho": observed_rho,
+        "null_quantile": float(quantile),
+        "null_threshold": null_threshold,
+        "null_mean": float(np.mean(result.null_distribution)),
+        "null_std": float(np.std(result.null_distribution)),
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "clears_null": bool(observed_rho > null_threshold),
+    }

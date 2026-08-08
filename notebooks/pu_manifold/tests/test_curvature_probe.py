@@ -536,3 +536,49 @@ def test_quadric_cross_check_and_underdetermination():
     assert quadric_pu["underdetermined"] is True
     assert quadric_pu["n_coefficients"] == 210
     assert quadric_pu["coefficient_deficit"] == 195
+
+
+# --- Plan 02.5-03 Task 2: permutation-null calibration of the Spearman threshold -------
+
+
+def test_permutation_null_rejects_random_pairing():
+    """(a) A genuinely correlated pair clears its own null threshold. (b) An
+    independently shuffled pair does not. (c) The same seed gives a bit-identical null
+    threshold; a different seed gives a different one. (d) A constant input array raises
+    `ValueError` naming the array, rather than letting Spearman's `NaN` reach a gate.
+
+    `n_resamples=199` here keeps runtime under a few seconds; the pre-registered
+    production value is larger and lives in `02.5-PREREGISTRATION.md` (plan 02.5-06), not
+    here.
+    """
+    h_true, h_est = _monotone_noised_pair(seed=42, n=300)
+
+    # (a) correlated pair clears its own null threshold
+    result_corr = cp.permutation_null(h_true, h_est, n_resamples=199, seed=1, quantile=0.95)
+    assert result_corr["clears_null"] is True
+    assert result_corr["observed_rho"] > result_corr["null_threshold"]
+
+    # (b) independently shuffled pair does not clear a fixed-seed null
+    rng_shuffle = np.random.default_rng(9)
+    h_shuffled = rng_shuffle.permutation(h_est)
+    result_shuffled = cp.permutation_null(
+        h_true, h_shuffled, n_resamples=199, seed=1, quantile=0.95
+    )
+    assert result_shuffled["clears_null"] is False
+
+    # (c) same seed twice -> bit-identical null_threshold; different seed -> different
+    result_a = cp.permutation_null(h_true, h_est, n_resamples=199, seed=5, quantile=0.95)
+    result_b = cp.permutation_null(h_true, h_est, n_resamples=199, seed=5, quantile=0.95)
+    assert result_a["null_threshold"] == result_b["null_threshold"]
+    result_c = cp.permutation_null(h_true, h_est, n_resamples=199, seed=6, quantile=0.95)
+    assert result_c["null_threshold"] != result_a["null_threshold"]
+
+    # (d) a constant input raises ValueError naming the offending array
+    with pytest.raises(ValueError, match="h_true_norm"):
+        cp.permutation_null(
+            np.ones(100), np.arange(100.0), n_resamples=99, seed=1, quantile=0.99
+        )
+    with pytest.raises(ValueError, match="h_est_norm"):
+        cp.permutation_null(
+            np.arange(100.0), np.ones(100), n_resamples=99, seed=1, quantile=0.99
+        )
