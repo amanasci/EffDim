@@ -22,6 +22,7 @@ import pytest
 from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
 
+from pu_manifold import cache
 from pu_manifold import curvature_probe as cp
 
 
@@ -689,3 +690,82 @@ def test_verdict_raises_on_absent_or_nonfinite_gate():
 
     with pytest.raises(ValueError, match="spearman_rho"):
         cp.verdict_from_stage1_metrics({"spearman_rho": 0.71}, {})
+
+
+# --- Plan 02.5-04 Task 2: R6 verdict and handoff writers, mirrored at 02.5 scope --------
+
+
+def _valid_handoff_payload() -> dict:
+    """Minimal payload naming the full estimator contract D-15 requires."""
+    return {
+        "substrate": "raw_points",
+        "working_dimension": 2,
+        "neighbourhood_rule": {"k": 30, "justification": "bias-variance test-only stub"},
+        "density_correction": {"enabled": False, "k_density": None},
+        "estimator_variant": "centroid_laplace_beltrami",
+        "cache_stems": ["curvature_feasibility_stage1testkey"],
+        "fit_key": "stage1testkey",
+        "gate_values": {"spearman_rho": 0.71},
+        "thresholds": {"spearman_rho": 0.70},
+        "evidence_criteria": "spearman_rho exceeds the pre-registered threshold",
+        "preregistration_sha": "deadbeef" * 5,
+        "activation": "test-only",
+    }
+
+
+def test_pass_only_handoff_and_stale_deletion(tmp_path, monkeypatch):
+    """FAIL writes the verdict and no handoff; write_curvature_handoff with verdict='FAIL'
+    raises ValueError; PASS writes both; clear_stale_curvature_handoff after a PASS
+    returns True and removes both files; calling it again returns False and does not
+    raise; write_curvature_verdict with a verdict that disagrees with its own metrics
+    raises ValueError."""
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+
+    # FAIL: verdict written, no handoff possible
+    fail_metrics = {"spearman_rho": 0.60}
+    thresholds = {"spearman_rho": 0.70}
+    fail_result = cp.write_curvature_verdict(
+        "failkey", 1, fail_metrics, thresholds, "FAIL"
+    )
+    assert fail_result["CURVATURE_VERDICT"] == "FAIL"
+    assert cache.cache_path("curvature_verdict_stage1_failkey", "json").exists()
+    assert not cache.cache_path("curvature_handoff_failkey", "json").exists()
+
+    with pytest.raises(ValueError, match="FAIL"):
+        cp.write_curvature_handoff("failkey", "FAIL", _valid_handoff_payload())
+
+    # PASS: verdict and handoff both written
+    pass_metrics = {"spearman_rho": 0.80}
+    pass_result = cp.write_curvature_verdict(
+        "passkey", 1, pass_metrics, thresholds, "PASS"
+    )
+    assert pass_result["CURVATURE_VERDICT"] == "PASS"
+    cp.write_curvature_handoff("passkey", "PASS", _valid_handoff_payload())
+    assert cache.cache_path("curvature_handoff_passkey", "json").exists()
+    assert cache.cache_path("curvature_handoff_passkey", "meta.json").exists()
+
+    # clear_stale_curvature_handoff: True the first time, False (no raise) the second
+    assert cp.clear_stale_curvature_handoff("passkey") is True
+    assert not cache.cache_path("curvature_handoff_passkey", "json").exists()
+    assert not cache.cache_path("curvature_handoff_passkey", "meta.json").exists()
+    assert cp.clear_stale_curvature_handoff("passkey") is False
+
+    # A verdict that disagrees with its own metrics is refused
+    with pytest.raises(ValueError):
+        cp.write_curvature_verdict("mismatchkey", 1, pass_metrics, thresholds, "FAIL")
+
+
+def test_threshold_edit_raises_manifest_mismatch(tmp_path, monkeypatch):
+    """Editing a threshold and re-calling write_curvature_verdict with the same key/stage
+    raises cache._manifest_matches's mismatch ValueError rather than silently
+    re-verdicting."""
+    monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
+
+    metrics = {"spearman_rho": 0.80}
+    cp.write_curvature_verdict(
+        "editkey", 1, metrics, {"spearman_rho": 0.70}, "PASS"
+    )
+    with pytest.raises(ValueError, match="manifest mismatch"):
+        cp.write_curvature_verdict(
+            "editkey", 1, metrics, {"spearman_rho": 0.75}, "PASS"
+        )

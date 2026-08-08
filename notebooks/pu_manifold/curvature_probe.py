@@ -25,6 +25,7 @@ would silently be wrong by a factor of ``d`` under the wrong convention.
 
 import math
 import time
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -1142,3 +1143,216 @@ def verdict_from_stage2_metrics(
 # Everything above this line is pure: arrays/dicts in, arrays/dicts out, no file I/O.
 # Everything below persists through ``cache`` -- the same layout ``cae.py`` uses (see
 # that module's own pure-estimator / cache-writer split).
+
+
+def write_curvature_verdict(
+    key: str,
+    stage: int,
+    metrics: Dict[str, Any],
+    thresholds: Dict[str, Any],
+    verdict: str,
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """R6's verdict writer, mirrored at 02.5 scope (D-15) -- written on PASS and on FAIL
+    alike; there is no branch that skips the write.
+
+    ``stage`` must be ``1`` or ``2``; any other value raises ``ValueError`` naming it.
+
+    Recomputes ``(computed_verdict, gate_detail)`` via :func:`verdict_from_stage1_metrics`
+    or :func:`verdict_from_stage2_metrics` (per ``stage``) from the supplied
+    ``metrics``/``thresholds`` -- never trusting the caller's ``verdict`` argument
+    directly -- and raises ``ValueError`` if ``computed_verdict != verdict`` (mirrors
+    ``topoae.py:717-724``'s wording in intent: a verdict artifact whose stored outcome
+    disagrees with its own gates must never be written).
+
+    Thresholds live INSIDE the ``cfg`` dict passed to ``cache.json_cache``
+    (``topoae.py:695-699``'s documented rationale), so editing a threshold afterwards
+    and re-calling with the same ``key``/``stage`` raises ``cache._manifest_matches``'s
+    mismatch ``ValueError`` instead of silently re-verdicting.
+
+    Payload: ``key``, ``phase`` (``"02.5"``), ``stage``, ``CURVATURE_VERDICT`` (the
+    verdict string), ``gating_metrics`` (the stage's own gate-name tuple as a list, so
+    the artifact states its own gate list), ``gate_directions`` (the relevant slice of
+    :data:`GATE_DIRECTIONS`), ``metrics``, ``thresholds``, ``gate_detail``,
+    ``verdict_rule`` (the stage's rule string), ``curvature_convention``
+    (:data:`CURVATURE_CONVENTION`), ``gate_scope`` (this phase's every gate is scoped to
+    a local neighbourhood statistic -- ``{"value": "local", "reason": ...}``, following
+    the additive ``gate_scope`` annotation plan 02.4-07 added to its own sealed verdict),
+    and -- when ``extra`` is supplied -- everything reported but never gated, under the
+    single key ``context_metrics``.
+
+    Persisted through ``cache.json_cache(f"curvature_verdict_stage{stage}_{key}", cfg,
+    _compute)``. Every value passes through the sealed model module's ``to_native``
+    helper before it reaches ``json_cache`` -- imported lazily inside this function (not
+    at module level) so this module keeps its numpy-only import posture; this is this
+    module's only dependency on that sealed module, a read-only import of one pure
+    conversion helper, never a call into its model code.
+    """
+    if stage not in (1, 2):
+        raise ValueError(f"write_curvature_verdict: stage must be 1 or 2, got {stage!r}")
+
+    if stage == 1:
+        computed_verdict, gate_detail = verdict_from_stage1_metrics(metrics, thresholds)
+        gating_metrics = STAGE1_GATING_METRICS
+        verdict_rule = STAGE1_VERDICT_RULE
+    else:
+        computed_verdict, gate_detail = verdict_from_stage2_metrics(metrics, thresholds)
+        gating_metrics = STAGE2_GATING_METRICS
+        verdict_rule = STAGE2_VERDICT_RULE
+
+    if computed_verdict != verdict:
+        raise ValueError(
+            f"write_curvature_verdict: supplied verdict {verdict!r} does not match the "
+            f"verdict computed from metrics/thresholds ({computed_verdict!r}) -- refusing "
+            "to write a verdict artifact whose stored outcome disagrees with its own gates"
+        )
+
+    from . import cae as cae_mod  # lazy: keeps this module's numpy-only import posture
+
+    cfg = {"key": key, "phase": "02.5", "stage": stage, "thresholds": thresholds}
+
+    def _compute() -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "key": key,
+            "phase": "02.5",
+            "stage": stage,
+            "CURVATURE_VERDICT": verdict,
+            "gating_metrics": list(gating_metrics),
+            "gate_directions": {name: GATE_DIRECTIONS[name] for name in gating_metrics},
+            "metrics": metrics,
+            "thresholds": thresholds,
+            "gate_detail": gate_detail,
+            "verdict_rule": verdict_rule,
+            "curvature_convention": CURVATURE_CONVENTION,
+            "gate_scope": {
+                "value": "local",
+                "reason": (
+                    "Every gate in this phase is scoped to a local neighbourhood "
+                    "statistic -- there is no global-scoped gate here to distinguish "
+                    "it from."
+                ),
+            },
+        }
+        if extra:
+            payload["context_metrics"] = extra
+        return cae_mod.to_native(payload)
+
+    return cache.json_cache(f"curvature_verdict_stage{stage}_{key}", cfg, _compute)
+
+
+def write_curvature_handoff(key: str, verdict: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """R6's PASS-only handoff writer, mirrored at 02.5 scope (D-15). Raises ``ValueError``
+    unless ``verdict == "PASS"`` (mirrors ``topoae.py:765-768``), so a non-PASS caller
+    cannot produce a handoff even by mistake.
+
+    The payload must name the FULL estimator contract -- D-15's whole point: naming the
+    winning substrate alone would let Phase 3 reconstruct the field under different
+    settings than the ones that passed the gate. Required keys, each raising
+    ``ValueError`` naming it when absent from ``payload``: ``substrate``
+    (``"cae_charts"`` or ``"raw_points"``), ``working_dimension`` (the ``d`` that gated),
+    ``neighbourhood_rule`` (a dict with ``k`` and the prose bias-variance justification
+    from the pre-registration), ``density_correction`` (a dict with ``enabled`` and
+    ``k_density``), ``estimator_variant`` (``"centroid_laplace_beltrami"``),
+    ``cache_stems`` (the list of fit/artifact stems the field was computed from),
+    ``fit_key``, ``gate_values``, ``thresholds``, ``evidence_criteria`` (prose),
+    ``preregistration_sha`` (the git-ancestry-proved commit of
+    ``02.5-PREREGISTRATION-STAGE2.md``), and ``activation``.
+
+    ``curvature_convention`` (:data:`CURVATURE_CONVENTION`) is always included.
+    ``torch_version`` is read lazily inside this function (``import torch`` here, not at
+    module level) so this module keeps its numpy-only import posture; if torch is not
+    importable, records the string ``"not-installed"`` rather than raising.
+    ``numpy_version`` and a UTC ``timestamp`` are also included. Every value passes
+    through the sealed model module's ``to_native`` helper (imported lazily, same
+    rationale as :func:`write_curvature_verdict`) before it reaches ``json_cache``.
+
+    Persisted through ``cache.json_cache(f"curvature_handoff_{key}", cfg, _compute)``.
+    """
+    if verdict != "PASS":
+        raise ValueError(
+            f"write_curvature_handoff refuses to write a handoff for a non-PASS verdict: "
+            f"{verdict!r}"
+        )
+
+    required_keys = (
+        "substrate",
+        "working_dimension",
+        "neighbourhood_rule",
+        "density_correction",
+        "estimator_variant",
+        "cache_stems",
+        "fit_key",
+        "gate_values",
+        "thresholds",
+        "evidence_criteria",
+        "preregistration_sha",
+        "activation",
+    )
+    for name in required_keys:
+        if name not in payload:
+            raise ValueError(
+                f"write_curvature_handoff: payload is missing required key {name!r} -- "
+                "the handoff must name the full estimator contract, not merely which "
+                "substrate won"
+            )
+
+    from . import cae as cae_mod  # lazy: keeps this module's numpy-only import posture
+
+    try:
+        import torch
+
+        torch_version = torch.__version__
+    except ImportError:
+        torch_version = "not-installed"
+
+    cfg = {"key": key, "phase": "02.5"}
+
+    def _compute() -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "key": key,
+            "phase": "02.5",
+            "verdict": verdict,
+            "substrate": payload["substrate"],
+            "working_dimension": payload["working_dimension"],
+            "neighbourhood_rule": payload["neighbourhood_rule"],
+            "density_correction": payload["density_correction"],
+            "estimator_variant": payload["estimator_variant"],
+            "curvature_convention": CURVATURE_CONVENTION,
+            "cache_stems": payload["cache_stems"],
+            "fit_key": payload["fit_key"],
+            "gate_values": payload["gate_values"],
+            "thresholds": payload["thresholds"],
+            "evidence_criteria": payload["evidence_criteria"],
+            "preregistration_sha": payload["preregistration_sha"],
+            "activation": payload["activation"],
+            "torch_version": torch_version,
+            "numpy_version": np.__version__,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        return cae_mod.to_native(result)
+
+    return cache.json_cache(f"curvature_handoff_{key}", cfg, _compute)
+
+
+def clear_stale_curvature_handoff(key: str) -> bool:
+    """R6's active deletion, mirrored at 02.5 scope (D-15). Mirrors
+    ``topoae.py:794-817`` exactly in behaviour: unlinks both
+    ``cache.cache_path(f"curvature_handoff_{key}", "json")`` and its
+    ``cache.cache_path(f"curvature_handoff_{key}", "meta.json")`` sidecar when present,
+    returns ``True`` if anything was removed and ``False`` otherwise, and never raises
+    when nothing is there.
+
+    The sidecar must go too: leaving it behind would let a later ``json_cache`` call see
+    a manifest with no artifact, which is how a stale PASS survives a later FAIL.
+    """
+    json_path = cache.cache_path(f"curvature_handoff_{key}", "json")
+    meta_path = cache.cache_path(f"curvature_handoff_{key}", "meta.json")
+
+    removed = False
+    if json_path.exists():
+        json_path.unlink()
+        removed = True
+    if meta_path.exists():
+        meta_path.unlink()
+        removed = True
+    return removed
