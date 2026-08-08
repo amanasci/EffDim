@@ -310,30 +310,41 @@ print("  D-06: BOTH density_correct=False and True run at EVERY distinct cell (2
       "calls per cell) regardless of whether density_correct is itself the swept axis")
 print(f"  total measure_cell invocations this sweep will attempt: {_n_distinct_cells * 2}")
 
-_expensive_cells = sum(1 for c in CELL_REGISTRY.values() if c["n"] >= 10_000 and c["d"] > 2)
-print(f"  {_expensive_cells} of {_n_distinct_cells} cells are at the PU-regime's own n=10,000, "
-      "D=768-ish scale, where the non-gating quadric cross-check alone costs several minutes "
-      "(module docstring's 'wall-clock reality' note) -- most of these will exercise the "
-      f"{OTHER_CELL_QUADRIC_TIMEOUT_S:.0f}s quadric timeout below rather than complete it")
+_infeasible_cells = sum(
+    1 for c in CELL_REGISTRY.values() if not cp.centroid_tangent_basis_feasible(k=c["k"], d=c["d"])
+)
+_expensive_cells = sum(
+    1
+    for c in CELL_REGISTRY.values()
+    if c["n"] >= 10_000 and c["d"] > 2 and cp.centroid_tangent_basis_feasible(k=c["k"], d=c["d"])
+)
+print(f"  {_infeasible_cells} of {_n_distinct_cells} cells are INFEASIBLE (k <= d -- cannot "
+      "extract a d-dimensional tangent basis from k neighbours) and will be recorded without "
+      "any estimator call, per the precondition check in STEP 2")
+print(f"  {_expensive_cells} of {_n_distinct_cells} FEASIBLE cells are at the PU-regime's own "
+      "n=10,000, D=768-ish scale, where the non-gating quadric cross-check alone costs several "
+      "minutes (module docstring's 'wall-clock reality' note) -- most of these will exercise "
+      f"the {OTHER_CELL_QUADRIC_TIMEOUT_S:.0f}s quadric timeout below rather than complete it")
 
 # GATING-per-variant estimate below the shared-pass optimization (measured, PU-regime scale:
 # permutation_null costs ~4.78s (spearman, N_PERMUTATIONS=999) + ~9.93s (region,
 # REGION_PAIR_COUNT=200_000) per variant -- both roughly independent of n/D/d since they are
 # dominated by the pre-registered N_PERMUTATIONS/REGION_PAIR_COUNT themselves, not by cell
-# scale -- so this ~15s/variant floor applies to every cell, cheap or expensive). The shared
-# centroid_mean_curvature_both_densities pass itself is ~27s at D=768 (both variants combined,
-# ~48% less than two separate calls) and considerably cheaper at the D-axis's smaller-D rows
-# and the d=2 Swiss-roll anchor.
+# scale -- so this ~15s/variant floor applies to every FEASIBLE cell, cheap or expensive). The
+# shared centroid_mean_curvature_both_densities pass itself is ~27s at D=768 (both variants
+# combined, ~48% less than two separate calls) and considerably cheaper at the D-axis's
+# smaller-D rows and the d=2 Swiss-roll anchor. Infeasible cells cost ~0s (a precondition
+# check only, no fixture, no estimator call).
 _est_null_calib_s_per_variant = 15.0
 _est_shared_centroid_s_expensive = 27.0  # D=768-ish, both variants combined
 _est_shared_centroid_s_cheap = 8.0  # smaller D / n / Swiss-roll anchor, both variants combined
+_n_feasible_cheap = _n_distinct_cells - _expensive_cells - _infeasible_cells
 _rough_gating_only_s = (
     _expensive_cells * (_est_shared_centroid_s_expensive + 2 * _est_null_calib_s_per_variant)
-    + (_n_distinct_cells - _expensive_cells)
-    * (_est_shared_centroid_s_cheap + 2 * _est_null_calib_s_per_variant)
+    + _n_feasible_cheap * (_est_shared_centroid_s_cheap + 2 * _est_null_calib_s_per_variant)
 )
 _rough_quadric_s = (
-    (_n_distinct_cells - 1) * 2 * OTHER_CELL_QUADRIC_TIMEOUT_S
+    (_n_distinct_cells - 1 - _infeasible_cells) * 2 * OTHER_CELL_QUADRIC_TIMEOUT_S
     + 2 * BASE_CELL_QUADRIC_TIMEOUT_S
 )
 _rough_total_estimate_s = _rough_gating_only_s + _rough_quadric_s
@@ -487,6 +498,33 @@ def _compute_sweep() -> dict:
         cell_label = ", ".join(f"{k}={v}" for k, v in sorted(cell.items()))
         print(f"  [{_i}/{_n_distinct_cells}] {'BASE ' if is_base else ''}cell: {cell_label}")
 
+        # Precondition check (coordinator-directed, added after this runner crashed
+        # mid-sweep on k=10, d=20): centroid_mean_curvature_both_densities's shared
+        # local_tangent_basis SVD requires k > d strictly (curvature_probe's own
+        # centroid_tangent_basis_feasible predicate, k == d also treated as infeasible --
+        # see that function's docstring). Checked BEFORE building the fixture or running
+        # any k-NN query, not by catching the ValueError after paying for that work. An
+        # infeasible cell is neither a PASS nor a FAIL -- it contributes no gating verdict
+        # and is recorded, never silently dropped, per Section 9's own tolerance for a
+        # cell that cannot produce a number.
+        if not cp.centroid_tangent_basis_feasible(k=cell["k"], d=cell["d"]):
+            reason = (
+                f"k={cell['k']} <= d={cell['d']}: cannot extract a {cell['d']}-dimensional "
+                f"tangent basis from {cell['k']} neighbours -- k must strictly exceed d "
+                "for centroid_mean_curvature's local_tangent_basis SVD to have any "
+                "redundancy left to average the tangent direction over. This is a hard "
+                "structural floor of the point-cloud estimator, not a bug and not a gate "
+                "outcome (neither PASS nor FAIL)."
+            )
+            per_cell_results[key] = {
+                "cell_params": cell,
+                "status": "infeasible_k_le_d",
+                "reason": reason,
+                "variants": {},
+            }
+            print(f"      INFEASIBLE (k<=d), not attempted: {reason}")
+            continue
+
         try:
             fixture = _make_fixture(cell)
         except Exception as exc:  # a fixture that cannot be built at all is a full timeout/failure
@@ -576,7 +614,15 @@ def _compute_sweep() -> dict:
             for density_correct_str in ("False", "True"):
                 variant = cell_record.get("variants", {}).get(density_correct_str)
                 if variant is None:
-                    row[f"density_correct_{density_correct_str}"] = {"status": "missing"}
+                    # A cell-level status ("infeasible_k_le_d" or "timed_out" from a
+                    # failed fixture build) means BOTH variants share that same reason --
+                    # label it explicitly rather than the uninformative generic "missing"
+                    # (which would read as "we ran out of time to try this", conflating a
+                    # structural impossibility with a budget outcome).
+                    row[f"density_correct_{density_correct_str}"] = {
+                        "status": cell_record["status"],
+                        "reason": cell_record.get("reason") or cell_record.get("error"),
+                    }
                     continue
                 verdict_info = _cell_clears(variant)
                 row[f"density_correct_{density_correct_str}"] = {

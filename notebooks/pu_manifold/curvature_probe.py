@@ -131,6 +131,30 @@ def local_tangent_basis(centered: np.ndarray, d: int) -> np.ndarray:
     return Vt[:d]
 
 
+def centroid_tangent_basis_feasible(k: int, d: int) -> bool:
+    """Whether :func:`local_tangent_basis` (and therefore :func:`centroid_mean_curvature`
+    and :func:`centroid_mean_curvature_both_densities`, both of which call it once per
+    point) can extract a ``d``-dimensional tangent basis from ``k`` neighbours AT ALL --
+    added by plan 02.5-07 after its sweep runner crashed on exactly this condition
+    (``k=10, d=20``: ``local_tangent_basis: d=20 exceeds min(k=10, D=768)``) partway
+    through a real sweep. A precondition check before the expensive k-NN query and
+    per-point SVD loop, so a caller can record an infeasible cell rather than pay for that
+    work and then catch the resulting ``ValueError``.
+
+    Returns ``k > d`` -- STRICTLY greater, tighter than :func:`local_tangent_basis`'s own
+    internal guard (``d > min(k, D)``, which does NOT itself raise at ``k == d``). The
+    ``k == d`` boundary is deliberately also treated as infeasible here: with exactly
+    ``k == d`` neighbours, the SVD can in principle return a valid ``d``-dimensional
+    basis, but every one of the ``k`` neighbour vectors is then needed exactly to span
+    it, leaving zero redundancy for the tangent direction to be averaged over -- a
+    boundary case worth flagging explicitly as infeasible for gating purposes, not
+    silently accepted merely because the underlying SVD call happens not to raise there.
+
+    Never raises. Pure ``(k, d) -> bool`` predicate -- no array touched, no estimator run.
+    """
+    return k > d
+
+
 # --- D-06 density correction ------------------------------------------------------------
 
 

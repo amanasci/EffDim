@@ -504,6 +504,35 @@ def test_centroid_mean_curvature_both_densities_is_bit_identical():
     assert np.max(np.abs(H_corrected_shared - H_corrected_separate)) == 0.0
 
 
+def test_centroid_tangent_basis_feasible_boundary():
+    """`centroid_tangent_basis_feasible` (added after plan 02.5-07's sweep runner crashed
+    mid-sweep on k=10, d=20) is a strict k > d predicate, treating k == d as ALSO
+    infeasible (not merely k < d) -- the zero-redundancy boundary case, not just the
+    outright-impossible one. Never raises."""
+    assert cp.centroid_tangent_basis_feasible(k=30, d=20) is True
+    assert cp.centroid_tangent_basis_feasible(k=21, d=20) is True
+    assert cp.centroid_tangent_basis_feasible(k=20, d=20) is False  # boundary: k == d
+    assert cp.centroid_tangent_basis_feasible(k=15, d=20) is False
+    assert cp.centroid_tangent_basis_feasible(k=10, d=20) is False  # the exact crash case
+
+
+def test_centroid_mean_curvature_both_densities_raises_on_infeasible_k():
+    """Regression pin for the exact crash plan 02.5-07's sweep runner hit mid-sweep
+    (`k=10, d=20`): `centroid_mean_curvature_both_densities` (like `centroid_mean_curvature`
+    itself, via the shared `local_tangent_basis` call) still RAISES `ValueError` when
+    called directly with an infeasible (k, d) pair -- this function's own behaviour is
+    UNCHANGED by `centroid_tangent_basis_feasible`'s addition. The fix is that callers
+    (the sweep runner) now check `centroid_tangent_basis_feasible` BEFORE calling this
+    function, so an infeasible cell is RECORDED rather than ever reaching this raise --
+    proved by this test never being reached with a caught exception in the runner's own
+    per-cell loop (verified by direct execution, not re-tested here, since the runner is a
+    script with STEP 0 module-level side effects, not an importable library function)."""
+    fix = cp.make_graph_of_function_fixture(n=200, d=20, D=50, n_bumps=1, seed=1)
+    assert cp.centroid_tangent_basis_feasible(k=10, d=20) is False
+    with pytest.raises(ValueError, match="exceeds min"):
+        cp.centroid_mean_curvature_both_densities(fix["X"], k=10, d=20, k_density=10)
+
+
 # --- Plan 02.5-02 Task 3: non-gating magnitude evidence ---------------------------------
 
 
