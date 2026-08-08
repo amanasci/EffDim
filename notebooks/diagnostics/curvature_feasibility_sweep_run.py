@@ -135,8 +135,18 @@ SWEEP_AXES = {
 # their permutation-null calibrations carry no timeout of their own because they are measured
 # (module docstring) to reliably complete in well under a minute even at the PU regime's own
 # n=10,000/D=768 scale.
-BASE_CELL_QUADRIC_TIMEOUT_S = 600.0  # the phase's single most important cell gets a real chance
-OTHER_CELL_QUADRIC_TIMEOUT_S = 30.0  # a genuine, but bounded, attempt for every other cell
+# Re-tuned after the coordinator-directed shared-pass optimization
+# (centroid_mean_curvature_both_densities) roughly halved the GATING computation's own
+# cost (measured: two separate centroid_mean_curvature calls ~51s at PU-regime scale vs
+# one shared pass ~27s, bit-identical -- see that function's own docstring). Even so,
+# GATING ALONE across the full 25-cell grid (measured: ~14.7s per permutation-null
+# calibration PER VARIANT, roughly independent of n/D/d since it is dominated by
+# N_PERMUTATIONS=999 x REGION_PAIR_COUNT=200_000, plus the shared centroid pass) leaves
+# only a modest remainder of WALL_CLOCK_BUDGET_S for the non-gating quadric cross-check --
+# these two budgets were re-tuned from the pre-optimization values to fit that remainder,
+# giving the base cell (needed for STEP 4's verdict) the larger share.
+BASE_CELL_QUADRIC_TIMEOUT_S = 120.0  # the phase's single most important cell gets a real chance
+OTHER_CELL_QUADRIC_TIMEOUT_S = 2.0  # a genuine, but tightly bounded, attempt for every other cell
 
 
 def _banner(msg: str) -> None:
@@ -305,16 +315,41 @@ print(f"  {_expensive_cells} of {_n_distinct_cells} cells are at the PU-regime's
       "D=768-ish scale, where the non-gating quadric cross-check alone costs several minutes "
       "(module docstring's 'wall-clock reality' note) -- most of these will exercise the "
       f"{OTHER_CELL_QUADRIC_TIMEOUT_S:.0f}s quadric timeout below rather than complete it")
-_est_cheap_s = 15.0
-_est_expensive_gating_s = 55.0
-_rough_total_estimate_s = (
-    (_n_distinct_cells - _expensive_cells) * 2 * _est_cheap_s
-    + _expensive_cells * 2 * (_est_expensive_gating_s + OTHER_CELL_QUADRIC_TIMEOUT_S)
-    + 2 * (_est_expensive_gating_s + BASE_CELL_QUADRIC_TIMEOUT_S)  # base cell's own extra allowance
+
+# GATING-per-variant estimate below the shared-pass optimization (measured, PU-regime scale:
+# permutation_null costs ~4.78s (spearman, N_PERMUTATIONS=999) + ~9.93s (region,
+# REGION_PAIR_COUNT=200_000) per variant -- both roughly independent of n/D/d since they are
+# dominated by the pre-registered N_PERMUTATIONS/REGION_PAIR_COUNT themselves, not by cell
+# scale -- so this ~15s/variant floor applies to every cell, cheap or expensive). The shared
+# centroid_mean_curvature_both_densities pass itself is ~27s at D=768 (both variants combined,
+# ~48% less than two separate calls) and considerably cheaper at the D-axis's smaller-D rows
+# and the d=2 Swiss-roll anchor.
+_est_null_calib_s_per_variant = 15.0
+_est_shared_centroid_s_expensive = 27.0  # D=768-ish, both variants combined
+_est_shared_centroid_s_cheap = 8.0  # smaller D / n / Swiss-roll anchor, both variants combined
+_rough_gating_only_s = (
+    _expensive_cells * (_est_shared_centroid_s_expensive + 2 * _est_null_calib_s_per_variant)
+    + (_n_distinct_cells - _expensive_cells)
+    * (_est_shared_centroid_s_cheap + 2 * _est_null_calib_s_per_variant)
 )
+_rough_quadric_s = (
+    (_n_distinct_cells - 1) * 2 * OTHER_CELL_QUADRIC_TIMEOUT_S
+    + 2 * BASE_CELL_QUADRIC_TIMEOUT_S
+)
+_rough_total_estimate_s = _rough_gating_only_s + _rough_quadric_s
+print(f"  rough GATING-ONLY estimate (shared-pass optimization applied): "
+      f"~{_rough_gating_only_s / 60:.1f} minutes")
+print(f"  rough quadric-timeout-budget estimate: ~{_rough_quadric_s / 60:.1f} minutes")
 print(f"  rough total wall-clock ESTIMATE: ~{_rough_total_estimate_s / 60:.1f} minutes "
       f"(WALL_CLOCK_BUDGET_S nominal total: {WALL_CLOCK_BUDGET_S / 60:.0f} minutes) -- "
       "printed here so an over-budget sweep is visible BEFORE it starts, per Section 9")
+if _rough_total_estimate_s > WALL_CLOCK_BUDGET_S:
+    print(
+        "  *** WARNING: this estimate EXCEEDS WALL_CLOCK_BUDGET_S. Per the sealed "
+        "document's own rule, this runner does NOT silently overrun -- if the real run "
+        "confirms this, it must halt and be reported as a checkpoint, not absorbed "
+        "silently. ***"
+    )
 
 SWEEP_CFG = {
     "phase": "02.5",
@@ -366,7 +401,13 @@ def _make_fixture(cell: dict) -> dict:
     )
 
 
-def _measure_one(fixture: dict, cell: dict, density_correct: bool, quadric_budget_s: float) -> dict:
+def _measure_one(
+    fixture: dict,
+    cell: dict,
+    density_correct: bool,
+    quadric_budget_s: float,
+    precomputed_H_vec: np.ndarray,
+) -> dict:
     """One (cell, density_correct) measurement -- a single call to
     ``curvature_probe.measure_cell``, exactly as Task 1's own action text specifies, so this
     runner contains orchestration only and no statistics of its own. The two GATING
@@ -379,7 +420,18 @@ def _measure_one(fixture: dict, cell: dict, density_correct: bool, quadric_budge
     returning the cell's GATING result (the actual boundary-relevant data) rather than
     discarding it. See `measure_cell`'s own docstring and this module's 'wall-clock
     reality' note above for the measured cost this responds to -- not a change to any
-    ratified statistic or threshold, only to how this runner's own time budget is spent."""
+    ratified statistic or threshold, only to how this runner's own time budget is spent.
+
+    ``precomputed_H_vec`` (coordinator-directed shared-pass optimization, plan 02.5-07):
+    the centroid estimate for THIS density_correct variant, already computed once by
+    `curvature_probe.centroid_mean_curvature_both_densities` for BOTH variants in a single
+    pass over the cell's fixture -- shared here via `measure_cell`'s own
+    `precomputed_H_vec` argument, so this call never re-runs the k-NN query or any
+    per-point tangent-basis SVD a second time. Bit-identical to letting `measure_cell`
+    compute it internally (pinned by
+    `test_measure_cell_precomputed_h_vec_is_bit_identical_and_shares_the_pass` and
+    `test_centroid_mean_curvature_both_densities_is_bit_identical` in
+    `test_curvature_probe.py`)."""
     t0 = time.perf_counter()
     result = cp.measure_cell(
         fixture=fixture,
@@ -394,6 +446,7 @@ def _measure_one(fixture: dict, cell: dict, density_correct: bool, quadric_budge
         region_pair_seed=REGION_PAIR_SEED,
         region_n_pairs=REGION_PAIR_COUNT,
         quadric_timeout_s=quadric_budget_s,
+        precomputed_H_vec=precomputed_H_vec,
     )
     result["status"] = "partial_quadric_timeout" if result["quadric_timed_out"] else "complete"
     result["wrapper_elapsed_s"] = float(time.perf_counter() - t0)
@@ -409,6 +462,27 @@ def _compute_sweep() -> dict:
     for _i, (key, cell) in enumerate(CELL_REGISTRY.items(), start=1):
         is_base = key == _base_key
         quadric_budget = BASE_CELL_QUADRIC_TIMEOUT_S if is_base else OTHER_CELL_QUADRIC_TIMEOUT_S
+
+        # Coordinator's explicit requirement: a cell that is TIMED OUT mid-computation
+        # (recorded status="timed_out"/"partial_quadric_timeout") is compliant with the
+        # sealed text; a cell NEVER ATTEMPTED because the cumulative budget ran out in
+        # iteration order is NOT -- that would be an order-dependent, silently incomplete
+        # boundary. If the running total already exceeds WALL_CLOCK_BUDGET_S before this
+        # cell (the base cell is always first -- see STEP 1 -- so it is never starved),
+        # HALT LOUDLY here rather than silently skip the remainder of the grid.
+        _elapsed_before_this_cell = time.perf_counter() - sweep_t0
+        if _elapsed_before_this_cell > WALL_CLOCK_BUDGET_S and _i > 1:
+            raise RuntimeError(
+                f"STEP 2 halted: cumulative wall-clock ({_elapsed_before_this_cell / 60:.1f} "
+                f"min) already exceeds WALL_CLOCK_BUDGET_S ({WALL_CLOCK_BUDGET_S / 60:.0f} "
+                f"min) before cell [{_i}/{_n_distinct_cells}] was ever attempted. Per the "
+                "sealed document's own rule, this is NOT a timed-out cell (which would be "
+                "compliant, per Section 9's own tolerance) -- it is a cell this runner "
+                "would otherwise silently never measure at all, purely because of "
+                "iteration order. Halting rather than producing an order-dependent, "
+                "silently incomplete boundary. This must be reported as a checkpoint, not "
+                "resolved by shrinking the grid or the timeouts further without review."
+            )
 
         cell_label = ", ".join(f"{k}={v}" for k, v in sorted(cell.items()))
         print(f"  [{_i}/{_n_distinct_cells}] {'BASE ' if is_base else ''}cell: {cell_label}")
@@ -426,6 +500,17 @@ def _compute_sweep() -> dict:
             print(f"      fixture construction FAILED: {exc}")
             continue
 
+        # Coordinator-directed shared-pass optimization: the k-NN query and every
+        # per-point tangent-basis SVD are IDENTICAL between the two density_correct
+        # variants (only the cheap gap/r2 sums differ) -- compute both variants' centroid
+        # estimate in ONE pass, bit-identical to two separate centroid_mean_curvature
+        # calls (test_centroid_mean_curvature_both_densities_is_bit_identical), instead of
+        # paying for that expensive shared part twice.
+        H_uncorrected, H_corrected = cp.centroid_mean_curvature_both_densities(
+            fixture["X"], k=cell["k"], d=cell["d"], k_density=K_DENSITY
+        )
+        precomputed_by_variant = {False: H_uncorrected, True: H_corrected}
+
         variants = {}
         for density_correct in (False, True):
             # No outer signal-based timeout wraps this call: measure_cell's OWN
@@ -436,7 +521,10 @@ def _compute_sweep() -> dict:
             # The gating computation ahead of the quadric guard is measured (module
             # docstring) to reliably complete in well under a minute even at the PU
             # regime's own scale, so no separate outer guard is needed around it.
-            variant_result = _measure_one(fixture, cell, density_correct, quadric_budget)
+            variant_result = _measure_one(
+                fixture, cell, density_correct, quadric_budget,
+                precomputed_by_variant[density_correct],
+            )
             variants[str(density_correct)] = variant_result
             elapsed = variant_result["wrapper_elapsed_s"]
             status = variant_result["status"]

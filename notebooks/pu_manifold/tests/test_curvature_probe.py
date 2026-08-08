@@ -475,6 +475,35 @@ def test_density_correction_is_noop_on_uniform_sampling():
     assert rel_diff < 0.10
 
 
+# --- Plan 02.5-07: shared-pass optimization (coordinator-directed, implementation-only) --
+
+
+def test_centroid_mean_curvature_both_densities_is_bit_identical():
+    """Non-negotiable acceptance criterion for `centroid_mean_curvature_both_densities`
+    (a pure implementation optimization -- the two `density_correct` variants share their
+    expensive k-NN query and per-point tangent-basis SVD, computed once instead of twice):
+    `np.array_equal` -- BIT-IDENTICAL, never merely `np.allclose` -- against
+    `centroid_mean_curvature`'s own independent two calls, for BOTH the uncorrected and
+    corrected variants, on the same input. `centroid_mean_curvature` itself is untouched
+    by this test or by the function under test."""
+    fix = cp.make_graph_of_function_fixture(n=500, d=3, D=10, n_bumps=2, seed=20260808)
+    X = fix["X"]
+    k, d, k_density = 20, 3, 20
+
+    H_uncorrected_shared, H_corrected_shared = cp.centroid_mean_curvature_both_densities(
+        X, k=k, d=d, k_density=k_density
+    )
+    H_uncorrected_separate = cp.centroid_mean_curvature(X, k=k, d=d, density_correct=False)
+    H_corrected_separate = cp.centroid_mean_curvature(
+        X, k=k, d=d, density_correct=True, k_density=k_density
+    )
+
+    assert np.array_equal(H_uncorrected_shared, H_uncorrected_separate)
+    assert np.array_equal(H_corrected_shared, H_corrected_separate)
+    assert np.max(np.abs(H_uncorrected_shared - H_uncorrected_separate)) == 0.0
+    assert np.max(np.abs(H_corrected_shared - H_corrected_separate)) == 0.0
+
+
 # --- Plan 02.5-02 Task 3: non-gating magnitude evidence ---------------------------------
 
 
@@ -827,6 +856,54 @@ def test_measure_cell_quadric_timeout_preserves_gating_result():
     default_result = cp.measure_cell(**common_kwargs)
     assert default_result["quadric_timed_out"] is False
     assert default_result["quadric_spearman_rho"] == untimed_result["quadric_spearman_rho"]
+
+
+def test_measure_cell_precomputed_h_vec_is_bit_identical_and_shares_the_pass():
+    """`precomputed_H_vec` (coordinator-directed, plan 02.5-07): a `measure_cell` call
+    given a precomputed H array (e.g. from `centroid_mean_curvature_both_densities`) is
+    bit-identical to the same call letting `measure_cell` compute the centroid estimate
+    itself -- the precomputed path is a pure sharing optimization, never a different
+    computation."""
+    fix = cp.make_graph_of_function_fixture(n=400, d=3, D=10, n_bumps=1, seed=20260808)
+    k, d, k_density = 20, 3, 20
+    common_kwargs = dict(
+        fixture=fix,
+        k=k,
+        d=d,
+        k_density=k_density,
+        n_resamples=49,
+        seed=1,
+        quantile=0.9,
+        region_n_bins=4,
+        region_pair_seed=1,
+        region_n_pairs=2000,
+    )
+
+    H_uncorrected, H_corrected = cp.centroid_mean_curvature_both_densities(
+        fix["X"], k=k, d=d, k_density=k_density
+    )
+
+    default_uncorrected = cp.measure_cell(density_correct=False, **common_kwargs)
+    shared_uncorrected = cp.measure_cell(
+        density_correct=False, precomputed_H_vec=H_uncorrected, **common_kwargs
+    )
+    assert default_uncorrected["spearman_rho"] == shared_uncorrected["spearman_rho"]
+    assert (
+        default_uncorrected["quantile_bin_concordance"]
+        == shared_uncorrected["quantile_bin_concordance"]
+    )
+    assert default_uncorrected["null_threshold"] == shared_uncorrected["null_threshold"]
+
+    default_corrected = cp.measure_cell(density_correct=True, **common_kwargs)
+    shared_corrected = cp.measure_cell(
+        density_correct=True, precomputed_H_vec=H_corrected, **common_kwargs
+    )
+    assert default_corrected["spearman_rho"] == shared_corrected["spearman_rho"]
+    assert (
+        default_corrected["quantile_bin_concordance"]
+        == shared_corrected["quantile_bin_concordance"]
+    )
+    assert default_corrected["null_threshold"] == shared_corrected["null_threshold"]
 
 
 # --- Plan 02.5-04 Task 1: gate constants and direction-aware verdict functions ----------

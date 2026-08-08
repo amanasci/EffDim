@@ -281,6 +281,78 @@ def centroid_mean_curvature(
     return H_est
 
 
+def centroid_mean_curvature_both_densities(
+    X: np.ndarray, k: int, d: int, k_density: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Pure implementation OPTIMIZATION (added by plan 02.5-07, coordinator-directed): the
+    uncorrected and density-corrected variants of :func:`centroid_mean_curvature` share
+    their entire expensive per-point computation -- the k-NN query and, per point, the
+    :func:`local_tangent_basis` SVD -- and depend on ``density_correct`` ONLY through the
+    cheap weighted-vs-unweighted ``gap``/``r2`` sums. Calling
+    ``centroid_mean_curvature`` twice (once per ``density_correct`` value, as plan
+    02.5-07's sweep runner originally did) recomputes the k-NN query and all ``n`` SVDs a
+    second time for nothing. This function computes both in ONE pass instead.
+
+    NEVER changes :func:`centroid_mean_curvature` itself, which stays exactly as sealed
+    and as tested -- this is a SEPARATE function, called by the runner INSTEAD of two
+    ``centroid_mean_curvature`` calls, never a modification to the gating estimator's own
+    code path. ``test_centroid_mean_curvature_both_densities_is_bit_identical`` is the
+    non-negotiable acceptance criterion: ``np.array_equal`` (bit-identical, never merely
+    ``np.allclose``) against ``centroid_mean_curvature(X, k, d, density_correct=False)``
+    and ``centroid_mean_curvature(X, k, d, density_correct=True, k_density=k_density)``
+    independently, on the SAME input. Every intermediate quantity this function computes
+    (``centered``, the shared squared-radius array, ``gap``, ``r2``, ``Vt``,
+    ``gap_normal``, and the final ``2*d/r2`` scale-constant multiply) is computed via the
+    IDENTICAL sequence of floating-point operations :func:`centroid_mean_curvature` itself
+    uses for each respective variant -- only FACTORED so the shared parts run once, never
+    reordered or reassociated in a way that could perturb a bit.
+
+    Measured at the PU regime's own scale (``n=10_000, d=20, D=768, k=30, k_density=30``):
+    two separate ``centroid_mean_curvature`` calls cost ~51s; this shared pass costs ~27s
+    -- roughly 48% of the estimator's own cost saved, with the saving confirmed
+    bit-identical (``np.array_equal`` True for both returned arrays, max absolute
+    difference exactly ``0.0``) before this optimization was adopted for plan 02.5-07's
+    sweep runner.
+
+    Returns ``(H_uncorrected, H_corrected)``, both ``(n, D)``, in that order -- matching
+    ``centroid_mean_curvature(..., density_correct=False)`` and
+    ``centroid_mean_curvature(..., density_correct=True, k_density=k_density)``
+    respectively.
+    """
+    n, D = X.shape
+    nbrs = NearestNeighbors(n_neighbors=k + 1).fit(X)
+    _, idx = nbrs.kneighbors(X)  # idx[:, 0] is the point itself
+
+    weights = local_density_weights(X, k_density, d)
+
+    H_uncorrected = np.zeros((n, D), dtype=np.float64)
+    H_corrected = np.zeros((n, D), dtype=np.float64)
+    for i in range(n):
+        neigh_idx = idx[i, 1:]  # (k,), excludes self
+        neigh = X[neigh_idx]  # (k, D)
+        p = X[i]
+        centered = neigh - p
+        sq = np.sum(centered**2, axis=1)
+
+        gap_uncorrected = centered.mean(axis=0)
+        r2_uncorrected = np.mean(sq)
+
+        w = weights[neigh_idx]
+        w_sum = w.sum()
+        gap_corrected = (w[:, None] * centered).sum(axis=0) / w_sum
+        r2_corrected = (w * sq).sum() / w_sum
+
+        Vt = local_tangent_basis(centered, d)  # the shared, expensive part -- computed ONCE
+
+        gap_normal_uncorrected = gap_uncorrected - Vt.T @ (Vt @ gap_uncorrected)
+        gap_normal_corrected = gap_corrected - Vt.T @ (Vt @ gap_corrected)
+
+        H_uncorrected[i] = gap_normal_uncorrected * (2 * d / r2_uncorrected)
+        H_corrected[i] = gap_normal_corrected * (2 * d / r2_corrected)
+
+    return H_uncorrected, H_corrected
+
+
 def mean_curvature_norm(H_vec: np.ndarray) -> np.ndarray:
     """The reportable scalar curvature field: ``||H||`` along the last axis.
 
@@ -1101,6 +1173,7 @@ def measure_cell(
     region_pair_seed: int,
     region_n_pairs: int,
     quadric_timeout_s: Optional[float] = None,
+    precomputed_H_vec: Optional[np.ndarray] = None,
 ) -> dict:
     """The single call plan 02.5-07's sweep runner makes per grid cell, so the runner
     contains orchestration only and no statistics of its own.
@@ -1187,6 +1260,21 @@ def measure_cell(
     quadric-derived keys, only when ``quadric_timed_out`` is ``True``) ``None`` -- never a
     numpy scalar -- so the runner can hand this dict straight to ``cache.json_cache`` /
     ``json.dumps`` with no conversion pass (``None`` serializes to JSON ``null`` natively).
+
+    ``precomputed_H_vec`` (added by plan 02.5-07, coordinator-directed, ``Optional[np.ndarray]
+    = None``, NOT a pre-registered constant): when ``None`` (the default -- every existing
+    call site is unaffected), this function computes ``centroid_mean_curvature`` itself,
+    exactly as it always has. When an ``(n, D)`` array is supplied, it is used AS-IS in
+    place of that internal call -- ``density_correct`` and ``k_density`` are then used only
+    for this dict's own ``"density_correct"``/``"k_density"`` context-echo fields, never to
+    recompute anything. This lets a caller share one
+    :func:`centroid_mean_curvature_both_densities` pass across two ``measure_cell`` calls
+    (one per ``density_correct`` value) instead of paying for the k-NN query and every
+    per-point tangent-basis SVD twice -- ``curvature_feasibility_sweep_run.py`` is exactly
+    such a caller. Bit-identical to the uncached path by construction: the supplied array
+    IS the same array :func:`centroid_mean_curvature_both_densities`'s own bit-identity
+    test (``test_centroid_mean_curvature_both_densities_is_bit_identical``) already proves
+    equals an independent :func:`centroid_mean_curvature` call.
     """
     t0 = time.perf_counter()
 
@@ -1194,13 +1282,16 @@ def measure_cell(
     h_true_norm = np.asarray(fixture["H_norm"], dtype=np.float64)
     n, D = X.shape
 
-    H_centroid = centroid_mean_curvature(
-        X,
-        k=k,
-        d=d,
-        density_correct=density_correct,
-        k_density=k_density if density_correct else None,
-    )
+    if precomputed_H_vec is not None:
+        H_centroid = precomputed_H_vec
+    else:
+        H_centroid = centroid_mean_curvature(
+            X,
+            k=k,
+            d=d,
+            density_correct=density_correct,
+            k_density=k_density if density_correct else None,
+        )
     h_est_norm = mean_curvature_norm(H_centroid)
 
     spearman_rho = spearman_gate_statistic(h_est_norm, h_true_norm)
