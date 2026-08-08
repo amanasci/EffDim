@@ -204,3 +204,101 @@ def test_local_tangent_basis_shapes_and_orthonormality():
 
     with pytest.raises(ValueError, match=r"d=.*k="):
         cp.local_tangent_basis(centered, d=100)
+
+
+# --- Task 3: guard the normal projection against the density-leak failure mode ----------
+
+
+def _skewed_flat_plane_fixture(n: int, D: int, seed: int, power: float = 3.0) -> np.ndarray:
+    """`n` points on an exact `d=2` flat plane (true `||H|| = 0` everywhere) embedded in
+    `R^D`, but with a deliberately NON-UNIFORM sampling density along one tangent
+    direction: `u = sign(z) * |z|^power` for `z ~ Uniform(-1, 1)` bunches points near
+    `u = 0` and thins them toward the edges, a pure reparametrization of the SAME flat
+    coordinate axis (the manifold never leaves the plane, so its curvature stays exactly
+    zero) that gives almost every neighbourhood a nonzero local density gradient -- the
+    Pitfall 3 / D-05 scenario where the raw centroid gap is large but is not curvature.
+    """
+    rng = np.random.default_rng(seed)
+    z = rng.uniform(-1.0, 1.0, size=n)
+    u = np.sign(z) * np.abs(z) ** power
+    v = rng.uniform(-1.0, 1.0, size=n)
+    X = np.zeros((n, D))
+    X[:, 0] = u
+    X[:, 1] = v
+    Q, _ = np.linalg.qr(rng.standard_normal((D, D)))  # random orthogonal rotation
+    return X @ Q.T
+
+
+def _raw_centroid_gap_norms(X: np.ndarray, k: int) -> np.ndarray:
+    """The UNPROJECTED centroid gap norm per point -- `||mean(neighbours) - p||` -- with
+    no tangent/normal split. Mirrors `centroid_mean_curvature`'s kNN and gap steps
+    exactly, but deliberately omits the normal projection, so it can be compared against
+    the real estimator's (projected) output."""
+    n = X.shape[0]
+    nbrs = NearestNeighbors(n_neighbors=k + 1).fit(X)
+    _, idx = nbrs.kneighbors(X)
+    gaps = np.zeros(n)
+    for i in range(n):
+        neigh = X[idx[i, 1:]]
+        centered = neigh - X[i]
+        gaps[i] = np.linalg.norm(centered.mean(axis=0))
+    return gaps
+
+
+def test_tangential_perturbation_does_not_leak_into_H():
+    """The Pitfall 3 / D-05 regression guard -- the sharpest single test in this plan.
+
+    A purely tangential density asymmetry must not be reportable as curvature. This is
+    what distinguishes a curvature estimator from a density meter, and it is expected to
+    FAIL if the `gap - Vt.T @ (Vt @ gap)` line in `centroid_mean_curvature` is ever
+    reduced to a bare `gap` -- demonstrated below, then reverted.
+    """
+    X = _skewed_flat_plane_fixture(n=3000, D=5, seed=13)
+
+    # (a) the perturbation genuinely bit: the raw, unprojected centroid gap is well
+    # above zero (not merely numerical noise) for these neighbourhoods.
+    raw_gap_norms = _raw_centroid_gap_norms(X, k=30)
+    assert np.median(raw_gap_norms) > 1e-3
+
+    # (b) but the real estimator's ||H|| output stays at numerical-noise scale, because
+    # that gap lives entirely in the tangent space the normal projection removes.
+    H_est = cp.centroid_mean_curvature(X, k=30, d=2)
+    h_est_norm = cp.mean_curvature_norm(H_est)
+    assert np.median(h_est_norm) < 1e-8
+
+
+# --- D-01's gating statistic behaves as claimed ------------------------------------------
+
+
+def _monotone_noised_pair(seed: int, n: int = 500):
+    """`h_true` strictly increasing; `h_est` a strictly monotone transform of `h_true`
+    plus bounded noise, drawn from a fixed seed so the pair is exactly reproducible."""
+    rng = np.random.default_rng(seed)
+    h_true = np.linspace(0.0, 10.0, n)
+    h_est = h_true**1.3 + rng.normal(scale=0.05, size=n)
+    return h_true, h_est
+
+
+def test_spearman_gate_recovers_ordering():
+    """D-01's gating statistic behaves as claimed: it recovers a strong monotone
+    relationship and reports near-zero correlation once that relationship is destroyed
+    by shuffling. Follows `test_geometry_probes.py:31-51`'s same-seed/different-seed
+    reproducibility convention."""
+    h_true, h_est = _monotone_noised_pair(seed=42)
+    rho = cp.spearman_gate_statistic(h_est, h_true)
+    assert rho > 0.9
+
+    rng_shuffle = np.random.default_rng(7)
+    h_shuffled = rng_shuffle.permutation(h_est)
+    rho_shuffled = cp.spearman_gate_statistic(h_shuffled, h_true)
+    assert abs(rho_shuffled) < 0.2
+
+    # same-seed reproducibility: identical inputs give a bit-for-bit identical statistic
+    h_true_b, h_est_b = _monotone_noised_pair(seed=42)
+    rho_b = cp.spearman_gate_statistic(h_est_b, h_true_b)
+    assert rho == rho_b
+
+    # a different seed gives a different value
+    h_true_c, h_est_c = _monotone_noised_pair(seed=43)
+    rho_c = cp.spearman_gate_statistic(h_est_c, h_true_c)
+    assert rho_c != rho
