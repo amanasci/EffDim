@@ -125,8 +125,26 @@ def centroid_mean_curvature(X: np.ndarray, k: int, d: int) -> np.ndarray:
     ``local_tangent_basis``; ``gap`` is projected onto the NORMAL complement via
     ``gap_normal = gap - Vt.T @ (Vt @ gap)`` (the ``(D, D)`` projector is never
     materialized); the empirical local scale ``r2 = mean(||centered||^2)``; and finally
-    ``H[i] = gap_normal * (2*(d + 2) / r2)``, the identity ``E[c - p] = (r^2 / (2(d+2))) *
-    H`` inverted for ``H``.
+    ``H[i] = gap_normal * (2*d / r2)``.
+
+    Scale-constant correction (Rule-1 fix, made during Task 2 while adding the sphere
+    known-answer test): ``02.5-RESEARCH.md``'s Pattern 1 example, and this plan's Task 1
+    action text, both give the last step as ``H = gap_normal * (2*(d+2)/r2)``, treating
+    ``r2 = mean(||centered||^2)`` as if it were already the tangent ball's OUTER radius
+    squared, ``r`` from the derivation ``E[c-p] = (r^2/(2(d+2))) * H``. It is not: for
+    ``u`` uniform in a ``d``-ball of radius ``r``, the derivation's own stated second
+    moment is ``E[u_i u_j] = (r^2/(d+2)) delta_ij``, so ``E[|u|^2] = d * r^2/(d+2)`` --
+    i.e. ``r2`` (what this function actually computes) equals ``d * r^2 / (d+2)``, not
+    ``r^2`` itself. Substituting ``r^2 = r2 * (d+2)/d`` into the derivation and solving
+    for ``H`` gives ``H = (2*d/r2) * gap``, not ``2*(d+2)/r2``. Confirmed by an exact
+    (noise-free) symmetric-neighbourhood construction on a unit ``d``-sphere at fixed
+    colatitude from the pole, for ``d`` in ``{2,3,5,8}``: the uncorrected constant
+    returns ``H = d + 2`` in every case (e.g. ``4`` instead of the true ``2`` at
+    ``d = 2``); the corrected constant used here returns exactly ``H = d``, matching the
+    sphere's known ``H = d/R`` at ``R = 1``. ``test_centroid_estimator_known_curvature``
+    (Task 2) is what surfaces this: Task 1's tracer only gates on Spearman rank
+    correlation, which is invariant to any positive monotonic rescaling and so cannot
+    catch a constant-factor error in the estimator's absolute magnitude.
 
     Three known caveats (D-05):
     1. Bias grows like ``r^2`` at finite radius -- the identity this estimator inverts is
@@ -153,7 +171,7 @@ def centroid_mean_curvature(X: np.ndarray, k: int, d: int) -> np.ndarray:
         Vt = local_tangent_basis(centered, d)
         gap_normal = gap - Vt.T @ (Vt @ gap)
         r2 = np.mean(np.sum(centered**2, axis=1))
-        H_est[i] = gap_normal * (2 * (d + 2) / r2)
+        H_est[i] = gap_normal * (2 * d / r2)
     return H_est
 
 
