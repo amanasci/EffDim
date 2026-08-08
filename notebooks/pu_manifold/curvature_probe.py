@@ -302,6 +302,28 @@ def spearman_gate_statistic(h_est_norm: np.ndarray, h_true_norm: np.ndarray) -> 
     return float(spearmanr(h_est_norm, h_true_norm).statistic)
 
 
+def median_relative_error(
+    h_est_norm: np.ndarray, h_true_norm: np.ndarray, floor: Optional[float] = None
+) -> float:
+    """NON-GATING evidence under D-01 -- the gate is ``spearman_gate_statistic``, this
+    function only reports magnitude agreement. Its correctness depends on both sides
+    being in the trace convention (``CURVATURE_CONVENTION = "trace"``) and on the same
+    ``global_std`` scale, which is exactly why ``swiss_roll_analytic_H_scaled`` and
+    ``make_graph_of_function_fixture`` both rescale their ground truth before either
+    side is ever compared here -- a convention or scale mismatch would make this number
+    meaningless without changing the gate.
+
+    ``floor`` defaults to ``1e-3 * median(|h_true_norm|)``, so points with near-zero
+    true curvature cannot dominate the statistic or produce a division-by-zero ``inf``.
+    """
+    h_est_norm = np.asarray(h_est_norm, dtype=np.float64)
+    h_true_norm = np.asarray(h_true_norm, dtype=np.float64)
+    if floor is None:
+        floor = 1e-3 * np.median(np.abs(h_true_norm))
+    denom = np.maximum(np.abs(h_true_norm), floor)
+    return float(np.median(np.abs(h_est_norm - h_true_norm) / denom))
+
+
 # --- graph-of-function fixture family, arbitrary (d, D, codimension) (D-03) ------------
 
 

@@ -472,3 +472,29 @@ def test_density_correction_is_noop_on_uniform_sampling():
         np.abs(H_corrected - H_uncorrected) / np.maximum(H_uncorrected, 1e-8)
     )
     assert rel_diff < 0.10
+
+
+# --- Plan 02.5-02 Task 3: non-gating magnitude evidence ---------------------------------
+
+
+def test_median_relative_error_is_scale_consistent():
+    """A scale-inconsistent implementation -- or a convention mismatch between
+    estimator and ground truth -- fails this. Guards against the OQ-CONV
+    factor-of-`d` error `02.5-01-PLAN.md`'s `<decisions_resolved_here>` resolves:
+    rescale the whole cloud by 4 and its ground truth by 1/4 (curvature has units of
+    inverse length, so this is the physically consistent rescaling), and the reported
+    relative error must agree to `rtol=1e-6`."""
+    fix = cp.make_graph_of_function_fixture(
+        n=800, d=2, D=5, n_bumps=1, seed=99, apply_rotation=False
+    )
+    X = fix["X"]
+    H_true = fix["H_norm"]
+    H_est = cp.mean_curvature_norm(cp.centroid_mean_curvature(X, k=20, d=2))
+    err1 = cp.median_relative_error(H_est, H_true)
+
+    X2 = X * 4.0
+    H_true2 = H_true / 4.0
+    H_est2 = cp.mean_curvature_norm(cp.centroid_mean_curvature(X2, k=20, d=2))
+    err2 = cp.median_relative_error(H_est2, H_true2)
+
+    assert np.isclose(err1, err2, rtol=1e-6)
