@@ -23,6 +23,7 @@ factor, but the non-gating median relative error and any cross-estimator agreeme
 would silently be wrong by a factor of ``d`` under the wrong convention.
 """
 
+import time
 from typing import Optional
 
 import numpy as np
@@ -905,3 +906,104 @@ def permutation_null(h_true_norm: np.ndarray, h_est_norm: np.ndarray, n_resample
         "seed": int(seed),
         "clears_null": bool(observed_rho > null_threshold),
     }
+
+
+# --- one-call stage-1 measurement bundle (plan 02.5-07's sweep runner) ----------------
+
+
+def measure_cell(
+    fixture: dict,
+    k: int,
+    d: int,
+    k_density: int,
+    density_correct: bool,
+    n_resamples: int,
+    seed: int,
+    quantile: float,
+) -> dict:
+    """The single call plan 02.5-07's sweep runner makes per grid cell, so the runner
+    contains orchestration only and no statistics of its own.
+
+    ``fixture``: a dict from ``make_swiss_roll_fixture``, ``make_graph_of_function_fixture``,
+    or ``make_flat_fixture`` -- anything shaped ``{"X", "H_norm", ...}``.
+
+    Exactly ONE returned key is gating: ``"spearman_rho"``. Every other key is context --
+    the same gating/non-gating split every phase since 02.2 has used
+    (``cae.GATING_METRICS`` / ``topoae.GATING_METRICS`` vs. their respective
+    ``context_metrics`` blocks). Consuming code must never branch a PASS/FAIL decision on
+    any key other than ``"spearman_rho"``.
+
+    Returns a flat dict:
+      - gating: ``"spearman_rho"`` (``float``, from ``spearman_gate_statistic`` on the
+        centroid estimator's ``||H||`` against the fixture's ``H_norm``)
+      - null (D-02): every key ``permutation_null`` returns, prefixed ``"null_"`` where
+        the key does not already start with that prefix (``"null_quantile"``,
+        ``"null_threshold"``, ``"null_mean"``, ``"null_std"`` are already prefixed and
+        pass through unchanged; ``"observed_rho"``, ``"n_resamples"``, ``"seed"``, and
+        ``"clears_null"`` become ``"null_observed_rho"``, ``"null_n_resamples"``,
+        ``"null_seed"``, and ``"null_clears_null"``)
+      - non-gating context: ``"median_relative_error"``, ``"quadric_spearman_rho"``,
+        ``"agreement_spearman"``, ``"agreement_median_rel_diff"``,
+        ``"quadric_underdetermined"``, ``"quadric_n_coefficients"``,
+        ``"quadric_coefficient_deficit"``, ``"realized_skew"`` (only when the fixture
+        dict itself carries one -- ``make_swiss_roll_fixture`` does not), ``"n"``,
+        ``"d"``, ``"D"``, ``"k"``, ``"k_density"``, ``"density_correct"``, ``"seed"``
+        (this plain top-level echo of the caller's ``seed``, distinct from
+        ``"null_seed"`` above, which is the same value but reached through
+        ``permutation_null``'s own return dict)
+      - timing: ``"elapsed_s"`` (``float``, wall-clock seconds for this whole call)
+
+    Every value is a plain Python ``float``, ``int``, ``bool``, or ``str`` -- never a
+    numpy scalar -- so the runner can hand this dict straight to ``cache.json_cache``
+    with no conversion pass.
+    """
+    t0 = time.perf_counter()
+
+    X = np.asarray(fixture["X"], dtype=np.float64)
+    h_true_norm = np.asarray(fixture["H_norm"], dtype=np.float64)
+    n, D = X.shape
+
+    H_centroid = centroid_mean_curvature(
+        X,
+        k=k,
+        d=d,
+        density_correct=density_correct,
+        k_density=k_density if density_correct else None,
+    )
+    h_est_norm = mean_curvature_norm(H_centroid)
+
+    spearman_rho = spearman_gate_statistic(h_est_norm, h_true_norm)
+    med_rel_err = median_relative_error(h_est_norm, h_true_norm)
+
+    null_result = permutation_null(h_true_norm, h_est_norm, n_resamples, seed, quantile)
+    null_prefixed = {}
+    for key, value in null_result.items():
+        pref_key = key if key.startswith("null_") else f"null_{key}"
+        null_prefixed[pref_key] = value
+
+    quadric_result = quadric_mean_curvature(X, k=k, d=d)
+    agreement = estimator_agreement(h_est_norm, quadric_result["H_norm"])
+    quadric_spearman_rho = spearman_gate_statistic(quadric_result["H_norm"], h_true_norm)
+
+    result = {
+        "spearman_rho": float(spearman_rho),
+        **null_prefixed,
+        "median_relative_error": float(med_rel_err),
+        "quadric_spearman_rho": float(quadric_spearman_rho),
+        "agreement_spearman": float(agreement["agreement_spearman"]),
+        "agreement_median_rel_diff": float(agreement["agreement_median_rel_diff"]),
+        "quadric_underdetermined": bool(quadric_result["underdetermined"]),
+        "quadric_n_coefficients": int(quadric_result["n_coefficients"]),
+        "quadric_coefficient_deficit": int(quadric_result["coefficient_deficit"]),
+        "n": int(n),
+        "d": int(d),
+        "D": int(D),
+        "k": int(k),
+        "k_density": int(k_density),
+        "density_correct": bool(density_correct),
+        "seed": int(seed),
+        "elapsed_s": float(time.perf_counter() - t0),
+    }
+    if "realized_skew" in fixture:
+        result["realized_skew"] = float(fixture["realized_skew"])
+    return result

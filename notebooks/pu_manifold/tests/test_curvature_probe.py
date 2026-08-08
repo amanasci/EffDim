@@ -582,3 +582,34 @@ def test_permutation_null_rejects_random_pairing():
         cp.permutation_null(
             np.arange(100.0), np.ones(100), n_resamples=99, seed=1, quantile=0.99
         )
+
+
+# --- Plan 02.5-03 Task 3: one-call stage-1 measurement bundle ---------------------------
+
+
+def test_measure_cell_returns_flat_native_types():
+    """`measure_cell` returns a flat dict whose gating key (`spearman_rho`) is present
+    and finite, every value is a plain Python native type (never a numpy scalar), and the
+    whole dict round-trips through `json.dumps` with no custom encoder."""
+    import json
+
+    fix = cp.make_graph_of_function_fixture(n=300, d=2, D=6, n_bumps=1, seed=20260808)
+    result = cp.measure_cell(
+        fixture=fix,
+        k=15,
+        d=2,
+        k_density=15,
+        density_correct=False,
+        n_resamples=99,
+        seed=3,
+        quantile=0.95,
+    )
+
+    assert "spearman_rho" in result
+    assert np.isfinite(result["spearman_rho"])
+
+    for key, value in result.items():
+        assert isinstance(value, (float, int, bool, str)), f"{key} is {type(value)}"
+        assert type(value).__module__ != "numpy", f"{key} is a numpy scalar: {type(value)}"
+
+    json.dumps(result)  # succeeds without a custom encoder
