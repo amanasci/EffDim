@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.5
-current_phase_name: Local Curvature Feasibility and CAE Local Re-Gate (INSERTED, planned — ready to execute)
-status: planning
-stopped_at: Phase 02.5 planned — 13 plans across 12 waves, ready to execute
-last_updated: "2026-08-07T23:55:00.000Z"
+current_phase_name: local-curvature-feasibility-cae-re-gate
+status: executing
+stopped_at: Completed 02.5-01-PLAN.md
+last_updated: "2026-08-08T01:14:29.285Z"
 last_activity: 2026-08-07
-last_activity_desc: Phase 02.5 planned — 13 plans in 12 waves; plan-checker returned 0 blockers, 0 warnings
+last_activity_desc: Phase 02.5 execution started
 progress:
-  total_phases: 7
+  total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate (planned, ready to execute)
+**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate
 
 ## Current Position
 
-Phase: 02.5 — Local Curvature Feasibility & CAE Local Re-Gate (INSERTED, planned — 13 plans, 12 waves)
-Plan: Not started — 0/13 executed
-Status: Ready to execute — `/gsd-execute-phase 02.5`
-Last activity: 2026-08-07 — Phase 02.5 planned; RESEARCH, PATTERNS, VALIDATION, COVERAGE and 13 PLAN files written
+Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
+Plan: 2 of 13
+Status: Ready to execute
+Last activity: 2026-08-07 — Phase 02.5 execution started
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [██████████] 100% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [███████░░░] 68% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -122,6 +122,7 @@ Progress: [██████████] 100% of planned plans (17/17; Phases 
 | Phase 02.4 P06 | ~20min | 3 tasks | 0 files |
 | Phase 02.4 P07 | 45min | 3 tasks | 1 files |
 | Phase 02.4 P08 | ~25min | 3 tasks | 6 files |
+| Phase 02.5 P01 | ~30min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -198,6 +199,10 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.4-08: Reconciliation runner ran twice against sealed TOPOAE_VERDICT=FAIL, confirmed genuine no-op -- 02.1's graph-native recommendation stands untouched; TOPO-01..08 minted globally in REQUIREMENTS.md
 - [Phase ?]: 02.4-08: Orchestrator-directed scope extension executed -- 02.4-FINDINGS.md (every FAIL this milestone is global-scoped; every measured local-scoped gate passed), 02.4-PREREGISTRATION-AMENDMENT-02.md (withdraws the 'paper's own minimum searched lambda' justification, changes no constant), and an additive ROADMAP.md Phase 3 re-scope to local curvature
 - [Phase ?]: 02.4-08: WINDOWS.md entry #2 marked fixed (lambda-justification correction delivered via Amendment 2); new entry #3 records gap #5 (topoae.py reconstruction-term sum-vs-mean divergence) as still-open, not fixed
+- [Phase ?]: 02.5-01: Trace convention H=tr(II) used everywhere per OQ-CONV, pinned by test_curvature_convention_is_trace_not_averaged (fails against the averaged form)
+- [Phase ?]: 02.5-01: Rule 1 auto-fix -- centroid_mean_curvature's scale constant corrected from 2*(d+2)/r2 (RESEARCH.md Pattern 1 / plan's own Task 1 text) to 2*d/r2, after the sphere known-answer test caught it returning H=d+2 instead of H=d; confirmed exact for d in {2,3,5,8}
+- [Phase ?]: 02.5-01: Tracer feedback checkpoint (auto mode inactive) held after Task 1; user approved rho=0.5806 before Tasks 2-3 ran
+- [Phase ?]: 02.5-01: requirements.mark-complete found no D-00/D-01/D-03/D-05/D-07 entries in REQUIREMENTS.md -- phase 02.5's D-00..D-15 are scoped locally to 02.5-CONTEXT.md and were never mirrored into the milestone-level REQUIREMENTS.md, same pre-existing gap noted at 02.4-02; not a blocker for this plan
 
 ### Pending Todos
 
@@ -239,8 +244,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-07T20:17:55.866Z
-Stopped at: Phase 02.5 context gathered
+Last session: 2026-08-08T01:14:00.905Z
+Stopped at: Completed 02.5-01-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-CONTEXT.md
+Resume file: None
 </content>

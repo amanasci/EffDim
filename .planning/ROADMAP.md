@@ -303,12 +303,12 @@ Plans:
   - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
   - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
 
-**Plans**: 13 plans across 12 waves. Stage 1 is plans 01–07; stage 2 is plans 08–12 and runs **only** if plan 07's blocking go/no-go checkpoint returns GO; plan 13 discharges the outward-facing obligations on either branch. Plans 05, 06, 07, 09, 10, 12, 13 are non-autonomous — each carries a blocking checkpoint.
+**Plans**: 1/13 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02.5-01-PLAN.md — Tracer: Swiss roll → centroid/Laplace–Beltrami estimator → Spearman vs analytic H, end to end (D-00, D-01, D-03, D-05, D-07)
+- [x] 02.5-01-PLAN.md — Tracer: Swiss roll → centroid/Laplace–Beltrami estimator → Spearman vs analytic H, end to end (D-00, D-01, D-03, D-05, D-07)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
