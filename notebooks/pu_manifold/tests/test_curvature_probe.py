@@ -778,6 +778,57 @@ def test_measure_cell_returns_flat_native_types():
     json.dumps(result)  # succeeds without a custom encoder
 
 
+def test_measure_cell_quadric_timeout_preserves_gating_result():
+    """`quadric_timeout_s` (added by plan 02.5-07 to keep the full pre-registered sweep
+    tractable at the PU regime's own scale -- see curvature_feasibility_sweep_run.py's own
+    module docstring for the measured cost) bounds ONLY the non-gating quadric cross-check.
+    An artificially tiny budget forces a timeout; the two GATING statistics and both their
+    null calibrations must still be present, finite, and identical to what an untimed call
+    on the same inputs produces -- the timeout must never touch the gating computation."""
+    import json
+
+    fix = cp.make_graph_of_function_fixture(n=300, d=5, D=20, n_bumps=1, seed=1)
+    common_kwargs = dict(
+        fixture=fix,
+        k=15,
+        d=5,
+        k_density=15,
+        density_correct=False,
+        n_resamples=49,
+        seed=1,
+        quantile=0.9,
+        region_n_bins=4,
+        region_pair_seed=1,
+        region_n_pairs=2000,
+    )
+
+    timed_out_result = cp.measure_cell(quadric_timeout_s=0.001, **common_kwargs)
+    assert timed_out_result["quadric_timed_out"] is True
+    assert timed_out_result["quadric_spearman_rho"] is None
+    assert timed_out_result["agreement_spearman"] is None
+    assert timed_out_result["agreement_median_rel_diff"] is None
+    assert timed_out_result["quadric_underdetermined"] is None
+    assert isinstance(timed_out_result["quadric_n_coefficients"], int)
+    assert isinstance(timed_out_result["quadric_coefficient_deficit"], int)
+    json.dumps(timed_out_result)  # None serializes to JSON null with no custom encoder
+
+    untimed_result = cp.measure_cell(quadric_timeout_s=None, **common_kwargs)
+    assert untimed_result["quadric_timed_out"] is False
+    assert untimed_result["quadric_spearman_rho"] is not None
+
+    # the gating result is bit-identical whether or not the quadric check timed out --
+    # the timeout must never perturb the computation that ran before it
+    assert timed_out_result["spearman_rho"] == untimed_result["spearman_rho"]
+    assert timed_out_result["quantile_bin_concordance"] == untimed_result["quantile_bin_concordance"]
+    assert timed_out_result["null_threshold"] == untimed_result["null_threshold"]
+    assert timed_out_result["region_null_threshold"] == untimed_result["region_null_threshold"]
+
+    # a default call (quadric_timeout_s omitted) behaves exactly like quadric_timeout_s=None
+    default_result = cp.measure_cell(**common_kwargs)
+    assert default_result["quadric_timed_out"] is False
+    assert default_result["quadric_spearman_rho"] == untimed_result["quadric_spearman_rho"]
+
+
 # --- Plan 02.5-04 Task 1: gate constants and direction-aware verdict functions ----------
 
 

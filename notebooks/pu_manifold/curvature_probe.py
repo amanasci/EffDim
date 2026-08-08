@@ -24,6 +24,7 @@ would silently be wrong by a factor of ``d`` under the wrong convention.
 """
 
 import math
+import signal
 import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -1053,6 +1054,40 @@ def permutation_null(
 # --- one-call stage-1 measurement bundle (plan 02.5-07's sweep runner) ----------------
 
 
+class QuadricTimeout(Exception):
+    """Raised internally by :func:`measure_cell`'s SIGALRM handler when the non-gating
+    quadric cross-check exceeds its own ``quadric_timeout_s`` allowance -- never raised by
+    ``quadric_mean_curvature`` itself, and never allowed to escape :func:`measure_cell` (it
+    is caught there and turned into ``quadric_timed_out: True`` in the returned dict)."""
+
+
+def _quadric_alarm_handler(signum, frame):  # noqa: ARG001 -- required signal handler shape
+    raise QuadricTimeout()
+
+
+class _quadric_timeout_guard:
+    """POSIX (``signal.setitimer``) context manager, scoped ONLY to the non-gating quadric
+    cross-check inside :func:`measure_cell`. Always cancels its own pending alarm on exit
+    (even on an exception other than the timeout itself), so a fast quadric fit never leaves
+    a stray alarm armed for whatever runs after it. A ``None`` or non-positive ``seconds``
+    disables the guard entirely (no alarm armed), so existing callers that never pass
+    ``quadric_timeout_s`` see no behavioural change at all."""
+
+    def __init__(self, seconds: Optional[float]):
+        self.seconds = seconds
+
+    def __enter__(self):
+        if self.seconds is not None and self.seconds > 0:
+            signal.signal(signal.SIGALRM, _quadric_alarm_handler)
+            signal.setitimer(signal.ITIMER_REAL, self.seconds)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.seconds is not None and self.seconds > 0:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        return False
+
+
 def measure_cell(
     fixture: dict,
     k: int,
@@ -1065,6 +1100,7 @@ def measure_cell(
     region_n_bins: int,
     region_pair_seed: int,
     region_n_pairs: int,
+    quadric_timeout_s: Optional[float] = None,
 ) -> dict:
     """The single call plan 02.5-07's sweep runner makes per grid cell, so the runner
     contains orchestration only and no statistics of its own.
@@ -1088,6 +1124,29 @@ def measure_cell(
     defaults, same discipline as every other pre-registered argument this function and
     :func:`permutation_null` already apply.
 
+    ``quadric_timeout_s`` (added by plan 02.5-07, ``Optional[float]``, default ``None`` --
+    NOT a pre-registered constant, this function's own orchestration knob): the non-gating
+    local-quadric cross-check (``quadric_mean_curvature``) is, at the PU regime's own
+    ``D=768``, ``d=20``, measured at roughly 6-8 minutes of CPU time for a single cell --
+    its least-squares design matrix has ``d*(d+1)/2`` columns, and the per-point Python
+    loop pays that cost ``n`` times. When ``quadric_timeout_s`` is ``None`` or non-positive
+    (the default -- every existing call site is unaffected), this function behaves exactly
+    as it always has: the quadric cross-check runs to completion, however long that takes.
+    When a positive value is given, ONLY the quadric cross-check (never the two GATING
+    statistics or their null calibrations, which are computed first and are comparatively
+    cheap even at the PU regime's own scale) is wrapped in a ``signal.setitimer``-based
+    timeout; if it does not finish in time, the returned dict carries
+    ``"quadric_timed_out": True`` and every quadric-derived key (``"quadric_spearman_rho"``,
+    ``"agreement_spearman"``, ``"agreement_median_rel_diff"``, ``"quadric_underdetermined"``)
+    set to ``None``, while the two GATING statistics and their nulls are still returned,
+    valid and usable -- a cell's boundary-relevant measurement is preserved even when its
+    non-gating context could not be completed within budget. This is the mechanism plan
+    02.5-07's sweep runner uses to keep the full pre-registered grid tractable within its
+    own wall-clock envelope without discarding gating data whenever only the (non-gating)
+    quadric check is what ran long -- see ``curvature_feasibility_sweep_run.py``'s own
+    module docstring for the measured cost this responds to. POSIX-only (``signal.SIGALRM``
+    via ``signal.setitimer``); this codebase already runs on Linux exclusively.
+
     Returns a flat dict:
       - gating: ``"spearman_rho"`` (``float``, from ``spearman_gate_statistic`` on the
         centroid estimator's ``||H||`` against the fixture's ``H_norm``) and
@@ -1110,7 +1169,9 @@ def measure_cell(
       - non-gating context: ``"median_relative_error"``, ``"quadric_spearman_rho"``,
         ``"agreement_spearman"``, ``"agreement_median_rel_diff"``,
         ``"quadric_underdetermined"``, ``"quadric_n_coefficients"``,
-        ``"quadric_coefficient_deficit"``, ``"realized_skew"`` (only when the fixture
+        ``"quadric_coefficient_deficit"``, ``"quadric_timed_out"`` (``bool``, ``True``
+        only when ``quadric_timeout_s`` was given and exceeded -- the four keys just
+        named are then all ``None``), ``"realized_skew"`` (only when the fixture
         dict itself carries one -- ``make_swiss_roll_fixture`` does not), ``"n"``,
         ``"d"``, ``"D"``, ``"k"``, ``"k_density"``, ``"density_correct"``,
         ``"region_n_bins"``, ``"region_pair_seed"``, ``"region_n_pairs"``, ``"seed"``
@@ -1122,9 +1183,10 @@ def measure_cell(
         cross-check's per-point least-squares fit, not by either gating statistic;
         see plan 02.5-07-SUMMARY.md's Performance section for the measured breakdown)
 
-    Every value is a plain Python ``float``, ``int``, ``bool``, or ``str`` -- never a
-    numpy scalar -- so the runner can hand this dict straight to ``cache.json_cache``
-    with no conversion pass.
+    Every value is a plain Python ``float``, ``int``, ``bool``, ``str``, or (only the four
+    quadric-derived keys, only when ``quadric_timed_out`` is ``True``) ``None`` -- never a
+    numpy scalar -- so the runner can hand this dict straight to ``cache.json_cache`` /
+    ``json.dumps`` with no conversion pass (``None`` serializes to JSON ``null`` natively).
     """
     t0 = time.perf_counter()
 
@@ -1184,9 +1246,32 @@ def measure_cell(
         pref_key = f"region_{key}" if key.startswith("null_") else f"region_null_{key}"
         region_null_prefixed[pref_key] = value
 
-    quadric_result = quadric_mean_curvature(X, k=k, d=d)
-    agreement = estimator_agreement(h_est_norm, quadric_result["H_norm"])
-    quadric_spearman_rho = spearman_gate_statistic(quadric_result["H_norm"], h_true_norm)
+    quadric_fields: Dict[str, Any]
+    try:
+        with _quadric_timeout_guard(quadric_timeout_s):
+            quadric_result = quadric_mean_curvature(X, k=k, d=d)
+            agreement = estimator_agreement(h_est_norm, quadric_result["H_norm"])
+            quadric_spearman_rho = spearman_gate_statistic(quadric_result["H_norm"], h_true_norm)
+        quadric_fields = {
+            "quadric_timed_out": False,
+            "quadric_spearman_rho": float(quadric_spearman_rho),
+            "agreement_spearman": float(agreement["agreement_spearman"]),
+            "agreement_median_rel_diff": float(agreement["agreement_median_rel_diff"]),
+            "quadric_underdetermined": bool(quadric_result["underdetermined"]),
+            "quadric_n_coefficients": int(quadric_result["n_coefficients"]),
+            "quadric_coefficient_deficit": int(quadric_result["coefficient_deficit"]),
+        }
+    except QuadricTimeout:
+        _n_coef = d * (d + 1) // 2
+        quadric_fields = {
+            "quadric_timed_out": True,
+            "quadric_spearman_rho": None,
+            "agreement_spearman": None,
+            "agreement_median_rel_diff": None,
+            "quadric_underdetermined": None,
+            "quadric_n_coefficients": int(_n_coef),
+            "quadric_coefficient_deficit": int(max(0, _n_coef - k)),
+        }
 
     result = {
         "spearman_rho": float(spearman_rho),
@@ -1194,12 +1279,7 @@ def measure_cell(
         **null_prefixed,
         **region_null_prefixed,
         "median_relative_error": float(med_rel_err),
-        "quadric_spearman_rho": float(quadric_spearman_rho),
-        "agreement_spearman": float(agreement["agreement_spearman"]),
-        "agreement_median_rel_diff": float(agreement["agreement_median_rel_diff"]),
-        "quadric_underdetermined": bool(quadric_result["underdetermined"]),
-        "quadric_n_coefficients": int(quadric_result["n_coefficients"]),
-        "quadric_coefficient_deficit": int(quadric_result["coefficient_deficit"]),
+        **quadric_fields,
         "n": int(n),
         "d": int(d),
         "D": int(D),
