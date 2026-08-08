@@ -112,9 +112,10 @@ def centroid_mean_curvature(X: np.ndarray, k: int, d: int) -> np.ndarray:
     ``X``: ``(n, D)`` point cloud. ``k``: number of nearest neighbours per point
     (excluding self). ``d``: the estimator's own working tangent dimension.
 
-    ``d`` is a REQUIRED positional argument with no default. D-07 bars inheriting
-    ``D_FROZEN = 5`` as this phase's working dimension; a default value is exactly how
-    such a value gets inherited by accident rather than by an explicit call-site choice.
+    ``d`` is a REQUIRED positional argument with no default. D-07 bars inheriting the
+    Phase 2 frozen embedding dimension (5) as this phase's working dimension; a default
+    value is exactly how such a value gets inherited by accident rather than by an
+    explicit call-site choice.
 
     Returns ``(n, D)`` mean curvature vector estimates, under this module's trace
     convention (``H = tr(II)``).
