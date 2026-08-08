@@ -498,3 +498,41 @@ def test_median_relative_error_is_scale_consistent():
     err2 = cp.median_relative_error(H_est2, H_true2)
 
     assert np.isclose(err1, err2, rtol=1e-6)
+
+
+# --- Plan 02.5-03 Task 1: local quadric cross-check and its underdetermination ----------
+
+
+def test_quadric_cross_check_and_underdetermination():
+    """(a) On a well-determined `d=2` sphere fixture, the quadric fit recovers `||H||`
+    close to the sphere's known `d/R`, agrees with the centroid estimator, and is NOT
+    flagged underdetermined. (b) At the PU regime's `d=20, k=15`, the quadric fit IS
+    flagged underdetermined, with `n_coefficients=210` and `coefficient_deficit=195` --
+    the exact count the ROADMAP re-scope calls "badly underdetermined", and a property of
+    THIS estimator alone, which is why D-05 keeps it non-gating.
+    """
+    # (a) d=2 sphere, R=1.5, k=30 -- well-determined: n_coefficients = 2*3/2 = 3 << k=30.
+    R = 1.5
+    X_sphere = _sample_sphere(d=2, radius=R, n=3000, seed=11)
+    quadric = cp.quadric_mean_curvature(X_sphere, k=30, d=2)
+    true_H = 2 / R
+    median_quadric = np.median(quadric["H_norm"])
+    assert abs(median_quadric - true_H) / true_H < 0.15
+    assert quadric["underdetermined"] is False
+    assert quadric["n_coefficients"] == 3
+    assert quadric["coefficient_deficit"] == 0
+
+    H_centroid = cp.centroid_mean_curvature(X_sphere, k=30, d=2)
+    h_centroid_norm = cp.mean_curvature_norm(H_centroid)
+    agreement = cp.estimator_agreement(h_centroid_norm, quadric["H_norm"])
+    assert agreement["agreement_median_rel_diff"] < 0.25
+
+    # (b) d=20, k=15 on a graph-of-function fixture: n_coefficients = 20*21/2 = 210,
+    # deficit = 210 - 15 = 195 -- this is the count the ROADMAP re-scope calls "badly
+    # underdetermined"; it is a property of THIS (quadric) estimator, which is exactly
+    # why D-05 keeps it non-gating rather than promoting it.
+    fix = cp.make_graph_of_function_fixture(n=50, d=20, D=25, n_bumps=1, seed=1)
+    quadric_pu = cp.quadric_mean_curvature(fix["X"], k=15, d=20)
+    assert quadric_pu["underdetermined"] is True
+    assert quadric_pu["n_coefficients"] == 210
+    assert quadric_pu["coefficient_deficit"] == 195

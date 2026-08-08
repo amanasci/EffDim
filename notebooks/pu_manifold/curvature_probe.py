@@ -608,3 +608,203 @@ def make_flat_fixture(n: int, d: int, D: int, seed: int, density_skew: float = 0
     return make_graph_of_function_fixture(
         n=n, d=d, D=D, n_bumps=1, seed=seed, amplitude=0.0, density_skew=density_skew
     )
+
+
+# --- D-05 non-gating cross-check: local quadric ("bowl") fit --------------------------
+
+
+def quadric_fit_curvature(u: np.ndarray, z: np.ndarray, d: int) -> np.ndarray:
+    """RESEARCH.md Pattern 2's local quadric fit -- the D-05 non-gating cross-check.
+    NEVER the gating estimator; see ``quadric_mean_curvature``'s docstring for why.
+
+    ``u``: ``(k, d)`` tangent coordinates, already centered at the query point.
+    ``z``: ``(k, m)`` normal-space coordinates for the same ``k`` neighbours (``m`` is
+    whatever codimension the caller has projected into -- ``quadric_mean_curvature``
+    below passes the full ambient residual, ``m = D``). Fits ``z = q(u)`` for a
+    quadratic form ``q`` by ordinary least squares and returns the ``(m,)`` mean
+    curvature vector, the trace of ``q``'s Hessian, under this module's trace
+    convention.
+
+    Design matrix columns: a constant, the ``d`` linear terms ``u_i``, and the
+    ``d*(d+1)/2`` quadratic terms ``u_i*u_j`` for ``i <= j``. Solved by
+    ``np.linalg.lstsq(A, z, rcond=None)`` exactly -- no shrinkage or truncation term of
+    any kind is ever added to this call. D-05 rejected giving this estimator such a
+    dial precisely because its strength would become a value that has to be chosen and
+    pre-registered blind, with no principled way to set it; the plain least-squares (or,
+    once ``k`` is smaller than the column count, minimum-norm least-squares) solution is
+    the only fit this function ever computes.
+
+    For a fitted term ``c_ii * u_i^2``, the Hessian entry is ``Hessian_ii = 2*c_ii`` --
+    the trace only ever reads off the ``i == j`` (pure-quadratic) columns; the
+    off-diagonal ``i != j`` (cross) columns contribute nothing to the trace by
+    construction (a cross term ``c_ij * u_i * u_j``, ``i != j``, contributes to the
+    OFF-diagonal Hessian entries ``Hessian_ij = Hessian_ji = c_ij``, which the trace
+    never sums). This function therefore accumulates ``H += 2.0 * c`` over the ``i == j``
+    columns only, with no branch that ever touches an off-diagonal column's coefficient.
+
+    Underdetermined once ``d*(d+1)/2 > k`` -- this is the sample-complexity count the
+    ROADMAP re-scope correctly describes for THIS estimator (see
+    ``quadric_mean_curvature``'s docstring for why it does not transfer to the gating
+    estimator). ``np.linalg.lstsq`` still returns a (minimum-norm) solution in that
+    regime rather than raising; the caller (``quadric_mean_curvature``) is responsible
+    for flagging the underdetermined case rather than silently trusting the fit.
+    """
+    u = np.asarray(u, dtype=np.float64)
+    z = np.asarray(z, dtype=np.float64)
+    k = u.shape[0]
+    m = z.shape[1]
+
+    cols = [np.ones(k)] + [u[:, i] for i in range(d)]
+    diag_positions = []  # indices into `cols` (offset by 1+d) that are i == j columns
+    col_idx = 1 + d
+    for i in range(d):
+        for j in range(i, d):
+            cols.append(u[:, i] * u[:, j])
+            if i == j:
+                diag_positions.append(col_idx)
+            col_idx += 1
+    A = np.stack(cols, axis=1)  # (k, 1 + d + d*(d+1)/2)
+
+    coef, *_ = np.linalg.lstsq(A, z, rcond=None)  # (1 + d + d*(d+1)/2, m)
+
+    H = np.zeros(m, dtype=np.float64)
+    for pos in diag_positions:
+        H += 2.0 * coef[pos]
+    return H
+
+
+def _quadric_tangent_basis(centered: np.ndarray, d: int) -> np.ndarray:
+    """Like ``local_tangent_basis``, but -- deliberately -- permits ``d > k``: the
+    underdetermined regime this cross-check exists to MEASURE, not avoid.
+    ``local_tangent_basis`` (the gating estimator's shared helper) hard-raises in that
+    regime by design (it has no legitimate use for an underdetermined tangent estimate);
+    this function cannot reuse it here, because ``quadric_mean_curvature`` must be able
+    to run to completion and REPORT the underdetermined case rather than being blocked
+    from ever reaching it.
+
+    ``centered``: ``(k, D)``. Uses ``np.linalg.svd(centered, full_matrices=True)``
+    instead of ``local_tangent_basis``'s ``full_matrices=False``, so the returned basis
+    always has exactly ``d`` rows for any ``d <= D``. When ``d <= k`` the two routes
+    return numerically identical top-``d`` singular vectors (confirmed to
+    float64-epsilon agreement); when ``d > k`` (only reachable when ``n_coefficients =
+    d*(d+1)/2 > k``, i.e. exactly the underdetermined case), rows ``k`` through ``d - 1``
+    are an arbitrary orthonormal completion of the neighbourhood's own null space --
+    genuinely uninformative directions along which every neighbour's ``centered``
+    coordinate is EXACTLY zero, so their tangent-coordinate columns in
+    ``quadric_fit_curvature``'s design matrix are identically zero and ``lstsq`` handles
+    them as ordinary rank deficiency (a minimum-norm solution), not a special case.
+    """
+    k, D = centered.shape
+    if d > D:
+        raise ValueError(
+            f"_quadric_tangent_basis: d={d} exceeds D={D}; cannot extract a "
+            f"{d}-dimensional tangent basis in {D} ambient dimensions."
+        )
+    _, _, Vt = np.linalg.svd(centered, full_matrices=True)
+    return Vt[:d]
+
+
+def quadric_mean_curvature(X: np.ndarray, k: int, d: int) -> dict:
+    """The D-05 non-gating cross-check estimator, per-point wrapper over
+    ``quadric_fit_curvature``.
+
+    NON-GATING under D-05: only ``centroid_mean_curvature`` (D-05's gating estimator)
+    ever decides a PASS/FAIL. The reason is sample complexity, and it is specific to
+    THIS estimator, not a general property of curvature estimation from a neighbourhood.
+    The full local quadric fit needs ``d*(d+1)/2`` coefficients per normal direction --
+    210 at ``d=20`` -- because it estimates the FULL second fundamental form. The
+    centroid/Laplace-Beltrami estimator ``centroid_mean_curvature`` estimates only
+    ``H``'s TRACE, as an average over ``k`` neighbour vectors -- one unknown with ``k``
+    samples, not 210 unknowns with 15 equations -- so the ``d*(d+1)/2``-vs-``k`` count
+    the ROADMAP re-scope warns about is real for this estimator and does NOT transfer to
+    the gating one (D-00's reframing).
+
+    Per point: ``k``-NN via ``NearestNeighbors(n_neighbors=k+1)`` (self excluded);
+    ``centered = neigh - p``; the local tangent basis ``Vt`` (``(d, D)``) via
+    ``_quadric_tangent_basis`` (NOT ``local_tangent_basis`` -- see that helper's own
+    docstring for why this estimator needs a separate one that tolerates ``d > k``);
+    tangent coordinates ``u = centered @ Vt.T`` (``(k, d)``); and the normal residual
+    kept as the full AMBIENT ``(k, D)`` vector ``z = centered - u @ Vt`` rather than
+    being re-expressed in an explicit ``(D - d)``-dimensional normal basis. This is a
+    deliberate efficiency choice, not a mathematical one: materializing a
+    ``(D, D-d)`` normal basis at ``D = 768`` costs memory and compute this cross-check
+    does not need, and the two are equivalent because the tangential part of ``z`` is
+    identically zero by construction (``u`` was already subtracted out via ``u @ Vt``).
+    ``quadric_fit_curvature(u, z, d)`` then returns the fitted mean curvature vector
+    directly in AMBIENT coordinates, so no back-transformation out of a normal basis is
+    ever needed.
+
+    Returns a dict with ``"H_vec"`` ``(n, D)``, ``"H_norm"`` ``(n,)``,
+    ``"underdetermined"`` (``bool``, a property of ``(d, k)`` alone -- the same for every
+    point), ``"n_coefficients"`` (``int``, ``d*(d+1)//2``), and ``"coefficient_deficit"``
+    (``int``, ``max(0, n_coefficients - k)``).
+
+    Does NOT raise when underdetermined -- it returns the fitted value with the flag
+    set. The CONTRAST between a determined quadric fit (small ``d``, generous ``k``) and
+    an underdetermined one (the PU regime's ``d=20``, ``k=15``) is itself the evidence
+    D-00's reframing needs reported alongside the gating result, and raising would
+    destroy that evidence rather than surface it.
+    """
+    X = np.asarray(X, dtype=np.float64)
+    n, D = X.shape
+    n_coefficients = d * (d + 1) // 2
+    coefficient_deficit = max(0, n_coefficients - k)
+    underdetermined = n_coefficients > k
+
+    nbrs = NearestNeighbors(n_neighbors=k + 1).fit(X)
+    _, idx = nbrs.kneighbors(X)  # idx[:, 0] is the point itself
+
+    H_vec = np.zeros((n, D), dtype=np.float64)
+    for i in range(n):
+        neigh_idx = idx[i, 1:]  # (k,), excludes self
+        neigh = X[neigh_idx]  # (k, D)
+        p = X[i]
+        centered = neigh - p
+        Vt = _quadric_tangent_basis(centered, d)  # (d, D)
+        u = centered @ Vt.T  # (k, d)
+        z = centered - u @ Vt  # (k, D), the ambient normal residual
+        H_vec[i] = quadric_fit_curvature(u, z, d)
+
+    return {
+        "H_vec": H_vec,
+        "H_norm": mean_curvature_norm(H_vec),
+        "underdetermined": bool(underdetermined),
+        "n_coefficients": int(n_coefficients),
+        "coefficient_deficit": int(coefficient_deficit),
+    }
+
+
+def estimator_agreement(h_centroid_norm: np.ndarray, h_quadric_norm: np.ndarray) -> dict:
+    """Quantifies agreement between the two independent D-05 estimators -- the gating
+    centroid/Laplace-Beltrami estimator and the non-gating local quadric fit -- and
+    resolves CONTEXT.md's discretion point as REPORT, NEVER BLOCK: this function never
+    raises and never gates anything, no matter how large the disagreement.
+
+    Rationale: the two estimators have different bias mechanisms (finite-radius ``O(r^2)``
+    bias for the centroid estimator vs. sample-starved least-squares variance for the
+    quadric fit once ``d*(d+1)/2`` approaches ``k``), so at the underdetermined end of
+    the ``d`` ladder they are EXPECTED to diverge. Making that divergence a blocking rule
+    would convert an expected, informative signal into a spurious failure -- exactly the
+    mistake D-05's "agreement hardens the result; divergence is itself informative"
+    framing warns against. The divergence is reported in the stage-1 verdict artifact's
+    non-gating ``context_metrics`` block (plan 02.5-04) and discussed in
+    ``02.5-FINDINGS.md``, never used to fail a gate here or anywhere downstream.
+
+    Returns a dict with ``"agreement_spearman"`` (``float``, rank agreement between the
+    two estimators' ``||H||`` fields, via ``spearmanr``) and
+    ``"agreement_median_rel_diff"`` (``float``,
+    ``median(|a - b| / max(|a|, |b|, floor))`` with
+    ``floor = 1e-3 * median(max(|a|, |b|))`` elementwise, the same near-zero-denominator
+    guard ``median_relative_error`` uses, so neither estimator reporting near-zero
+    ``||H||`` can blow the ratio up to ``inf``).
+    """
+    a = np.asarray(h_centroid_norm, dtype=np.float64)
+    b = np.asarray(h_quadric_norm, dtype=np.float64)
+    rho = float(spearmanr(a, b).statistic)
+
+    elementwise_max = np.maximum(np.abs(a), np.abs(b))
+    floor = 1e-3 * np.median(elementwise_max)
+    denom = np.maximum(elementwise_max, floor)
+    rel_diff = float(np.median(np.abs(a - b) / denom))
+
+    return {"agreement_spearman": rho, "agreement_median_rel_diff": rel_diff}
