@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: "Completed 02.5-08-PLAN.md (stage-2 Arm B machinery). Next: 02.5-09 Swiss roll notebook for chart_curvature."
-last_updated: "2026-08-09T04:40:27.824Z"
+stopped_at: 02.5-09 Tasks 1-2 complete; Task 3 blocking human-verify checkpoint OPEN (chart-decoder curvature Swiss roll read-out)
+last_updated: "2026-08-09T13:40:03.075Z"
 last_activity: 2026-08-09
 last_activity_desc: Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 9 of 13
+Plan: 10 of 13
 Status: 02.5-07 Task 3 checkpoint RESOLVED — user decided GO. CURVATURE_VERDICT=FAIL under the amended 5-seed confidence-bounded rule (qbc lower bound 0.454223 vs floor 0.475000; rho lower bound 0.530332 vs floor 0.500000). Proceeding to 02.5-08 (stage-2 Arm B, chart decoder curvature)
 Last activity: 2026-08-09 — Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -129,6 +129,7 @@ Progress: [█████████░] 87% of planned plans (17/17; Phases 1
 | Phase 02.5 P05 | ~20min active (checkpoint hold between segments) | 3 tasks | 1 files |
 | Phase 02.5 P06 | 66min | 3 tasks | 2 files |
 | Phase 02.5 P08 | 16m | 3 tasks | 2 files |
+| Phase 02.5 P09 | ~55min active | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -228,6 +229,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: Amplitude attenuation and orientation error are reported SEPARATELY (cosine, magnitude median AND CV, calibration slope) -- a decoder compressing every magnitude by a constant scores a perfect 1.0 on every rank statistic, which is the specific way Arm B can look successful while being wrong
 - [Phase ?]: The randomized K-probe estimator is NON-GATING (named ...__nongating) and is a convergence check on the exact path only; Rademacher probes with xi = g^-1/2 eps carry no 1/d and no d under the trace convention. No antithetic probes (B(-v,-v) = B(v,v) exactly, pinned as bit-identity) and no Hutch++ (II is vector-valued)
 - [Phase ?]: The three sealed 02.2 fits verified curvature-ready and identical in architecture: in_dim 768, embed_dim 40, chart_dim 20, n_charts 16, hidden [250,250,250], activation silu -- derived from the artifacts and cross-checked against their manifests, for plan 02.5-11 to reuse with no new tunable hyperparameter
+- [Phase ?]: 02.5-09: chart-decoder curvature Swiss roll sanity check measured -- CAE reconstruction 5.2% rel err at 2.96x the matched plain-AE (PASS) beside chart-decoder curvature Spearman -0.0604 vs analytic H (FAIL, bar 0.90) and the raw-point baseline's 0.6712 (chart arm loses); max metric condition number 63.19 so this is NOT a non-immersion artifact. D-09's counter-risk, measured on a known answer
+- [Phase ?]: 02.5-09: the FAIL is seed-dependent and driven by atlas fragmentation -- across torch seeds 0/1/2/3 rho_chart = -0.0604/-0.1444/0.8665/0.4250 at 8/8/3/5 charts used; at 3 charts (seed 2) the chart arm BEATS the raw-point baseline on every axis (rho 0.8665, median ratio 0.9844, CV 0.158 vs the baseline's 0.293). Reported outside the notebook, gating nothing; material to 02.5-10's THRESH_MARGIN and D-11's retrain trigger
 
 ### Pending Todos
 
@@ -243,6 +246,7 @@ From `TODO.md`:
 - Phase 2's PASS/MARGINAL/FAIL gate is a hard stop: a FAIL halts the milestone and is itself a legitimate, complete outcome. Phase 3 is now blocked on Phase 02.2's `cae_verdict.json` reading PASS, and a FAIL there leaves the milestone at the phase-2 stage
 - Plan 02.4-03's three named Swiss roll limitations (RESOLVED as blockers -- Task 4 approved 2026-08-07, but carried forward as facts 02.4-04 must inherit): absolute topological correlation r=0.680 remains below the originally-set 0.8 bound despite beating the matched baseline; the lambda selection rule ("<=10% reconstruction degradation") is mis-specified for a method that trades reconstruction for topology by design and bound at the grid floor on both the broken and corrected loss -- documented in 02.4-03-SUMMARY.md, not fixed; loss_x_to_z/loss_z_to_x are measured under a different normalization than training optimizes and are not clean evidence on their own -- the scale-free correlation r is the trustworthy number. See `02.4-03-SUMMARY.md` § Known Limitations for full detail.
 - Phase 02.5 blocked at plan 02.5-07's Task 3 blocking checkpoint (stage-1 GO/NO-GO): CURVATURE_VERDICT=FAIL (marginal, seed-sensitive) on the base cell. Per 02.5-PREREGISTRATION.md Section 10, the phase halts for a user decision with no auto-fallback. Plans 02.5-08 through 02.5-13 do not execute until this checkpoint is resolved.
+- 02.5-09 Task 3 blocking checkpoint:human-verify OPEN -- a human must read the chart-decoder curvature read-out and plots and judge whether curvature through a trained chart decoder recovers a known answer. Plans 02.5-10..13 do not proceed until resolved.
 
 ### Quick Tasks Completed
 
@@ -270,8 +274,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-09T04:40:11.692Z
-Stopped at: Completed 02.5-08-PLAN.md (stage-2 Arm B machinery). Next: 02.5-09 Swiss roll notebook for chart_curvature.
+Last session: 2026-08-09T13:39:49.588Z
+Stopped at: 02.5-09 Tasks 1-2 complete; Task 3 blocking human-verify checkpoint OPEN (chart-decoder curvature Swiss roll read-out)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-09-SUMMARY.md
 </content>

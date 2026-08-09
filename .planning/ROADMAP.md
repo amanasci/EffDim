@@ -303,7 +303,7 @@ Plans:
   - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
   - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
 
-**Plans**: 8/13 plans executed
+**Plans**: 9/13 plans executed
 
 Plans:
 **Wave 1**
@@ -337,7 +337,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 02.5-09-PLAN.md — **[checkpoint]** Mandatory Swiss roll sanity notebook for the chart-curvature model (D-03, D-09)
+- [x] 02.5-09-PLAN.md — **[checkpoint]** Mandatory Swiss roll sanity notebook for the chart-curvature model (D-03, D-09)
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
