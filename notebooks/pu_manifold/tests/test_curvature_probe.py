@@ -1721,3 +1721,140 @@ def test_chart_curvature_randomized_trace_converges_to_exact():
     # and the exact path it is checking is the gating one
     exact = cc.chart_mean_curvature(model, z_chart, 0)["H_vec"]
     torch.testing.assert_close(check["H_exact"], exact, rtol=1e-12, atol=1e-14)
+
+
+# --- Plan 02.5-08 Task 3: the sealed 02.2 fits are curvature-ready ----------------------
+
+SEALED_FIT_KEY = "43cf438bc944c509"
+SEALED_SEEDS = (20260803, 20260804, 20260805)
+
+
+def test_sealed_cae_fits_load_and_match_meta():
+    """D-10's premise, made executable: the three sealed 02.2 fits load read-only, pass their
+    manifest checks, and carry a C2-smooth activation.
+
+    D-10's whole case is that these fits were deliberately built with SiLU precisely because
+    downstream curvature work needed twice-differentiable decoders (CAE-06). That is a claim
+    about artifacts written months earlier by a different plan, and this is the check that it
+    actually holds -- reading the RECORDED activation, never the cache stem name, which is
+    RESEARCH Pitfall 4's own stated mitigation.
+
+    Skips rather than fails when the cache is absent: ``notebooks/.cache/`` is gitignored and
+    irreproducible on a fresh clone (each of these fits took ~33 minutes to train), and
+    ``topoae_evaluate_run.py``'s precondition paragraph establishes the halt-rather-than-
+    regenerate convention this follows. Regenerating a sealed artifact to make a test pass
+    would defeat the entire point of sealing it.
+
+    Reads and never writes; the cache listing is asserted unchanged at the end.
+    """
+    import json
+
+    import torch
+
+    from pu_manifold import cae
+    from pu_manifold import chart_curvature as cc
+
+    def _listing():
+        return sorted((p.name, p.stat().st_size) for p in cache.CACHE_DIR.glob("*"))
+
+    before = _listing()
+
+    architectures = {}
+    for seed in SEALED_SEEDS:
+        fit_stem = f"cae_fit_{SEALED_FIT_KEY}_seed{seed}"
+        meta_stem = f"cae_fit_meta_{SEALED_FIT_KEY}_seed{seed}"
+        for stem, ext in ((fit_stem, "npz"), (meta_stem, "json")):
+            if not cache.cache_path(stem, ext).exists():
+                pytest.skip(f"sealed 02.2 fit artifact absent from the cache: {stem}.{ext}")
+            if not cache._manifest_path(stem).exists():
+                pytest.skip(f"sealed 02.2 fit manifest absent from the cache: {stem}.meta.json")
+
+        # The recorded cfg is the manifest's own; loading with it drives _manifest_matches
+        # down its equality path. compute_fn raises, so a cache MISS would surface as a loud
+        # failure rather than silently retraining a sealed artifact.
+        cfg = json.loads(cache._manifest_path(fit_stem).read_text())
+
+        def _never():
+            raise AssertionError(
+                f"cache miss on sealed artifact {fit_stem}: this test must never compute, "
+                f"only load"
+            )
+
+        arrays = cache.npz_cache(fit_stem, cfg, _never)
+
+        meta_cfg = json.loads(cache._manifest_path(meta_stem).read_text())
+        meta = cache.json_cache(meta_stem, meta_cfg, _never)
+
+        # Negative control, so the assertion above is not merely a tautology comparing a cfg
+        # to itself: a manifest mismatch must RAISE, not return False. Without this, a stem
+        # whose sidecar had drifted would sail through the load path untested.
+        with pytest.raises(ValueError, match="Cache manifest mismatch"):
+            cache._manifest_matches(fit_stem, {**cfg, "seed": int(cfg["seed"]) + 1})
+
+        # --- activation: the attribute, not the stem name ---
+        assert meta["activation"] == "silu", (
+            f"seed {seed} reports activation {meta['activation']!r}; a zero-second-derivative "
+            f"activation would make this fit unusable for curvature"
+        )
+        assert meta["cfg"]["activation"] == "silu"
+        assert cfg["activation"] == "silu"
+
+        class _ActivationStandIn:
+            activation = meta["activation"]
+
+        assert cc.assert_c2_activation(_ActivationStandIn()) == "silu"
+        assert meta["activation"] not in cc.ZERO_SECOND_DERIVATIVE_ACTIVATIONS
+
+        # --- FIT_ARTIFACT_CONTRACT: every named key is present ---
+        for key in ("z_all", "p_all", "chart_argmax_all", "train_idx", "holdout_idx", "y_holdout"):
+            assert key in arrays, f"seed {seed}: FIT_ARTIFACT_CONTRACT key {key!r} missing"
+
+        # --- architecture, DERIVED from the artifact rather than hardcoded ---
+        in_dim = int(arrays["initial_encoder.net.0.weight"].shape[1])
+        embed_dim = int(arrays["initial_encoder.net.6.weight"].shape[0])
+        chart_dim = int(arrays["chart_decoders.0.net.0.weight"].shape[1])
+        n_charts = int(arrays["chart_predictor.net.6.weight"].shape[0])
+        depth = sum(
+            1 for k in arrays if k.startswith("initial_encoder.net.") and k.endswith(".weight")
+        ) - 1
+        hidden = [int(arrays["initial_encoder.net.0.weight"].shape[0])] * depth
+
+        # cross-check the derivation against the manifest's own recorded constants
+        assert embed_dim == int(cfg["l_embed"])
+        assert chart_dim == int(cfg["d_chart"])
+        assert n_charts == int(cfg["n_charts_init"])
+        assert hidden[0] == int(cfg["hidden_width"])
+        assert in_dim == int(arrays["embedding_decoder.net.6.weight"].shape[0])
+
+        architectures[seed] = {
+            "in_dim": in_dim,
+            "embed_dim": embed_dim,
+            "chart_dim": chart_dim,
+            "n_charts": n_charts,
+            "hidden": tuple(hidden),
+            "activation": meta["activation"],
+        }
+
+        # --- round-trip: the stored arrays reload bit-identically into a float64 model ---
+        model = cae.ChartAutoEncoder(
+            in_dim=in_dim,
+            embed_dim=embed_dim,
+            chart_dim=chart_dim,
+            n_charts=n_charts,
+            hidden=hidden,
+            activation=meta["activation"],
+        ).double()
+        reference = model.state_dict()
+        state = cae.arrays_to_state_dict(arrays, reference)
+        assert set(state) == set(reference)
+        for key, tensor in state.items():
+            expected = torch.tensor(arrays[key], dtype=torch.float64).reshape(tensor.shape)
+            assert torch.equal(tensor, expected), f"seed {seed}: {key} did not round-trip exactly"
+        model.load_state_dict(state)
+
+    # All three seeds share one architecture -- plan 02.5-11 must fit its fixture CAEs at the
+    # SAME architecture with no new tunable hyperparameter, so a disagreement here would mean
+    # there is no single "same architecture" to fit at.
+    assert len({tuple(sorted(a.items())) for a in architectures.values()}) == 1
+
+    assert _listing() == before, "this test reads the sealed cache and must never write to it"
