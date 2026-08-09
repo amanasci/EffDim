@@ -28,6 +28,22 @@ measuring a different rule than the one that was ratified -- this precondition p
 ordering (pre-register, then ratify, then measure) rather than merely asserting it, following
 ``topoae_evaluate_run.py``'s own STEP 0b/0c pattern.
 
+**Amended by ``02.5-PREREGISTRATION-AMENDMENT-01.md``** (ratified 2026-08-08, sealed at
+``12cca56eefcfa904af42ea43fbcf88a7279845a5``), which changes exactly two rules: ``SEEDS``
+3 -> 5, and ``CURVATURE_VERDICT`` computed from the one-sided 95% lower confidence bound of
+the across-seed mean of each gating statistic rather than from the base cell's single seed.
+The trigger was that the sealed sweep's own pre-registered seed axis returned three different
+verdicts at the identical base configuration (``quantile_bin_concordance`` 0.444446 FAIL /
+0.483705 PASS / 0.523633 PASS), an across-seed spread of 0.0792 against the base cell's 0.0306
+margin to its own floor -- so the sealed single-seed verdict was not identified by its own
+data. **Both absolute floors, both gating statistics, option-scale-C, ``BASE_CELL``, every
+other sweep axis, and ``WALL_CLOCK_BUDGET_S`` are UNCHANGED**, and STEP 0c still checks every
+one of them against the sealed document verbatim. STEP 0b2/0c2 add the amendment's own
+existence check, its own two-way ancestry proof (ancestor of ``HEAD``, descendant of
+``PREREG_SHA``), and verbatim checks on the values it authorized changing. The base cell's
+single-seed verdict is still computed and still written into the artifact; it is simply no
+longer what ``CURVATURE_VERDICT`` means.
+
 **A note on wall-clock reality, disclosed here rather than only in the FINDINGS document:**
 the non-gating local-quadric cross-check (``curvature_probe.quadric_mean_curvature``,
 required at every cell by Section 9: "every existing non-gating quantity measure_cell already
@@ -76,6 +92,20 @@ PREREG_PATH = (
 )
 PREREG_SHA = "eecdb15c70dc3f833e31c54ec7864543579dddb7"  # Section 15's recorded adding commit
 
+# Amendment 1 (ratified 2026-08-08) changes exactly two rules: SEEDS 3 -> 5, and
+# CURVATURE_VERDICT computed from the one-sided 95% lower confidence bound of the across-seed
+# mean rather than from the base cell's single seed. Both gating floors, both gating
+# statistics, option-scale-C, BASE_CELL, every other axis, and WALL_CLOCK_BUDGET_S are
+# UNCHANGED -- so every constant above still comes from 02.5-PREREGISTRATION.md and is still
+# checked against it verbatim by STEP 0c. The amendment gets its own path, its own SHA, its
+# own existence check, and its own ancestry proof, exactly as the document it amends does; it
+# is never folded into the sealed document's own checks.
+AMENDMENT_PATH = (
+    ".planning/phases/02.5-local-curvature-feasibility-cae-re-gate/"
+    "02.5-PREREGISTRATION-AMENDMENT-01.md"
+)
+AMENDMENT_SHA = "12cca56eefcfa904af42ea43fbcf88a7279845a5"  # Section 9's recorded adding commit
+
 NULL_QUANTILE = 0.99
 N_PERMUTATIONS = 999
 SPEARMAN_ABSOLUTE_FLOOR = 0.50
@@ -96,10 +126,18 @@ DOMAIN_RADIUS = 2.0
 DENSITY_SKEW_VALUES = (0.0, 3.0)
 N_BUMPS_VALUES = (1, 8)
 
-# "3 seeds at the base cell" (Section 9) -- the base cell's own seed (20260807, Section 9's
-# BASE_CELL dict) plus two more, sequentially chosen (the pre-registration fixes the COUNT of
-# seeds, not their numeric values, which are this runner's own orchestration choice).
-SEEDS = (20260807, 20260808, 20260809)
+# AMENDED by 02.5-PREREGISTRATION-AMENDMENT-01.md Section 2, Change 1: Section 9's "3 seeds
+# at the base cell" becomes FIVE seeds. The base cell's own seed (20260807, Section 9's
+# BASE_CELL dict) plus four more, sequentially chosen -- the pre-registration fixes the COUNT
+# of seeds, not their numeric values, which remain this runner's own orchestration choice.
+#
+# 20260807/20260808/20260809 were ALREADY MEASURED in the sealed 3-seed run, and their values
+# (quantile_bin_concordance 0.444446 / 0.483705 / 0.523633) were known when the amendment's
+# aggregation rule was written. The amendment's Section 3 discloses this in full and records
+# why they were kept rather than replaced with five fresh seeds. 20260810 and 20260811 are
+# the only genuinely blind inputs. This comment exists so that fact is visible from the
+# runner too, not only from the sealed document.
+SEEDS = (20260807, 20260808, 20260809, 20260810, 20260811)
 
 BASE_CELL = {
     "d": 20,
@@ -184,6 +222,39 @@ if _ancestor_check.returncode != 0:
 print(f"  pre-registration commit {PREREG_SHA} confirmed an ancestor of HEAD -- proved, not asserted")
 
 # =============================================================================================
+_banner("STEP 0b2 -- precondition: AMENDMENT 1 exists, and post-dates the document it amends")
+
+_amendment_file = Path(AMENDMENT_PATH)
+if not _amendment_file.exists():
+    raise FileNotFoundError(
+        f"STEP 0b2 failed: {AMENDMENT_PATH} does not exist. This runner's SEEDS and verdict "
+        "rule come from that amendment; without it, the rule being measured is one nobody "
+        "ratified. Halting before computing anything."
+    )
+_amendment_text = _amendment_file.read_text()
+print(f"  found: {AMENDMENT_PATH} ({len(_amendment_text)} chars)")
+
+_amend_ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", AMENDMENT_SHA, "HEAD"])
+if _amend_ancestor.returncode != 0:
+    raise RuntimeError(
+        f"STEP 0b2 failed: amendment commit {AMENDMENT_SHA} is NOT an ancestor of HEAD. The "
+        "amendment must precede the measurement it authorizes, and this ordering is PROVED "
+        "(via git ancestry), never merely asserted."
+    )
+print(f"  amendment commit {AMENDMENT_SHA} confirmed an ancestor of HEAD")
+
+# The amendment must also be a DESCENDANT of the document it amends -- otherwise a rule
+# change could be back-dated ahead of the sealed document and still pass the HEAD check.
+_amend_descends = subprocess.run(["git", "merge-base", "--is-ancestor", PREREG_SHA, AMENDMENT_SHA])
+if _amend_descends.returncode != 0:
+    raise RuntimeError(
+        f"STEP 0b2 failed: amendment commit {AMENDMENT_SHA} is NOT a descendant of the "
+        f"pre-registration commit {PREREG_SHA} it amends. An amendment that does not "
+        "provably post-date its own document proves nothing about ordering."
+    )
+print(f"  amendment {AMENDMENT_SHA} confirmed a DESCENDANT of pre-registration {PREREG_SHA}")
+
+# =============================================================================================
 _banner("STEP 0c -- precondition: every constant in this file matches 02.5-PREREGISTRATION.md")
 
 
@@ -244,6 +315,51 @@ if "30 minutes" not in _prereg_text and "30-minute" not in _prereg_text:
     raise RuntimeError("STEP 0c failed: the 30-minute wall-clock budget prose not found in the document.")
 print("  every pre-registered constant in this file confirmed present, verbatim (and tied to "
       "this runner's own live variable values), in the ratified document")
+
+# =============================================================================================
+_banner("STEP 0c2 -- precondition: the AMENDED constants match 02.5-PREREGISTRATION-AMENDMENT-01.md")
+
+# Same discipline as STEP 0c, against the amendment instead of the sealed document: every
+# value this runner changed must be found verbatim in the document that authorized changing
+# it. A runner that quietly used a sixth seed, or a different t multiplier, would otherwise
+# be measuring a rule nobody ratified while still passing every check above.
+for _seed_value in SEEDS:
+    if str(_seed_value) not in _amendment_text:
+        raise RuntimeError(
+            f"STEP 0c2 failed: seed {_seed_value} (this runner's own live SEEDS) is not "
+            f"named anywhere in {AMENDMENT_PATH}. Only the seed set that document ratifies "
+            "may be measured."
+        )
+print(f"  all {len(SEEDS)} seeds {SEEDS} confirmed named in the amendment")
+
+if len(SEEDS) != cp.SEED_REPLICATE_N:
+    raise RuntimeError(
+        f"STEP 0c2 failed: len(SEEDS)={len(SEEDS)} but "
+        f"curvature_probe.SEED_REPLICATE_N={cp.SEED_REPLICATE_N}. The amendment's "
+        "T_MULTIPLIER is tied to df = n - 1; a different seed count needs a different "
+        "multiplier, so this halts rather than silently applying the wrong interval."
+    )
+if str(cp.SEED_REPLICATE_T_MULTIPLIER) not in _amendment_text:
+    raise RuntimeError(
+        f"STEP 0c2 failed: curvature_probe.SEED_REPLICATE_T_MULTIPLIER="
+        f"{cp.SEED_REPLICATE_T_MULTIPLIER} not found in {AMENDMENT_PATH}."
+    )
+print(f"  len(SEEDS)={len(SEEDS)} == SEED_REPLICATE_N, T_MULTIPLIER="
+      f"{cp.SEED_REPLICATE_T_MULTIPLIER} confirmed named in the amendment")
+
+# The amendment's own Section 4 claims BOTH floors are unchanged. Prove it here rather than
+# trusting the prose: the floors this runner uses must appear in BOTH documents.
+for _floor_name, _floor_value in (
+    ("SPEARMAN_ABSOLUTE_FLOOR", SPEARMAN_ABSOLUTE_FLOOR),
+    ("REGION_ABSOLUTE_FLOOR", REGION_ABSOLUTE_FLOOR),
+):
+    if str(_floor_value) not in _amendment_text:
+        raise RuntimeError(
+            f"STEP 0c2 failed: {_floor_name}={_floor_value} is not stated as UNCHANGED in "
+            f"{AMENDMENT_PATH}. The amendment must not move a floor silently."
+        )
+print(f"  both absolute floors ({SPEARMAN_ABSOLUTE_FLOOR}, {REGION_ABSOLUTE_FLOOR}) confirmed "
+      "stated UNCHANGED in the amendment and still verbatim in the sealed document")
 
 # =============================================================================================
 _banner("STEP 0d -- precondition: this module's imports succeed and CURVATURE_CONVENTION is 'trace'")
@@ -663,6 +779,104 @@ def _compute_sweep() -> dict:
     base_true = base_variants.get("True")
     base_verdict_info = _cell_clears(base_true) if base_true else None
 
+    # --- AMENDMENT 1: the seed-replicate aggregation that now defines CURVATURE_VERDICT ---
+    # Collected here, inside the cached computation, so the replicate values and the bounds
+    # derived from them are persisted in the artifact alongside every cell they came from --
+    # a later reader can recompute the verdict from the file without rerunning anything.
+    _banner("STEP 3b -- AMENDMENT 1: aggregate the 5 seed replicates at the base configuration")
+
+    seed_replicate_rows = []
+    for seed_value in SEEDS:
+        replicate_key = _base_key if seed_value == BASE_CELL["seed"] else _cell_key(
+            _cell_from_base(seed=seed_value)
+        )
+        record = per_cell_results[replicate_key]
+        variant = record.get("variants", {}).get("True")
+        if record["status"] != "complete" or variant is None:
+            raise RuntimeError(
+                f"STEP 3b failed: seed replicate {seed_value} did not complete "
+                f"(status={record['status']!r}). The amendment's rule consumes all "
+                f"{len(SEEDS)} replicates; a missing one can never become a PASS, and "
+                "dropping it would NARROW the interval and so make the gate easier to "
+                "clear. Halting is the honest behaviour."
+            )
+        seed_replicate_rows.append(
+            {
+                "seed": seed_value,
+                "spearman_rho": variant["spearman_rho"],
+                "quantile_bin_concordance": variant["quantile_bin_concordance"],
+                "spearman_null_threshold": variant["null_threshold"],
+                "region_null_threshold": variant["region_null_threshold"],
+                "spearman_clears_null": variant["null_clears_null"],
+                "region_clears_null": variant["region_null_clears_null"],
+                "median_relative_error": variant["median_relative_error"],
+            }
+        )
+        print(f"    seed {seed_value}: rho={variant['spearman_rho']:.6f} "
+              f"qbc={variant['quantile_bin_concordance']:.6f}")
+
+    # Section 2's rule: every replicate must clear its OWN permutation null, AND the lower
+    # bound must clear max(absolute floor, mean null threshold). Both parts, not one.
+    all_clear_null = all(
+        row["spearman_clears_null"] and row["region_clears_null"] for row in seed_replicate_rows
+    )
+
+    seed_bounds = {
+        "spearman_rho": cp.seed_replicate_lower_bound(
+            [row["spearman_rho"] for row in seed_replicate_rows],
+            cp.SEED_REPLICATE_T_MULTIPLIER,
+            cp.SEED_REPLICATE_N,
+        ),
+        "quantile_bin_concordance": cp.seed_replicate_lower_bound(
+            [row["quantile_bin_concordance"] for row in seed_replicate_rows],
+            cp.SEED_REPLICATE_T_MULTIPLIER,
+            cp.SEED_REPLICATE_N,
+        ),
+    }
+
+    seed_thresholds = {
+        "spearman_rho": max(
+            float(np.mean([row["spearman_null_threshold"] for row in seed_replicate_rows])),
+            SPEARMAN_ABSOLUTE_FLOOR,
+        ),
+        "quantile_bin_concordance": max(
+            float(np.mean([row["region_null_threshold"] for row in seed_replicate_rows])),
+            REGION_ABSOLUTE_FLOOR,
+        ),
+    }
+    seed_metrics = {name: bound["lower"] for name, bound in seed_bounds.items()}
+    seed_verdict, seed_gate_detail = cp.verdict_from_stage1_metrics(seed_metrics, seed_thresholds)
+
+    # A replicate failing its own permutation null cannot be rescued by a wide interval.
+    if not all_clear_null and seed_verdict == "PASS":
+        seed_verdict = "FAIL"
+        seed_gate_detail["all_replicates_clear_null"] = {
+            "value": False,
+            "threshold": True,
+            "direction": "greater",
+            "passed": False,
+        }
+
+    seed_replicate_verdict = {
+        "verdict": seed_verdict,
+        "clears": seed_verdict == "PASS",
+        "gate_detail": seed_gate_detail,
+        "bounds": seed_bounds,
+        "thresholds": seed_thresholds,
+        "rows": seed_replicate_rows,
+        "all_replicates_clear_null": all_clear_null,
+        "t_multiplier": cp.SEED_REPLICATE_T_MULTIPLIER,
+        "n_replicates": len(seed_replicate_rows),
+        "rule": cp.SEED_REPLICATE_VERDICT_RULE,
+    }
+    for name, bound in seed_bounds.items():
+        print(f"    {name}: mean={bound['mean']:.6f} sd={bound['sd']:.6f} "
+              f"se={bound['se']:.6f} lower={bound['lower']:.6f} "
+              f"threshold={seed_thresholds[name]:.6f} "
+              f"-> {'clears' if seed_gate_detail[name]['passed'] else 'MISSES'}")
+    print(f"    every replicate cleared its own permutation null: {all_clear_null}")
+    print(f"    AMENDMENT-1 CURVATURE_VERDICT = {seed_verdict}")
+
     env = {
         "platform": platform.platform(),
         "numpy_version": np.__version__,
@@ -678,6 +892,7 @@ def _compute_sweep() -> dict:
         "per_axis_boundary": per_axis_boundary,
         "base_cell": BASE_CELL,
         "base_cell_verdict": base_verdict_info,
+        "seed_replicate_verdict": seed_replicate_verdict,
         "total_elapsed_s": float(total_elapsed_s),
         "environment": env,
     }
@@ -709,7 +924,33 @@ _base_thresholds = {
 }
 _base_verdict_str = _base_verdict_info["verdict"]
 
+# AMENDMENT 1: CURVATURE_VERDICT is the SEED-REPLICATE verdict, not the base cell's own.
+# The base cell's single-seed verdict remains computed and reported (below, and inside
+# `extra`), because the sealed document's original quantity must stay readable in the
+# artifact -- it is simply no longer what CURVATURE_VERDICT means.
+_seed_verdict_info = sweep_result["seed_replicate_verdict"]
+_seed_metrics = {
+    name: bound["lower"] for name, bound in _seed_verdict_info["bounds"].items()
+}
+_seed_thresholds = _seed_verdict_info["thresholds"]
+_verdict_str = _seed_verdict_info["verdict"]
+
 _context_extra = {
+    "verdict_rule": cp.SEED_REPLICATE_VERDICT_RULE,
+    "amendment_path": AMENDMENT_PATH,
+    "amendment_sha": AMENDMENT_SHA,
+    "seed_replicate_verdict": _seed_verdict_info,
+    "base_cell_verdict_superseded_by_amendment_1": {
+        "metrics": _base_metrics,
+        "thresholds": _base_thresholds,
+        "verdict": _base_verdict_str,
+        "note": (
+            "the sealed pre-registration's own single-seed quantity, retained verbatim for "
+            "readability; 02.5-PREREGISTRATION-AMENDMENT-01.md Section 2 replaced it as the "
+            "definition of CURVATURE_VERDICT because its across-seed spread exceeded its own "
+            "margin to the floor"
+        ),
+    },
     "per_axis_boundary": sweep_result["per_axis_boundary"],
     "n_distinct_cells": sweep_result["n_distinct_cells"],
     "total_elapsed_s": sweep_result["total_elapsed_s"],
@@ -722,9 +963,9 @@ _context_extra = {
 written_verdict = cp.write_curvature_verdict(
     key=stage1_key,
     stage=1,
-    metrics=_base_metrics,
-    thresholds=_base_thresholds,
-    verdict=_base_verdict_str,
+    metrics=_seed_metrics,
+    thresholds=_seed_thresholds,
+    verdict=_verdict_str,
     extra=_context_extra,
 )
 
@@ -733,16 +974,33 @@ written_verdict = cp.write_curvature_verdict(
 
 _verdict_path = cache.cache_path(f"curvature_verdict_stage1_{stage1_key}", "json")
 print(f"  written to: {_verdict_path}")
-print(f"  CURVATURE_VERDICT = {_base_verdict_str}")
+print(f"  CURVATURE_VERDICT = {_verdict_str}  (AMENDMENT-1 seed-replicate rule)")
 
 # =============================================================================================
 _banner("STEP 5 -- read-out")
 
-print(f"  base cell: rho(spearman)={_base_metrics['spearman_rho']:.4f} "
+print(f"  AMENDMENT-1 seed-replicate verdict over {_seed_verdict_info['n_replicates']} seeds "
+      f"(t multiplier {_seed_verdict_info['t_multiplier']}):")
+for _row in _seed_verdict_info["rows"]:
+    print(f"    seed {_row['seed']}: rho={_row['spearman_rho']:.4f} "
+          f"qbc={_row['quantile_bin_concordance']:.4f} "
+          f"median_rel_err={_row['median_relative_error']:.4f}")
+for _name, _bound in _seed_verdict_info["bounds"].items():
+    _mark = "clears" if _seed_verdict_info["gate_detail"][_name]["passed"] else "MISSES"
+    print(f"    {_name}: mean={_bound['mean']:.4f} sd={_bound['sd']:.4f} "
+          f"lower={_bound['lower']:.4f} vs threshold "
+          f"{_seed_thresholds[_name]:.4f} -> {_mark}")
+print(f"    every replicate cleared its own permutation null: "
+      f"{_seed_verdict_info['all_replicates_clear_null']}")
+print(f"  CURVATURE_VERDICT (stage 1) = {_verdict_str}")
+print()
+print(f"  base cell, single seed {BASE_CELL['seed']} (the sealed document's own quantity, "
+      "SUPERSEDED as the verdict definition by amendment 1 but still reported):")
+print(f"    rho(spearman)={_base_metrics['spearman_rho']:.4f} "
       f"(threshold {_base_thresholds['spearman_rho']:.4f}), "
       f"quantile_bin_concordance={_base_metrics['quantile_bin_concordance']:.4f} "
-      f"(threshold {_base_thresholds['quantile_bin_concordance']:.4f})")
-print(f"  CURVATURE_VERDICT (stage 1) = {_base_verdict_str}")
+      f"(threshold {_base_thresholds['quantile_bin_concordance']:.4f}) "
+      f"-> {_base_verdict_str}")
 print()
 print("  per-axis crossing table:")
 for axis_name, info in sweep_result["per_axis_boundary"].items():
@@ -751,17 +1009,18 @@ print()
 print(f"  total sweep wall-clock: {sweep_result['total_elapsed_s'] / 60:.1f} minutes "
       f"(nominal budget: {WALL_CLOCK_BUDGET_S / 60:.0f} minutes)")
 print()
-if _base_verdict_str != "PASS":
+if _verdict_str != "PASS":
     print(
-        "  D-04: the base cell does not clear -- per 02.5-PREREGISTRATION.md Section 10, the "
-        "phase HALTS for a user decision with NO auto-fallback. Ollivier-Ricci / intrinsic "
-        "curvature is the live remaining option: it is defined on the k-NN graph via optimal "
-        "transport, never touches the ambient space, and so is not subject to the sampling "
-        "constraint that just failed."
+        "  D-04: the seed-replicate lower bound does not clear -- per 02.5-PREREGISTRATION.md "
+        "Section 10 (unchanged by amendment 1), the phase HALTS for a user decision with NO "
+        "auto-fallback. Ollivier-Ricci / intrinsic curvature is the live remaining option: it "
+        "is defined on the k-NN graph via optimal transport, never touches the ambient space, "
+        "and so is not subject to the sampling constraint that just failed."
     )
 else:
-    print("  D-04: the base cell clears both gates -- stage 2 may proceed to plan 02.5-08, "
-          "pending the Task 3 human checkpoint's own review of the full boundary report.")
+    print("  D-04: the seed-replicate lower bound clears both gates -- stage 2 may proceed to "
+          "plan 02.5-08, pending the Task 3 human checkpoint's own review of the full boundary "
+          "report.")
 print()
 print("  No 'recommended k' is emitted by this script, per D-04/Section 8's own prohibition.")
 print()
