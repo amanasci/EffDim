@@ -1184,3 +1184,112 @@ def test_curvature_probe_module_is_numpy_only():
                     f"torch import {ast.dump(child)} has a module-level parent scope"
                 )
     assert found_any, "expected at least one lazy, function-scoped torch import"
+
+
+# --- 02.5-PREREGISTRATION-AMENDMENT-01.md: seed-replicate aggregation -------------------
+
+
+def test_seed_replicate_lower_bound_constants_match_the_amendment():
+    """The amendment (Section 2) ratifies exactly `SEEDS` of length 5 and
+    `T_MULTIPLIER = 2.132`, the one-sided t(0.95, df=4). Both are pinned here so a silent
+    edit to either shows up as a test failure rather than as a moved verdict.
+    """
+    assert cp.SEED_REPLICATE_N == 5
+    assert cp.SEED_REPLICATE_T_MULTIPLIER == 2.132
+
+
+def test_seed_replicate_lower_bound_zero_variance_returns_the_mean():
+    """Identical replicates carry no uncertainty, so the bound is the mean itself -- and,
+    critically, never ABOVE it, so a degenerate replicate set cannot clear a floor the
+    mean does not clear.
+    """
+    out = cp.seed_replicate_lower_bound([0.6] * 5, cp.SEED_REPLICATE_T_MULTIPLIER, 5)
+    assert out["sd"] == 0.0
+    assert out["se"] == 0.0
+    assert out["lower"] == pytest.approx(0.6, abs=1e-15)
+    assert out["lower"] <= out["mean"]
+
+
+def test_seed_replicate_lower_bound_decreases_as_spread_grows():
+    """At a fixed mean, more across-seed disagreement must move the bound DOWN. This is
+    the whole point of the amendment: an unstable configuration must be harder to pass,
+    not equally easy.
+    """
+    tight = cp.seed_replicate_lower_bound(
+        [0.49, 0.50, 0.50, 0.50, 0.51], cp.SEED_REPLICATE_T_MULTIPLIER, 5
+    )
+    wide = cp.seed_replicate_lower_bound(
+        [0.30, 0.40, 0.50, 0.60, 0.70], cp.SEED_REPLICATE_T_MULTIPLIER, 5
+    )
+    assert tight["mean"] == pytest.approx(wide["mean"], abs=1e-12)
+    assert wide["lower"] < tight["lower"] < tight["mean"]
+
+
+def test_seed_replicate_lower_bound_reproduces_the_amendments_worked_arithmetic():
+    """Section 3(4)'s worked example, reproduced exactly: the three ALREADY-OBSERVED seed
+    values plus two placed at their mean (the extrapolation most favourable to a PASS,
+    since it adds zero to the sum of squared deviations while raising df from 2 to 4).
+
+    The amendment states this arithmetic points at FAIL for `quantile_bin_concordance`
+    and PASS for `spearman_rho`; both are pinned here so the sealed document's own
+    prediction cannot drift away from what the code computes.
+    """
+    qbc_observed = [0.444446, 0.483705, 0.523633]
+    rho_observed = [0.520469, 0.562711, 0.609409]
+
+    for observed, expected_lower, floor, expect_clears in (
+        (qbc_observed, 0.457234, 0.4750, False),
+        (rho_observed, 0.534202, 0.50, True),
+    ):
+        mean = sum(observed) / len(observed)
+        five = observed + [mean, mean]
+        out = cp.seed_replicate_lower_bound(five, cp.SEED_REPLICATE_T_MULTIPLIER, 5)
+        assert out["mean"] == pytest.approx(mean, abs=1e-12)
+        assert out["lower"] == pytest.approx(expected_lower, abs=5e-7)
+        assert (out["lower"] > floor) is expect_clears
+
+
+def test_seed_replicate_lower_bound_feeds_the_unchanged_gate_comparison():
+    """The amendment changes WHICH VALUE is compared, never HOW. Feeding the bounds to
+    `verdict_from_stage1_metrics` must reproduce the amendment's stated outcome, with both
+    floors byte-identical to the sealed pre-registration.
+    """
+    qbc = cp.seed_replicate_lower_bound(
+        [0.444446, 0.483705, 0.523633, 0.483928, 0.483928],
+        cp.SEED_REPLICATE_T_MULTIPLIER,
+        5,
+    )
+    rho = cp.seed_replicate_lower_bound(
+        [0.520469, 0.562711, 0.609409, 0.564196, 0.564196],
+        cp.SEED_REPLICATE_T_MULTIPLIER,
+        5,
+    )
+    verdict, detail = cp.verdict_from_stage1_metrics(
+        {"spearman_rho": rho["lower"], "quantile_bin_concordance": qbc["lower"]},
+        {"spearman_rho": 0.50, "quantile_bin_concordance": 0.4750},
+    )
+    assert verdict == "FAIL"
+    assert detail["spearman_rho"]["passed"] is True
+    assert detail["quantile_bin_concordance"]["passed"] is False
+
+
+@pytest.mark.parametrize(
+    "values, t_multiplier, expected_n, match",
+    [
+        ([0.5] * 4, 2.132, 5, r"got 4 replicates but expected_n=5"),
+        ([0.5] * 6, 2.132, 5, r"got 6 replicates but expected_n=5"),
+        ([0.5], 2.132, 1, r"expected_n=1"),
+        ([0.5] * 5, 0.0, 5, r"t_multiplier=0\.0"),
+        ([0.5] * 5, float("nan"), 5, r"t_multiplier=nan"),
+        ([0.5, 0.5, float("nan"), 0.5, 0.5], 2.132, 5, r"index 2 is non-finite"),
+        ([0.5, float("inf"), 0.5, 0.5, 0.5], 2.132, 5, r"index 1 is non-finite"),
+    ],
+)
+def test_seed_replicate_lower_bound_refuses_bad_input(values, t_multiplier, expected_n, match):
+    """Guard first, compute second. A wrong replicate count would silently apply an
+    interval derived for different degrees of freedom; a non-finite replicate dropped
+    silently would NARROW the interval and so make the gate easier to clear, in exactly
+    the direction a reader could not see. Both raise instead.
+    """
+    with pytest.raises(ValueError, match=match):
+        cp.seed_replicate_lower_bound(values, t_multiplier, expected_n)

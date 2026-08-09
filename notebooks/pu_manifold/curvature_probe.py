@@ -27,7 +27,7 @@ import math
 import signal
 import time
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.special import gammaln
@@ -1457,6 +1457,100 @@ STAGE1_VERDICT_RULE = (
     "quantile and its OWN absolute floor (SPEARMAN_ABSOLUTE_FLOOR=0.50 / "
     "REGION_ABSOLUTE_FLOOR=0.4750), both fixed in 02.5-PREREGISTRATION.md."
 )
+
+# --- seed-replicate aggregation (02.5-PREREGISTRATION-AMENDMENT-01.md) ---------------
+
+SEED_REPLICATE_N = 5
+SEED_REPLICATE_T_MULTIPLIER = 2.132  # one-sided t(0.95, df = SEED_REPLICATE_N - 1 = 4)
+
+SEED_REPLICATE_VERDICT_RULE = (
+    "02.5-PREREGISTRATION-AMENDMENT-01.md (12cca56eefcfa904af42ea43fbcf88a7279845a5) "
+    "Section 2, Change 2: CURVATURE_VERDICT is computed from SEED_REPLICATE_N=5 seed "
+    "replicates at the base configuration, not from the base cell's single seed. For each "
+    "gating statistic, lower = mean - SEED_REPLICATE_T_MULTIPLIER * sd(ddof=1)/sqrt(n), and "
+    "that LOWER BOUND -- not the mean, not the base cell's own value -- is what "
+    "verdict_from_stage1_metrics compares against the UNCHANGED floor. The base cell's "
+    "single-seed verdict is still computed and reported, but is no longer what "
+    "CURVATURE_VERDICT means. The amendment changed only WHICH VALUE is fed to the "
+    "comparison; the comparison itself is still performed only inside _apply_gates."
+)
+
+
+def seed_replicate_lower_bound(
+    values: Sequence[float],
+    t_multiplier: float,
+    expected_n: int,
+) -> Dict[str, float]:
+    """One-sided lower confidence bound on the mean of a set of seed replicates -- the
+    aggregation ``02.5-PREREGISTRATION-AMENDMENT-01.md`` Section 2 ratifies for
+    ``CURVATURE_VERDICT`` (see :data:`SEED_REPLICATE_VERDICT_RULE`).
+
+    ``values``: the SAME gating statistic measured at each seed replicate, at an otherwise
+    identical cell. ``t_multiplier``: the one-sided ``t`` quantile for ``expected_n - 1``
+    degrees of freedom. ``expected_n``: the ratified replicate count.
+
+    Returns ``{"mean", "sd", "se", "lower", "n", "t_multiplier"}`` with
+    ``lower = mean - t_multiplier * sd / sqrt(n)``, ``sd`` the sample standard deviation
+    (``ddof=1``).
+
+    ``expected_n`` is REQUIRED and checked, because ``t_multiplier`` is tied to a specific
+    degrees-of-freedom (the amendment's ``2.132`` is ``t(0.95, df=4)``, valid only at
+    ``n = 5``). Passing a different number of replicates without also changing the
+    multiplier would silently apply the wrong interval, so this raises ``ValueError``
+    naming both counts instead. The amendment states this constraint explicitly: "the
+    runner must assert ``len(SEEDS) == 5`` before applying it, so a later change to the
+    seed count cannot silently reuse a multiplier derived for a different
+    degrees-of-freedom."
+
+    Guard first, compute second, mirroring :func:`_apply_gates`'s discipline: raises
+    ``ValueError`` if ``len(values) != expected_n``, if ``expected_n < 2`` (no sample
+    standard deviation exists at ``n = 1``), if ``t_multiplier`` is not finite and
+    positive, or if ANY value is non-finite -- naming the offending index and value. A
+    missing or non-finite replicate can never become a PASS; halting is the honest
+    behaviour, since silently dropping it would narrow the interval and so make the gate
+    EASIER to clear, in exactly the direction a reader could not see.
+
+    Zero-variance case: when every replicate is identical, ``sd = 0`` and ``lower`` is the
+    mean itself -- the bound never exceeds the mean, and never rewards a degenerate set.
+    """
+    if expected_n < 2:
+        raise ValueError(
+            f"seed_replicate_lower_bound: expected_n={expected_n} -- at least 2 replicates "
+            "are required for a sample standard deviation to exist."
+        )
+    values_list = list(values)
+    if len(values_list) != expected_n:
+        raise ValueError(
+            f"seed_replicate_lower_bound: got {len(values_list)} replicates but "
+            f"expected_n={expected_n}. t_multiplier={t_multiplier} is tied to "
+            f"df={expected_n - 1}; a different replicate count needs a different "
+            "multiplier, so this is refused rather than silently mis-applied."
+        )
+    if not math.isfinite(t_multiplier) or t_multiplier <= 0.0:
+        raise ValueError(
+            f"seed_replicate_lower_bound: t_multiplier={t_multiplier!r} must be finite "
+            "and strictly positive."
+        )
+    for position, value in enumerate(values_list):
+        if not math.isfinite(float(value)):
+            raise ValueError(
+                f"seed_replicate_lower_bound: replicate at index {position} is non-finite "
+                f"({value!r}) -- a missing or non-finite replicate can never become a PASS."
+            )
+
+    arr = np.asarray(values_list, dtype=np.float64)
+    mean = float(arr.mean())
+    sd = float(arr.std(ddof=1))
+    se = sd / math.sqrt(len(values_list))
+    return {
+        "mean": mean,
+        "sd": sd,
+        "se": se,
+        "lower": float(mean - t_multiplier * se),
+        "n": len(values_list),
+        "t_multiplier": float(t_multiplier),
+    }
+
 
 STAGE2_VERDICT_RULE = (
     "PASS requires chart_vs_raw_margin strictly greater than its threshold AND "
