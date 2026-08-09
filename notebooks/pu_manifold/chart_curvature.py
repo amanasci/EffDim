@@ -55,10 +55,11 @@ why the convention carries a regression guard
 (``test_chart_curvature_uses_trace_convention_not_averaged``) rather than a comment.
 """
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Sequence
 
+import numpy as np
 import torch
-from torch.func import hessian, jacrev, vmap
+from torch.func import hessian, jacrev, jvp, vmap
 
 CURVATURE_CONVENTION = "trace"
 """``H = tr_g(II)``, the unnormalized ``g``-trace of the second fundamental form -- never the
@@ -216,6 +217,27 @@ def _batched_eye(n: int, size: int, dtype: torch.dtype, device: torch.device) ->
     return torch.eye(size, dtype=dtype, device=device).expand(n, size, size)
 
 
+def _pad_to_chunk(rows: torch.Tensor) -> torch.Tensor:
+    """Pad a short final chunk up to :data:`VMAP_CHUNK` by repeating its last row. The
+    padding is discarded by the caller; see :data:`VMAP_CHUNK` for why a row's result does
+    not depend on which rows share its chunk."""
+    missing = VMAP_CHUNK - rows.shape[0]
+    if missing <= 0:
+        return rows
+    return torch.cat([rows, rows[-1:].repeat(missing, 1)], dim=0)
+
+
+def _chunked_jacobian(
+    decode_one: Callable[[torch.Tensor], torch.Tensor], z_chart: torch.Tensor
+) -> torch.Tensor:
+    """``(batch, out_dim, chart_dim)`` decoder Jacobian, taken at the fixed autodiff width."""
+    parts = []
+    for start in range(0, z_chart.shape[0], VMAP_CHUNK):
+        real = z_chart[start : start + VMAP_CHUNK]
+        parts.append(vmap(jacrev(decode_one))(_pad_to_chunk(real))[: real.shape[0]].detach())
+    return torch.cat(parts, dim=0)
+
+
 # --- the gating computation: exact g-trace of the normal-projected Hessian ----------------
 
 
@@ -310,13 +332,10 @@ def chart_mean_curvature(
     for start in range(0, batch, VMAP_CHUNK):
         real = z_chart[start : start + VMAP_CHUNK]
         n_real = real.shape[0]
-        if n_real < VMAP_CHUNK:
-            # Pad up to the fixed width by repeating the last real row, then discard the
-            # padding. See VMAP_CHUNK: a row's result does not depend on which rows share its
-            # chunk, only on the chunk's width, so this is exact rather than approximate.
-            chunk = torch.cat([real, real[-1:].repeat(VMAP_CHUNK - n_real, 1)], dim=0)
-        else:
-            chunk = real
+        # Pad a short final chunk up to the fixed width and discard the padding afterwards.
+        # See VMAP_CHUNK: a row's result does not depend on which rows share its chunk, only
+        # on the chunk's width, so this is exact rather than approximate.
+        chunk = _pad_to_chunk(real)
 
         J = vmap(jacrev(decode_one))(chunk)
         if tuple(J.shape) != (VMAP_CHUNK, out_dim, chart_dim):
@@ -455,5 +474,304 @@ def chart_curvature_field(
         "metric_condition_number": metric_cond,
         "n_charts_used": len(used),
         "batch_size": int(batch_size),
+        "curvature_convention": CURVATURE_CONVENTION,
+    }
+
+
+# --- amplitude and orientation fidelity: the checks a rank statistic cannot make ---------
+
+
+def curvature_fidelity_report(
+    H_est: Any, H_true: Any, min_true_norm: float = 1e-12
+) -> Dict[str, Any]:
+    """Compare an estimated mean curvature FIELD against a known analytic one on three
+    separate axes -- direction, magnitude, and calibration -- and deliberately never collapse
+    them into a single score.
+
+    ``H_est``, ``H_true``: ``(n, D)`` mean curvature vectors (numpy arrays or torch tensors),
+    in the same ambient frame.
+
+    **Why this function exists** (``02.5-NOTE-randomized-trace.md`` Addendum C and
+    ``02.5-NOTE-high-d-curvature-approaches.md`` Section 2d). The decoder arm's curvature
+    ``H_F`` is the exact curvature of the LEARNED manifold ``M_F = F(R^d)``, not of the data
+    manifold. A decoder trained to reconstruct will happily regularize the bumps flatter than
+    they are, producing a field that is smooth, well ordered, highly rank-correlated with the
+    truth -- and systematically wrong in amplitude. Both stage-1 gating statistics
+    (``spearman_rho`` and ``quantile_bin_concordance``) are rank-based and score such a
+    decoder a perfect ``1.0``. The worked example, recorded because it is the sharpest form of
+    the point: a decoder learning ``y = 0.7 a x^2`` where the truth is ``y = a x^2`` has tiny
+    reconstruction error wherever the sampled ``x`` sit near zero, while its second derivative
+    is ``1.4a`` instead of ``2a`` -- 30% curvature attenuation with no reconstruction signal at
+    all. **Reconstruction quality can never validate a curvature estimate.**
+
+    **Why three numbers and not one.** ``H`` is vector-valued, so amplitude attenuation and
+    orientation error are DISTINCT failure modes with different remedies; a single scalar
+    would let either hide behind the other.
+
+      1. ``direction`` -- per-point cosine similarity between ``H_est`` and ``H_true``.
+      2. ``magnitude`` -- the per-point ratio ``||H_est|| / ||H_true||``, reported as BOTH the
+         median AND the coefficient of variation. Both are required and neither suffices:
+         Section 1a measured the point-cloud estimator at ``d = 2`` giving median 0.905 at
+         CV 0.250 ("a mild underestimate with modest scatter -- a correctable signature") and
+         at ``d = 20`` giving CV 2.250 with a median that is not even monotone in ``d`` ("the
+         scatter is 2.25x the mean ... there is no scale factor to calibrate out"). The pair
+         separates *attenuated but calibratable* from *destroyed*; either number alone does
+         not.
+      3. ``calibration slope`` -- least-squares regression of ``||H_est||`` on ``||H_true||``,
+         checking ``a ~= 1`` and ``b ~= 0``. A rank statistic cannot see ``a = 0.5``; this can.
+
+    Points where ``||H_true|| <= min_true_norm`` carry no direction and no meaningful ratio
+    (a flat point has no curvature to get right), so they are excluded from all three
+    statistics and counted in ``"n_excluded"`` rather than silently contributing a division by
+    something near zero. The CV uses the sample standard deviation (``ddof=1``).
+
+    Gates nothing on its own: it produces the numbers that a pre-registered stage-2 rule reads.
+    """
+    est = np.asarray(
+        H_est.detach().cpu().numpy() if isinstance(H_est, torch.Tensor) else H_est,
+        dtype=np.float64,
+    )
+    true = np.asarray(
+        H_true.detach().cpu().numpy() if isinstance(H_true, torch.Tensor) else H_true,
+        dtype=np.float64,
+    )
+    if est.shape != true.shape or est.ndim != 2:
+        raise ValueError(
+            f"curvature_fidelity_report: H_est and H_true must be the same (n, D) shape; got "
+            f"{est.shape} and {true.shape}. Comparing curvature fields expressed in different "
+            f"ambient frames is a category error, not a tolerance question."
+        )
+
+    norm_est = np.linalg.norm(est, axis=-1)
+    norm_true = np.linalg.norm(true, axis=-1)
+
+    keep = (
+        (norm_true > min_true_norm)
+        & np.isfinite(norm_est)
+        & np.isfinite(norm_true)
+        & (norm_est > 0.0)
+    )
+    n_total = int(est.shape[0])
+    n_kept = int(keep.sum())
+    if n_kept < 2:
+        raise ValueError(
+            f"curvature_fidelity_report: only {n_kept} of {n_total} points have a usable "
+            f"analytic curvature (||H_true|| > {min_true_norm}) and a finite estimate. A "
+            f"fidelity report over fewer than two points is not a measurement."
+        )
+
+    e, t = est[keep], true[keep]
+    ne, nt = norm_est[keep], norm_true[keep]
+
+    cosine = np.einsum("nd,nd->n", e, t) / (ne * nt)
+    ratio = ne / nt
+
+    # calibration: ||H_est|| = a * ||H_true|| + b
+    design = np.stack([nt, np.ones_like(nt)], axis=1)
+    (slope, intercept), *_ = np.linalg.lstsq(design, ne, rcond=None)
+    residual = ne - (slope * nt + intercept)
+    ss_res = float(np.sum(residual**2))
+    ss_tot = float(np.sum((ne - ne.mean()) ** 2))
+    r2 = float("nan") if ss_tot == 0.0 else 1.0 - ss_res / ss_tot
+
+    mean_ratio = float(np.mean(ratio))
+    cv = float("nan") if mean_ratio == 0.0 else float(np.std(ratio, ddof=1) / mean_ratio)
+
+    return {
+        # 1. direction
+        "cosine_similarity": cosine,
+        "median_cosine_similarity": float(np.median(cosine)),
+        # 2. magnitude -- median AND CV, never one without the other
+        "magnitude_ratio": ratio,
+        "median_magnitude_ratio": float(np.median(ratio)),
+        "mean_magnitude_ratio": mean_ratio,
+        "magnitude_ratio_cv": cv,
+        # 3. calibration
+        "calibration_slope": float(slope),
+        "calibration_intercept": float(intercept),
+        "calibration_r2": r2,
+        "n_points": n_kept,
+        "n_excluded": n_total - n_kept,
+        "curvature_convention": CURVATURE_CONVENTION,
+    }
+
+
+# --- NON-GATING: randomized-probe convergence check on the exact path --------------------
+
+
+def directional_second_derivative(
+    f: Callable[[torch.Tensor], torch.Tensor], z: torch.Tensor, v: torch.Tensor
+) -> torch.Tensor:
+    """``D^2 f(z)[v, v]`` for each row, by forward-over-forward autodiff:
+    ``d/dt|_0 ( Df(z + t v) v )``. ``z``, ``v``: ``(batch, chart_dim)``; returns
+    ``(batch, out_dim)``. Chunked at :data:`VMAP_CHUNK` for the same bit-reproducibility
+    reason as :func:`chart_mean_curvature`.
+
+    Note for anyone tempted to add antithetic sampling on top of this
+    (``02.5-NOTE-randomized-trace.md`` Addendum A): ``B`` is a symmetric BILINEAR form, so
+    ``B(-v, -v) = (-1)(-1) B(v, v) = B(v, v)`` **exactly**. The antithetic partner returns the
+    identical value, not a negatively-correlated one; the pair is correlated at ``+1``, so
+    averaging over ``{v, -v}`` has precisely the variance of the single sample ``v`` at twice
+    the cost. Antithetic sampling helps estimators with an ODD-order dependence on the probe;
+    a quadratic form is even. ``test_chart_curvature_antithetic_probes_are_exactly_redundant``
+    pins this as bit-identity so the claim cannot rot into folklore.
+    """
+    if z.shape != v.shape or z.ndim != 2:
+        raise ValueError(
+            f"directional_second_derivative: z and v must share one (batch, chart_dim) shape; "
+            f"got {tuple(z.shape)} and {tuple(v.shape)}."
+        )
+
+    def _one(zz: torch.Tensor, vv: torch.Tensor) -> torch.Tensor:
+        def df(w: torch.Tensor) -> torch.Tensor:
+            return jvp(f, (w,), (vv,))[1]
+
+        return jvp(df, (zz,), (vv,))[1]
+
+    batch = z.shape[0]
+    parts = []
+    for start in range(0, batch, VMAP_CHUNK):
+        z_real, v_real = z[start : start + VMAP_CHUNK], v[start : start + VMAP_CHUNK]
+        n_real = z_real.shape[0]
+        parts.append(
+            vmap(_one)(_pad_to_chunk(z_real), _pad_to_chunk(v_real))[:n_real].detach()
+        )
+    return torch.cat(parts, dim=0)
+
+
+def randomized_trace_mean_curvature_nongating(
+    model: Any, z_chart: torch.Tensor, chart_idx: int, n_probes: int, seed: int
+) -> Dict[str, Any]:
+    """A Hutchinson-style randomized estimate of the same ``H = tr_g(II)``.
+
+    **NON-GATING, and the name says so at every call site on purpose.** This must never touch
+    a gated number. ``02.5-NOTE-randomized-trace.md``'s "What 02.5-08 should do" demotes the
+    randomized estimator from candidate to CONVERGENCE CHECK ON THE EXACT PATH: at
+    ``d = 20`` the exact ``g``-trace is only 20 Hessian-vector products against ``K = 8``, a
+    2.5x saving on a computation that was never the bottleneck, and the decoder arm's real
+    advantage is statistical (it forms no neighbourhood, so ``r/R`` never enters its error),
+    not computational. Its worth is the same as the sphere known-answer test's: agreement with
+    the exact path is evidence the exact path is right.
+
+    **Normalization -- the factor-of-``d`` trap, stated in full because the source material
+    gets it the other way round.** With ``xi = g^{-1/2} eps`` and ``eps`` Rademacher,
+    ``E[eps eps^T] = I`` so ``E[xi xi^T] = g^-1``, hence
+    ``E[B(xi, xi)] = sum_jk g^jk II_jk = tr_g(II) = H``. Under this module's TRACE convention
+    the estimator therefore carries **no ``1/d`` and no ``d``**. The alternative
+    ``v = g^{-1/2} u`` with ``u`` uniform on ``S^{d-1}`` has ``E[u u^T] = I/d``, so under the
+    trace convention *that* variant needs an EXPLICIT factor of ``d`` -- exactly inverted from
+    the averaged-convention presentation, where Rademacher needs the explicit ``1/d`` and the
+    sphere supplies it implicitly. Both pairings are internally correct; mixing any two of them
+    costs a factor of ``d`` = 20. Rademacher is used here, and
+    ``test_chart_curvature_randomized_trace_converges_to_exact`` is what proves the pairing.
+
+    No antithetic path is offered; see :func:`directional_second_derivative` for why one would
+    be exactly worthless here. Hutch++-style deflation is likewise not attempted: it estimates
+    the scalar trace of a MATRIX, whereas ``II: T_zM x T_zM -> N_zM`` is VECTOR-valued, so at
+    codimension greater than one there is no single scalar matrix whose trace it computes.
+    Making it work would need a normal basis, and avoiding the construction of a normal basis
+    at ``D = 768`` is precisely why the ``d x d`` solve exists.
+    """
+    assert_c2_activation(model)
+    _assert_float64(model, z_chart)
+    if n_probes < 1:
+        raise ValueError(f"randomized_trace_mean_curvature_nongating: n_probes must be >= 1; got {n_probes}.")
+
+    decode_one = chart_decoder_map(model, chart_idx)
+    batch, chart_dim = z_chart.shape
+
+    J = _chunked_jacobian(decode_one, z_chart)
+    g = torch.einsum("boi,boj->bij", J, J)
+
+    # g^{-1/2} by symmetric eigendecomposition: g is a Gram matrix, so eigh is the right
+    # factorization and its eigenvalues are the conditioning diagnostic already reported by
+    # chart_mean_curvature.
+    evals, evecs = torch.linalg.eigh(g)
+    if bool((evals <= 0).any()):
+        raise ValueError(
+            "randomized_trace_mean_curvature_nongating: the pullback metric is not positive "
+            "definite at some point, so g^{-1/2} does not exist there. That is a "
+            "non-immersion point; inspect chart_mean_curvature's metric_condition_number "
+            "rather than regularizing it away."
+        )
+    g_inv_sqrt = torch.einsum("bij,bj,bkj->bik", evecs, evals.pow(-0.5), evecs)
+
+    generator = torch.Generator().manual_seed(int(seed))
+    acc = torch.zeros(batch, J.shape[1], dtype=z_chart.dtype)
+    for _ in range(n_probes):
+        eps = (
+            torch.randint(0, 2, (batch, chart_dim), generator=generator, dtype=z_chart.dtype)
+            * 2.0
+            - 1.0
+        )
+        xi = torch.einsum("bij,bj->bi", g_inv_sqrt, eps)
+        acc = acc + directional_second_derivative(decode_one, z_chart, xi)
+    raw = acc / float(n_probes)
+
+    alpha = torch.linalg.solve(g, torch.einsum("boi,bo->bi", J, raw).unsqueeze(-1)).squeeze(-1)
+    H_vec = raw - torch.einsum("boi,bi->bo", J, alpha)
+
+    return {
+        "H_vec": H_vec,
+        "H_norm": chart_mean_curvature_norm(H_vec),
+        "n_probes": int(n_probes),
+        "seed": int(seed),
+        "probe_distribution": "rademacher",
+        "gating": False,
+        "curvature_convention": CURVATURE_CONVENTION,
+    }
+
+
+def randomized_trace_convergence_check(
+    model: Any,
+    z_chart: torch.Tensor,
+    chart_idx: int,
+    probe_counts: Sequence[int] = (4, 8, 16),
+    seeds: Sequence[int] = (0, 1, 2, 3, 4),
+) -> Dict[str, Any]:
+    """Report how fast :func:`randomized_trace_mean_curvature_nongating` converges on the
+    exact :func:`chart_mean_curvature`, at each probe count, averaged over seeds.
+    **Gates nothing** -- ``02.5-NOTE-randomized-trace.md`` asks for ``K = 4, 8, 16`` as
+    recorded context and nothing more.
+
+    Averaging over seeds is not cosmetic: at a single fixed seed the error sequence in ``K``
+    is not monotone (measured during 02.5-08: ``K = 8`` landed worse than ``K = 4`` on one
+    draw), which is the nature of a Monte-Carlo estimator rather than a defect. The
+    ``1/sqrt(K)`` law is a statement about the average, so the average is what is reported.
+
+    ``"mean_of_replicates_relative_error"`` pools every estimate computed, weighted by its
+    probe count -- algebraically one estimator with ``sum_k K_k * n_seeds`` probes. Its error
+    being far below the smallest single-run error is the unbiasedness evidence: it shows the
+    spread at low ``K`` is variance around the right value, not a bias at the wrong scale.
+    A mispaired probe normalization would be off by a constant factor of ``d`` and would NOT
+    shrink with more probes, so this is the number that separates those two explanations.
+    """
+    exact = chart_mean_curvature(model, z_chart, chart_idx)["H_vec"]
+    exact_norm = torch.linalg.norm(exact, dim=-1)
+
+    median_rel: Dict[int, float] = {}
+    pooled = torch.zeros_like(exact)
+    pooled_weight = 0.0
+    for n_probes in probe_counts:
+        per_seed = []
+        for seed in seeds:
+            est = randomized_trace_mean_curvature_nongating(
+                model, z_chart, chart_idx, n_probes, seed
+            )["H_vec"]
+            rel = torch.linalg.norm(est - exact, dim=-1) / exact_norm
+            per_seed.append(float(rel.median()))
+            pooled = pooled + est * float(n_probes)
+            pooled_weight += float(n_probes)
+        median_rel[int(n_probes)] = float(np.mean(per_seed))
+
+    pooled_rel = torch.linalg.norm(pooled / pooled_weight - exact, dim=-1) / exact_norm
+
+    return {
+        "H_exact": exact,
+        "median_relative_error": median_rel,
+        "mean_of_replicates_relative_error": float(pooled_rel.median()),
+        "probe_counts": tuple(int(k) for k in probe_counts),
+        "seeds": tuple(int(s) for s in seeds),
+        "gating": False,
         "curvature_convention": CURVATURE_CONVENTION,
     }
