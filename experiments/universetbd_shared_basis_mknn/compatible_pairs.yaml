@@ -1,0 +1,327 @@
+# Compatible UniverseTBD / Platonic-Universe embedding pairs.
+# Paths relative to PLATONIC_ROOT. Same row index = same object.
+#
+# kinds:
+#   cross_model   — two encoders, same survey/objects
+#   cross_survey  — same encoder, two imaging surveys (HSC↔JWST/DESI/Legacy)
+
+# ---------------------------------------------------------------------------
+# Physics galaxies (Smith42/galaxies) — n≈86k, separate files per model
+# ---------------------------------------------------------------------------
+physics_vit_dino:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/dinov3_vitb16_test.parquet
+  col2: dinov3_vitb16_galaxies
+  default_max_n: 16384
+
+physics_vit_clip:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/clip_base_test.parquet
+  col2: clip_base_galaxies
+  default_max_n: 16384
+
+physics_vit_convnext:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/convnext_base_test.parquet
+  col2: convnext_base_galaxies
+  default_max_n: 16384
+
+physics_vit_vitlarge:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/vit_base_test.parquet
+  col1: vit_base_galaxies
+  parquet2: data_hf/physics/vit_large_test.parquet
+  col2: vit_large_galaxies
+  default_max_n: 16384
+
+physics_dino_clip:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/dinov3_vitb16_test.parquet
+  col1: dinov3_vitb16_galaxies
+  parquet2: data_hf/physics/clip_base_test.parquet
+  col2: clip_base_galaxies
+  default_max_n: 16384
+
+physics_dino_convnext:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/dinov3_vitb16_test.parquet
+  col1: dinov3_vitb16_galaxies
+  parquet2: data_hf/physics/convnext_base_test.parquet
+  col2: convnext_base_galaxies
+  default_max_n: 16384
+
+physics_dino_vitlarge:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/dinov3_vitb16_test.parquet
+  col1: dinov3_vitb16_galaxies
+  parquet2: data_hf/physics/vit_large_test.parquet
+  col2: vit_large_galaxies
+  default_max_n: 16384
+
+physics_clip_convnext:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/clip_base_test.parquet
+  col1: clip_base_galaxies
+  parquet2: data_hf/physics/convnext_base_test.parquet
+  col2: convnext_base_galaxies
+  default_max_n: 16384
+
+physics_clip_vitlarge:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/clip_base_test.parquet
+  col1: clip_base_galaxies
+  parquet2: data_hf/physics/vit_large_test.parquet
+  col2: vit_large_galaxies
+  default_max_n: 16384
+
+physics_convnext_vitlarge:
+  kind: cross_model
+  survey: physics
+  parquet1: data_hf/physics/convnext_base_test.parquet
+  col1: convnext_base_galaxies
+  parquet2: data_hf/physics/vit_large_test.parquet
+  col2: vit_large_galaxies
+  default_max_n: 16384
+
+# ---------------------------------------------------------------------------
+# JWST↔HSC cross-match — n≈1496, two columns per file
+# ---------------------------------------------------------------------------
+jwst_cross_vit:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/jwst/jwst_vit_base.parquet
+  col2: vit_base_jwst
+  default_max_n: 0
+
+jwst_cross_dino:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col1: dinov3_vitb16_hsc
+  parquet2: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_jwst
+  default_max_n: 0
+
+jwst_cross_clip:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_clip_base.parquet
+  col1: clip_base_hsc
+  parquet2: data_hf/jwst/jwst_clip_base.parquet
+  col2: clip_base_jwst
+  default_max_n: 0
+
+jwst_cross_convnext:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_convnext_base.parquet
+  col1: convnext_base_hsc
+  parquet2: data_hf/jwst/jwst_convnext_base.parquet
+  col2: convnext_base_jwst
+  default_max_n: 0
+
+jwst_cross_vitmae:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_vit-mae_base.parquet
+  col1: vit-mae_base_hsc
+  parquet2: data_hf/jwst/jwst_vit-mae_base.parquet
+  col2: vit-mae_base_jwst
+  default_max_n: 0
+
+jwst_cross_astropt95:
+  kind: cross_survey
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_astropt_095M.parquet
+  col1: astropt_95m_hsc
+  parquet2: data_hf/jwst/jwst_astropt_095M.parquet
+  col2: astropt_95m_jwst
+  default_max_n: 0
+
+jwst_hsc_vit_dino:
+  kind: cross_model
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_hsc
+  default_max_n: 0
+
+jwst_jwst_vit_dino:
+  kind: cross_model
+  survey: jwst
+  parquet1: data_hf/jwst/jwst_vit_base.parquet
+  col1: vit_base_jwst
+  parquet2: data_hf/jwst/jwst_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_jwst
+  default_max_n: 0
+
+# ---------------------------------------------------------------------------
+# DESI↔HSC — n≈20k (skip convnext: HSC 1024 vs DESI 768)
+# ---------------------------------------------------------------------------
+desi_cross_vit:
+  kind: cross_survey
+  survey: desi
+  parquet1: data_hf/desi/desi_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/desi/desi_vit_base.parquet
+  col2: vit_base_desi
+  default_max_n: 16384
+
+desi_cross_dino:
+  kind: cross_survey
+  survey: desi
+  parquet1: data_hf/desi/desi_dino_base.parquet
+  col1: dino_base_hsc
+  parquet2: data_hf/desi/desi_dino_base.parquet
+  col2: dino_base_desi
+  default_max_n: 16384
+
+desi_cross_dinov3small:
+  kind: cross_survey
+  survey: desi
+  parquet1: data_hf/desi/desi_dinov3_small_vitb16.parquet
+  col1: dinov3_small_vitb16_hsc
+  parquet2: data_hf/desi/desi_dinov3_small_vitb16.parquet
+  col2: dinov3_small_vitb16_desi
+  default_max_n: 16384
+
+desi_desi_vit_dino:
+  kind: cross_model
+  survey: desi
+  parquet1: data_hf/desi/desi_vit_base.parquet
+  col1: vit_base_desi
+  parquet2: data_hf/desi/desi_dino_base.parquet
+  col2: dino_base_desi
+  default_max_n: 16384
+
+desi_hsc_vit_dino:
+  kind: cross_model
+  survey: desi
+  parquet1: data_hf/desi/desi_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/desi/desi_dino_base.parquet
+  col2: dino_base_hsc
+  default_max_n: 16384
+
+# ---------------------------------------------------------------------------
+# Legacy Survey↔HSC — n≈102k
+# ---------------------------------------------------------------------------
+legacy_cross_vit:
+  kind: cross_survey
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_vit_base.parquet
+  col2: vit_base_legacysurvey
+  default_max_n: 16384
+
+legacy_cross_dino:
+  kind: cross_survey
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_dino_base.parquet
+  col1: dino_base_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_dino_base.parquet
+  col2: dino_base_legacysurvey
+  default_max_n: 16384
+
+legacy_cross_dinov3:
+  kind: cross_survey
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_dinov3_vitb16.parquet
+  col1: dinov3_vitb16_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_legacysurvey
+  default_max_n: 16384
+
+legacy_cross_vitlarge:
+  kind: cross_survey
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_vit_large.parquet
+  col1: vit_large_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_vit_large.parquet
+  col2: vit_large_legacysurvey
+  default_max_n: 16384
+
+legacy_cross_convnext:
+  kind: cross_survey
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_convnext_base.parquet
+  col1: convnext_base_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_convnext_base.parquet
+  col2: convnext_base_legacysurvey
+  default_max_n: 16384
+
+legacy_ls_vit_dinov3:
+  kind: cross_model
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_vit_base.parquet
+  col1: vit_base_legacysurvey
+  parquet2: data_hf/legacysurvey/legacysurvey_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_legacysurvey
+  default_max_n: 16384
+
+legacy_hsc_vit_dinov3:
+  kind: cross_model
+  survey: legacy
+  parquet1: data_hf/legacysurvey/legacysurvey_vit_base.parquet
+  col1: vit_base_hsc
+  parquet2: data_hf/legacysurvey/legacysurvey_dinov3_vitb16.parquet
+  col2: dinov3_vitb16_hsc
+  default_max_n: 16384
+
+# ---------------------------------------------------------------------------
+# CosmosWeb high-SNR HSC↔JWST — n=45k, column=embeddings
+# ---------------------------------------------------------------------------
+cosmosweb_cross_vit:
+  kind: cross_survey
+  survey: cosmosweb
+  parquet1: data_hf/cosmosweb/hsc_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_vit_base_45000.parquet
+  col1: embeddings
+  parquet2: data_hf/cosmosweb/jwst_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_vit_base_45000.parquet
+  col2: embeddings
+  default_max_n: 16384
+
+cosmosweb_cross_dino:
+  kind: cross_survey
+  survey: cosmosweb
+  parquet1: data_hf/cosmosweb/hsc_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_dinov3_vitb16_45000.parquet
+  col1: embeddings
+  parquet2: data_hf/cosmosweb/jwst_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_dinov3_vitb16_45000.parquet
+  col2: embeddings
+  default_max_n: 16384
+
+cosmosweb_hsc_vit_dino:
+  kind: cross_model
+  survey: cosmosweb
+  parquet1: data_hf/cosmosweb/hsc_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_vit_base_45000.parquet
+  col1: embeddings
+  parquet2: data_hf/cosmosweb/hsc_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_dinov3_vitb16_45000.parquet
+  col2: embeddings
+  default_max_n: 16384
+
+cosmosweb_jwst_vit_dino:
+  kind: cross_model
+  survey: cosmosweb
+  parquet1: data_hf/cosmosweb/jwst_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_vit_base_45000.parquet
+  col1: embeddings
+  parquet2: data_hf/cosmosweb/jwst_embeddings_cosmosweb-hsc-jwst-high-snr-pil2_dinov3_vitb16_45000.parquet
+  col2: embeddings
+  default_max_n: 16384
