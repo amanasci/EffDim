@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: Paused at 02.5-07 Task 3 checkpoint (stage-1 GO/NO-GO) -- 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written; checkpoint unresolved
-last_updated: "2026-08-08T19:43:06.438Z"
+stopped_at: 02.5-07 Task 3 checkpoint RESOLVED (GO). Stage-1 re-run under 02.5-PREREGISTRATION-AMENDMENT-01.md (5 seeds, confidence-bounded verdict) returned CURVATURE_VERDICT=FAIL; user chose GO to stage-2 Arm B. Executing 02.5-08.
+last_updated: "2026-08-09T00:00:00.000Z"
 last_activity: 2026-08-07
 last_activity_desc: Phase 02.5 execution started
 progress:
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 7 of 13
-Status: Paused — 02.5-07's Task 3 blocking checkpoint (stage-1 GO/NO-GO) awaiting user decision; CURVATURE_VERDICT=FAIL (marginal, seed-sensitive) on the base cell; 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written
-Last activity: 2026-08-08 — Stage-1 feasibility sweep completed and findings written; halted at the GO/NO-GO checkpoint per D-04
+Plan: 8 of 13
+Status: 02.5-07 Task 3 checkpoint RESOLVED — user decided GO. CURVATURE_VERDICT=FAIL under the amended 5-seed confidence-bounded rule (qbc lower bound 0.454223 vs floor 0.475000; rho lower bound 0.530332 vs floor 0.500000). Proceeding to 02.5-08 (stage-2 Arm B, chart decoder curvature)
+Last activity: 2026-08-09 — Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
