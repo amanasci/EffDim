@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.5
 current_phase_name: local-curvature-feasibility-cae-re-gate
 status: executing
-stopped_at: 02.5-07 Task 3 checkpoint RESOLVED (GO). Stage-1 re-run under 02.5-PREREGISTRATION-AMENDMENT-01.md (5 seeds, confidence-bounded verdict) returned CURVATURE_VERDICT=FAIL; user chose GO to stage-2 Arm B. Executing 02.5-08.
-last_updated: "2026-08-09T00:00:00.000Z"
-last_activity: 2026-08-07
-last_activity_desc: Phase 02.5 execution started
+stopped_at: "Completed 02.5-08-PLAN.md (stage-2 Arm B machinery). Next: 02.5-09 Swiss roll notebook for chart_curvature."
+last_updated: "2026-08-09T04:40:27.824Z"
+last_activity: 2026-08-09
+last_activity_desc: Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 38
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
-Plan: 8 of 13
+Plan: 9 of 13
 Status: 02.5-07 Task 3 checkpoint RESOLVED — user decided GO. CURVATURE_VERDICT=FAIL under the amended 5-seed confidence-bounded rule (qbc lower bound 0.454223 vs floor 0.475000; rho lower bound 0.530332 vs floor 0.500000). Proceeding to 02.5-08 (stage-2 Arm B, chart decoder curvature)
 Last activity: 2026-08-09 — Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
 
@@ -88,7 +88,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 82% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -128,6 +128,7 @@ Progress: [████████░░] 82% of planned plans (17/17; Phases 1
 | Phase 02.5 P04 | ~34min | 3 tasks | 2 files |
 | Phase 02.5 P05 | ~20min active (checkpoint hold between segments) | 3 tasks | 1 files |
 | Phase 02.5 P06 | 66min | 3 tasks | 2 files |
+| Phase 02.5 P08 | 16m | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -222,6 +223,11 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.5-07: CURVATURE_VERDICT=FAIL on the base cell (spearman_rho=0.5205 clears, quantile_bin_concordance=0.4444 misses threshold 0.4750 by -0.0306); reported alongside a seed-instability disclosure -- 2 of 3 tested seeds at the identical base configuration clear both gates, and the across-seed spread (0.0792) exceeds the base cell's own margin to threshold (0.0306)
 - [Phase ?]: 02.5-07: ambient dimension D found bit-identical (to the last printed digit) across D=28,50,200,768 -- the base-cell failure is entirely an intrinsic-d effect, not an ambient-scale effect, correcting a framing risk in 02.5-PREREGISTRATION.md Section 13b
 - [Phase ?]: 02.5-07: the non-gating quadric cross-check (D-05) could not complete beyond the d=2 Swiss roll anchor within the sweep's 30-minute wall-clock budget (measured ~6-8 min/cell at PU scale); reported as a genuine evidentiary gap in 02.5-FINDINGS.md Section 6, with the d(d+1)/2-vs-k coefficient boundary reported structurally (determined through d=5, underdetermined from d=8) rather than empirically
+- [Phase ?]: chart_curvature.py computes H = tr_g(II) exactly through a CAE chart decoder by torch.func autodiff; the (D,D) normal projector from RESEARCH Pattern 4 is never materialized -- P_N is applied by a d x d solve after the g-trace, proved equal to the explicit-projector form by test
+- [Phase ?]: VMAP_CHUNK = 32 fixes the autodiff batch width: vmap(hessian(f)) was measured NOT bit-reproducible across differing batch widths (~1.7e-18/row, ~5e-15 in H_norm); jacrev/solve/cond were unaffected. Fixed width restores exact reproducibility across any caller-side batching
+- [Phase ?]: Amplitude attenuation and orientation error are reported SEPARATELY (cosine, magnitude median AND CV, calibration slope) -- a decoder compressing every magnitude by a constant scores a perfect 1.0 on every rank statistic, which is the specific way Arm B can look successful while being wrong
+- [Phase ?]: The randomized K-probe estimator is NON-GATING (named ...__nongating) and is a convergence check on the exact path only; Rademacher probes with xi = g^-1/2 eps carry no 1/d and no d under the trace convention. No antithetic probes (B(-v,-v) = B(v,v) exactly, pinned as bit-identity) and no Hutch++ (II is vector-valued)
+- [Phase ?]: The three sealed 02.2 fits verified curvature-ready and identical in architecture: in_dim 768, embed_dim 40, chart_dim 20, n_charts 16, hidden [250,250,250], activation silu -- derived from the artifacts and cross-checked against their manifests, for plan 02.5-11 to reuse with no new tunable hyperparameter
 
 ### Pending Todos
 
@@ -264,8 +270,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-08T19:42:53.324Z
-Stopped at: Paused at 02.5-07 Task 3 checkpoint (stage-1 GO/NO-GO) -- 02.5-FINDINGS.md and 02.5-07-SUMMARY.md written; checkpoint unresolved
+Last session: 2026-08-09T04:40:11.692Z
+Stopped at: Completed 02.5-08-PLAN.md (stage-2 Arm B machinery). Next: 02.5-09 Swiss roll notebook for chart_curvature.
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>

@@ -303,7 +303,7 @@ Plans:
   - **`notebooks/pu_manifold/cae.py` is Phase 02.2's sealed artifact** — import from it, never edit it. `src/effdim/` and `pyproject.toml` stay untouched for the v1.1 milestone.
   - **C2-smooth activations throughout** any decoder used for curvature (DEC-02, CURV-01..03): ReLU's second derivative is identically zero, which silently zeroes the second fundamental form.
 
-**Plans**: 7/13 plans executed
+**Plans**: 8/13 plans executed
 
 Plans:
 **Wave 1**
@@ -333,7 +333,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 02.5-08-PLAN.md — Exact chart-decoder curvature via `torch.func`, C2-smoothness guard, sealed-fit load check (D-09, D-10)
+- [x] 02.5-08-PLAN.md — Exact chart-decoder curvature via `torch.func`, C2-smoothness guard, sealed-fit load check (D-09, D-10)
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
