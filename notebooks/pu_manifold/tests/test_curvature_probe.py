@@ -1536,3 +1536,188 @@ def test_chart_curvature_dxd_solve_matches_explicit_projector():
 
     assert H_reference.shape == H_actual.shape
     torch.testing.assert_close(H_actual, H_reference, rtol=1e-9, atol=1e-12)
+
+
+# --- Plan 02.5-08 Task 2: the checks a rank statistic cannot make -----------------------
+#
+# 02.5-NOTE-randomized-trace.md Addendum C. The decoder arm computes H_F, the EXACT
+# curvature of the LEARNED manifold M_F = F(R^d) -- not H_true, the curvature of the data
+# manifold. A reconstruction objective asks F(E(x)) ~= x; it never asks D^2 F ~= D^2 F_true.
+# Both stage-1 gating statistics are rank-based and are therefore exactly blind to a decoder
+# that compresses every curvature magnitude by a constant factor. These tests pin the
+# machinery that is not blind to it.
+
+
+def test_chart_curvature_fidelity_report_separates_amplitude_from_direction():
+    """The specific way Arm B can look successful while being wrong.
+
+    ``02.5-NOTE-high-d-curvature-approaches.md`` Section 2d: a decoder trained to reconstruct
+    will happily regularize the bumps flatter than they are, producing a curvature field that
+    is smooth, well-ordered, highly rank-correlated with the truth -- and systematically wrong
+    in amplitude. The note's worked example: if the true local surface is ``y = a x^2`` and the
+    decoder learns ``y = 0.7 a x^2``, reconstruction error stays tiny wherever the sampled
+    ``x`` sit near zero while the second derivative is ``1.4a`` instead of ``2a``. Reconstruction
+    quality can never validate a curvature estimate.
+
+    ``H`` is vector-valued, so amplitude attenuation and orientation error are DISTINCT failure
+    modes and must never be collapsed into one scalar. This test constructs each in isolation
+    and requires the report to name the right one each time.
+    """
+    from pu_manifold import chart_curvature as cc
+
+    rng = np.random.default_rng(20260809)
+    n, D = 400, 6
+    H_true = rng.standard_normal((n, D)) * rng.uniform(0.5, 3.0, size=(n, 1))
+
+    # --- failure mode 1: pure amplitude attenuation, the note's 0.7a decoder ---
+    H_attenuated = 0.7 * H_true
+    rep = cc.curvature_fidelity_report(H_attenuated, H_true)
+
+    # every rank-based statistic scores this PERFECT -- that is the whole problem
+    norm_true = np.linalg.norm(H_true, axis=-1)
+    assert cp.spearman_gate_statistic(np.linalg.norm(H_attenuated, axis=-1), norm_true) == pytest.approx(1.0)
+
+    # direction is untouched, and the report says so rather than blaming the wrong thing
+    assert rep["median_cosine_similarity"] == pytest.approx(1.0, abs=1e-12)
+    # amplitude is caught, exactly, with zero scatter -- "attenuated but calibratable"
+    assert rep["median_magnitude_ratio"] == pytest.approx(0.7, rel=1e-9)
+    assert rep["magnitude_ratio_cv"] == pytest.approx(0.0, abs=1e-9)
+    # and the calibration slope sees a = 0.7, which no rank statistic can
+    assert rep["calibration_slope"] == pytest.approx(0.7, rel=1e-9)
+    assert rep["calibration_intercept"] == pytest.approx(0.0, abs=1e-9)
+
+    # --- failure mode 2: pure orientation error, amplitude exactly preserved ---
+    H_rotated = H_true.copy()
+    H_rotated[:, [0, 1]] = H_true[:, [1, 0]]  # a norm-preserving coordinate swap
+    rep_rot = cc.curvature_fidelity_report(H_rotated, H_true)
+
+    assert rep_rot["median_magnitude_ratio"] == pytest.approx(1.0, rel=1e-9)
+    assert rep_rot["calibration_slope"] == pytest.approx(1.0, rel=1e-9)
+    assert rep_rot["median_cosine_similarity"] < 0.95  # the distinct mode, distinctly reported
+
+    # The two failure modes are never collapsed: each report carries all three families
+    # separately, and neither exposes a single summary score that could hide one behind
+    # the other.
+    for key in (
+        "median_cosine_similarity",
+        "median_magnitude_ratio",
+        "magnitude_ratio_cv",
+        "calibration_slope",
+        "calibration_intercept",
+    ):
+        assert key in rep and key in rep_rot
+
+
+def test_chart_curvature_fidelity_cv_separates_attenuated_from_destroyed():
+    """Why the median ratio and its CV are BOTH required, and neither alone will do.
+
+    ``02.5-NOTE-high-d-curvature-approaches.md`` Section 1a measured the point-cloud
+    estimator's per-point ratio ``||H_est|| / ||H_true||``: at ``d = 2`` a clean 0.905 median
+    at CV 0.250 ("a mild underestimate with modest scatter -- a correctable signature"), and
+    at ``d = 20`` a CV of 2.250 ("the scatter is 2.25x the mean ... there is no scale factor
+    to calibrate out"). The distinction between a bias one can calibrate away and an error
+    that merely behaves like noise is carried entirely by the CV. This test builds two fields
+    with deliberately similar medians and very different scatter, and requires the report to
+    separate them.
+    """
+    from pu_manifold import chart_curvature as cc
+
+    rng = np.random.default_rng(31337)
+    n, D = 2000, 4
+    direction = rng.standard_normal((n, D))
+    direction /= np.linalg.norm(direction, axis=1, keepdims=True)
+    H_true = direction * rng.uniform(0.5, 2.0, size=(n, 1))
+
+    ratio_tight = rng.lognormal(mean=np.log(0.905), sigma=0.24, size=(n, 1))
+    ratio_wild = rng.lognormal(mean=np.log(0.905), sigma=1.30, size=(n, 1))
+
+    rep_tight = cc.curvature_fidelity_report(H_true * ratio_tight, H_true)
+    rep_wild = cc.curvature_fidelity_report(H_true * ratio_wild, H_true)
+
+    # the medians are close: the median ALONE cannot separate these two regimes
+    assert rep_tight["median_magnitude_ratio"] == pytest.approx(0.905, rel=0.05)
+    assert rep_wild["median_magnitude_ratio"] == pytest.approx(0.905, rel=0.10)
+
+    # the CV separates them decisively, in the direction Section 1a measured
+    assert rep_tight["magnitude_ratio_cv"] < 0.5
+    assert rep_wild["magnitude_ratio_cv"] > 1.5
+
+
+def test_chart_curvature_antithetic_probes_are_exactly_redundant():
+    """``02.5-NOTE-randomized-trace.md`` Addendum A, pinned as executable fact rather than
+    left as an argument in a note.
+
+    The external source material suggests using "antithetic directions" if the randomized
+    estimator is noisy. For this estimator that suggestion is void: ``B`` is a symmetric
+    BILINEAR form, so ``B(-v, -v) = (-1)(-1) B(v, v) = B(v, v)``. The antithetic partner
+    returns the IDENTICAL value, not a negatively-correlated one -- the pair is correlated at
+    exactly ``+1``, so averaging over ``{v, -v}`` has precisely the variance of the single
+    sample ``v`` at twice the cost. Any K-probe budget spent on antithetic pairing is halved
+    for nothing. Antithetic sampling reduces variance for estimators with an ODD-order
+    dependence on the probe; a quadratic form is even.
+
+    This test is why ``chart_curvature.py`` implements no antithetic path, and it fails loudly
+    if someone later adds one believing it helps.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=9)
+    decode_one = cc.chart_decoder_map(model, 0)
+    z = torch.rand(6, model.chart_dim, dtype=torch.float64)
+    v = torch.randn(6, model.chart_dim, dtype=torch.float64)
+
+    forward = cc.directional_second_derivative(decode_one, z, v)
+    antithetic = cc.directional_second_derivative(decode_one, z, -v)
+
+    # bit-identical, not merely close: the equality is algebraic, not numerical
+    assert torch.equal(forward, antithetic)
+
+
+def test_chart_curvature_randomized_trace_converges_to_exact():
+    """The randomized K-probe estimator is a CONVERGENCE CHECK ON THE EXACT PATH, gated on
+    nothing -- ``02.5-NOTE-randomized-trace.md``'s "What 02.5-08 should do". It is not a
+    candidate estimator: at ``d = 20`` the exact ``g``-trace is only 20 Hessian-vector
+    products against ``K = 8``, a 2.5x saving on a computation that was never the bottleneck,
+    and the arm's real advantage is statistical rather than computational. Its value is the
+    same as the sphere known-answer test's: agreement with the exact path is evidence the
+    exact path is right.
+
+    The normalization is the trap this test exists to close. With ``xi = g^{-1/2} eps`` and
+    ``eps`` Rademacher, ``E[eps eps^T] = I`` so ``E[xi xi^T] = g^-1`` and the estimator
+    ``(1/K) sum_k B(xi_k, xi_k)`` targets ``tr_g(II)`` with NO ``1/d`` and NO ``d``. Under the
+    source material's averaged convention the same probes would need an explicit ``1/d``, and
+    with uniform-on-the-sphere probes instead of Rademacher this module's trace convention
+    would need an explicit ``d``. Mixing any two of those costs a factor of ``d`` = 20.
+    Convergence to the exact path at the same scale is what proves the right pairing was used.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=5)
+    z_chart = torch.rand(8, model.chart_dim, dtype=torch.float64)
+
+    check = cc.randomized_trace_convergence_check(
+        model, z_chart, 0, probe_counts=(4, 16, 64), seeds=(0, 1, 2, 3, 4, 5)
+    )
+
+    assert check["gating"] is False
+    err = check["median_relative_error"]
+    assert set(err) == {4, 16, 64}
+
+    # Monte-Carlo error falls as 1/sqrt(K): each 4x in K should roughly halve it. Averaged
+    # over six seeds so a single unlucky draw cannot decide the assertion -- at one fixed
+    # seed the sequence is not monotone, which is the nature of the estimator, not a defect.
+    assert err[16] < 0.75 * err[4]
+    assert err[64] < 0.75 * err[16]
+
+    # unbiasedness: averaging many cheap K=4 estimates converges on the exact answer, so the
+    # spread above is variance around the right value rather than a bias at the wrong scale
+    # (which is exactly what a mis-paired normalization would produce, off by a factor of d).
+    assert check["mean_of_replicates_relative_error"] < 0.5 * err[4]
+
+    # and the exact path it is checking is the gating one
+    exact = cc.chart_mean_curvature(model, z_chart, 0)["H_vec"]
+    torch.testing.assert_close(check["H_exact"], exact, rtol=1e-12, atol=1e-14)
