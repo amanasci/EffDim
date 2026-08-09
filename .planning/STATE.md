@@ -255,7 +255,7 @@ From `TODO.md`:
 | 260801-ovf | cleanup: reduce to barebones isomap-on-dino experiment | 2026-08-02 | 59742af | [260801-ovf-cleanup-reduce-to-barebones-isomap-on-di](./quick/260801-ovf-cleanup-reduce-to-barebones-isomap-on-di/) |
 | 260803-k9n | Insert Phase 02.2: Chart Autoencoder Validity Test (arXiv:1912.10094) with PASS/FAIL gate for Phase 3 | 2026-08-03 | 3357ea5 | [260803-k9n-update-phase-2-of-milestone-to-test-vali](./quick/260803-k9n-update-phase-2-of-milestone-to-test-vali/) |
 | 260805-brr | distill the CAE experiment into a notebook | 2026-08-05 | ccc0bf7 | [260805-brr-distill-the-cae-experiment-into-a-notebo](./quick/260805-brr-distill-the-cae-experiment-into-a-notebo/) |
-| 20260809-topoae-vs-cae-persistence | TopoAE vs CAE: which preserves persistent homology better (Swiss roll + PU) | 2026-08-09 | 9b44265 | [20260809-topoae-vs-cae-persistence](./quick/20260809-topoae-vs-cae-persistence/) |
+| 20260809-topoae-vs-cae-persistence | TopoAE vs CAE: which preserves persistent homology better (Swiss roll + PU). H0 (MST merges), then extended to H1/H2 (loops, voids) with venv-local ripser+persim. Two instrument findings: the ambient Swiss roll measures beta_1=1, so "contractible therefore beta_1=0" is false for Vietoris-Rips on a finite sample; and bottleneck distance saturates at half the longest unmatched bar and cannot rank. Rankings read off Wasserstein. ripser/persim are NOT in pyproject.toml (CLAUDE.md bars editing it) — sections 12-19 need a manual install to reproduce | 2026-08-09 | 9b44265 (H0) + 86b4148 (H1/H2) | [20260809-topoae-vs-cae-persistence](./quick/20260809-topoae-vs-cae-persistence/) |
 
 ### Roadmap Evolution
 
