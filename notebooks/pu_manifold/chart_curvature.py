@@ -74,10 +74,20 @@ exactly this many rows, with a short final chunk padded up to it and the padding
 This is a reproducibility constant, not a tuning knob, and it is not caller-overridable on
 purpose. Measured during plan 02.5-08: ``vmap(hessian(f))`` is **not** bit-reproducible across
 differing batch widths -- the same row computed in a batch of 8 and in a batch of 24 differs by
-~1.7e-18, because torch selects different batched-matmul kernels by batch size. ``jacrev`` and
-``linalg.solve``/``cond`` were bit-identical under the same comparison; only the doubly-nested
-Hessian transform moved. Propagated through the metric solve and the normal projection, that
-grew to ~5e-15 in ``H_norm``.
+~1.7e-18, because torch selects different batched-matmul kernels by batch size. Propagated
+through the metric solve and the normal projection, that grew to ~5e-15 in ``H_norm``.
+
+**Correction, verified independently after this module was written:** an earlier draft of this
+docstring stated that ``jacrev`` was bit-identical under the same comparison and that "only the
+doubly-nested Hessian transform moved." **That is not generally true, and must not be relied
+on.** On a decoder-shaped map (``W2 @ silu(W1 z + b1) + b2``, ``chart_dim=20``, ``out_dim=768``)
+``vmap(jacrev(f))`` at width 8 versus width 64 differs by ``1.07e-14`` -- the same order as
+``vmap(hessian(f))`` on the identical construction. Whether ``jacrev`` moves is
+construction-dependent, which is precisely why it cannot be assumed stable.
+
+Consequence for anyone editing this module: the chunking around the ``jacrev`` call in
+:func:`chart_jacobian` is **load-bearing and must not be removed as redundant**. Every
+``vmap``'d derivative here is chunked, and that is deliberate rather than defensive uniformity.
 
 Measured in the same session and load-bearing for this fix: at a FIXED width the result for a
 given row is bit-identical regardless of which other rows share its chunk, and regardless of
