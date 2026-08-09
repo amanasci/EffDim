@@ -1293,3 +1293,246 @@ def test_seed_replicate_lower_bound_refuses_bad_input(values, t_multiplier, expe
     """
     with pytest.raises(ValueError, match=match):
         cp.seed_replicate_lower_bound(values, t_multiplier, expected_n)
+
+
+# --- Plan 02.5-08 Task 1: exact chart-decoder curvature via torch.func -------------------
+#
+# torch is imported INSIDE each test body, never at module scope, so the numpy-only tests
+# above still collect in an environment without torch (this file's own header promises
+# "no torch"; that promise is kept at import time, which is what matters for collection).
+
+
+def _toy_quadratic_chart_model(a: float, chart_dim: int):
+    """A duck-typed stand-in for ``cae.ChartAutoEncoder`` whose decoder is the EXACT
+    quadratic graph map ``z -> (z, 0.5 * a * ||z||^2)``, whose mean curvature is therefore
+    known in closed form via ``curvature_probe.graph_mean_curvature``.
+
+    02.2-05's precedent established that this package's model-consuming functions accept a
+    duck-typed model object so a known-answer fixture can be minimal and fully
+    float-controllable; the same precedent applies here. Only ``chart_decoders``,
+    ``embedding_decoder``, and ``activation`` are consumed by ``chart_curvature``.
+    """
+    import torch
+
+    class _QuadraticGraph(torch.nn.Module):
+        def __init__(self, amp: float):
+            super().__init__()
+            self.amp = float(amp)
+
+        def forward(self, z: "torch.Tensor") -> "torch.Tensor":
+            f = 0.5 * self.amp * (z**2).sum(dim=-1, keepdim=True)
+            return torch.cat([z, f], dim=-1)
+
+    class _ToyChartModel:
+        def __init__(self):
+            self.chart_decoders = [torch.nn.Identity().double()]
+            self.embedding_decoder = _QuadraticGraph(a).double()
+            self.activation = "silu"
+            self.chart_dim = chart_dim
+            self.out_dim = chart_dim + 1
+
+    return _ToyChartModel()
+
+
+def _toy_quadratic_analytic_H(z_np: np.ndarray, a: float) -> np.ndarray:
+    """Closed-form mean curvature of ``M = {(z, 0.5*a*||z||^2)}``: ``grad f = a*z`` and
+    ``hess f = a*I``, fed to the already-verified ``graph_mean_curvature`` (pinned against
+    central finite differences by plan 02.5-02, so this is ground truth computed by a
+    different route than the code under test)."""
+    n, d = z_np.shape
+    grad = (a * z_np)[:, None, :]  # (n, 1, d)
+    hess = np.broadcast_to(a * np.eye(d), (n, 1, d, d)).copy()  # (n, 1, d, d)
+    return cp.graph_mean_curvature(grad, hess)
+
+
+def _small_cae(activation: str, seed: int = 0):
+    """A tiny float64 ``ChartAutoEncoder``, small enough that vmap(hessian(...)) over its
+    decoder is sub-second."""
+    import torch
+
+    from pu_manifold import cae
+
+    torch.manual_seed(seed)
+    model = cae.ChartAutoEncoder(
+        in_dim=12, embed_dim=6, chart_dim=2, n_charts=3, hidden=[8], activation=activation
+    )
+    return model.double()
+
+
+def test_chart_curvature_matches_analytic_on_toy_decoder():
+    """Pitfall 5's verification, and the single test that makes the tensor contractions in
+    ``chart_mean_curvature`` trustworthy.
+
+    ``torch.func``'s composition through ``jacrev``/``hessian`` plus an outer ``vmap`` can
+    silently return a Jacobian-shaped tensor, and a transposed index order in the normal
+    projection produces a result that still runs. Neither survives a comparison against a
+    decoder whose curvature is known in closed form and computed by an independent route.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    a, chart_dim, batch = 0.7, 2, 16
+    model = _toy_quadratic_chart_model(a, chart_dim)
+
+    rng = np.random.default_rng(20260809)
+    z_np = rng.uniform(-0.8, 0.8, size=(batch, chart_dim))
+    z_chart = torch.tensor(z_np, dtype=torch.float64)
+
+    out = cc.chart_mean_curvature(model, z_chart, 0)
+    H = out["H_vec"].numpy()
+    H_true = _toy_quadratic_analytic_H(z_np, a)
+
+    assert H.shape == (batch, chart_dim + 1)
+    np.testing.assert_allclose(H, H_true, rtol=1e-5)
+
+    # Pitfall 5's warning sign, pinned: the diagnostics report the shapes the transform
+    # composition actually produced, not the shapes it was supposed to produce.
+    assert out["jacobian_shape"] == (batch, 3, 2)
+    assert out["hessian_shape"] == (batch, 3, 2, 2)
+
+    # A graph over a full-rank domain is an immersion everywhere; cond(g) near 1 is the
+    # signal that no non-immersion point contaminated the comparison.
+    assert np.all(np.isfinite(out["metric_condition_number"].numpy()))
+    assert np.max(out["metric_condition_number"].numpy()) < 10.0
+
+    np.testing.assert_allclose(
+        cc.chart_mean_curvature_norm(out["H_vec"]).numpy(),
+        np.linalg.norm(H_true, axis=-1),
+        rtol=1e-5,
+    )
+
+
+def test_chart_curvature_refuses_relu_decoder():
+    """RESEARCH Pitfall 4. ReLU is piecewise-linear, so its second derivative is a sum of
+    Dirac deltas at the kinks and is numerically zero everywhere autodiff evaluates it.
+    Without this guard the entire second fundamental form would come back as exactly
+    ``0.0`` and read as a perfectly flat manifold -- a silent wrong answer, not an error.
+
+    The guard reads ``model.activation``, not the cache stem name, which is Pitfall 4's
+    own stated mitigation, and it raises rather than warns: a warning in a batch runner is
+    a silent failure.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    relu_model = _small_cae("relu", seed=1)
+    z_chart = torch.rand(4, 2, dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="relu"):
+        cc.chart_mean_curvature(relu_model, z_chart, 0)
+
+    silu_model = _small_cae("silu", seed=1)
+    out = cc.chart_mean_curvature(silu_model, z_chart, 0)
+    assert out["H_vec"].shape == (4, silu_model.out_dim)
+    assert torch.isfinite(out["H_vec"]).all()
+
+
+def test_chart_curvature_field_reassembles_in_row_order():
+    """A batching bug that reorders rows is invisible to every aggregate statistic this
+    phase computes -- Spearman and quantile-bin concordance would both simply drop. The
+    only thing that catches it is asserting the field is bit-identical under two different
+    batch sizes and that the chart assignment matches the model's own argmax."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=2)
+    rng = np.random.default_rng(7)
+    x = torch.tensor(rng.standard_normal((24, 12)), dtype=torch.float64)
+
+    field_small = cc.chart_curvature_field(model, x, batch_size=8)
+    field_large = cc.chart_curvature_field(model, x, batch_size=64)
+
+    assert field_small["H_norm"].shape == (24,)
+    assert field_small["H_vec"].shape == (24, model.out_dim)
+
+    with torch.no_grad():
+        expected_assignment = model.chart_probs(model.encode(x)).argmax(dim=1)
+    assert torch.equal(field_small["chart_assignment"], expected_assignment)
+
+    # bit-identical, not merely close: batching must not touch a single float
+    assert torch.equal(field_small["H_norm"], field_large["H_norm"])
+    assert torch.equal(field_small["H_vec"], field_large["H_vec"])
+    assert torch.equal(
+        field_small["metric_condition_number"], field_large["metric_condition_number"]
+    )
+    assert field_small["n_charts_used"] == len(torch.unique(expected_assignment))
+
+
+def test_chart_curvature_uses_trace_convention_not_averaged():
+    """The factor-of-``d`` regression guard, and the reason it exists at full strength.
+
+    ``02.5-NOTE-randomized-trace.md`` Section 1 and
+    ``02.5-NOTE-high-d-curvature-approaches.md`` Section 2c both record that the external
+    source material for this arm uses the AVERAGED convention ``H = (1/d) tr_g(II)``.
+    Transcribing it verbatim introduces a factor-of-``d`` = 20 error against every fixture,
+    every 02.5 SUMMARY number, and the sealed stage-1 gate. This codebase has already
+    shipped and then fixed exactly one factor-of-``d`` scale bug.
+
+    ``chart_dim = 4`` is chosen so that ``d``, ``d + 2`` and ``1`` are all distinguishable
+    -- at ``d = 2`` a ``d``-fold error and a ``(d+2)/d`` error are not separable.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    assert cc.CURVATURE_CONVENTION == "trace"
+    assert cc.CURVATURE_CONVENTION == cp.CURVATURE_CONVENTION
+
+    a, chart_dim, batch = 0.9, 4, 8
+    model = _toy_quadratic_chart_model(a, chart_dim)
+
+    rng = np.random.default_rng(4242)
+    z_np = rng.uniform(-0.5, 0.5, size=(batch, chart_dim))
+    H = cc.chart_mean_curvature(model, torch.tensor(z_np, dtype=torch.float64), 0)["H_vec"].numpy()
+    H_true = _toy_quadratic_analytic_H(z_np, a)
+
+    np.testing.assert_allclose(H, H_true, rtol=1e-5)
+
+    norm = np.linalg.norm(H, axis=-1)
+    norm_true = np.linalg.norm(H_true, axis=-1)
+    assert np.all(norm_true > 1e-6)
+    # the averaged convention, and the already-fixed (d+2)/d bug, are both excluded
+    assert not np.allclose(norm, norm_true / chart_dim, rtol=1e-3)
+    assert not np.allclose(norm, norm_true * chart_dim, rtol=1e-3)
+    assert not np.allclose(norm, norm_true * (chart_dim + 2) / chart_dim, rtol=1e-3)
+
+
+def test_chart_curvature_dxd_solve_matches_explicit_projector():
+    """``chart_mean_curvature`` never materializes the ``(D, D)`` normal projector that
+    RESEARCH Pattern 4's illustrative snippet writes: at ``out_dim = 768`` a batch of 32
+    such projectors is 151 MB of float64, and the ``II`` tensor it multiplies is another
+    78 MB. Instead it applies ``P_N a = a - J alpha`` with ``g alpha = J^T a``, a
+    ``chart_dim x chart_dim`` solve, to the already-``g``-traced ambient Hessian.
+
+    That is an optimisation of the SAME mathematics, so it needs an equality proof rather
+    than an assurance. This test reimplements Pattern 4's snippet verbatim -- explicit
+    ``(D, D)`` projector, explicit ``II``, projector-then-trace rather than
+    trace-then-projector -- and asserts the two agree to float64 round-off.
+    """
+    import torch
+    from torch.func import hessian, jacrev, vmap
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=3)
+    chart_idx = 1
+    z_chart = torch.rand(6, model.chart_dim, dtype=torch.float64)
+
+    decode_one = cc.chart_decoder_map(model, chart_idx)
+    J = vmap(jacrev(decode_one))(z_chart)
+    Hess = vmap(hessian(decode_one))(z_chart)
+
+    # --- RESEARCH Pattern 4, transcribed verbatim, as the independent reference ---
+    g = torch.einsum("boi,boj->bij", J, J)
+    g_inv = torch.linalg.inv(g)
+    proj = torch.eye(J.shape[1], dtype=J.dtype)[None] - torch.einsum("boi,bij,bpj->bop", J, g_inv, J)
+    II = torch.einsum("bop,bpjk->bojk", proj, Hess)
+    H_reference = torch.einsum("bij,boij->bo", g_inv, II)
+
+    H_actual = cc.chart_mean_curvature(model, z_chart, chart_idx)["H_vec"]
+
+    assert H_reference.shape == H_actual.shape
+    torch.testing.assert_close(H_actual, H_reference, rtol=1e-9, atol=1e-12)
