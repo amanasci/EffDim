@@ -392,7 +392,7 @@ Plans:
 
 **Status**: Inserted 2026-08-10. No `/gsd-discuss-phase` pass — scoped directly in this entry, so no CONTEXT.md exists and `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule are **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10 (`02.6-RESEARCH.md`, `02.6-PATTERNS.md`, `02.6-VALIDATION.md`). Planned 2026-08-10 — 6 plans across 3 waves. No milestone REQ-IDs; coverage is traced against the five success criteria above as **SC-1..SC-5**, and all five are covered.
 
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -404,7 +404,7 @@ Plans:
 
 - [ ] 02.6-03-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **plain-AE** decoder (SC-2, SC-3)
 - [ ] 02.6-04-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **TopoAE-trained** decoder, with a genuinely matched baseline at budget parity (SC-2, SC-3)
-- [ ] 02.6-05-PLAN.md — Four-seed, four-axis screening runner in `notebooks/diagnostics/`, measuring and printing only — no bar, no verdict (SC-3, SC-4)
+- [x] 02.6-05-PLAN.md — Four-seed, four-axis screening runner in `notebooks/diagnostics/`, measuring and printing only — no bar, no verdict (SC-3, SC-4)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
