@@ -5,10 +5,10 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: halted
-stopped_at: Phase 02.6 HALTED after 02.6-05 — ranking axis confounded, awaiting replan (see 02.6-FINDINGS.md)
-last_updated: "2026-08-10T15:10:00.000Z"
+stopped_at: Phase 02.6 context gathered
+last_updated: "2026-08-10T19:36:55.436Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 halted mid-execution at 3/6 plans; halt record sealed
+last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
@@ -317,8 +317,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-10T14:53:05.010Z
-Stopped at: Completed 02.6-05-PLAN.md
+Last session: 2026-08-10T19:36:55.403Z
+Stopped at: Phase 02.6 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.6-decoder-substrate-screening/02.6-CONTEXT.md
 </content>
