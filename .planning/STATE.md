@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
-status: halted
-stopped_at: Phase 02.6 context gathered
-last_updated: "2026-08-10T19:36:55.436Z"
+status: ready_to_execute
+stopped_at: Phase 02.6 replanned onto the PH-agreement axis
+last_updated: "2026-08-10T22:15:00.000Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 execution started
+last_activity_desc: Phase 02.6 replanned — 9 new plans (02.6-07..15) across 5 waves
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 44
+  total_plans: 53
   completed_plans: 37
 ---
 
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.6 (decoder-substrate-screening) — **HALTED 2026-08-10 at 3/6 plans**
-Plan: halted after 02.6-05
+Phase: 02.6 (decoder-substrate-screening) — **REPLANNED 2026-08-10, ready to execute**
+Plan: 9 new plans `02.6-07`..`15` across 5 waves; the halted run's `01`–`06` are retained history
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -44,26 +44,30 @@ bar), and the measured four-seed tables for both free candidates. `02.6-03`'s no
 and executed but its `human-verify` gate never closed. `02.6-04` never started. `02.6-06` is
 superseded by the halt record.
 
-**Next:** replan 02.6 around manifold/topology preservation as the ranking axis, decided
-independently of curvature approximation. `02.6-FINDINGS.md` §8 states the three questions the
-replan must answer — including that topology preservation alone does not guarantee usable
-second derivatives (`02.5-NOTE` §4), and that Phase 02.1 has recorded precedent for ranking on
-a proxy criterion that later proved suspect.
+**Phase 02.6 is REPLANNED (2026-08-10).** The ranking axis is now **persistent-homology agreement** — the distance between a model's persistence diagram and a reference diagram — decided independently of how curvature is approximated. 9 new plans `02.6-07`..`15` across 5 independently-numbered waves. Plan-checker: **0 blockers**, 2 warnings, both closed. Decision coverage **22/22** (`02.6-CONTEXT.md` D-01..D-22), verified by the gate rather than accepted from the planner; success-criterion coverage **7/7** against the rewritten `SC-1..SC-7`.
 
-**Phase 02.6 is planned (2026-08-10).** 6 plans across 3 waves. Plan-checker returned **0 blockers, 0 warnings**. No milestone REQ-IDs exist for this phase — ROADMAP.md declares none and directs that coverage be derived from its five stated success criteria, so the plans use phase-local `SC-1..SC-5`; coverage is 5/5. No CONTEXT.md exists either (the phase was inserted and scoped directly in ROADMAP.md; `/gsd-discuss-phase` was never run, by explicit user choice at plan time). Wave order: `01` `decoder_curvature.py` tracer ∥ `02` **blocking `checkpoint:decision`** ratifying the numeric admission floor and promotion bars → `03` plain-AE admission notebook ∥ `04` TopoAE admission notebook ∥ `05` four-seed runner → `06` `02.6-FINDINGS.md` and the promotion argument. Plans `02`, `03`, `04`, `06` are non-autonomous. The decision checkpoint sits in wave 1 deliberately, so the bars are chosen **blind** — before plan `05` measures anything.
+This phase had **no discuss pass** on its first attempt. It has one now: `02.6-CONTEXT.md` + `02.6-DISCUSSION-LOG.md` (2026-08-10) are authoritative for scope, and ROADMAP.md's Goal and success criteria were rewritten from them — the old Goal described the abandoned curvature axis and said "promote at most ONE", which D-10 reverses. `02.6-RESEARCH.md` was overwritten (it carries a `## Retractions from Prior RESEARCH.md` table), `02.6-PATTERNS.md` re-mapped, `02.6-VALIDATION.md` reseeded.
 
-**The correction the planner found, and the checker verified against source.** Both `02.6-RESEARCH.md` (Pattern 1) and `02.6-PATTERNS.md` instruct the new module to call `chart_curvature.assert_c2_activation` unchanged, and assert the call passes. It does not: `ChartAutoEncoder.__init__` sets `self.activation` (`cae.py:170`), `PlainAutoEncoder.__init__` (`cae.py:576-594`) does not, and `assert_c2_activation` raises when the attribute is absent (`chart_curvature.py:148-154`). Following the research as written would have hard-raised on every legitimate plain decoder and made the "ReLU decoder must raise" test vacuous. Plan `01` introduces `assert_c2_decoder`, which reaches the same sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules.
+**Wave order.** `07` **blocking `checkpoint:decision`** ratifying the criterion, bars and read-out matrix ∥ `08` the separating experiment (tracer + human-verify) → `09` `persistence_probe.py` ∥ `10` `derivative_bridge.py` → `11` PH screen runner ∥ `12` plain-AE + TopoAE notebooks ∥ `14` bridge run → `13` CAE notebook (negative control) → `15` `02.6-FINDINGS-02.md`. The ratification sits in wave 1 so the bars are chosen **blind**; plan `07`'s acceptance criteria assert commit ancestry (`git merge-base --is-ancestor`) and plan `15` re-checks it at close, so no PH number can exist in the tree before the criterion is committed.
 
-**Open decisions, handled two ways.** Eight are adopted as **stated assumptions** with the rejected alternative named (A-01..A-12: import-vs-duplicate the sealed helpers, sibling module vs editing `chart_curvature.py`, `d×d`-solve vs explicit projector, hosting `swiss_roll_analytic_H_vector`, fixture `20260807`, cfg reused verbatim from the 02.4 notebook, cache-free runner, runner applies no bar). The two that would make written work wrong if reversed — the **numeric admission floor** and the **promotion bars** — went to the wave-1 `checkpoint:decision` in plan `02`. `SPEARMAN_ABSOLUTE_FLOOR` is correctly treated as a docstring literal at `curvature_probe.py:1457`, never an import.
+**What this phase claims, and what it deliberately does not.** It **promotes no substrate** (D-10). `02.5-10` inherits a ranking, a derivative-usability table, and the separator's result, and makes the promotion decision under its own seal-before-measure discipline. The criterion is ratified **explicitly non-gating** (D-09) — a deliberate choice to claim less, made because `02.6-FINDINGS.md` §4 records the previous rule as having constrained nothing. The `SPREAD > mean - floor` disqualifier is **dropped** (D-11): with a non-gating criterion there is nothing to disqualify. A substrate topping the ranking but failing the bridge is **not** promoted and the ranking is **not** walked to the runner-up (D-19) — that would be a second axis applied after seeing results.
 
-**Scope fences carried into every plan.** Screening only — no PU fit, no verdict artifact, no sealed gate, no PASS/FAIL JSON. Sealed verdicts never reopened; sealed fits read-only. `src/effdim/` and `pyproject.toml` untouched. TopoAE++ is a resolved **NO-GO** (planar-restricted algorithm, `Z = R^2`; CGAL/Qt5/ParaView/TTK stack with no pip path) — recorded as a disposition, never an implementation task. Witness AE / RTD-AE / GRAE carry **no** implementation task in this plan set; any such work is gated behind a written "both free candidates failed admission" finding.
+**D-01 is one-way and the record cannot absorb another change.** `02.6-FINDINGS.md` §4 already records one criterion changed after an unfavourable result. A second change for the same question would be the third criterion tried, and no later reader could distinguish "we learned something" from "we kept going until a candidate won." Whatever this axis measures is what the phase reports.
+
+**Corrections found during this replan, verified against source.** (1) `cae.ChartAutoEncoder.forward(x)` returns no `"y"` key — it returns `z, z_charts, y_charts, p, e`; the CAE's decoder image is `model.reconstruct(x)`, which `02.2_swiss_roll_cae_check.ipynb` itself uses. Both `02.6-RESEARCH.md` Pattern 3 and `02.6-PATTERNS.md` asserted otherwise — the same class of error as the `assert_c2_activation` one already on record. (2) RESEARCH's arc-length tolerance measured `9.237e-14`, above its stated `< 9e-14`; plans pin `< 1e-12`. (3) RESEARCH Pitfall 2's `0.420` intrinsic-H1 top life did not reproduce (`0.3348` at diameter `11.2886`) — subsample-procedure-dependent, pinned nowhere. (4) New hazard not in RESEARCH: `persim.bottleneck(ambient_H1_ref, intrinsic_H1_ref) = 0.35988`, exactly the ambient reference's saturation value and identical to the empty-diagram distance — the `(H1, ambient)` bottleneck cell is expected saturated for a *correctly* unrolled latent. Plan `09` pins it as a regression test before any candidate is measured.
+
+**Scope fences.** Candidate set narrowed to the **three in-repo** substrates (D-20): plain AE, TopoAE, CAE as the measured negative control. RTD-AE / Witness AE / GRAE move to a scoped follow-on — RTD-AE became *more* aligned the moment PH was chosen as the axis. TopoAE++ stays a resolved **NO-GO** (planar-restricted algorithm; no pip path). **D-21 amends** the original "no PU fits" fence to permit *new* PU fits for the SC-5 bridge arm only, rated **costly** to reverse — but every PU artifact the bridge needs already exists locally, so plan `14` carries a `<precondition>` requiring halt-and-report rather than a silent new fit, and its SUMMARY must state whether the amendment was exercised. **D-08:** the built distortion instruments are **not computed** — a second geometric number invites the post-hoc axis-switching §4 recorded. Sealed verdicts never reopened; sealed fits read-only; `src/effdim/` and `pyproject.toml` untouched; additive only.
+
+**Open questions, all routed to the wave-1 checkpoint** as option groups P/Q/R/S/T with recommendations and individually recorded dispositions: the thin `(H1, intrinsic-plane)` normalization denominator, which of the CAE's two latent spaces counts as "the encoder latent" (recommendation: the global `embed_dim` embedding), whether the bridge needs the full `d×d` FD Hessian or the reduced quantity, whether the separator is evaluated at training points only or on a held-out grid, and a fifth found during planning — per-cloud pre-scaling before diagram construction, which D-05 does not settle.
+
+**Assumption-delta:** recorded in `02.6-07` as one **`promote`** — the ranking quantity changed identity from decoder-pullback curvature agreement to persistent-homology diagram agreement, and the curvature quantity is demoted to the separator's strictly non-ranking role — plus two `no-change` lexical hits.
 
 ---
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-10 — Phase 02.6 execution started
+Last activity: 2026-08-10 — Phase 02.6 replanned onto the PH-agreement axis
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -318,7 +322,7 @@ From `TODO.md`:
 ## Session Continuity
 
 Last session: 2026-08-10T19:36:55.403Z
-Stopped at: Phase 02.6 context gathered
+Stopped at: Phase 02.6 replanned — ready to execute
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: .planning/phases/02.6-decoder-substrate-screening/02.6-CONTEXT.md
 </content>
