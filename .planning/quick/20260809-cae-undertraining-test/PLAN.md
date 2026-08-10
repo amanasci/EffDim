@@ -2,7 +2,7 @@
 quick_id: 20260809-cae-undertraining-test
 description: Is the CAE a bad model for this data, or an under-trained one?
 date: 2026-08-09
-status: blocked-on-premise-audit
+status: approved-executing
 branch: isomap-curvature
 deliverable: notebooks/quick_cae_undertraining_test.ipynb
 ---
@@ -80,11 +80,22 @@ Charts *do* fall out of use on the roll, at two of four seeds. That variation is
 the entire 02.5-09 finding — `rho_chart` is monotone in charts used
 (3 → 0.8665, 5 → 0.4250, 8 → −0.0604 / −0.1444).
 
-**Consequence.** The weight-mass survival instrument has **never been run on the
-Swiss roll at all**. That question is genuinely open and worth answering — but the
-premise "not one chart dies even on a contractible manifold, per 02.5-09" is not
-something 02.5-09 established. The experiment must report *both* instruments and
-must not conflate them.
+**(c) My own error, corrected by the coordinator.** I initially wrote that the
+weight-mass instrument had "never been run on the roll at all." That is **wrong**.
+`notebooks/02.5_swiss_roll_chart_curvature_check.ipynb` cell 8 calls
+
+```python
+survival = cae.chart_survival(model, prune_tol=1e-2)   # -> "charts surviving = 8 / 8"
+```
+
+Verified in the committed output. So the weight-mass instrument has **one existing
+observation on the roll: 8/8 at `prune_tol=1e-2`, seed 0**. This experiment
+*reproduces and extends it across seeds and arms*; it does not open new ground.
+
+**Consequence.** What was genuinely conflated is (a): "charts used" (8/8/3/5, the
+seed table) and "charts surviving" (8/8, cell 8) are different quantities measured
+by different instruments, and the brief treated them as one. The experiment must
+report **both**, per fit, and never substitute one for the other.
 
 ---
 
@@ -124,7 +135,7 @@ CAE  epochs_run = 47  early_stopped = True
 So on this fixture the CAE already trains to **47 epochs** — past the paper's
 effective convergence point, and well past the sealed PU fits' 36 / 30 / 24
 (which stopped early against an aggressive `patience=5`). At 47 epochs it still
-used all 8 charts at two of four seeds.
+showed **8/8 weight-mass survival** (cell 8) and used all 8 charts at seed 0.
 
 Arm B (100 epochs, early stopping off) is therefore substantially a re-run of
 territory 02.5-09 already covered at 300. It is cheap and still worth having as a
@@ -153,137 +164,159 @@ shrinkage) or `wd ≈ 1.0` (74 % shrinkage)**.
 
 ---
 
-## Part 2 — Proposed corrected design
+## Part 2 — Settled design (approved by coordinator)
 
-Same shape, same cost envelope, three changes. Nothing here is executed until
-approved.
+All three open questions answered: run **C and C′ both**, **add arm E**, **keep 4 seeds**.
+Cut arm B before cutting a seed if the budget bites.
 
-### Arms — 4 arms × 4 torch seeds (0,1,2,3) = 16 fits
+### Arms — 6 arms × 4 torch seeds (0,1,2,3) = 24 CAE fits
 
-| arm | `max_epochs` | early stop | `weight_decay` | `lip_weight` | change |
-|---|---|---|---|---|---|
-| **A** as-sealed | 40 | ON (patience 5) | 1e-4 | 1e-2 | unchanged |
-| **B** paper-epochs | 100 | OFF | 1e-4 | 1e-2 | unchanged; reframed per P3 as a control, not the live hypothesis |
-| **C** strong-decay | 100 | OFF | **1.0** | 1e-2 | **`wd` 1e-2 → 1.0** per P4 — the only setting that can actually zero an unused chart |
-| **D** strong-lipschitz | 100 | OFF | 1e-4 | 1e-1 | unchanged |
+| arm | `lr` | `max_epochs` | early stop | `weight_decay` | `lip_weight` | `embed_dim` | fps | role |
+|---|---|---|---|---|---|---|---|---|
+| **A** as-sealed | 3e-4 | 40 | ON (patience 5) | 1e-4 | 1e-2 | 4 | 5 | reference |
+| **B** paper-epochs | 3e-4 | 100 | OFF | 1e-4 | 1e-2 | 4 | 5 | **control** (P3: weak hypothesis) |
+| **C** decay ×1e3 | 3e-4 | 100 | OFF | **1e-1** | 1e-2 | 4 | 5 | decay dose 1 (12.6 % shrink) |
+| **C′** decay ×1e4 | 3e-4 | 100 | OFF | **1.0** | 1e-2 | 4 | 5 | decay dose 2 (74.1 % shrink) |
+| **D** strong-lipschitz | 3e-4 | 100 | OFF | 1e-4 | **1e-1** | 4 | 5 | eq.-4 pressure |
+| **E** 02.5-09 replica | **1e-3** | 300 | ON (patience 25) | 1e-4 | 1e-3 | **8** | 20 | comparability to −0.0604 / −0.1444 / 0.8665 / 0.4250 |
 
-Fixed across arms: `make_swiss_roll(n≈3000, noise=0.0)` at a fixed `random_state`,
-centred and divided by one global scalar std; `chart_dim=2`, `n_charts=8`,
-`hidden=[64,64]`, `embed_dim=4` (= 2·chart_dim, the module's Nash–Kuiper default),
-`lr=3e-4`, `batch=64`, `fps_pretrain_epochs=5`, `activation="silu"`.
+C and C′ are a **dose pair**: a single decay point cannot distinguish "decay too weak"
+from "decay irrelevant." Two doses an order of magnitude apart can.
 
-Early stopping is disabled by `early_stop_patience = max_epochs + 1`.
-`epochs_run` is recorded per fit and **asserted equal to the cap** in B/C/D; if
-early stopping still fires, the notebook says so, because then the arm did not
+Fixed across all arms: `curvature_probe.make_swiss_roll_fixture(n=3000, seed=20260807)`
+— which *is* `make_swiss_roll(noise=0.0)` centred and divided by one global scalar std,
+CLAUDE.md's exact convention, and 02.5-09's fixture seed. `chart_dim=2`, `n_charts=8`,
+`hidden=[64,64]`, `batch=64`, `activation="silu"`, `lip_every_n_steps=1`,
+`early_stop_min_delta=1e-4`.
+
+Early stopping is disabled by `early_stop_patience = max_epochs + 1`. `epochs_run` is
+recorded per fit and **asserted equal to the cap** for B/C/C′/D; if early stopping
+fires anyway the notebook prints a loud failure line, because then the arm did not
 test what it claims.
 
-**Optional arm E (02.5-09 replica)** — `lr=1e-3`, `max_epochs=300`, `patience=25`,
-`lip=1e-3`, `fps=20`, `embed_dim=8`. Add this only if direct numeric comparability
-to −0.0604 / −0.1444 / 0.8665 / 0.4250 is wanted. It costs ~4 more fits (~5 min).
-**Decision needed — see question Q2.**
+### Primary hypothesis — promoted from footnote, per coordinator
+
+> **Occupancy collapses while weight mass does not.**
+
+Seed 0 already shows both instruments disagreeing in the direction that matters:
+8 charts *used* alongside 8/8 *surviving*, while seed 2 drops to 3 charts used. If the
+arms confirm this, the finding is a **critique of the paper's own pruning criterion**:
+the paper says to remove a chart when its decoder weight norm falls below tolerance,
+but a chart that has stopped winning any `argmax(p_alpha)` while its weights stay large
+is **functionally dead and that criterion never fires**. It would mean the pruning rule
+cannot see the atlas fragmentation that 02.5-09 showed actually drives the curvature
+failure.
+
+Stated in those terms **only if the data supports it**, and just as plainly if not.
+
+### Falsifiable predictions — printed BEFORE the results cell
+
+1. **Under-training is the cause:** arms B/C/C′/D develop a near-zero mode in the
+   weight-mass distribution (charts genuinely dying), with reconstruction, H0 merge
+   retention, and curvature Spearman improving relative to arm A.
+2. **The CAE is simply a poor fit here:** every arm's norm distribution stays unimodal
+   and tight, occupancy stays at 8, downstream numbers do not move. Reported just as
+   plainly — an equally publishable answer.
+3. **(Primary, per above)** Occupancy collapses in some arms/seeds while weight mass
+   stays unimodal — the two instruments disagree, and the paper's pruning criterion is
+   the thing that fails.
+4. **Dose-dependence discriminator:** if C′ (74 % shrink) kills charts and C (12.6 %)
+   does not, decay strength was the binding constraint. If *neither* does, decay is
+   irrelevant on this manifold and P4's arithmetic was necessary but not sufficient.
 
 ### Measured per arm × seed
 
-1. **Both norm distributions, in full** — the per-layer-Frobenius-sum vector (the
-   brief's instrument, C1) *and* `cae.chart_survival`'s mass-ratio vector. Reported
-   as vectors, never only as a count.
-2. **`chart_survival(model, prune_tol)`** with `prune_tol` stated and justified —
-   see the threshold note below.
-3. **Argmax chart occupancy** — distinct charts winning `p_alpha` at inference.
-   This is 02.5-09's instrument and the one that already moves (8/8/3/5).
-4. **Reconstruction relative error**, vs a matched `cae.PlainAutoEncoder` at the
-   same 2-D bottleneck and the same protocol per arm.
-5. **H0 merge retention** vs the ambient roll — `topoae.persistence_pairs` MST
-   edge-set instrument, reused unchanged from
-   `notebooks/quick_topoae_vs_cae_persistence.ipynb`, with the dimension-matched
-   plain AE as baseline.
-6. **Curvature Spearman** through the chart decoder via
-   `chart_curvature.chart_curvature_field`, against
-   `curvature_probe.swiss_roll_analytic_H_scaled`.
+1. **Both norm vectors, in full** — per-layer-Frobenius sums (the brief's instrument)
+   *and* `cae.chart_survival` mass ratios. Always printed as vectors.
+2. **`chart_survival(model, prune_tol=1e-2)`** — `prune_tol` is **not a fresh pick**:
+   it is the value 02.5-09 itself used, so the count is directly comparable to its
+   existing 8/8. That is the justification.
+3. **Argmax occupancy** — `chart_curvature.chart_curvature_field(...)["n_charts_used"]`,
+   the instrument behind the 8/8/3/5 seed table.
+4. **Reconstruction relative error**, vs a matched `cae.PlainAutoEncoder` at the 2-D
+   bottleneck trained on the same protocol (CLAUDE.md's required baseline).
+5. **H0 merge retention** vs the ambient roll — `topoae.persistence_pairs` MST edge-set
+   instrument reused unchanged from `notebooks/quick_topoae_vs_cae_persistence.ipynb`,
+   with a **dimension-matched** plain AE (latent = the arm's `embed_dim`) as baseline.
+6. **Curvature Spearman** — `curvature_probe.spearman_gate_statistic` against
+   `curvature_probe.swiss_roll_analytic_H_scaled`, plus the raw-point
+   `centroid_mean_curvature(k=30)` reference.
 
 ### On the threshold trap
 
-The brief's warning is correct and the audit sharpens it. Measured on the sealed
-fit, the two instruments have very different spreads:
+Measured on the sealed PU fit, the two instruments have very different spreads:
 
 - per-layer-Frobenius sums: **30.71 – 31.54**, max/min = **1.027**
 - `chart_survival` mass ratios: **0.498 – 1.000**, max/min = **2.01**
 
-`chart_survival` spreads 2× where the Frobenius sum spreads 3 %, so it is the more
-sensitive of the two — but it is still **unimodal with no near-zero mode**, and
-16/16 survive at any `prune_tol < 0.498`. A count is therefore uninformative on the
-sealed fit at *any* threshold.
+`chart_survival` is the more sensitive of the two, but still **unimodal with no
+near-zero mode**; 16/16 survive at any `prune_tol < 0.498`. A count is therefore
+uninformative at *any* threshold on that fit.
 
-So: `prune_tol = 1e-3` is reported as a fixed, pre-declared reference point (three
-orders of magnitude below the sealed fit's observed minimum, so it can only fire on
-a genuinely collapsed chart), and **the verdict is read off distribution shape** —
-does a near-zero mode appear, does the distribution go bimodal — **never off the
-count alone**. Every count is printed beside its full norm vector.
+So the verdict is read off **distribution shape** — does a near-zero mode appear, does
+the distribution go bimodal — **never off a count alone**. Every count is printed
+beside its full vector, and a histogram per arm is plotted so the reader can see the
+threshold is not doing the work.
 
-### Falsifiable predictions — written into the notebook before the results cell
+### Cost — measured, not guessed
 
-- **If under-training is the cause:** arms B/C/D show a near-zero mode appearing in
-  the norm distribution (charts collapsing), with reconstruction, H0 merge
-  retention, and curvature Spearman improving relative to arm A.
-- **If the CAE is simply a poor fit here:** the norm distribution stays unimodal and
-  tight in every arm, occupancy stays at 8, and the downstream numbers do not move.
-  Reported just as plainly.
-- **Third outcome the audit makes live (new):** occupancy collapses (charts stop
-  being *used*) while weight mass does not (charts do not *die*). Given 02.5-09's
-  8/8/3/5, this is the most likely result, and it would mean the paper's pruning
-  criterion does not detect the fragmentation that actually drives the curvature
-  failure — a finding about the *instrument*, not the model.
+Timing probe on this machine (scratchpad, nothing kept):
 
-### Cost
+| quantity | cost |
+|---|---|
+| CAE, 14 torch threads (default) | 3.52 s/epoch |
+| CAE, **4 torch threads** | **1.03 s/epoch** |
+| plain AE | ~0.1 s/epoch |
+| `chart_curvature_field` (n=3000) | 2.7 s |
+| `persistence_pairs` (n=3000) | 1.9 s |
 
-02.5-09's roll CAE took ~55 s for 47 epochs including its plain-AE baseline. At
-100 epochs, 16 CAE fits + 16 matched plain AEs ≈ **20–30 min**, plus persistence and
-curvature measurement. Inside the 45 min budget. If the projection exceeds it,
-**seeds are cut before arms** (4 → 3 → 2), and the cut is stated in the notebook.
-Wall-clock reported.
+Default threading oversubscribes a batch of 64 across 20 cores and costs **3.4×**.
+The notebook sets `torch.set_num_threads(4)` explicitly and records it, so the run is
+reproducible on this machine.
+
+Projected: ~2,000 CAE epochs ≈ 34 min, plain baselines ≈ 5 min, measurement ≈ 4 min →
+**~43 min**, inside the ~45 min bound. Plain-AE baselines are **deduplicated by config**
+(arms B and D have identical plain-AE settings; `lip_weight` and `n_charts` do not exist
+for a plain AE), which is exact, not an approximation. Wall-clock is reported. If the
+bound is breached, **arm B is cut before any seed**, and the cut is stated in the
+notebook.
 
 ---
 
-## Part 3 — Constraints carried forward (unchanged, all honoured so far)
+## Part 3 — Constraints (unchanged, all honoured)
 
 - Never modify `cae.py`, `topoae.py`, `curvature.py`, `curvature_probe.py`,
   `chart_curvature.py`, `cache.py`, `mknn.py`, `geometry_probes.py`, `subsample.py`,
   `pyproject.toml`, `src/effdim/`. Import and call unmodified.
 - Never retrain, overwrite, or re-key a sealed fit. Fresh in-notebook training only.
-  **No writes to `notebooks/.cache/`** — tree hash verified byte-identical before
-  and after.
+  **No writes to `notebooks/.cache/`** — tree hash recorded before the run and verified
+  byte-identical after. Baseline:
+  `a88da1f7208337ea8d5d25eab2ef3593688d91010e09766c3341370109438987`
 - Sealed verdicts never reopened: `CAE_VERDICT = FAIL`, the 02.4 TopoAE verdict,
-  `CURVATURE_VERDICT = FAIL`. No verdict artifact, no threshold table.
-- `.planning/phases/02.5-*` untouched (02.5-09 is at an OPEN blocking checkpoint
-  with 02.5-10..13 behind it). This audit **read** those files; it wrote nothing.
-- Additive only. Full suite stays at **286 passed**.
+  `CURVATURE_VERDICT = FAIL`. No verdict artifact, no threshold table, no
+  pre-registration, no cfg-hash cache keys.
+- `.planning/phases/02.5-*` untouched (02.5-09 sits at an OPEN blocking checkpoint with
+  02.5-10..13 behind it). The audit **read** those files; it wrote nothing.
+- Additive only — no existing notebook or runner deleted or rewritten.
+- Full suite stays at **286 passed**.
 - One row added to STATE.md "Quick Tasks Completed". `ROADMAP.md` untouched.
 
-### Executed deviation from GSD defaults
+### Deviation from GSD defaults (accepted by coordinator)
 
-**Worktree isolation disabled for this task.** `workflow.use_worktrees` defaults to
-true, but both `.venv/` and `notebooks/.cache/` are gitignored and would be **absent
-from a fresh worktree**. The environment requires `.venv/bin/python`, and the
-no-cache-writes constraint requires hashing `notebooks/.cache/`. Neither is possible
-in an isolated worktree. Execution runs on the main checkout, on branch
-`isomap-curvature`.
+**Worktree isolation disabled.** `workflow.use_worktrees` defaults to true, but `.venv/`
+and `notebooks/.cache/` are both gitignored and would be **absent from a fresh
+worktree**. The environment requires `.venv/bin/python`, and the no-cache-writes
+constraint requires hashing `notebooks/.cache/`. Neither is possible in an isolated
+worktree. Execution runs on the main checkout, branch `isomap-curvature`.
 
 ---
 
-## Open questions — blocking
+## Tasks
 
-**Q1 (blocking).** Arm C `weight_decay`: **1.0** (74 % shrinkage on an unused chart)
-or **0.1** (12.6 %)? 1.0 is the setting most likely to produce a visible death and
-so most likely to give a clean answer; 0.1 is the gentler probe and less likely to
-degrade the *used* charts as a side effect. Running both as C and C′ costs 4 more
-fits (~5 min). Recommendation: **run both** — the pair also shows whether any
-degradation is decay-dose-dependent.
-
-**Q2.** Add arm E (02.5-09 replica) for direct numeric comparability to
-−0.0604 / −0.1444 / 0.8665 / 0.4250? Costs ~4 fits (~5 min).
-Recommendation: **yes** — without it the brief's comparability goal is simply not met.
-
-**Q3.** With Q1-both and Q2-yes the run is 24 fits, ~35–45 min. Acceptable, or cut
-seeds to 3 (18 fits, ~30 min)?
-
-No compute will be spent until these are answered.
+1. **Write** `notebooks/quick_cae_undertraining_test.ipynb` — predictions stated before
+   the results cell.
+2. **Execute** it end to end with
+   `.venv/bin/python -m jupyter nbconvert --to notebook --execute --inplace`, detached,
+   polled by PID. Commit with outputs.
+3. **Verify** cache tree hash byte-identical, suite at 286, no module edits.
+4. **Write** `SUMMARY.md`, add one row to STATE.md, commit.
