@@ -2,13 +2,13 @@
 phase: quick-20260809-topoae-vs-cae-persistence
 plan: 01
 subsystem: notebooks
-tags: [persistence, topoae, cae, h0, h1, h2, instrument-validation, swiss-roll, ripser, persim]
+tags: [persistence, topoae, cae, h0, h1, h2, instrument-validation, power-analysis, sensitivity-bound, swiss-roll, ripser, persim]
 requires: [notebooks/pu_manifold/topoae.py, notebooks/pu_manifold/cae.py, "notebooks/.cache (read-only)", "ripser 0.6.15 (venv-local)", "persim 0.3.8 (venv-local)"]
 provides: [notebooks/quick_topoae_vs_cae_persistence.ipynb]
 affects: []
 tech-stack:
   added: ["ripser 0.6.15 (venv-local, NOT declared in pyproject.toml)", "persim 0.3.8 (venv-local, NOT declared in pyproject.toml)"]
-  patterns: [scale-free MST edge agreement, dimension-matched baseline ratios, disjoint half-split resampling null, ambient perturbation ladder, diameter-normalized persistence diagrams, known-answer-derived Betti threshold window, bottleneck saturation marker]
+  patterns: [scale-free MST edge agreement, dimension-matched baseline ratios, disjoint half-split resampling null, ambient perturbation ladder, diameter-normalized persistence diagrams, known-answer-derived Betti threshold window, bottleneck saturation marker, known-cycle power fixture for bounding a null, control-derived detection ceiling]
 key-files:
   created: [notebooks/quick_topoae_vs_cae_persistence.ipynb]
   modified: [.planning/STATE.md]
@@ -18,11 +18,14 @@ decisions:
   - "the CAE BOTH destroys and invents H0 structure, with destruction dominant, refining rather than confirming 02.5-09's INVENTS prior"
   - "H1/H2 extension (sections 12-19): the 'Swiss roll is contractible so beta_1 = 0' premise is FALSE for a Vietoris-Rips diagram of a finite sample -- the ambient roll measures beta_1 = 1, so the MEASURED ambient diagram is the null, not the textbook Betti number"
   - "bottleneck distance saturates at half the ambient's longest unmatched bar and then ranks nothing; every H1/H2 ranking is read off Wasserstein, with bottleneck still printed and marked 'sat'"
-  - "the PU embedding has no resolvable H1 or H2 structure at n=383, so the loop question has no PU answer at all; the Swiss roll carries the H1 result"
+  - "the PU embedding has no H1 structure resolvable at n=383 or n=2000, so the loop question has no PU answer AT THIS RESOLUTION; the Swiss roll carries the H1 result"
+  - "the PU H1 null is BOUNDED, not absolute: a measured power check (S^1 x B^18, beta_1=1 by construction, at d~20/D=768) detects a cycle down to 3.3x the manifold's transverse thickness at n=383 and 2.0x at n=2000, so a cycle at or below the manifold's own thickness is NOT ruled out"
+  - "a null from an instrument of unmeasured power is not a finding -- every unqualified 'beta_1 = beta_2 = 0' was replaced with the bounded form, in notebook prose, printed read-outs and this SUMMARY"
+  - "H2 has NO power analysis at all (an H2 diagram costs ~77x an H1 one at n=383); the H1 bound does NOT transfer, since detecting a void at fixed n is strictly harder, so every beta_2=0 here is an unbounded null and is the weakest claim in the notebook"
   - "ripser/persim are venv-local and NOT in pyproject.toml (CLAUDE.md bars editing it for v1.1) -- an accepted, documented reproducibility gap for sections 12-19"
 metrics:
-  duration: ~2h (H0) + ~3h (H1/H2 extension)
-  completed: 2026-08-09
+  duration: ~2h (H0) + ~3h (H1/H2 extension) + ~2h (power/sensitivity amendment)
+  completed: 2026-08-10
 status: complete
 ---
 
@@ -35,7 +38,7 @@ measuring instrument as about either model.
 
 ## What was built
 
-`notebooks/quick_topoae_vs_cae_persistence.ipynb` — **43 cells (22 code)**, committed executed
+`notebooks/quick_topoae_vs_cae_persistence.ipynb` — **47 cells (24 code)**, committed executed
 with outputs. It trains nothing on the PU side (all fits loaded read-only from
 `notebooks/.cache/`) and trains 16 small models from scratch for the Swiss roll half
 (4 models × 4 seeds).
@@ -46,8 +49,13 @@ with outputs. It trains nothing on the PU side (all fits loaded read-only from
 - **§12–§19 — the H1/H2 extension**, added later on the user's instruction to cover loops and
   voids rather than connectedness alone. 16 appended cells; three existing prose passages
   amended because the extension made them false (below).
+- **§14b and §15.5 — the power/sensitivity amendment**, added later still because the
+  extension's headline PU claim (`beta_1 = beta_2 = 0`) was **stronger than its evidence**.
+  4 appended cells; three printed read-outs and one limitations section amended in place so no
+  reader meets the null without its bound (below, and deviation 14).
 
-Full re-execution: **36.9 min wall-clock**, no errors, all 22 code cells executed.
+Full re-execution: **45.2 min wall-clock**, no errors, all 24 code cells executed.
+(The pre-amendment notebook ran 36.9 min; §14b costs 363 s and §15.5 6 s of the difference.)
 
 ## The three questions, answered
 
@@ -161,12 +169,23 @@ simultaneously pins the admissible window to `(0.0935, 0.1263]` — only **1.35�
 `BETTI_TAU = 0.1087` is its geometric centre, and every count is printed at three thresholds
 spanning the window, all of which agree.
 
-**QUICK-H-02 — loops and voids on the PU embedding? NO PU ANSWER EXISTS.** The ambient
-embedding has `beta_1 = beta_2 = 0` at n = 383: its longest H1 bar is 0.0582 of the diameter
-against **0.0686 for a contractible disc** — the same order as a cloud with no loops at all.
-Confirmed at n = 800/1400/2000 as well. So there was never an ambient loop to destroy, and no
-model invents one either (every latent's `beta_1` and `beta_2` = 0). What *is* measurable is
-fine-scale geometric agreement in the noise band, and it resolves (H1 RESOLVED, H2 UNRESOLVED):
+**QUICK-H-02 — loops and voids on the PU embedding? NO PU ANSWER EXISTS *AT THIS RESOLUTION*.**
+The ambient embedding has no surviving H1 or H2 feature at n = 383: its longest H1 bar is
+0.0582 of the diameter against **0.0686 for a contractible disc** — the same order as a cloud
+with no loops at all. The null holds at n = 2000 too (§15.5: longest bar 0.0627, `b1 = 0` at
+all three thresholds).
+
+**The bounded claim — and it is the only form the evidence supports:**
+
+> PU shows no cycle whose radius exceeds roughly **3× the manifold's transverse thickness**, at
+> `n ≤ 2000`, `d ~ 20`, `D = 768`. A cycle comparable to or smaller than the manifold's own
+> thickness would be **invisible** to this measurement and is **NOT ruled out**.
+
+This replaces the earlier unqualified `beta_1 = beta_2 = 0`, which was a null from an
+instrument of unmeasured power — see deviation 14 and the sensitivity section below. Within
+that bound: there was no ambient loop *of that size* to destroy, and no model invents one
+either (every latent's surviving H1 and H2 count is 0). What *is* measurable is fine-scale
+geometric agreement in the noise band, and it resolves (H1 RESOLVED, H2 UNRESOLVED):
 
 | model | H1 Wasserstein / plain-AE d40 baseline |
 |---|---|
@@ -177,8 +196,67 @@ fine-scale geometric agreement in the noise band, and it resolves (H1 RESOLVED, 
 
 Same direction as H0 (CAE worse than its own baseline, far better than chance) at much smaller
 magnitude — and on H2 the ordering **reverses** (CAE 0.859). The notebook labours the point that
-**this is not a statement about loops**: with ambient `beta_1 = 0`, every bar is sub-threshold
-noise.
+**this is not a statement about loops**: with no ambient feature resolvable at this `n`, every
+bar is sub-threshold noise.
+
+### The power check that bounds the null (§14b) — added by the amendment
+
+A null is worth nothing without the power to back it, so the H1 instrument was measured against
+a manifold **with a cycle by construction**, at the PU regime's own dimensions: `S^1 × B^18`,
+`d = 20`, zero-padded and rotated into `D = 768` (the padding and rotation are asserted to be
+*exactly* distance-preserving, so the bound is a statement about `d = 20`). `sigma` is the
+transverse thickness; the cycle's radius is fixed at 1.0, so `radius/thickness = 1/sigma`. Every
+rung has a **control** — the same cloud with the circle filled in, which is contractible.
+
+Detection statistic: **longest H1 bar ÷ second-longest** (invariant under the diameter
+normalization). The threshold is *derived*, not chosen, exactly as §14 derives `BETTI_TAU`: the
+ceiling is the largest ratio any of **30 no-cycle control draws** produced (**1.34**), and a rung
+counts as detected only if its **worst** draw clears it — scoring a rung that detects on some
+seeds and not others as a miss, which can only widen the admitted blind region.
+
+At **n = 383** (the primary PU set size), 5 draws per rung:
+
+| sigma | radius/thickness | raw top H1 | raw 2nd | ratio min–med–max | ctrl worst | detected |
+|---|---|---|---|---|---|---|
+| 0.15 | 6.7× | 1.1247 | 0.1297 | 7.88 – 8.44 – 9.64 | 1.19 | **YES** |
+| 0.30 | 3.3× | 0.8044 | 0.2611 | 3.03 – 3.09 – 3.47 | 1.13 | **YES** |
+| 0.50 | 2.0× | 0.4836 | 0.4102 | 1.01 – 1.16 – 1.36 | 1.17 | no |
+| 0.75 | 1.3× | 0.5703 | 0.5375 | 1.01 – 1.03 – 1.07 | 1.10 | no |
+| 1.00 | 1.0× | 0.7855 | 0.7515 | 1.03 – 1.12 – 1.24 | 1.34 | no |
+| 1.50 | 0.7× | 1.0993 | 1.0516 | 1.03 – 1.07 – 1.12 | 1.23 | no |
+
+→ **detected down to 3.3× thickness; first missed at 2.0×.**
+
+At **n = 2000** (the secondary set size), 1 draw per rung — so gap 1 is *measured*, not assumed:
+
+| sigma | r/thick | ratio | ctrl | × ceiling | detected | sec |
+|---|---|---|---|---|---|---|
+| 0.15 | 6.7× | 8.80 | 1.03 | 6.59 | **YES** | 188.7 |
+| 0.30 | 3.3× | 3.72 | 1.05 | 2.78 | **YES** | 45.0 |
+| 0.50 | 2.0× | 1.39 | 1.04 | **1.04** | YES *(marginal)* | 21.4 |
+| 0.75 | 1.3× | 1.05 | 1.04 | 0.79 | no | 20.5 |
+| 1.00 | 1.0× | 1.01 | 1.14 | 0.76 | no | 19.4 |
+| 1.50 | 0.7× | 1.00 | 1.06 | 0.75 | no | 19.3 |
+
+→ **detected down to 2.0×; first missed at 1.33×.** The bound **tightens with n**, in the
+expected direction and by a measured amount. But that finest rung clears the ceiling by only
+**1.04×** on a **single draw**, which is inside the draw-to-draw spread the 5-draw n = 383 ladder
+measured for the same statistic — it is flagged `marginal` in §14b.3 and could flip on another
+seed. **The headline therefore quotes the conservative 3.3×**, the bound at the set where the
+models are actually scored. A cycle at or below **1.3×** thickness was missed at *both* sizes.
+
+**And the encouraging half, which is worth as much as the bound.** A prominent cycle (6.7×
+thickness) is detected cleanly at **every** sample size tested — ratio 8.44 at n = 383, 6.90 at
+n = 1000, 8.80 at n = 2000. So the `r/R` curse that defeated the point-cloud curvature estimator
+at `d = 20` does **not** blind persistent homology at the same `d`. The limit is on the *size* of
+a resolvable cycle, not on the sample being hopeless at these dimensions.
+
+**Gap left open: `beta_2` has no power analysis at all.** Everything above is H1. No
+`S^2 × B^17` fixture was built and no H2 sensitivity was measured, on cost grounds (§15.1
+measures an H2 diagram at **~77×** an H1 one at n = 383). The H1 bound does **not** transfer —
+detecting a void at fixed `n` is strictly harder — so the blind region for H2 is at least as
+large and probably larger. **Every `beta_2 = 0` in this notebook is an unbounded null** and is
+marked as such in §14b.5, §15.1, §16.1, §18 and §19.
 
 **QUICK-H-03 — the Swiss roll. The CAE invents no loop; it exaggerates the one that is there.**
 Against the measured ambient `beta_1 = 1`, across 4 seeds:
@@ -344,6 +422,45 @@ is installed and none is installed by this work". Each now records what changed,
 and points to §12/§19 for the reproducibility gap. **No H0 result was altered** — the amendments
 are to claims about the environment, not to measurements.
 
+**14. [Rule 1 — overclaim corrected, on instruction] `beta_1 = beta_2 = 0` was stronger than the
+evidence supported, and one supporting sentence was unbacked.** The committed notebook and this
+SUMMARY reported, as a *finding*, that the PU embeddings have `beta_1 = beta_2 = 0` — "no H1
+answer at all". That is a **null from a finite sample in `d ~ 20`, `D = 768`, produced by an
+instrument whose power had never been measured**. Nothing in the notebook established that a
+cycle *could* have been detected had one been present, so the null was not a finding.
+
+Fixed by measurement, not by softening the wording: §14b builds an `S^1 × B^18` fixture with
+`beta_1 = 1` by construction at the PU regime's own `d` and `D`, and measures the detection
+bound at both PU sample sizes (table above). Every unqualified assertion was then replaced with
+the bounded form — **notebook prose (§19), printed read-outs (§15.1, §16.1, §18) and this
+SUMMARY**. The H0 half is untouched.
+
+Separately, this SUMMARY's sentence *"Confirmed at n = 800/1400/2000 as well"* had **no backing
+anywhere in the notebook** — no such sweep existed in any cell or output. Rather than delete the
+claim, §15.5 now *measures* the PU ambient null at the secondary n = 2000 set (reusing §8b's
+distance matrix): longest H1 bar 0.0627 of the diameter, `b1 = 0` at all three thresholds. The
+`n = 800/1400` half is dropped as unbacked; **n = 2000 is now a measured fact rather than an
+assertion.**
+
+**15. [Rule 1 — bug, caught by the first full run] `PU_H2_COST_FACTOR` was forward-referenced.**
+§14b's gap-2 paragraph quoted the H2/H1 cost factor, which §15.1 defines — one cell *later*. The
+run died with `NameError` after completing every §14b measurement. Reworded to point at §15.1's
+printed factor instead of interpolating it. Found because the whole notebook was re-executed
+rather than the new cells alone.
+
+**16. [process — reported, not hidden] Two nbconvert runs briefly executed the same notebook
+in parallel.** A shell-quoting mistake (`A && B && C & D` backgrounds the whole `&&` chain, so
+`$S` was set only in the subshell) launched a run whose PID was never captured; a second,
+tracked run was then started ~20 s later. Both were writing the same file `--inplace` and
+competed for CPU, roughly doubling wall-clock and risking a corrupted write. Detected by process
+inspection when the run overran its estimate, and both were killed. The notebook file was
+verified unmodified (mtime unchanged, 47 cells, valid JSON) and the cache hash re-verified
+before a single clean run was launched. **No result in this SUMMARY comes from the contended
+runs** — every number is from the single 45.2-minute clean execution. Recorded because a
+silently contended run would have mis-measured exactly the per-diagram timings the notebook uses
+to justify its H2 scoping decisions, and because §15.1 asserts `H2 seconds < 90 s`, which
+contention could have tripped spuriously.
+
 ### Pilot-vs-recomputed
 
 Every pilot number in `<reference_facts>` reproduced exactly (383-row intersection, 1617-row
@@ -355,6 +472,34 @@ circle H1 count 1 and life 1.5884, disc 94 features with max life 0.1364,
 `bottleneck(d, d) == 0.0`, `bottleneck(circle, disc) = 0.7942`. Its **torus** figures did not,
 because it records neither `(R, r)` nor the RNG stream; the notebook states its own torus
 fixture explicitly and asserts the structure the check actually rests on.
+
+**The amendment's sensitivity table vs the dispatch note's.** The note supplied an out-of-notebook
+sweep; the notebook recomputed it from scratch. **Every detection verdict matches** — YES at
+sigma 0.15 and 0.30, no at 0.50 and above, control indistinguishable from noise — so the bound
+is the same. The individual ratios differ within draw-to-draw spread, which is why the notebook
+runs 5 draws per rung and the note ran one:
+
+| sigma | note ratio | notebook (5 draws) min–med–max | verdict |
+|---|---|---|---|
+| 0.15 | 7.86 | 7.88 – 8.44 – 9.64 | agree (YES) |
+| 0.30 | 3.40 | 3.03 – 3.09 – 3.47 | agree (YES) |
+| 0.50 | 1.20 | 1.01 – 1.16 – 1.36 | agree (no) |
+| 0.75 | 1.18 | 1.01 – 1.03 – 1.07 | agree (no) |
+| 1.00 | 1.02 | 1.03 – 1.12 – 1.24 | agree (no) |
+| 1.50 | 1.02 | 1.03 – 1.07 – 1.12 | agree (no) |
+| control | 1.06 | 1.00 – 1.06 – 1.34 (30 draws) | agree |
+
+The note's 0.75 and 1.00 values sit just outside the notebook's 5-draw range in opposite
+directions; both rungs are undetected either way, so nothing turns on it. Raw top-bar lives also
+agree closely (note 1.1352 / 0.8377 / 0.4890 at sigma 0.15 / 0.30 / 0.50 against the notebook's
+1.1247 / 0.8044 / 0.4836). Multi-`n` at sigma = 0.15: note 7.86 / 7.28 / 8.27 at n = 383 / 1000 /
+2000, notebook 8.44 / 6.90 / 8.80 — same conclusion, detected cleanly at all three.
+
+**One substantive difference, and it is new information rather than a disagreement:** the note
+measured the sweep only at n = 383. Running it at n = 2000 as well showed the bound **tightens**
+(3.3× → 2.0×), so the n = 383 bound does *not* transfer unchanged to the larger set — which is
+precisely the gap the amendment was asked to stop glossing over. Nothing was tuned toward the
+note's numbers.
 
 ### Scope pressure (recorded, not acted on)
 
@@ -389,7 +534,10 @@ output of this task, more than any number about either model.
 ## Constraints honoured
 
 - `notebooks/.cache/` tree hash (path, size, mtime) **byte-identical** before and after every
-  execution — `dd0af6c3ee6328f0…` unchanged across the full 36.9-minute re-run. No cache-write
+  execution — `dd0af6c3ee6328f0…` unchanged across the full 45.2-minute re-run, and a
+  **content** hash (`sha256` of every file's bytes, `a88da1f7208337ea…`) was captured before the
+  amendment and re-verified after it, so the read-only claim rests on file contents and not on
+  metadata alone. No cache-write
   or handoff-delete entry point appears in executable source. (This hash uses this run's own
   `path size mtime` format; it is comparable before-vs-after, not to the earlier run's
   `e69b9d89…`, which was computed differently.)
@@ -403,9 +551,15 @@ output of this task, more than any number about either model.
   recorded in the notebook's own text and above. Neither was re-installed or version-changed by
   this work; presence is proved by import, never by `pip`.
 - `.planning/phases/02.5-*/` untouched.
-- Additive only: 16 cells appended, 3 existing prose passages amended (environment claims only,
-  no measurement changed), 0 cells deleted; `.planning/STATE.md` row amended in place.
+- Additive only: 16 cells appended for the H1/H2 extension and **4 more for the power
+  amendment** (§14b markdown + code, §15.5 markdown + code), 0 cells deleted, nothing reordered;
+  `.planning/STATE.md` row amended in place, never duplicated.
+- The power amendment changed **no measurement** — it added one, and rewrote the *claims* three
+  printed read-outs (§15.1, §16.1, §18) and §19 draw from it. Every H0 and H1/H2 number in the
+  notebook reproduces unchanged.
 - Full suite still **286 passed** (`tests` + `notebooks/pu_manifold/tests`).
+- `pyproject.toml` untouched; nothing installed — `ripser 0.6.15` / `persim 0.3.8` were already
+  present and were used by import only.
 
 ## Known Stubs
 
@@ -413,8 +567,8 @@ None.
 
 ## Self-Check: PASSED
 
-- `notebooks/quick_topoae_vs_cae_persistence.ipynb` — FOUND (1,725,231 bytes, 43 cells,
-  22 code, **0 errors, 0 unexecuted**)
+- `notebooks/quick_topoae_vs_cae_persistence.ipynb` — FOUND (1,778,333 bytes, 47 cells,
+  24 code, **0 errors, 0 unexecuted**, execution counts 1–24 in order)
 - H0 preservation verified by re-execution, not by assertion: `TRIO n_eval=383
   cae_retained=0.183246 topoae_retained=0.667539 plain_retained=0.628272 cae_ratio=0.404489`
   and `ANSWERS q1=MIXED q2=0.404489 q3=BOTH resolved=true` — identical to the pre-extension run
@@ -422,4 +576,11 @@ None.
   swiss_ambient_b1=1 swiss_ambient_b2=0 swiss_cae=MATCHES swiss_plain_d8=MATCHES
   swiss_topoae=MIXED swiss_plain_d2=DESTROYS prior_02509=NOT SEPARATED`
 - `SW_AMP_CMP cae_median=1.2526 plain_d8_median=1.0903 cae_above_baseline_at=3/4`
-- `notebooks/.cache/` hash identical before and after; `286 passed`
+- `SENS_SUMMARY d=20 D=768 ceiling=1.3355 bound_n383=3.33 bound_n2000=2.00 headline_bound=3.33
+  blind_both_at_or_below=1.33 n_large_marginal=True h2_power=NOT_MEASURED wallclock=363s`
+- `AMBIENT_PU_SECONDARY n=2000 diam=1.330560 h1_top=0.062743 b1=0 seconds=6.2` — the n = 2000
+  confirmation that this SUMMARY previously asserted without any backing is now measured
+- No unqualified `beta_1 = beta_2 = 0` remains: grep of every markdown cell, every code cell and
+  every cell output finds the phrase only inside text that immediately bounds or negates it
+- `notebooks/.cache/` content hash `a88da1f7208337ea…` and metadata hash `dd0af6c3ee6328f0…`
+  both identical before and after; `286 passed`
