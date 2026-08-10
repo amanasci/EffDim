@@ -22,7 +22,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
 - [x] **Phase 02.4: Topological Auto-Encoder Validity Test** (INSERTED) — The Topological Auto-Encoder (Moor et al., arXiv:1906.00722) implemented and put through a pre-registered validity gate on the PU data (sealed 2026-08-07, **TOPOAE_VERDICT = FAIL** — both *global*-scoped gates failed, the *local*-scoped gate passed; see Phase Details and `02.4-FINDINGS.md`)
 - [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 now wait on Phase 02.6 — see Phase Details**
-- [ ] **Phase 02.6: Decoder Substrate Screening** (INSERTED, not yet planned) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal
+- [ ] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans — ranking axis found confounded, no substrate promoted or eliminated; awaiting replan on manifold/topology preservation. See `02.6-FINDINGS.md`.**
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -390,9 +390,11 @@ Plans:
 
 **Design note**: `.planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-NOTE-substrate-selection.md` (commit `f8350b6`) sets out the Stage A admission / Stage B decision structure this phase implements, and Section 4 records three inferences that must **not** be drawn from a Swiss roll result.
 
-**Status**: Inserted 2026-08-10. No `/gsd-discuss-phase` pass — scoped directly in this entry, so no CONTEXT.md exists and `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule are **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10 (`02.6-RESEARCH.md`, `02.6-PATTERNS.md`, `02.6-VALIDATION.md`). Planned 2026-08-10 — 6 plans across 3 waves. No milestone REQ-IDs; coverage is traced against the five success criteria above as **SC-1..SC-5**, and all five are covered.
+**Status**: **HALTED 2026-08-10 mid-execution at 3/6 plans — see `02.6-FINDINGS.md`.** No substrate promoted, none eliminated. The ranking axis (agreement between decoder-pullback curvature and analytic `H`) was found to measure a composite of three separable properties — did the architecture learn the right surface, are that trained net's second derivatives trustworthy, is pullback the right approximator — so its measurements cannot be attributed to substrate choice. Ranking to be replanned on manifold/topology preservation, decided independently of curvature approximation. `02.6-SCREENING-RULE.md` was ratified blind before measurement but constrained no published conclusion; the axis change was made **after** an unfavourable plain-AE result and is recorded as such in `02.6-FINDINGS.md` §4. Phase 02.5 stage 2 remains blocked — `02.5-10` still has no substrate decision to inherit.
 
-**Plans**: 3/6 plans executed
+Prior history: Inserted 2026-08-10. No `/gsd-discuss-phase` pass — scoped directly in this entry, so no CONTEXT.md exists and `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule are **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10 (`02.6-RESEARCH.md`, `02.6-PATTERNS.md`, `02.6-VALIDATION.md`). Planned 2026-08-10 — 6 plans across 3 waves. No milestone REQ-IDs; coverage is traced against the five success criteria above as **SC-1..SC-5**.
+
+**Plans**: 3/6 plans executed, phase halted
 
 Plans:
 **Wave 1**
@@ -402,13 +404,13 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02.6-03-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **plain-AE** decoder (SC-2, SC-3)
-- [ ] 02.6-04-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **TopoAE-trained** decoder, with a genuinely matched baseline at budget parity (SC-2, SC-3)
+- [ ] 02.6-03-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **plain-AE** decoder (SC-2, SC-3) — **PARTIAL at halt:** notebook written + executed with outputs (`bec17ef`, `028188f`), blocking `human-verify` gate never closed
+- [ ] 02.6-04-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **TopoAE-trained** decoder, with a genuinely matched baseline at budget parity (SC-2, SC-3) — **NOT STARTED at halt**
 - [x] 02.6-05-PLAN.md — Four-seed, four-axis screening runner in `notebooks/diagnostics/`, measuring and printing only — no bar, no verdict (SC-3, SC-4)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02.6-06-PLAN.md — **[checkpoint]** `02.6-FINDINGS.md`: per-seed tables, bar-by-bar findings, all seven candidates dispositioned, at most one promoted argued against the effect sizes, Tier-2+ gated (SC-1, SC-4, SC-5)
+- [ ] 02.6-06-PLAN.md — **[checkpoint]** `02.6-FINDINGS.md`: per-seed tables, bar-by-bar findings, all seven candidates dispositioned, at most one promoted argued against the effect sizes, Tier-2+ gated (SC-1, SC-4, SC-5) — **SUPERSEDED at halt:** never ran; `02.6-FINDINGS.md` exists instead as a halt record with no promotion argument
 
 **Planning-time correction carried into the plans**: `chart_curvature.assert_c2_activation` **cannot** be called on a `cae.PlainAutoEncoder` — `ChartAutoEncoder` sets `self.activation`, `PlainAutoEncoder` does not, so the sealed guard hard-raises on every plain decoder. Both `02.6-RESEARCH.md` and `02.6-PATTERNS.md` state the opposite. Verified false during planning; plan `01` introduces `assert_c2_decoder`, which reaches the sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules instead of a recorded attribute. `cae.py` is not edited.
 

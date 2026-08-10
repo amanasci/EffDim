@@ -4,11 +4,11 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
-status: executing
-stopped_at: Completed 02.6-05-PLAN.md
-last_updated: "2026-08-10T14:53:05.043Z"
+status: halted
+stopped_at: Phase 02.6 HALTED after 02.6-05 — ranking axis confounded, awaiting replan (see 02.6-FINDINGS.md)
+last_updated: "2026-08-10T15:10:00.000Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 execution started
+last_activity_desc: Phase 02.6 halted mid-execution at 3/6 plans; halt record sealed
 progress:
   total_phases: 7
   completed_phases: 5
@@ -27,8 +27,28 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 4 of 6
+Phase: 02.6 (decoder-substrate-screening) — **HALTED 2026-08-10 at 3/6 plans**
+Plan: halted after 02.6-05
+
+**Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
+curvature and analytic `H`. That score is a composite of three separable properties — did the
+architecture learn the right surface, are the trained net's second derivatives trustworthy, is
+pullback the right approximator — and nothing in the phase separates them, so a low `rho`
+is not evidence about substrate choice. Stopped by user decision before any promotion.
+**No substrate promoted, none eliminated.** Phase 02.5 stage 2 stays blocked; `02.5-10` has no
+substrate decision to inherit. Full record: `02.6-FINDINGS.md`.
+
+**What survives and carries forward:** `notebooks/pu_manifold/decoder_curvature.py` (+ tests,
+suite 296), `notebooks/diagnostics/decoder_substrate_screen_run.py` (re-runnable, applies no
+bar), and the measured four-seed tables for both free candidates. `02.6-03`'s notebook exists
+and executed but its `human-verify` gate never closed. `02.6-04` never started. `02.6-06` is
+superseded by the halt record.
+
+**Next:** replan 02.6 around manifold/topology preservation as the ranking axis, decided
+independently of curvature approximation. `02.6-FINDINGS.md` §8 states the three questions the
+replan must answer — including that topology preservation alone does not guarantee usable
+second derivatives (`02.5-NOTE` §4), and that Phase 02.1 has recorded precedent for ranking on
+a proxy criterion that later proved suspect.
 
 **Phase 02.6 is planned (2026-08-10).** 6 plans across 3 waves. Plan-checker returned **0 blockers, 0 warnings**. No milestone REQ-IDs exist for this phase — ROADMAP.md declares none and directs that coverage be derived from its five stated success criteria, so the plans use phase-local `SC-1..SC-5`; coverage is 5/5. No CONTEXT.md exists either (the phase was inserted and scoped directly in ROADMAP.md; `/gsd-discuss-phase` was never run, by explicit user choice at plan time). Wave order: `01` `decoder_curvature.py` tracer ∥ `02` **blocking `checkpoint:decision`** ratifying the numeric admission floor and promotion bars → `03` plain-AE admission notebook ∥ `04` TopoAE admission notebook ∥ `05` four-seed runner → `06` `02.6-FINDINGS.md` and the promotion argument. Plans `02`, `03`, `04`, `06` are non-autonomous. The decision checkpoint sits in wave 1 deliberately, so the bars are chosen **blind** — before plan `05` measures anything.
 
