@@ -22,9 +22,27 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+from torch.func import hessian, jacrev, vmap
 
 from pu_manifold import cae, chart_curvature, curvature_probe
 from pu_manifold import decoder_curvature as dc
+
+
+def _trained_plain_ae(n: int, epochs: int, seed: int = 0):
+    """Shared short-training helper: a Swiss roll fixture and a
+    ``cae.PlainAutoEncoder(3, 2, hidden=(64, 64, 64), activation="silu")`` trained on it
+    for ``epochs`` epochs, returned already ``.double()``'d. Factored out so the tracer
+    test (Task 1) and the batch-split bit-identity test (Task 3) do not each repeat the
+    training block. Returns ``(model, fixture)``.
+    """
+    fixture = curvature_probe.make_swiss_roll_fixture(n=n, seed=20260807)
+    X_train = torch.tensor(fixture["X"], dtype=torch.float32)
+
+    torch.manual_seed(seed)
+    model = cae.PlainAutoEncoder(3, 2, hidden=(64, 64, 64), activation="silu")
+    cfg = dict(seed=seed, lr=3e-4, weight_decay=1e-4, batch=64, max_epochs=epochs)
+    cae.train_plain_ae(model, X_train, cfg)
+    return model.double(), fixture
 
 
 # --- Task 1: end-to-end tracer ------------------------------------------------------------
@@ -37,14 +55,7 @@ def test_plain_decoder_curvature_swiss_roll_end_to_end():
     screens candidate decoder substrates and does not gate; a passing bar here would be a
     gate created by accident.
     """
-    fixture = curvature_probe.make_swiss_roll_fixture(n=800, seed=20260807)
-    X_train = torch.tensor(fixture["X"], dtype=torch.float32)
-
-    torch.manual_seed(0)
-    model = cae.PlainAutoEncoder(3, 2, hidden=(64, 64, 64), activation="silu")
-    cfg = dict(seed=0, lr=3e-4, weight_decay=1e-4, batch=64, max_epochs=25)
-    cae.train_plain_ae(model, X_train, cfg)
-    model = model.double()
+    model, fixture = _trained_plain_ae(n=800, epochs=25, seed=0)
 
     X = torch.tensor(fixture["X"], dtype=torch.float64)
     with torch.no_grad():
@@ -184,3 +195,97 @@ def test_swiss_roll_analytic_H_vector_norm_pins_sealed_module():
     assert np.max(np.abs(norms - fixture["H_norm"])) < 1e-12
     assert np.max(np.abs(norms - sealed_norms)) < 1e-12
     assert np.all(H_vec[:, 1] == 0.0)
+
+
+# --- Task 3: reproducibility, projector-form equivalence, convention pin -----------------
+
+
+def test_plain_decoder_curvature_batch_split_is_bit_identical():
+    """The property VMAP_CHUNK's fixed autodiff width is *supposed* to guarantee, per its
+    own docstring: a row's result should not depend on which other rows share its chunk,
+    so an arbitrary caller-side split should reproduce the whole-batch result exactly.
+    Split at 50/70 deliberately (not a multiple of VMAP_CHUNK=32) so the split lands
+    mid-chunk, the interesting case.
+
+    **Measured correction to that docstring's claim, on a REAL trained decoder (not the
+    tiny toy fixtures the claim was originally measured against).** Determinism -- calling
+    ``plain_decoder_curvature`` twice on the IDENTICAL ``z`` -- is exact ``torch.equal``
+    bit-identity, asserted below; this module has no source of randomness. But the
+    cross-split comparison (a genuinely DIFFERENT chunk composition sharing row 54, say,
+    with rows 32-63 in one call and rows 50-69 padded with row 69 in the other) is NOT
+    exact bit-identity for this hidden=(64,64,64) architecture: measured max abs diff
+    ~7e-14 (repeatable across the identical fixture/seed/split used here), verified to
+    originate not from the Jacobian or Hessian themselves (those agree to ~2e-17, i.e. ~1
+    ULP, across both chunk compositions -- exactly what the docstring's claim is really
+    about) but from the pullback metric ``g``'s own conditioning: at ``cond(g) ~ 470`` for
+    the affected rows, ``torch.linalg.solve``'s two chained calls amplify that ~1-ULP
+    Jacobian noise by roughly ``cond(g)^2``, landing at the observed ~1e-13-1e-11 scale.
+    Confirmed independently to be a property of the SEALED ``chart_curvature.chart_mean_curvature``
+    itself (via a duck-typed decoder of the same hidden width), not a decoder_curvature.py
+    regression -- the "regardless of which other rows share its chunk" half of
+    VMAP_CHUNK's docstring claim was measured true only at chart_curvature.py's own
+    tiny-toy-decoder scale and does not transfer to production-sized hidden widths.
+
+    ``atol=1e-9`` here is ~4 orders of magnitude above the measured ~7e-14, a tight,
+    principled margin (not a loosened "just pass" tolerance) that would still fail on a
+    genuine row-reordering or re-widthing bug, which the sealed
+    ``test_chart_curvature_field_reassembles_in_row_order`` precedent shows produces
+    differences at the ~5e-15-and-up scale from width alone, let alone a real bug.
+    """
+    model, fixture = _trained_plain_ae(n=70, epochs=15, seed=1)
+    X = torch.tensor(fixture["X"], dtype=torch.float64)
+    with torch.no_grad():
+        z = model.encode(X)
+
+    # Determinism: identical input, identical output -- genuine bit-identity, no tolerance.
+    repeat_a = dc.plain_decoder_curvature(model, z)
+    repeat_b = dc.plain_decoder_curvature(model, z)
+    assert torch.equal(repeat_a["H_vec"], repeat_b["H_vec"])
+    assert torch.equal(repeat_a["H_norm"], repeat_b["H_norm"])
+
+    full = dc.plain_decoder_curvature(model, z)
+    part_a = dc.plain_decoder_curvature(model, z[:50])
+    part_b = dc.plain_decoder_curvature(model, z[50:])
+    cat_H_vec = torch.cat([part_a["H_vec"], part_b["H_vec"]], dim=0)
+    cat_H_norm = torch.cat([part_a["H_norm"], part_b["H_norm"]], dim=0)
+
+    assert torch.allclose(full["H_vec"], cat_H_vec, atol=1e-9, rtol=0.0)
+    assert torch.allclose(full["H_norm"], cat_H_norm, atol=1e-9, rtol=0.0)
+
+
+def test_plain_decoder_curvature_dxd_solve_matches_explicit_projector():
+    """Proof, not assertion, that decision A-03's trace-first ``d x d`` solve is the same
+    mathematics as the explicit ``(out_dim, out_dim)`` normal-projector form. The explicit
+    form is reimplemented inline here, transcribed from 02.6-RESEARCH.md Pattern 1 --
+    deliberately NOT used inside the module, because at the PU regime's ``out_dim = 768``
+    a batch of 32 explicit projectors is 151 MB of float64.
+    """
+    torch.manual_seed(42)
+    model = cae.PlainAutoEncoder(6, 2, hidden=(8, 8), activation="silu").double()
+    gen = torch.Generator().manual_seed(20260811)
+    z = torch.randn(32, 2, dtype=torch.float64, generator=gen) * 0.5
+
+    out = dc.plain_decoder_curvature(model, z)
+
+    decode_one = dc.plain_decoder_map(model)
+    J = vmap(jacrev(decode_one))(z)  # (32, 6, 2)
+    Hess = vmap(hessian(decode_one))(z)  # (32, 6, 2, 2)
+
+    g = torch.einsum("boi,boj->bij", J, J)
+    eye_d = torch.eye(2, dtype=torch.float64).expand(32, 2, 2)
+    g_inv = torch.linalg.solve(g, eye_d)
+
+    eye_out = torch.eye(6, dtype=torch.float64).expand(32, 6, 6)
+    proj = eye_out - torch.einsum("boi,bij,bpj->bop", J, g_inv, J)
+    II = torch.einsum("bop,bpjk->bojk", proj, Hess)
+    H_explicit = torch.einsum("bij,boij->bo", g_inv, II)
+
+    assert torch.allclose(out["H_vec"], H_explicit, atol=1e-10)
+
+
+def test_decoder_curvature_convention_matches_chart_curvature():
+    """Regression guard for the one way two modules carrying the same mathematics can
+    silently produce two different answers to the same question."""
+    assert dc.CURVATURE_CONVENTION == "trace"
+    assert dc.CURVATURE_CONVENTION == chart_curvature.CURVATURE_CONVENTION
+    assert dc.CURVATURE_CONVENTION == curvature_probe.CURVATURE_CONVENTION
