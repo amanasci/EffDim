@@ -392,13 +392,13 @@ Plans:
 
 **Status**: Inserted 2026-08-10. No `/gsd-discuss-phase` pass — scoped directly in this entry, so no CONTEXT.md exists and `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule are **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10 (`02.6-RESEARCH.md`, `02.6-PATTERNS.md`, `02.6-VALIDATION.md`). Planned 2026-08-10 — 6 plans across 3 waves. No milestone REQ-IDs; coverage is traced against the five success criteria above as **SC-1..SC-5**, and all five are covered.
 
-**Plans**: 1/6 plans executed
+**Plans**: 2/6 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 02.6-01-PLAN.md — **[tracer]** `decoder_curvature.py`: exact decoder curvature with no chart routing, plus sphere/flat known-answer, C2-guard and bit-identity tests (SC-3)
-- [ ] 02.6-02-PLAN.md — **[checkpoint]** Ratify the screening bars, the seed-spread disqualifier and the promotion rule **blind**, before any 02.6 measurement (SC-4, SC-5)
+- [x] 02.6-02-PLAN.md — **[checkpoint]** Ratify the screening bars, the seed-spread disqualifier and the promotion rule **blind**, before any 02.6 measurement (SC-4, SC-5)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

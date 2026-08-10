@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-01-PLAN.md
-last_updated: "2026-08-10T14:23:19.337Z"
+stopped_at: Completed 02.6-02-PLAN.md
+last_updated: "2026-08-10T14:35:15.195Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 44
-  completed_plans: 35
+  completed_plans: 36
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 
 **Phase 02.6 is planned (2026-08-10).** 6 plans across 3 waves. Plan-checker returned **0 blockers, 0 warnings**. No milestone REQ-IDs exist for this phase — ROADMAP.md declares none and directs that coverage be derived from its five stated success criteria, so the plans use phase-local `SC-1..SC-5`; coverage is 5/5. No CONTEXT.md exists either (the phase was inserted and scoped directly in ROADMAP.md; `/gsd-discuss-phase` was never run, by explicit user choice at plan time). Wave order: `01` `decoder_curvature.py` tracer ∥ `02` **blocking `checkpoint:decision`** ratifying the numeric admission floor and promotion bars → `03` plain-AE admission notebook ∥ `04` TopoAE admission notebook ∥ `05` four-seed runner → `06` `02.6-FINDINGS.md` and the promotion argument. Plans `02`, `03`, `04`, `06` are non-autonomous. The decision checkpoint sits in wave 1 deliberately, so the bars are chosen **blind** — before plan `05` measures anything.
 
@@ -101,7 +101,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 80% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 82% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -144,6 +144,7 @@ Progress: [████████░░] 80% of planned plans (17/17; Phases 1
 | Phase 02.5 P08 | 16m | 3 tasks | 2 files |
 | Phase 02.5 P09 | ~55min active | 3 tasks | 1 files |
 | Phase 02.6 P01 | ~25min | 3 tasks | 2 files |
+| Phase 02.6 P02 | ~10min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -248,6 +249,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-01: assert_c2_decoder introduced to close the measured gap where cae.PlainAutoEncoder has no .activation attribute -- chart_curvature.assert_c2_activation confirmed to hard-raise on it, contradicting 02.6-RESEARCH.md/02.6-PATTERNS.md's claim that it passes
 - [Phase ?]: 02.6-01: batch-split reproducibility test corrected from exact torch.equal to atol=1e-9 -- measured that chart_curvature.VMAP_CHUNK's docstring claim of bit-identity 'regardless of which other rows share its chunk' does not hold at real (hidden=64x3) architecture scale (~7e-14, confirmed also in the sealed chart_mean_curvature itself); recorded in WINDOWS.md as an open deviation
 - [Phase ?]: 02.6-01: requirements.mark-complete found no SC-3 entry in REQUIREMENTS.md -- phase 02.6's SC-1..SC-5 are scoped locally to the ROADMAP entry, never mirrored into the milestone-level REQUIREMENTS.md (same pre-existing gap noted at 02.4-02/02.5-01); not a blocker for this plan
+- [Phase ?]: 02.6-02: Screening bars ratified blind (A3, B1, C3, D1, E1) -- rank and calibration axes are comparative-only with no absolute floor; no seed-spread disqualifier exists (C3); user confirmed this deliberately removes both guards (B1's absent absolute floor, C3's absent disqualifier) that caught the CAE negative control's calibration-only-visible failure
 
 ### Pending Todos
 
@@ -293,8 +295,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-10T14:23:00.462Z
-Stopped at: Completed 02.6-01-PLAN.md
+Last session: 2026-08-10T14:35:15.162Z
+Stopped at: Completed 02.6-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
