@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.5
-current_phase_name: local-curvature-feasibility-cae-re-gate
-status: executing
-stopped_at: 02.5-09 Tasks 1-2 complete; Task 3 blocking human-verify checkpoint OPEN (chart-decoder curvature Swiss roll read-out)
-last_updated: "2026-08-09T13:40:03.075Z"
-last_activity: 2026-08-09
-last_activity_desc: Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched
+current_phase: 02.6
+current_phase_name: decoder-substrate-screening
+status: ready_to_execute
+stopped_at: 02.5 paused mid-execution — 02.5-09 Tasks 1-2 complete; Task 3 blocking human-verify checkpoint OPEN (chart-decoder curvature Swiss roll read-out). 02.5-10..13 are blocked on Phase 02.6.
+last_updated: "2026-08-10T00:00:00.000Z"
+last_activity: 2026-08-10
+last_activity_desc: Phase 02.6 planned — research (0f55fa1), validation strategy (5f70c8a), 6 plans across 3 waves (6b8be94); plan-checker returned 0 blockers, 0 warnings
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
-  total_plans: 38
+  total_plans: 44
   completed_plans: 34
 ---
 
@@ -23,11 +23,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.5 — local-curvature-feasibility-cae-re-gate
+**Current focus:** Phase 02.6 — decoder-substrate-screening (02.5 paused; 02.6 blocks 02.5-10..13)
 
 ## Current Position
 
-Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — EXECUTING
+Phase: 02.6 (decoder-substrate-screening) — READY TO EXECUTE
+Plan: 0 of 6
+
+**Phase 02.6 is planned (2026-08-10).** 6 plans across 3 waves. Plan-checker returned **0 blockers, 0 warnings**. No milestone REQ-IDs exist for this phase — ROADMAP.md declares none and directs that coverage be derived from its five stated success criteria, so the plans use phase-local `SC-1..SC-5`; coverage is 5/5. No CONTEXT.md exists either (the phase was inserted and scoped directly in ROADMAP.md; `/gsd-discuss-phase` was never run, by explicit user choice at plan time). Wave order: `01` `decoder_curvature.py` tracer ∥ `02` **blocking `checkpoint:decision`** ratifying the numeric admission floor and promotion bars → `03` plain-AE admission notebook ∥ `04` TopoAE admission notebook ∥ `05` four-seed runner → `06` `02.6-FINDINGS.md` and the promotion argument. Plans `02`, `03`, `04`, `06` are non-autonomous. The decision checkpoint sits in wave 1 deliberately, so the bars are chosen **blind** — before plan `05` measures anything.
+
+**The correction the planner found, and the checker verified against source.** Both `02.6-RESEARCH.md` (Pattern 1) and `02.6-PATTERNS.md` instruct the new module to call `chart_curvature.assert_c2_activation` unchanged, and assert the call passes. It does not: `ChartAutoEncoder.__init__` sets `self.activation` (`cae.py:170`), `PlainAutoEncoder.__init__` (`cae.py:576-594`) does not, and `assert_c2_activation` raises when the attribute is absent (`chart_curvature.py:148-154`). Following the research as written would have hard-raised on every legitimate plain decoder and made the "ReLU decoder must raise" test vacuous. Plan `01` introduces `assert_c2_decoder`, which reaches the same sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules.
+
+**Open decisions, handled two ways.** Eight are adopted as **stated assumptions** with the rejected alternative named (A-01..A-12: import-vs-duplicate the sealed helpers, sibling module vs editing `chart_curvature.py`, `d×d`-solve vs explicit projector, hosting `swiss_roll_analytic_H_vector`, fixture `20260807`, cfg reused verbatim from the 02.4 notebook, cache-free runner, runner applies no bar). The two that would make written work wrong if reversed — the **numeric admission floor** and the **promotion bars** — went to the wave-1 `checkpoint:decision` in plan `02`. `SPEARMAN_ABSOLUTE_FLOOR` is correctly treated as a docstring literal at `curvature_probe.py:1457`, never an import.
+
+**Scope fences carried into every plan.** Screening only — no PU fit, no verdict artifact, no sealed gate, no PASS/FAIL JSON. Sealed verdicts never reopened; sealed fits read-only. `src/effdim/` and `pyproject.toml` untouched. TopoAE++ is a resolved **NO-GO** (planar-restricted algorithm, `Z = R^2`; CGAL/Qt5/ParaView/TTK stack with no pip path) — recorded as a disposition, never an implementation task. Witness AE / RTD-AE / GRAE carry **no** implementation task in this plan set; any such work is gated behind a written "both free candidates failed admission" finding.
+
+---
+
+Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: 02.5-07 Task 3 checkpoint RESOLVED — user decided GO. CURVATURE_VERDICT=FAIL under the amended 5-seed confidence-bounded rule (qbc lower bound 0.454223 vs floor 0.475000; rho lower bound 0.530332 vs floor 0.500000). Proceeding to 02.5-08 (stage-2 Arm B, chart decoder curvature)
 Last activity: 2026-08-09 — Amendment 1 ratified and sealed (12cca56), 5-seed re-run completed (27/27 cells, 28.6 min, stage1_key e71a4ea18050ea20), 02.5-FINDINGS-AMENDED-01.md written, GO decision taken; 02.5-08 dispatched. Quick task 20260809-cae-undertraining-test completed (1558630) — the CAE chart-pruning criterion shown structurally unable to detect a dead chart; phase 02.5 remains paused at the OPEN blocking human-verify checkpoint on plan 02.5-09
