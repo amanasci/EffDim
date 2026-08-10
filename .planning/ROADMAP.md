@@ -21,7 +21,8 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
 - [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
 - [x] **Phase 02.4: Topological Auto-Encoder Validity Test** (INSERTED) — The Topological Auto-Encoder (Moor et al., arXiv:1906.00722) implemented and put through a pre-registered validity gate on the PU data (sealed 2026-08-07, **TOPOAE_VERDICT = FAIL** — both *global*-scoped gates failed, the *local*-scoped gate passed; see Phase Details and `02.4-FINDINGS.md`)
-- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced
+- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 now wait on Phase 02.6 — see Phase Details**
+- [ ] **Phase 02.6: Decoder Substrate Screening** (INSERTED, not yet planned) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -354,6 +355,40 @@ Plans:
 **Wave 12** *(blocked on Wave 11 completion)*
 
 - [ ] 02.5-13-PLAN.md — **[checkpoint]** Retarget Phase 3's dead-pointer dependency, revisit 02.1's falsifier, complete the phase record (D-04, D-13, D-14, D-15)
+
+### Phase 02.6: Decoder Substrate Screening (INSERTED)
+
+**Goal**: A ranked, evidence-backed shortlist of decoder substrates screened against the Swiss roll admission gate, with **at most one** promoted to a full pre-registered validity gate in a follow-on phase. This phase **screens; it does not gate**. No PU fit, no sealed verdict, no PASS/FAIL artifact is produced here.
+
+**Why inserted**: Phase 02.5's Arm B was built against the Chart Auto-Encoder decoder, and plan 02.5-09 then measured that decoder failing its Swiss roll check — curvature Spearman `-0.0604` against the raw-point baseline's `0.6712`, alongside reconstruction 2.96x better than a matched plain AE. Arm B's structural argument, that a decoder escapes stage 1's locality wall by differentiating an analytic map rather than sampling a neighbourhood, **does not depend on charts**; it holds for any smooth decoder. The substrate is therefore open, and `02.5-10` is the last point it can change before stage-2 thresholds seal. Running stage 2 on a substrate that failed its admission gate is precisely what that gate exists to prevent.
+
+**Depends on**: Phase 02.5 stage 1 (consumes `CURVATURE_VERDICT = FAIL` and its measured locality mechanism as motivation; requires no PASS). **Blocks**: Phase 02.5 plans 02.5-10..13.
+
+**Candidates.** Three already exist in-repo and cost nothing to screen; the rest are new implementations and each carries a faithful-to-paper audit as part of its cost.
+
+| substrate | status | known |
+|---|---|---|
+| plain AE | built, has Swiss roll check | best H0 retention per parameter (`~0.53-0.63` vs CAE `0.183`, at 1/8 the parameters); **curvature untested** |
+| TopoAE (Moor et al., 1906.00722) | built, sealed 02.4 fits | `TOPOAE_VERDICT = FAIL` globally but the ***local*-scoped gate PASSED** — the only model in this project to pass anything, in the scope 02.5 cares about; **curvature untested** |
+| CAE (1912.10094) | built, sealed 02.2 fits | admission **FAILED** (02.5-09); retained as the measured negative control |
+| RTD-AE (ICLR 2023) | new | constrains the map *induced on homology groups* toward an isomorphism rather than matching diagrams — a stronger claim than TopoAE's |
+| Witness AE | new | k-NN witness complex instead of Vietoris-Rips; the scaling lever for the one genuinely compute-bound quantity in this project |
+| TopoAE++ (2502.20215) | new, **feasibility first** | proves TopoAE's zero-loss guarantee **fails** for any naive extension to `PH^d`, `d >= 1`; but its fast algorithm is **planar-specific** and may not apply at `d = 40` — assess before implementing |
+| GRAE | new | geometry- rather than topology-regularised |
+
+**Success criteria (screening, not gating)**
+
+1. Every candidate is implemented faithfully to its paper, with the deviations named explicitly — the CAE audit found two (epoch budget, and a ratio-based pruning criterion where the paper's is absolute), and one of them hid the effect an experiment was built to find.
+2. Every candidate gets a CLAUDE.md-mandated Swiss roll admission notebook, importing model code unchanged.
+3. Admission is judged on **four read-outs reported separately, never collapsed**: direction (cosine similarity to analytic `H`), magnitude (`||H_model||/||H_true||`, median **and** per-point CV), calibration slope (`a ~= 1`, `b ~= 0`), and rank (Spearman). Rank alone scores `1.0` on a decoder that compresses every magnitude by a constant.
+4. **Four seeds minimum, spread reported.** Plan 02.5-09 measured Spearman running `-0.0604 / -0.1444 / 0.8665 / 0.4250` across torch seeds at one configuration; a single-seed pass is a lucky draw, not a result.
+5. At most **one** candidate is promoted, with the promotion argued against the measured effect sizes rather than asserted.
+
+**Cross-cutting constraints**: Screening only — no PU fits, no verdict artifacts, no sealed gates; those belong to the promoted model's own follow-on phase. Sealed verdicts (`GATE_VERDICT`, `CAE_VERDICT`, `TOPOAE_VERDICT`, `CURVATURE_VERDICT`) are never reopened, softened, or recomputed. Sealed fits are read-only. `src/effdim/` and `pyproject.toml` are not modified (`ripser`/`persim` are already venv-installed and undeclared — a known, recorded reproducibility gap). Additive only.
+
+**Effect sizes this phase must argue against, not around**: the largest measured difference so far is **single-chart versus multi-chart (~3.4x on H0 retention)**, while the topological-loss axis is worth **~6%** (TopoAE `0.668` vs plain AE `0.628`). A candidate justified only by a better topological loss is arguing inside that 6%. Correspondingly, the PU topology beyond connectedness is bounded, not zero: no cycle above ~3x the manifold's local thickness at `n <= 2000`, with **no power analysis at all for `beta_2`** — so higher-homology methods cannot be dismissed on "there is nothing there to find," nor adopted on the assumption that there is.
+
+**Design note**: `.planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-NOTE-substrate-selection.md` (commit `f8350b6`) sets out the Stage A admission / Stage B decision structure this phase implements, and Section 4 records three inferences that must **not** be drawn from a Swiss roll result.
 
 ### Phase 3: Decoder & Curvature Field
 
