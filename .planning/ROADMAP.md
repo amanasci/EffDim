@@ -390,6 +390,28 @@ Plans:
 
 **Design note**: `.planning/phases/02.5-local-curvature-feasibility-cae-re-gate/02.5-NOTE-substrate-selection.md` (commit `f8350b6`) sets out the Stage A admission / Stage B decision structure this phase implements, and Section 4 records three inferences that must **not** be drawn from a Swiss roll result.
 
+**Status**: Inserted 2026-08-10. No `/gsd-discuss-phase` pass — scoped directly in this entry, so no CONTEXT.md exists and `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule are **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10 (`02.6-RESEARCH.md`, `02.6-PATTERNS.md`, `02.6-VALIDATION.md`). Planned 2026-08-10 — 6 plans across 3 waves. No milestone REQ-IDs; coverage is traced against the five success criteria above as **SC-1..SC-5**, and all five are covered.
+
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02.6-01-PLAN.md — **[tracer]** `decoder_curvature.py`: exact decoder curvature with no chart routing, plus sphere/flat known-answer, C2-guard and bit-identity tests (SC-3)
+- [ ] 02.6-02-PLAN.md — **[checkpoint]** Ratify the screening bars, the seed-spread disqualifier and the promotion rule **blind**, before any 02.6 measurement (SC-4, SC-5)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02.6-03-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **plain-AE** decoder (SC-2, SC-3)
+- [ ] 02.6-04-PLAN.md — **[checkpoint]** CLAUDE.md Swiss roll curvature admission notebook for the **TopoAE-trained** decoder, with a genuinely matched baseline at budget parity (SC-2, SC-3)
+- [ ] 02.6-05-PLAN.md — Four-seed, four-axis screening runner in `notebooks/diagnostics/`, measuring and printing only — no bar, no verdict (SC-3, SC-4)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02.6-06-PLAN.md — **[checkpoint]** `02.6-FINDINGS.md`: per-seed tables, bar-by-bar findings, all seven candidates dispositioned, at most one promoted argued against the effect sizes, Tier-2+ gated (SC-1, SC-4, SC-5)
+
+**Planning-time correction carried into the plans**: `chart_curvature.assert_c2_activation` **cannot** be called on a `cae.PlainAutoEncoder` — `ChartAutoEncoder` sets `self.activation`, `PlainAutoEncoder` does not, so the sealed guard hard-raises on every plain decoder. Both `02.6-RESEARCH.md` and `02.6-PATTERNS.md` state the opposite. Verified false during planning; plan `01` introduces `assert_c2_decoder`, which reaches the sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules instead of a recorded attribute. `cae.py` is not edited.
+
 ### Phase 3: Decoder & Curvature Field
 
 **Goal**: A C2-smooth decoder trained from Phase 02.1's chosen representation back to the 768-d embedding, its analytically-derived mean curvature field validated against a synthetic-control falsification test before being trusted as a property of the data manifold rather than a decoder artifact.
