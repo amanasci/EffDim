@@ -398,7 +398,7 @@ Prior history: Inserted 2026-08-10, scoped directly in this entry with no discus
 
 Replan history: `/gsd-discuss-phase` pass 2026-08-10 after the halt (`02.6-CONTEXT.md`, `02.6-DISCUSSION-LOG.md`) — the first this phase has had, and now authoritative for scope. Re-researched 2026-08-10 onto the persistent-homology agreement axis, overwriting `02.6-RESEARCH.md` (which carries a `## Retractions from Prior RESEARCH.md` table naming every withdrawn claim) and reseeding `02.6-VALIDATION.md`. `02.6-PATTERNS.md` is **partially superseded** — it and the prior research both claimed `chart_curvature.assert_c2_activation` can be called on a `cae.PlainAutoEncoder`; it cannot (`PlainAutoEncoder` sets no `self.activation`), and plan `01` introduced `assert_c2_decoder` instead. Plans `02.6-01`, `-02`, `-05` are **executed and retained** — `decoder_curvature.py`, the ratified rule, and the four-seed runner exist on disk and are reused as built assets. Plans `02.6-03`, `-04`, `-06` are **superseded by the axis change** and are not resumed; new plans are numbered from `02.6-07`. No milestone REQ-IDs; coverage is traced against the seven success criteria above as **SC-1..SC-7**, which map to `02.6-CONTEXT.md` decisions D-01..D-22.
 
-**Plans**: 3/6 executed then halted; replan in progress, new plans numbered from `02.6-07`
+**Plans**: 3/6 executed then halted; replanned 2026-08-10 — 9 new plans (`02.6-07`..`02.6-15`) across 5 independently-numbered waves, 0/9 executed
 
 > **The `(SC-N)` tags on plans `01`–`06` below refer to the OLD SC-1..SC-5**, which described the halted curvature axis. They are left as written so the historical record reads correctly. New plans trace against the current SC-1..SC-7.
 
@@ -418,9 +418,33 @@ Plans:
 
 - [~] 02.6-06-PLAN.md — **[checkpoint]** `02.6-FINDINGS.md`: per-seed tables, bar-by-bar findings, all seven candidates dispositioned, at most one promoted argued against the effect sizes, Tier-2+ gated (SC-1, SC-4, SC-5) — **SUPERSEDED at halt:** never ran; `02.6-FINDINGS.md` exists instead as a halt record with no promotion argument. Its "promote at most one" premise is additionally reversed by D-10.
 
-**Replan — new plans (PH-agreement axis)**
+**Replan — new plans (PH-agreement axis).** Planned 2026-08-10 — 9 plans across 5 waves, numbered from `02.6-07`. Waves are numbered independently of the halted run; the halted run's Waves 1–3 above are history. Coverage traced against SC-1..SC-7 above: 7/7. Plans `07`, `08`, `12`, `13`, `15` are non-autonomous.
 
-*Pending planner output.*
+**Replan Wave 1** *(no dependencies — the ratification lands before any new-axis measurement, and the separator runs first and non-blocking)*
+
+- [ ] 02.6-07-PLAN.md — **[checkpoint:decision]** Ratify the PH-agreement criterion, its bars, the 16-cell read-out matrix and five open design questions **blind and explicitly non-gating**; `02.6-SCREENING-RULE-02.md` (SC-1)
+- [ ] 02.6-08-PLAN.md — **[tracer][checkpoint:human-verify]** The separating experiment: `analytic_param.py` (closed-form arc length, intrinsic plane, exact ambient map, the analytic Swiss roll decoder as the exactness floor, the generously-sized regression net) + tests + `02.6_swiss_roll_separator_check.ipynb` (SC-2)
+
+**Replan Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02.6-09-PLAN.md — **[tracer]** `persistence_probe.py` + tests: diagrams, bottleneck/Wasserstein normalised by the reference's own max persistence, saturation and thin-denominator guards, and one end-to-end 16-cell slice (SC-3)
+- [ ] 02.6-10-PLAN.md — **[tracer]** `derivative_bridge.py` + tests: finite-difference Hessian calibrated against this project's own known-answer fixtures, mirrored `tr_g(II)` reduction pinned to the sealed tracer, agreement at both levels, no bar (SC-5)
+
+**Replan Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02.6-11-PLAN.md — `decoder_substrate_ph_screen_run.py`: three candidates × four seeds × 16 separately labelled numbers, spread reported, measure-and-print only (SC-3, SC-4)
+- [ ] 02.6-12-PLAN.md — **[checkpoint:human-verify]** CLAUDE.md Swiss roll PH notebooks for the **plain-AE** and **TopoAE** arms, with a matched baseline at budget parity and a chance null (SC-6)
+- [ ] 02.6-14-PLAN.md — `derivative_bridge_run.py`: the bridge on the Swiss roll **and** PU, reported separately, step calibrated per model, no threshold (SC-5)
+
+**Replan Wave 4** *(blocked on Wave 3)*
+
+- [ ] 02.6-13-PLAN.md — **[checkpoint:human-verify]** CLAUDE.md Swiss roll PH notebook for the **CAE**, the measured negative control (SC-6)
+
+**Replan Wave 5** *(blocked on Wave 4)*
+
+- [ ] 02.6-15-PLAN.md — **[checkpoint:human-verify]** `02.6-FINDINGS-02.md`: the ordering proof, the full 192-number matrix, the ranking with its cell-level disagreements, both bridge tables, full disclosure for `02.5-10` — **promoting no substrate** (SC-7)
+
+**Two source corrections carried into the replan's plans, both verified against source at planning time.** First, the one already recorded below: `chart_curvature.assert_c2_activation` cannot be called on a `cae.PlainAutoEncoder`, and `decoder_curvature.assert_c2_decoder` is the fix. Second, new this pass: **`cae.ChartAutoEncoder.forward(x)` returns no `"y"` key** — it returns `z`, `z_charts`, `y_charts`, `p`, `e`, and the CAE's decoder image is `model.reconstruct(x)`, the argmax-chart reconstruction that `notebooks/02.2_swiss_roll_cae_check.ipynb` itself uses. Both `02.6-RESEARCH.md` Pattern 3 and `02.6-PATTERNS.md`'s Shared Patterns state the opposite. Additionally, `02.6-RESEARCH.md`'s arc-length tolerance (`< 9e-14`) is below the measured deviation (`9.237e-14`) and its Pitfall 2 intrinsic-H1 value (`0.420`) is subsample-procedure-dependent and did not reproduce (measured `0.3348`); neither is pinned as a constant anywhere in the plans. A fourth planning-time measurement is new evidence rather than a correction: `persim.bottleneck` between the two references' own H1 diagrams already sits exactly at the ambient reference's saturation value (`0.35988`), so the `(H1, ambient)` bottleneck cell is expected to be saturated for a *correctly* unrolled latent — pinned as a regression test in plan `02.6-09` before any candidate is measured.
 
 **Planning-time correction carried into the plans**: `chart_curvature.assert_c2_activation` **cannot** be called on a `cae.PlainAutoEncoder` — `ChartAutoEncoder` sets `self.activation`, `PlainAutoEncoder` does not, so the sealed guard hard-raises on every plain decoder. Both `02.6-RESEARCH.md` and `02.6-PATTERNS.md` state the opposite. Verified false during planning; plan `01` introduces `assert_c2_decoder`, which reaches the sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules instead of a recorded attribute. `cae.py` is not edited.
 
