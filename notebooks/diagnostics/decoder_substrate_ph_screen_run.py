@@ -56,30 +56,43 @@ HIDDEN = (64, 64, 64)
 LAMBDA_TOPO = 0.1
 HOLDOUT_FRACTION = 0.2
 
-# POST-COMPLETION PROTOCOL REPAIR (found after 02.6-11 first closed, re-run under this
-# fixed config; see 02.6-11-SUMMARY.md's "Protocol repair" section for the measured
-# justification). The original CFG_COMMON below -- lr=3e-4, max_epochs=150, no early
-# stop -- kept plainae and topoae symmetric with EACH OTHER, but never checked the far
-# more consequential asymmetry against CFG_CAE's lr=1e-3 + 300-epoch + patience=25
-# convergence discipline: every plainae/topoae seed hit the 150-epoch ceiling still
-# improving (epochs_run=150, early_stopped=False), while the CAE converged and often
-# stopped early. A controlled probe (same PlainAutoEncoder, same fixture/seed, this
-# config vs the 02.2 reference config) measured a ~3.5x reconstruction-error reduction
-# from finishing convergence, landing on the 02.2 notebook's own ~4.8% figure -- so the
-# original 192-number matrix ranked one converged model against two unconverged ones,
-# not three substrates under a shared measurement apparatus. This is a repair to the
-# measurement apparatus, not a change to the ratified criterion
-# (02.6-SCREENING-RULE-02.md pins the criterion, the cells, the seeds and the
-# provenance conventions; it does not pin lr, epoch budget, or early stopping). Fixed:
-# all three arms now share ONE convergence rule -- CFG_CAE's own lr=1e-3,
+# POST-COMPLETION PROTOCOL REPAIR, two rounds (found after 02.6-11 first closed, both
+# re-runs done under these fixed configs; see 02.6-11-SUMMARY.md's "Protocol repair"
+# section for the full measured justification of each round). The file's history reads
+# honestly here rather than looking like max_epochs=800 was always intended:
+#
+# ROUND 1. The original CFG_COMMON -- lr=3e-4, max_epochs=150, no early stop -- kept
+# plainae and topoae symmetric with EACH OTHER, but never checked the far more
+# consequential asymmetry against CFG_CAE's lr=1e-3 + patience=25 convergence
+# discipline: every plainae/topoae seed hit the 150-epoch ceiling still improving
+# (epochs_run=150, early_stopped=False), while the CAE converged and often stopped
+# early. A controlled probe (same PlainAutoEncoder, same fixture/seed, this config vs
+# the 02.2 reference config) measured a ~3.5x reconstruction-error reduction from
+# finishing convergence, landing on the 02.2 notebook's own ~4.8% figure -- so the
+# original 192-number matrix ranked one converged model against two unconverged ones.
+# Fixed: all three arms given ONE convergence rule -- CFG_CAE's own lr=1e-3,
 # early_stop_patience=25, early_stop_min_delta=1e-4, matching the 02.2 reference
-# verbatim -- so plainae and topoae stay symmetric with each other (the original
-# comment's stated intent) AND with cae (the asymmetry that intent never considered).
+# verbatim -- at a shared max_epochs=300 ceiling.
+#
+# ROUND 2. At max_epochs=300, plainae and cae converged on every seed
+# (early_stopped=True 4/4 each), but topoae hit the 300-epoch ceiling on 3 of its 4
+# seeds (early_stopped=False) -- topoae carries an extra topological loss term plus a
+# warmup/ramp schedule and legitimately needs more epochs than a plain AE to finish
+# converging under the identical patience rule. The residual truncation landed on
+# exactly the deciding latent|intrinsic|wasserstein cells, disfavouring topoae (the
+# runner-up on those cells) relative to plainae. Fixed: max_epochs raised to 800 for
+# ALL THREE arms -- headroom, not a different rule; topoae is never given a longer
+# ceiling than plainae or cae, only enough shared headroom that early stopping, not the
+# ceiling, ends every arm.
+#
+# This is a repair to the measurement apparatus, not a change to the ratified criterion
+# (02.6-SCREENING-RULE-02.md pins the criterion, the cells, the seeds and the
+# provenance conventions; it does not pin lr, epoch budget, or early stopping).
 CFG_COMMON = dict(
     lr=1e-3,
     weight_decay=1e-4,
     batch=64,
-    max_epochs=300,
+    max_epochs=800,
     early_stop_patience=25,
     early_stop_min_delta=1e-4,
 )
@@ -102,7 +115,7 @@ CFG_CAE = dict(
     lr=1e-3,
     weight_decay=1e-4,
     batch=64,
-    max_epochs=300,
+    max_epochs=800,
     early_stop_patience=25,
     early_stop_min_delta=1e-4,
     fps_pretrain_epochs=20,
