@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-11-PLAN.md (reopened twice post-completion for protocol repair, re-closed)
-last_updated: "2026-08-11T13:45:48.488Z"
+stopped_at: Completed 02.6-12-PLAN.md (plain-AE and TopoAE PH Swiss roll notebooks, both re-run under repaired protocol, checkpoint approved)
+last_updated: "2026-08-11T14:13:22.569Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 45
+  completed_plans: 46
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 6 of 15
+Plan: 7 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 85% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -175,6 +175,7 @@ Progress: [█████████░] 85% of planned plans (17/17; Phases 1
 | Phase 02.6 P09 | ~35min | 2 tasks | 2 files |
 | Phase 02.6 P10 | ~35min | 1 tasks | 2 files |
 | Phase 02.6 P11 | ~50min | 2 tasks | 1 files |
+| Phase 02.6 P12 | ~50min active (8h25m wall-clock incl. review holds) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -294,6 +295,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-11: Measured saturation confirms the ratified caveat -- latent|ambient|H1|bottleneck saturates at exactly 0.5000 (SPREAD 0.0000) for plainae and topoae across all four seeds, but not for the CAE (mean 1.0575, SPREAD 0.5151) -- reported as a measured contrast, no bar applied, no candidate ranked
 - [Phase ?]: 02.6-11 REOPENED post-completion: two rounds of protocol repair to the PH screening runner's training config -- round 1 unified CFG_COMMON with CFG_CAE's convergence discipline (lr=1e-3, early_stop_patience=25) after a probe showed plainae/topoae were unconverged at the original 150-epoch budget (~3.5x recon-error reduction when finished); round 2 raised the shared ceiling to 800 after topoae alone still hit the 300-epoch ceiling on 3/4 seeds, biasing the deciding latent|intrinsic|wasserstein cells against it. Final run: all 12 fits converged by early stopping, zero rows hit the ceiling.
 - [Phase ?]: 02.6-11: final measured result -- cae is genuinely separated from plainae/topoae on latent|intrinsic|wasserstein (~6x, gap of ~91-559 against a spread an order of magnitude smaller); plainae and topoae are NOT separated at four seeds on the same cells (gaps of ~13.5 H0 / ~5.6 H1 sitting inside both candidates' own seed spreads of ~53 / ~9) -- recorded as an unresolved ordering, not a ranking, for 02.6-15 to inherit intact
+- [Phase ?]: 02.6-12: Plain-AE and TopoAE PH Swiss roll notebooks built, gate-checked, then rebuilt/re-gated under a mid-plan repaired convergence protocol (lr=1e-3, max_epochs=800, early_stop_patience=25) after the original config (lr=3e-4, max_epochs=150, no early stop) was found to undertrain both arms relative to CAE; reconstruction error dropped 14.7%->6.1% (plain AE) and 22.8%->7.2% (TopoAE), D-03 H1 signature held before and after, PC1-Spearman boolean reframed as a linear-ordering test (not tuned), TopoAE's 151.7s wall clock accepted as a knowing deviation from the plan's original <120s criterion
+- [Phase ?]: 02.6-12: Both notebooks' latent scatters show the highest-t roll endpoint collapsing into a dense cluster rather than continuing the spiral -- consistent across plain-AE and TopoAE, flagged for 02.6-15 to check against the PH H0/H1 read-out cells
 
 ### Pending Todos
 
@@ -339,8 +342,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T13:45:48.452Z
-Stopped at: Completed 02.6-11-PLAN.md (reopened twice post-completion for protocol repair, re-closed)
+Last session: 2026-08-11T14:13:22.532Z
+Stopped at: Completed 02.6-12-PLAN.md (plain-AE and TopoAE PH Swiss roll notebooks, both re-run under repaired protocol, checkpoint approved)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
