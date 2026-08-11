@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
-status: executing
+status: verifying
 stopped_at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
-last_updated: "2026-08-11T16:43:43.000Z"
+last_updated: "2026-08-11T17:23:21.753Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.6 replan completed -- 02.6-FINDINGS-02.md assembled, promotes no substrate, Phase 02.5 stage 2 unblocked
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 53
   completed_plans: 49
 ---
@@ -138,7 +138,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -191,6 +191,7 @@ Progress: [█████████░] 91% of planned plans (17/17; Phases 1
 | Phase 02.6 P12 | ~50min active (8h25m wall-clock incl. review holds) | 3 tasks | 2 files |
 | Phase 02.6 P14 | ~2h40min | 2 tasks | 3 files |
 | Phase 02.6 P13 | ~2h (1 auto task + 1 checkpoint round-trip) | 2 tasks | 1 files |
+| Phase 02.6 P15 | ~55min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -363,7 +364,7 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T16:43:43.000Z
+Last session: 2026-08-11T17:23:21.715Z
 Stopped at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
