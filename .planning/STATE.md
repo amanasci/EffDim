@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-07-PLAN.md
-last_updated: "2026-08-11T00:50:37.743Z"
+stopped_at: Completed 02.6-08-PLAN.md
+last_updated: "2026-08-11T03:43:55.844Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 41
+  completed_plans: 42
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 2 of 15
+Plan: 3 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 77% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 79% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -171,6 +171,7 @@ Progress: [████████░░] 77% of planned plans (17/17; Phases 1
 | Phase 02.6 P02 | ~10min | 2 tasks | 1 files |
 | Phase 02.6 P05 | ~20min | 2 tasks | 1 files |
 | Phase 02.6 P07 | 20min | 2 tasks | 1 files |
+| Phase 02.6 P08 | ~25min active (2 checkpoint holds) | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -278,6 +279,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-02: Screening bars ratified blind (A3, B1, C3, D1, E1) -- rank and calibration axes are comparative-only with no absolute floor; no seed-spread disqualifier exists (C3); user confirmed this deliberately removes both guards (B1's absent absolute floor, C3's absent disqualifier) that caught the CAE negative control's calibration-only-visible failure
 - [Phase ?]: 02.6-05: four-seed screening runner committed (decoder_substrate_screen_run.py) -- both free candidates lose the rank axis to the raw-point comparator (rho=0.6712) on every seed measured; plain AE rho in [-0.0838, 0.1606] SPREAD=0.2445, TopoAE rho in [-0.2793, -0.1936] SPREAD=0.0857 (all negative); measurement only, no bar applied here per A-11 -- 02.6-06 applies 02.6-SCREENING-RULE.md to these tables
 - [Phase ?]: 02.6-07 ratified P1,Q1,R1,S1,T1 for the PH-agreement screening rule (02.6-SCREENING-RULE-02.md), non-gating, committed before any PH number exists
+- [Phase ?]: 02.6-08: D-15 second branch (PASSES) selected -- nets carry usable second derivatives when the surface is correct by construction (analytic-param net median cosine 0.999870/0.999871 fixture/grid, Spearman rho 0.839304/0.855063, vs floor's exact 1.0/1.0); bounded narrowly, says nothing about whether the three screened substrates learn that surface
+- [Phase ?]: 02.6-08: calibration slope (0.659172 fixture / 0.686983 held-out grid) named as a measured shortfall, not folded into an unqualified pass -- the four boolean read-out checks (a)-(d) do not test it by design; matched plain-AE baseline gap recorded as evidence (Spearman 0.280720, ratio CV 7.874163) against the net's 0.839304/0.175600
 
 ### Pending Todos
 
@@ -323,8 +326,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T00:50:37.707Z
-Stopped at: Completed 02.6-07-PLAN.md
+Last session: 2026-08-11T03:43:55.808Z
+Stopped at: Completed 02.6-08-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
