@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-08-PLAN.md
-last_updated: "2026-08-11T03:43:55.844Z"
+stopped_at: Completed 02.6-09-PLAN.md
+last_updated: "2026-08-11T04:02:49.096Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 42
+  completed_plans: 43
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 3 of 15
+Plan: 4 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 79% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 81% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -172,6 +172,7 @@ Progress: [████████░░] 79% of planned plans (17/17; Phases 1
 | Phase 02.6 P05 | ~20min | 2 tasks | 1 files |
 | Phase 02.6 P07 | 20min | 2 tasks | 1 files |
 | Phase 02.6 P08 | ~25min active (2 checkpoint holds) | 3 tasks | 3 files |
+| Phase 02.6 P09 | ~35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -281,6 +282,11 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-07 ratified P1,Q1,R1,S1,T1 for the PH-agreement screening rule (02.6-SCREENING-RULE-02.md), non-gating, committed before any PH number exists
 - [Phase ?]: 02.6-08: D-15 second branch (PASSES) selected -- nets carry usable second derivatives when the surface is correct by construction (analytic-param net median cosine 0.999870/0.999871 fixture/grid, Spearman rho 0.839304/0.855063, vs floor's exact 1.0/1.0); bounded narrowly, says nothing about whether the three screened substrates learn that surface
 - [Phase ?]: 02.6-08: calibration slope (0.659172 fixture / 0.686983 held-out grid) named as a measured shortfall, not folded into an unqualified pass -- the four boolean read-out checks (a)-(d) do not test it by design; matched plain-AE baseline gap recorded as evidence (Spearman 0.280720, ratio CV 7.874163) against the net's 0.839304/0.175600
+- [Phase ?]: 02.6-09: persistence_probe.py's ph_agreement returns nan (never inf, never a substituted fallback) on a zero max-persistence denominator, applying P1 exactly; cloud_distance_matrix/readout_matrix take prescale as a required positional argument with no default
+- [Phase ?]: 02.6-09: Task 1's tracer feedback gate satisfied via automated <verify> re-run (workflow._auto_chain_active/auto_advance both false, but Auto Mode Active harness config + 02.2-02/02.6-02 precedent followed) rather than an interactive checkpoint stop
+- [Phase ?]: 02.6-09: [Rule 1 - math-level] widened the pre-scaling isometry test's tolerance from the plan's suggested 1e-9 to a measured 1e-6 -- torch.cdist's formula-based distance computation loses float64 precision proportional to operand magnitude (measured 5.114e-08 on the standard 600-point ambient cloud); no production code changed
+- [Phase ?]: 02.6-09: reproduced 02.6-SCREENING-RULE-02.md's exact travelling-caveat figures as regression tests -- intrinsic top H1 life 0.3348/11.2886 vs ambient 0.7198/4.0360, and bottleneck(ambient_H1, intrinsic_H1)=0.35988 exactly saturation_value(ambient_H1) and exactly bottleneck(empty, ambient_H1)
+- [Phase ?]: 02.6-09: requirements.mark-complete found no SC-3 entry in REQUIREMENTS.md -- phase 02.6's SC-1..SC-7 are scoped locally to 02.6-CONTEXT.md/ROADMAP.md and were never mirrored into the milestone-level REQUIREMENTS.md, same pre-existing gap noted at 02.4-02/02.5-01; not a blocker for this plan
 
 ### Pending Todos
 
@@ -326,8 +332,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T03:43:55.808Z
-Stopped at: Completed 02.6-08-PLAN.md
+Last session: 2026-08-11T04:02:41.319Z
+Stopped at: Completed 02.6-09-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>

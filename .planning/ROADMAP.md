@@ -398,7 +398,7 @@ Prior history: Inserted 2026-08-10, scoped directly in this entry with no discus
 
 Replan history: `/gsd-discuss-phase` pass 2026-08-10 after the halt (`02.6-CONTEXT.md`, `02.6-DISCUSSION-LOG.md`) — the first this phase has had, and now authoritative for scope. Re-researched 2026-08-10 onto the persistent-homology agreement axis, overwriting `02.6-RESEARCH.md` (which carries a `## Retractions from Prior RESEARCH.md` table naming every withdrawn claim) and reseeding `02.6-VALIDATION.md`. `02.6-PATTERNS.md` is **partially superseded** — it and the prior research both claimed `chart_curvature.assert_c2_activation` can be called on a `cae.PlainAutoEncoder`; it cannot (`PlainAutoEncoder` sets no `self.activation`), and plan `01` introduced `assert_c2_decoder` instead. Plans `02.6-01`, `-02`, `-05` are **executed and retained** — `decoder_curvature.py`, the ratified rule, and the four-seed runner exist on disk and are reused as built assets. Plans `02.6-03`, `-04`, `-06` are **superseded by the axis change** and are not resumed; new plans are numbered from `02.6-07`. No milestone REQ-IDs; coverage is traced against the seven success criteria above as **SC-1..SC-7**, which map to `02.6-CONTEXT.md` decisions D-01..D-22.
 
-**Plans**: 8/15 plans executed
+**Plans**: 9/15 plans executed
 
 > **The `(SC-N)` tags on plans `01`–`06` below refer to the OLD SC-1..SC-5**, which described the halted curvature axis. They are left as written so the historical record reads correctly. New plans trace against the current SC-1..SC-7.
 
@@ -432,7 +432,7 @@ Plans:
 
 **Replan Wave 2** *(blocked on Wave 1)*
 
-- [ ] 02.6-09-PLAN.md — **[tracer]** `persistence_probe.py` + tests: diagrams, bottleneck/Wasserstein normalised by the reference's own max persistence, saturation and thin-denominator guards, and one end-to-end 16-cell slice (SC-3)
+- [x] 02.6-09-PLAN.md — **[tracer]** `persistence_probe.py` + tests: diagrams, bottleneck/Wasserstein normalised by the reference's own max persistence, saturation and thin-denominator guards, and one end-to-end 16-cell slice (SC-3)
 - [ ] 02.6-10-PLAN.md — **[tracer]** `derivative_bridge.py` + tests: finite-difference Hessian calibrated against this project's own known-answer fixtures, mirrored `tr_g(II)` reduction pinned to the sealed tracer, agreement at both levels, no bar (SC-5)
 
 **Replan Wave 3** *(blocked on Wave 2)*
