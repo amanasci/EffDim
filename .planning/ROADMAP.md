@@ -515,6 +515,7 @@ Plans:
 **Cross-cutting constraints**: `src/effdim/` and `pyproject.toml` are **frozen** — the eight intrinsic-dimension estimators are called, never edited. Sealed verdicts (`GATE_VERDICT`, `CAE_VERDICT`, `TOPOAE_VERDICT`, `CURVATURE_VERDICT`) are never reopened; sealed fits are read-only. **`d_frozen = 5` is not inherited** — Phase 02's own findings flag it as suspect, so this phase re-estimates intrinsic dimension rather than assuming it, and reports its own estimate against that record. `ripser`/`persim` remain venv-installed and undeclared (known, recorded gap — not fixed here). Additive only.
 
 **Inherited discipline from Phase 02.6, which this phase must not relearn the hard way**:
+
 - **Read-outs are reported separately and never collapsed into a score.** Accuracy and abstention are two numbers; Euclidean and spectral PH are two answers.
 - **Normalised persistence distances are comparable only within a reference.** `02.6-FINDINGS-02.md` §5 measured intrinsic-`H1` and ambient-`H1` denominators differing by 2.15x; use raw distances for any cross-reference comparison.
 - **Write at least one acceptance criterion that exercises production dimensionality.** Phase 02.6 produced three defects that passed every toy-scale check and failed at real scale — `torch.quantile`'s undocumented `2**24` cap, a training-budget asymmetry that silently made a comparison unfair, and a safety guard bypassed by passing a bound method. At `D = 768` this phase is squarely in that regime.
@@ -533,18 +534,40 @@ Plans:
 **Assumption-delta:** recorded in `02.7-08` as one **`promote`** — the primary noun generalizes from a *dimension estimate* to an *estimator-spread-over-`k`*, and from a *persistence diagram* to a *(metric, diagram)* pair. `d_hat` survives only as the conditional output of D-10's consensus rule, which returns `None` plus a reason rather than a number the estimators do not support. Encoded by the invariant test `test_no_readout_without_metric_label`.
 
 **Plans**: 12 plans
+**Wave 1**
 
 - [ ] 02.7-01-PLAN.md — **[tracer + checkpoint:decision]** one `S^1` cloud end to end at `D = 768`, both metrics, `maxdim=2`, per-metric band, Betti lookup; the symmetrization regression test; no default for any ratifiable threshold in any module (D-01, D-02, D-04, D-05, D-07, D-11)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 02.7-02-PLAN.md — `geodesic_graph.py`: the `k` sweep, the component curve, dropped fractions, no bridging (D-05, D-06, D-07)
 - [ ] 02.7-03-PLAN.md — `local_dimension.py`: eight estimators over `k` with no aggregation, plateau-consensus, anchor-neighbourhood local estimates, and both frozen-estimator corrections pinned (D-09, D-10, D-12)
 - [ ] 02.7-04-PLAN.md — `confidence_band.py`: the Fasy per-cloud per-metric bootstrap band, and the `beta_1 = 0` disc case a gap cut cannot return (D-02)
 - [ ] 02.7-05-PLAN.md — `template_immersion.py`: four templates, orthogonal lift, named warp, Jacobian rank checked at `D = 768`, negative control (D-14, D-15)
 - [ ] 02.7-06-PLAN.md — `template_decision.py`: joint `(Betti, d_hat)` key, four named abstain conditions, three-way tally, metric-label invariant (D-01, D-03, D-04, D-13)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 02.7-07-PLAN.md — `ph_budget_calibration_run.py` + `02.7-BUDGET-CALIBRATION.md`: `H_2` cost, memory, one complete grid cell and the `H_2` power check, measured at the real `D = 768` (D-08, D-11, D-15)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 02.7-08-PLAN.md — **[checkpoint:decision]** `02.7-SCREENING-RULE.md` committed **alone**, ancestry asserted, every constant ratified blind (SC-1, D-01..D-16)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 02.7-09-PLAN.md — **[checkpoint:human-verify]** the CLAUDE.md Swiss roll notebook with in-library `S^1`/`T^2` positive controls, a live test of abstain condition (c) (SC-5, D-16)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 02.7-10-PLAN.md — **[checkpoint:human-verify]** `template_benchmark_run.py` + `02.7-BENCHMARK-RESULTS.md`: the ratified grid with `D = 768` executing, budget parity asserted in code (SC-4, D-13, D-15)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 02.7-11-PLAN.md — **[checkpoint:human-verify]** `pu_template_probe_run.py` + `02.7-PU-PROBE.md`: one read-only PU probe, refitting nothing (SC-6)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 02.7-12-PLAN.md — **[checkpoint:human-verify]** `02.7-FINDINGS.md`: the ancestry re-check against every scored commit, SC-1..SC-6 answered, the claim bounded
 
 ### Phase 3: Decoder & Curvature Field
