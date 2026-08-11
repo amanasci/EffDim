@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-12-PLAN.md (plain-AE and TopoAE PH Swiss roll notebooks, both re-run under repaired protocol, checkpoint approved)
-last_updated: "2026-08-11T14:13:22.569Z"
+stopped_at: Completed 02.6-14-PLAN.md (derivative-usability bridge run on both regimes; post-completion repair to derivative_bridge.py's quantile handling)
+last_updated: "2026-08-11T15:48:23.725Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 46
+  completed_plans: 47
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 7 of 15
+Plan: 8 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -176,6 +176,7 @@ Progress: [█████████░] 87% of planned plans (17/17; Phases 1
 | Phase 02.6 P10 | ~35min | 1 tasks | 2 files |
 | Phase 02.6 P11 | ~50min | 2 tasks | 1 files |
 | Phase 02.6 P12 | ~50min active (8h25m wall-clock incl. review holds) | 3 tasks | 2 files |
+| Phase 02.6 P14 | ~2h40min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -297,6 +298,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-11: final measured result -- cae is genuinely separated from plainae/topoae on latent|intrinsic|wasserstein (~6x, gap of ~91-559 against a spread an order of magnitude smaller); plainae and topoae are NOT separated at four seeds on the same cells (gaps of ~13.5 H0 / ~5.6 H1 sitting inside both candidates' own seed spreads of ~53 / ~9) -- recorded as an unresolved ordering, not a ranking, for 02.6-15 to inherit intact
 - [Phase ?]: 02.6-12: Plain-AE and TopoAE PH Swiss roll notebooks built, gate-checked, then rebuilt/re-gated under a mid-plan repaired convergence protocol (lr=1e-3, max_epochs=800, early_stop_patience=25) after the original config (lr=3e-4, max_epochs=150, no early stop) was found to undertrain both arms relative to CAE; reconstruction error dropped 14.7%->6.1% (plain AE) and 22.8%->7.2% (TopoAE), D-03 H1 signature held before and after, PC1-Spearman boolean reframed as a linear-ordering test (not tuned), TopoAE's 151.7s wall clock accepted as a knowing deviation from the plan's original <120s criterion
 - [Phase ?]: 02.6-12: Both notebooks' latent scatters show the highest-t roll endpoint collapsing into a dense cluster rather than continuing the spiral -- consistent across plain-AE and TopoAE, flagged for 02.6-15 to check against the PH H0/H1 read-out cells
+- [Phase ?]: 02.6-14: PU subsample stem corrected to subsample_20260729_a79b3460b838fd0a (verified against source), not the plan's stale subsample_20260801_* reference
+- [Phase ?]: 02.6-14: derivative_bridge.py's _agreement_stats repaired post-completion for torch.quantile's 2**24-element cap (PU full Hessian is 2.3x over it); size-safe _p90 helper + 3 regression tests; suite 331->334. Second instance in this phase of a module clearing all acceptance criteria then failing at real scale (first: 02.6-11's training-budget asymmetry)
+- [Phase ?]: 02.6-14: headline finding -- full Hessian vs reduced H_vec/H_norm disagree by 6-6800x at max_abs, up to ~40,000x at median/p90 for PU plainae/topoae, with direction flipping (roll topoae) between max and median/p90; D-21 amendment NOT exercised (cache count unchanged at 252); PU seed availability 1/1/3 vs roll's 4
 
 ### Pending Todos
 
@@ -342,8 +346,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T14:13:22.532Z
-Stopped at: Completed 02.6-12-PLAN.md (plain-AE and TopoAE PH Swiss roll notebooks, both re-run under repaired protocol, checkpoint approved)
+Last session: 2026-08-11T15:48:23.688Z
+Stopped at: Completed 02.6-14-PLAN.md (derivative-usability bridge run on both regimes; post-completion repair to derivative_bridge.py's quantile handling)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
