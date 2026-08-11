@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-13-PLAN.md (CAE persistent-homology Swiss roll notebook, negative control; gate closed with 3 findings -- torn reconstruction, no high-t latent collapse, latent-cell dimensional-mismatch confound in the ranking axis, disclosed not fixed)
-last_updated: "2026-08-11T16:36:28.020Z"
-last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 execution started
+stopped_at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
+last_updated: "2026-08-11T16:43:43.000Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 02.6 replan completed -- 02.6-FINDINGS-02.md assembled, promotes no substrate, Phase 02.5 stage 2 unblocked
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 48
+  completed_plans: 49
 ---
 
 # Project State
@@ -27,16 +27,29 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 9 of 15
+Phase: 02.6 (decoder-substrate-screening) — COMPLETE (replan, 2026-08-11)
+Plan: 15 of 15
 
-**Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
-curvature and analytic `H`. That score is a composite of three separable properties — did the
-architecture learn the right surface, are the trained net's second derivatives trustworthy, is
-pullback the right approximator — and nothing in the phase separates them, so a low `rho`
-is not evidence about substrate choice. Stopped by user decision before any promotion.
-**No substrate promoted, none eliminated.** Phase 02.5 stage 2 stays blocked; `02.5-10` has no
-substrate decision to inherit. Full record: `02.6-FINDINGS.md`.
+**Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
+`02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
+with its cell-level disagreements and two named confounds (CAE's 8-D latent cells are not
+dimensionally comparable to `plainae`/`topoae`'s 2-D cells; TopoAE's own ambient-space
+training objective is not the intrinsic-reference axis this phase ranks on), both
+derivative-usability bridge tables (full Hessian vs reduced `H_vec`/`H_norm` disagree by
+three to five orders of magnitude, substrate-dependent direction), and the separating
+experiment's result (D-15 PASSES branch — nets can carry usable second derivatives when the
+surface is right, bounded to the general question). **No substrate was promoted and none was
+eliminated.** Phase 02.5 stage 2 is unblocked. **Next:** `02.5-10` — stage-2 pre-registration,
+the D-09/D-10 reconciliation and D-12's neither-clears branch, reading `02.6-FINDINGS-02.md`
+for everything it inherits from this phase.
+
+**Why halted (2026-08-10, history — retained for the record).** The phase ranked decoder
+substrates by agreement between decoder-pullback curvature and analytic `H`. That score is a
+composite of three separable properties — did the architecture learn the right surface, are
+the trained net's second derivatives trustworthy, is pullback the right approximator — and
+nothing in the phase separates them, so a low `rho` is not evidence about substrate choice.
+Stopped by user decision before any promotion. Full halt record: `02.6-FINDINGS.md` (retained
+unmodified, unrelated to `02.6-FINDINGS-02.md`'s outcome above).
 
 **What survives and carries forward:** `notebooks/pu_manifold/decoder_curvature.py` (+ tests,
 suite 296), `notebooks/diagnostics/decoder_substrate_screen_run.py` (re-runnable, applies no
@@ -304,6 +317,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-14: headline finding -- full Hessian vs reduced H_vec/H_norm disagree by 6-6800x at max_abs, up to ~40,000x at median/p90 for PU plainae/topoae, with direction flipping (roll topoae) between max and median/p90; D-21 amendment NOT exercised (cache count unchanged at 252); PU seed availability 1/1/3 vs roll's 4
 - [Phase ?]: 02.6-13: CAE PH Swiss roll notebook -- reconstructs the roll (5.2% held-out error, 1.87x better than matched plain AE) through a visibly torn/fragmented surface; 8/8 charts survive; D-03 signature narrowly missed at this single seed (7.3348 vs 7.2252, ~1.5%); no high-t latent collapse, unlike plain-AE/TopoAE; beats chance null on H0/H1
 - [Phase ?]: 02.6-13: found (not fixed) a dimensional mismatch in decoder_substrate_ph_screen_run.py's ranking axis -- CAE latent cells scored at 8-D vs plainae/topoae's 2-D, so the runner's ~6x CAE gap on latent|* cells is not trustworthy on its own; on the dimensionally-matched decoder_image|intrinsic|* cells the CAE is marginally best and all three sit inside each other's spread; R1 was ratified blind pre-measurement, not a post-hoc change; 02.6-SCREENING-RULE-02.md left frozen, finding carried to 02.6-15
+- [Phase ?]: 02.6-15: 02.6-FINDINGS-02.md assembled -- ordering proof (b768ee4 ancestor of d5280fe), full 192-number matrix, both bridge tables, separator result, D-19 stated explicitly; named a second confound beyond 02.6-13's dimensional mismatch -- topoae.topological_loss trains toward AMBIENT-space MST agreement (d_x = pairwise_distances_f64(xb) on the raw input batch), while this phase ranks on INTRINSIC-reference agreement, so topoae's best-of-three showing on ambient cells reflects its training objective, not manifold-preservation quality; on the one dimensionally clean comparison (decoder_image|intrinsic|*) no candidate is separated from the other two. Promotes no substrate; ranking not walked to the runner-up. Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked
 
 ### Pending Todos
 
@@ -349,8 +363,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T16:36:27.983Z
-Stopped at: Completed 02.6-13-PLAN.md (CAE persistent-homology Swiss roll notebook, negative control; gate closed with 3 findings -- torn reconstruction, no high-t latent collapse, latent-cell dimensional-mismatch confound in the ranking axis, disclosed not fixed)
+Last session: 2026-08-11T16:43:43.000Z
+Stopped at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>

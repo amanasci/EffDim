@@ -21,8 +21,8 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
 - [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
 - [x] **Phase 02.4: Topological Auto-Encoder Validity Test** (INSERTED) — The Topological Auto-Encoder (Moor et al., arXiv:1906.00722) implemented and put through a pre-registered validity gate on the PU data (sealed 2026-08-07, **TOPOAE_VERDICT = FAIL** — both *global*-scoped gates failed, the *local*-scoped gate passed; see Phase Details and `02.4-FINDINGS.md`)
-- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 now wait on Phase 02.6 — see Phase Details**
-- [ ] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans — ranking axis found confounded, no substrate promoted or eliminated; awaiting replan on manifold/topology preservation. See `02.6-FINDINGS.md`.**
+- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 waited on Phase 02.6 — that dependency is now SATISFIED (2026-08-11): `02.5-10` receives a ranking, a derivative-usability table, and the separating experiment's result, not a substrate — see Phase Details and `02.6-FINDINGS-02.md`**
+- [x] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans, then REPLANNED onto persistent-homology agreement (D-01) and completed 2026-08-11 at 15/15 replan plans — no substrate promoted, none eliminated, ranking axis carries two named confounds. See `02.6-FINDINGS.md`, `02.6-FINDINGS-02.md`.**
 - [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
@@ -366,6 +366,11 @@ Plans:
 
 **Depends on**: Phase 02.5 stage 1 (consumes `CURVATURE_VERDICT = FAIL` and its measured locality mechanism as motivation; requires no PASS). **Blocks**: Phase 02.5 plans 02.5-10..13.
 
+> **Blocking note SATISFIED (2026-08-11).** `02.6-FINDINGS-02.md` unblocks `02.5-10`: what it
+> receives is a ranking and two tables (the persistent-homology matrix and the
+> derivative-usability bridge), not a substrate decision — the promotion decision stays with
+> `02.5-10` under its own seal-before-measure discipline (D-09, D-10, D-19).
+
 **Candidates — three in-repo only (D-20).** Adding a substrate not already in-repo is phase-sized work, not a substitution (`02.5-NOTE-substrate-selection.md` §5).
 
 | substrate | status | known |
@@ -394,11 +399,30 @@ Plans:
 
 **Status**: **HALTED 2026-08-10 mid-execution at 3/6 plans — see `02.6-FINDINGS.md`.** No substrate promoted, none eliminated. The ranking axis (agreement between decoder-pullback curvature and analytic `H`) was found to measure a composite of three separable properties — did the architecture learn the right surface, are that trained net's second derivatives trustworthy, is pullback the right approximator — so its measurements cannot be attributed to substrate choice. Ranking to be replanned on manifold/topology preservation, decided independently of curvature approximation. `02.6-SCREENING-RULE.md` was ratified blind before measurement but constrained no published conclusion; the axis change was made **after** an unfavourable plain-AE result and is recorded as such in `02.6-FINDINGS.md` §4. Phase 02.5 stage 2 remains blocked — `02.5-10` still has no substrate decision to inherit.
 
+**Outcome (2026-08-11), replan complete — see `02.6-FINDINGS-02.md`.** The replan ran to
+completion on the persistent-homology agreement axis: the criterion (`02.6-SCREENING-RULE-02.md`)
+was ratified before any measurement on this axis and ratified explicitly non-gating; three
+candidates were screened across four seeds, producing 192 separately reported numbers, none
+weighted, summed, or collapsed; the separating experiment ran first and selected D-15's
+PASSES branch (nets can carry usable second derivatives when the surface is right, on
+evidence bounded to the general question, not the per-substrate one); the derivative-usability
+bridge ran on both the Swiss roll and PU regimes, at both the full-Hessian and reduced
+`H_vec`/`H_norm` levels, finding the two levels disagree by three to five orders of magnitude
+in a substrate-dependent direction. **No substrate was promoted and none was eliminated.**
+`02.6-FINDINGS-02.md` additionally names two confounds in the ranking axis itself — the CAE's
+8-D latent cells are not dimensionally comparable to `plainae`/`topoae`'s 2-D cells, and
+TopoAE's own training objective optimises ambient-space topological agreement while this
+phase ranks on intrinsic-reference agreement — so even the ranking it hands forward carries
+two caveats a reader must clear before trusting it. **Phase 02.5 stage 2 is unblocked**:
+`02.5-10` inherits a ranking (with its disagreements and confounds named), a
+derivative-usability table (both levels, both regimes), and the separating experiment's
+result — not a substrate decision — under its own seal-before-measure discipline.
+
 Prior history: Inserted 2026-08-10, scoped directly in this entry with no discuss pass — `02.6-RESEARCH.md`'s Seed Protocol / Promotion Rule were therefore **proposals**, ratified at plan `02` rather than inherited silently. Researched 2026-08-10. Planned 2026-08-10 — 6 plans across 3 waves. Executed to 3/6, then **halted** (see Status).
 
 Replan history: `/gsd-discuss-phase` pass 2026-08-10 after the halt (`02.6-CONTEXT.md`, `02.6-DISCUSSION-LOG.md`) — the first this phase has had, and now authoritative for scope. Re-researched 2026-08-10 onto the persistent-homology agreement axis, overwriting `02.6-RESEARCH.md` (which carries a `## Retractions from Prior RESEARCH.md` table naming every withdrawn claim) and reseeding `02.6-VALIDATION.md`. `02.6-PATTERNS.md` is **partially superseded** — it and the prior research both claimed `chart_curvature.assert_c2_activation` can be called on a `cae.PlainAutoEncoder`; it cannot (`PlainAutoEncoder` sets no `self.activation`), and plan `01` introduced `assert_c2_decoder` instead. Plans `02.6-01`, `-02`, `-05` are **executed and retained** — `decoder_curvature.py`, the ratified rule, and the four-seed runner exist on disk and are reused as built assets. Plans `02.6-03`, `-04`, `-06` are **superseded by the axis change** and are not resumed; new plans are numbered from `02.6-07`. No milestone REQ-IDs; coverage is traced against the seven success criteria above as **SC-1..SC-7**, which map to `02.6-CONTEXT.md` decisions D-01..D-22.
 
-**Plans**: 14/15 plans executed
+**Plans**: 15/15 plans executed
 
 > **The `(SC-N)` tags on plans `01`–`06` below refer to the OLD SC-1..SC-5**, which described the halted curvature axis. They are left as written so the historical record reads correctly. New plans trace against the current SC-1..SC-7.
 
@@ -447,7 +471,7 @@ Plans:
 
 **Replan Wave 5** *(blocked on Wave 4)*
 
-- [ ] 02.6-15-PLAN.md — **[checkpoint:human-verify]** `02.6-FINDINGS-02.md`: the ordering proof, the full 192-number matrix, the ranking with its cell-level disagreements, both bridge tables, full disclosure for `02.5-10` — **promoting no substrate** (SC-7)
+- [x] 02.6-15-PLAN.md — **[checkpoint:human-verify]** `02.6-FINDINGS-02.md`: the ordering proof, the full 192-number matrix, the ranking with its cell-level disagreements, both bridge tables, full disclosure for `02.5-10` — **promoting no substrate** (SC-7)
 
 **Two source corrections carried into the replan's plans, both verified against source at planning time.** First, the one already recorded below: `chart_curvature.assert_c2_activation` cannot be called on a `cae.PlainAutoEncoder`, and `decoder_curvature.assert_c2_decoder` is the fix. Second, new this pass: **`cae.ChartAutoEncoder.forward(x)` returns no `"y"` key** — it returns `z`, `z_charts`, `y_charts`, `p`, `e`, and the CAE's decoder image is `model.reconstruct(x)`, the argmax-chart reconstruction that `notebooks/02.2_swiss_roll_cae_check.ipynb` itself uses. Both `02.6-RESEARCH.md` Pattern 3 and `02.6-PATTERNS.md`'s Shared Patterns state the opposite. Additionally, `02.6-RESEARCH.md`'s arc-length tolerance (`< 9e-14`) is below the measured deviation (`9.237e-14`) and its Pitfall 2 intrinsic-H1 value (`0.420`) is subsample-procedure-dependent and did not reproduce (measured `0.3348`); neither is pinned as a constant anywhere in the plans. A fourth planning-time measurement is new evidence rather than a correction: `persim.bottleneck` between the two references' own H1 diagrams already sits exactly at the ambient reference's saturation value (`0.35988`), so the `(H1, ambient)` bottleneck cell is expected to be saturated for a *correctly* unrolled latent — pinned as a regression test in plan `02.6-09` before any candidate is measured.
 
