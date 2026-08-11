@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-11-PLAN.md
-last_updated: "2026-08-11T05:08:13.646Z"
+stopped_at: Completed 02.6-11-PLAN.md (reopened twice post-completion for protocol repair, re-closed)
+last_updated: "2026-08-11T13:45:48.488Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
@@ -292,6 +292,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-10: derivative_bridge.py built (D-16/D-17/D-18); reduce_to_H_vec pinned bit-exact against decoder_curvature.plain_decoder_curvature's own H_vec on sphere and trained-net fixtures; derivative_agreement returns full-Hessian and reduced H_vec/H_norm agreement under separate keys, no acceptance rule (S1); suite 318 -> 331 passed
 - [Phase ?]: 02.6-11: Reference-provenance block uses the FIXTURE seed (not a torch/split seed) with prescale=False, exactly reproducing 02.6-SCREENING-RULE-02.md's own illustrative recipe and test_persistence_probe.py's pinned standard_references fixture
 - [Phase ?]: 02.6-11: Measured saturation confirms the ratified caveat -- latent|ambient|H1|bottleneck saturates at exactly 0.5000 (SPREAD 0.0000) for plainae and topoae across all four seeds, but not for the CAE (mean 1.0575, SPREAD 0.5151) -- reported as a measured contrast, no bar applied, no candidate ranked
+- [Phase ?]: 02.6-11 REOPENED post-completion: two rounds of protocol repair to the PH screening runner's training config -- round 1 unified CFG_COMMON with CFG_CAE's convergence discipline (lr=1e-3, early_stop_patience=25) after a probe showed plainae/topoae were unconverged at the original 150-epoch budget (~3.5x recon-error reduction when finished); round 2 raised the shared ceiling to 800 after topoae alone still hit the 300-epoch ceiling on 3/4 seeds, biasing the deciding latent|intrinsic|wasserstein cells against it. Final run: all 12 fits converged by early stopping, zero rows hit the ceiling.
+- [Phase ?]: 02.6-11: final measured result -- cae is genuinely separated from plainae/topoae on latent|intrinsic|wasserstein (~6x, gap of ~91-559 against a spread an order of magnitude smaller); plainae and topoae are NOT separated at four seeds on the same cells (gaps of ~13.5 H0 / ~5.6 H1 sitting inside both candidates' own seed spreads of ~53 / ~9) -- recorded as an unresolved ordering, not a ranking, for 02.6-15 to inherit intact
 
 ### Pending Todos
 
@@ -337,8 +339,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T05:08:13.611Z
-Stopped at: Completed 02.6-11-PLAN.md
+Last session: 2026-08-11T13:45:48.452Z
+Stopped at: Completed 02.6-11-PLAN.md (reopened twice post-completion for protocol repair, re-closed)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
