@@ -20,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
+import persim
 import pytest
 import torch
 from ripser import ripser
@@ -141,8 +142,8 @@ def test_standard_fixture_intrinsic_reference_thin_denominator_structural():
     the ambient reference's -- the structural inequality behind
     ``02.6-SCREENING-RULE-02.md``'s thin ``(H1, intrinsic)`` denominator travelling caveat.
     Asserts the STRUCTURAL relation, not a literal -- the exact figures are
-    subsample-procedure-dependent (``02.6-RESEARCH.md`` Pitfall 2's own ``0.420`` does not
-    reproduce under a different subsample of the same fixture)."""
+    subsample-procedure-dependent (``02.6-RESEARCH.md`` Pitfall 2's own measured figure for
+    this cell does not reproduce under a different subsample of the same fixture)."""
     fixture = curvature_probe.make_swiss_roll_fixture(n=3000, seed=FIXTURE_SEED)
     idx = np.random.default_rng(FIXTURE_SEED).permutation(3000)[:600]
 
@@ -175,6 +176,148 @@ def test_standard_fixture_intrinsic_reference_thin_denominator_structural():
 
     assert 0.0 < life_i < 0.10 * own_largest_i
     assert frac_i < frac_a
+
+
+@pytest.fixture(scope="module")
+def standard_references():
+    """The standard fixture's 600-point held-out subsample, shared by every Task 2 guard
+    test below: ``curvature_probe.make_swiss_roll_fixture(n=3000, seed=20260807)``, then
+    ``np.random.default_rng(20260807).permutation(3000)[:600]``. Computed once per
+    test-file run so the four guards stay well under 90 seconds together. Returns the
+    intrinsic-plane and ambient H1 diagrams plus each cloud's own largest pairwise
+    distance (for the printed record), and both references' full distance matrices for
+    the pre-scaling guard."""
+    fixture = curvature_probe.make_swiss_roll_fixture(n=3000, seed=FIXTURE_SEED)
+    idx = np.random.default_rng(FIXTURE_SEED).permutation(3000)[:600]
+
+    intrinsic = analytic_param.swiss_roll_intrinsic_plane(
+        fixture["t"][idx], fixture["X"][idx, 1], fixture["global_std"]
+    )
+    ambient = fixture["X"][idx]
+
+    Di, _ = pp.cloud_distance_matrix(intrinsic, prescale=False)
+    Da, _ = pp.cloud_distance_matrix(ambient, prescale=False)
+
+    h1_intrinsic = pp.persistence_diagram(Di)[1]
+    h1_ambient = pp.persistence_diagram(Da)[1]
+
+    return {
+        "ambient_cloud": ambient,
+        "h1_intrinsic": h1_intrinsic,
+        "h1_ambient": h1_ambient,
+        "own_largest_intrinsic": float(Di.max()),
+        "own_largest_ambient": float(Da.max()),
+    }
+
+
+# --- Task 2: the two travelling caveats, pinned at the exact place they fire ---------------
+
+
+def test_saturation_between_the_two_references_themselves(standard_references):
+    """The important new evidence: the phase's most-watched cell,
+    ``latent|ambient|H1|bottleneck_norm`` (and its ``decoder_image`` twin), is expected to
+    be SATURATED for a candidate whose latent has correctly unrolled the roll, because the
+    two references are already saturated against each other before any candidate diagram
+    enters the comparison. Standard fixture, 600-point held-out subsample (recipe above).
+    Structural relations pinned, not literals; measured figures printed and transcribed
+    into the plan SUMMARY."""
+    h1_intrinsic = standard_references["h1_intrinsic"]
+    h1_ambient = standard_references["h1_ambient"]
+
+    # model=intrinsic (stand-in for a correctly-unrolled candidate diagram), ref=ambient --
+    # exactly the (space, reference=ambient, H1, bottleneck) cell's own roles.
+    agreement = pp.ph_agreement(h1_intrinsic, h1_ambient)
+    measured_bottleneck = agreement["bottleneck"]
+    measured_saturation = pp.saturation_value(h1_ambient)
+
+    empty = np.zeros((0, 2))
+    measured_empty_vs_ambient = pp.ph_agreement(empty, h1_ambient)["bottleneck"]
+
+    print(
+        f"bottleneck(ambient_H1, intrinsic_H1)={measured_bottleneck!r} "
+        f"saturation_value(ambient_H1)={measured_saturation!r} "
+        f"bottleneck(empty, ambient_H1)={measured_empty_vs_ambient!r}"
+    )
+    print(
+        f"ambient top H1 life={pp.max_persistence(h1_ambient)!r} "
+        f"own_largest_distance={standard_references['own_largest_ambient']!r}"
+    )
+    print(
+        f"intrinsic top H1 life={pp.max_persistence(h1_intrinsic)!r} "
+        f"own_largest_distance={standard_references['own_largest_intrinsic']!r}"
+    )
+
+    assert abs(measured_bottleneck - measured_saturation) < 1e-6
+    assert abs(measured_bottleneck - measured_empty_vs_ambient) < 1e-6
+    assert pp.is_saturated(measured_bottleneck, h1_ambient) is True
+    assert agreement["saturated"] is True
+
+
+def test_empty_versus_nonempty_bottleneck_equals_saturation_and_stays_finite(
+    standard_references,
+):
+    h1_ambient = standard_references["h1_ambient"]
+    empty = np.zeros((0, 2))
+
+    raw_bottleneck = float(persim.bottleneck(empty, h1_ambient))
+    assert abs(raw_bottleneck - pp.saturation_value(h1_ambient)) < 1e-9
+
+    agreement = pp.ph_agreement(empty, h1_ambient)
+    assert np.isfinite(agreement["bottleneck"])
+    assert np.isfinite(agreement["wasserstein"])
+    assert agreement["ref_max_persistence"] > 0.0
+    assert np.isfinite(agreement["bottleneck_norm"])
+    assert np.isfinite(agreement["wasserstein_norm"])
+    assert agreement["saturated"] is True
+
+
+def test_ph_agreement_zero_denominator_returns_nan_never_inf_and_never_raises(
+    standard_references,
+):
+    h1_ambient = standard_references["h1_ambient"]
+    empty = np.zeros((0, 2))
+
+    agreement = pp.ph_agreement(h1_ambient, empty)
+    assert agreement["ref_max_persistence"] == 0.0
+    assert np.isnan(agreement["bottleneck_norm"])
+    assert np.isnan(agreement["wasserstein_norm"])
+    assert not np.isinf(agreement["bottleneck_norm"])
+    assert not np.isinf(agreement["wasserstein_norm"])
+    assert np.isfinite(agreement["bottleneck"])
+    assert np.isfinite(agreement["wasserstein"])
+
+
+def test_prescale_is_an_isometry_up_to_uniform_scale(standard_references):
+    """Building a diagram from a cloud with ``prescale`` on and with it off produces
+    diagrams (and the underlying distance matrices) that differ by exactly the applied
+    global scalar -- so the choice changes units and never the ordering of features.
+
+    Tolerance measured, not assumed: ``topoae.pairwise_distances_f64`` goes through
+    ``torch.cdist``'s formula-based computation (``||a||^2 + ||b||^2 - 2*a.b``, not a
+    direct subtraction), which loses float64 precision proportional to the operand
+    magnitude. Measured on this exact fixture: max abs difference between
+    ``D_scaled`` and ``D_native * scale`` is ``5.114e-08``, comfortably inside the
+    ``1e-6`` bound used below -- a real, tight regression bound, not a loosened
+    "just pass" tolerance."""
+    ambient = standard_references["ambient_cloud"]
+
+    D_scaled, scale = pp.cloud_distance_matrix(ambient, prescale=True)
+    D_native, native_scale = pp.cloud_distance_matrix(ambient, prescale=False)
+
+    assert native_scale == 1.0
+    assert scale > 0.0
+
+    max_abs_diff_matrix = float(np.max(np.abs(D_scaled - D_native * scale)))
+    print(f"prescale isometry: max abs diff (distance matrix) = {max_abs_diff_matrix!r}")
+    assert max_abs_diff_matrix < 1e-6
+
+    dgms_scaled = pp.persistence_diagram(D_scaled)
+    dgms_native = pp.persistence_diagram(D_native)
+    for k in range(2):
+        assert dgms_scaled[k].shape == dgms_native[k].shape
+        if dgms_scaled[k].shape[0]:
+            diff = np.abs(dgms_scaled[k] - dgms_native[k] * scale)
+            assert float(diff.max()) < 1e-6
 
 
 def test_readout_matrix_end_to_end_one_candidate_one_seed():
