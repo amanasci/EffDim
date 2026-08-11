@@ -5,12 +5,12 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: verifying
-stopped_at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
-last_updated: "2026-08-11T17:23:21.753Z"
-last_activity: 2026-08-11
-last_activity_desc: Phase 02.6 replan completed -- 02.6-FINDINGS-02.md assembled, promotes no substrate, Phase 02.5 stage 2 unblocked
+stopped_at: Phase 02.7 context gathered
+last_updated: "2026-08-11T18:29:00.101Z"
+last_activity: 2026-08-10
+last_activity_desc: Phase 02.6 execution started
 progress:
-  total_phases: 7
+  total_phases: 8
   completed_phases: 6
   total_plans: 53
   completed_plans: 49
@@ -55,10 +55,12 @@ bridge for thresholding, and should be closed before it does:
   `RuntimeError` instead of the documented `ValueError` naming `model.double()`. Only
   `derivative_agreement` (line 426) passes the model correctly. Masked today because every
   runner call site pre-casts with `.double()`.
+
 - **WR-02** — `_agreement_stats`' relative-error columns can exceed 100% when reference entries
   are near zero rather than zero; already visible in the recorded PU table
   (`full_hess_max_abs_rel = 1.1351e+00`). Fixing it needs a decision about what a relative error
   against ~0 should report, so it is not purely mechanical.
+
 - **WR-03** — `calibrate_fd_step` computes its autodiff Hessian **unchunked**, unlike every other
   Hessian call site. Correct today only because `BRIDGE_N_POINTS == VMAP_CHUNK` happen to be
   numerically equal; changing either constant breaks it silently.
@@ -391,8 +393,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T17:23:21.715Z
-Stopped at: Completed 02.6-15-PLAN.md (02.6-FINDINGS-02.md -- the replan's findings; no substrate promoted, none eliminated; Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked, 02.5-10 next)
+Last session: 2026-08-11T18:29:00.065Z
+Stopped at: Phase 02.7 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-CONTEXT.md
 </content>
