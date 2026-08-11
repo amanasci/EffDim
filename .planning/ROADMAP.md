@@ -398,11 +398,16 @@ Prior history: Inserted 2026-08-10, scoped directly in this entry with no discus
 
 Replan history: `/gsd-discuss-phase` pass 2026-08-10 after the halt (`02.6-CONTEXT.md`, `02.6-DISCUSSION-LOG.md`) — the first this phase has had, and now authoritative for scope. Re-researched 2026-08-10 onto the persistent-homology agreement axis, overwriting `02.6-RESEARCH.md` (which carries a `## Retractions from Prior RESEARCH.md` table naming every withdrawn claim) and reseeding `02.6-VALIDATION.md`. `02.6-PATTERNS.md` is **partially superseded** — it and the prior research both claimed `chart_curvature.assert_c2_activation` can be called on a `cae.PlainAutoEncoder`; it cannot (`PlainAutoEncoder` sets no `self.activation`), and plan `01` introduced `assert_c2_decoder` instead. Plans `02.6-01`, `-02`, `-05` are **executed and retained** — `decoder_curvature.py`, the ratified rule, and the four-seed runner exist on disk and are reused as built assets. Plans `02.6-03`, `-04`, `-06` are **superseded by the axis change** and are not resumed; new plans are numbered from `02.6-07`. No milestone REQ-IDs; coverage is traced against the seven success criteria above as **SC-1..SC-7**, which map to `02.6-CONTEXT.md` decisions D-01..D-22.
 
-**Plans**: 3/6 executed then halted; replanned 2026-08-10 — 9 new plans (`02.6-07`..`02.6-15`) across 5 independently-numbered waves, 0/9 executed
+**Plans**: 7/15 plans executed
 
 > **The `(SC-N)` tags on plans `01`–`06` below refer to the OLD SC-1..SC-5**, which described the halted curvature axis. They are left as written so the historical record reads correctly. New plans trace against the current SC-1..SC-7.
 
 Plans:
+
+- [x] 02.6-03-PLAN.md
+- [x] 02.6-04-PLAN.md
+- [x] 02.6-06-PLAN.md
+
 **Wave 1** *(halted-run history — retained, not re-executed)*
 
 - [x] 02.6-01-PLAN.md — **[tracer]** `decoder_curvature.py`: exact decoder curvature with no chart routing, plus sphere/flat known-answer, C2-guard and bit-identity tests (SC-3)
@@ -422,7 +427,7 @@ Plans:
 
 **Replan Wave 1** *(no dependencies — the ratification lands before any new-axis measurement, and the separator runs first and non-blocking)*
 
-- [ ] 02.6-07-PLAN.md — **[checkpoint:decision]** Ratify the PH-agreement criterion, its bars, the 16-cell read-out matrix and five open design questions **blind and explicitly non-gating**; `02.6-SCREENING-RULE-02.md` (SC-1)
+- [x] 02.6-07-PLAN.md — **[checkpoint:decision]** Ratify the PH-agreement criterion, its bars, the 16-cell read-out matrix and five open design questions **blind and explicitly non-gating**; `02.6-SCREENING-RULE-02.md` (SC-1)
 - [ ] 02.6-08-PLAN.md — **[tracer][checkpoint:human-verify]** The separating experiment: `analytic_param.py` (closed-form arc length, intrinsic plane, exact ambient map, the analytic Swiss roll decoder as the exactness floor, the generously-sized regression net) + tests + `02.6_swiss_roll_separator_check.ipynb` (SC-2)
 
 **Replan Wave 2** *(blocked on Wave 1)*

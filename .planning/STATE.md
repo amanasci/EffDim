@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
-status: ready_to_execute
-stopped_at: Phase 02.6 replanned onto the PH-agreement axis
-last_updated: "2026-08-10T22:15:00.000Z"
+status: executing
+stopped_at: Completed 02.6-07-PLAN.md
+last_updated: "2026-08-11T00:50:37.743Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 replanned — 9 new plans (02.6-07..15) across 5 waves
+last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 37
+  completed_plans: 41
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 02.6 (decoder-substrate-screening) — **REPLANNED 2026-08-10, ready to execute**
-Plan: 9 new plans `02.6-07`..`15` across 5 waves; the halted run's `01`–`06` are retained history
+Phase: 02.6 (decoder-substrate-screening) — EXECUTING
+Plan: 2 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -67,7 +67,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-10 — Phase 02.6 replanned onto the PH-agreement axis
+Last activity: 2026-08-10 — Phase 02.6 execution started
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 84% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 77% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -170,6 +170,7 @@ Progress: [████████░░] 84% of planned plans (17/17; Phases 1
 | Phase 02.6 P01 | ~25min | 3 tasks | 2 files |
 | Phase 02.6 P02 | ~10min | 2 tasks | 1 files |
 | Phase 02.6 P05 | ~20min | 2 tasks | 1 files |
+| Phase 02.6 P07 | 20min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -276,6 +277,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-01: requirements.mark-complete found no SC-3 entry in REQUIREMENTS.md -- phase 02.6's SC-1..SC-5 are scoped locally to the ROADMAP entry, never mirrored into the milestone-level REQUIREMENTS.md (same pre-existing gap noted at 02.4-02/02.5-01); not a blocker for this plan
 - [Phase ?]: 02.6-02: Screening bars ratified blind (A3, B1, C3, D1, E1) -- rank and calibration axes are comparative-only with no absolute floor; no seed-spread disqualifier exists (C3); user confirmed this deliberately removes both guards (B1's absent absolute floor, C3's absent disqualifier) that caught the CAE negative control's calibration-only-visible failure
 - [Phase ?]: 02.6-05: four-seed screening runner committed (decoder_substrate_screen_run.py) -- both free candidates lose the rank axis to the raw-point comparator (rho=0.6712) on every seed measured; plain AE rho in [-0.0838, 0.1606] SPREAD=0.2445, TopoAE rho in [-0.2793, -0.1936] SPREAD=0.0857 (all negative); measurement only, no bar applied here per A-11 -- 02.6-06 applies 02.6-SCREENING-RULE.md to these tables
+- [Phase ?]: 02.6-07 ratified P1,Q1,R1,S1,T1 for the PH-agreement screening rule (02.6-SCREENING-RULE-02.md), non-gating, committed before any PH number exists
 
 ### Pending Todos
 
@@ -321,8 +323,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-10T19:36:55.403Z
-Stopped at: Phase 02.6 replanned — ready to execute
+Last session: 2026-08-11T00:50:37.707Z
+Stopped at: Completed 02.6-07-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.6-decoder-substrate-screening/02.6-CONTEXT.md
+Resume file: None
 </content>
