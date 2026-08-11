@@ -44,6 +44,7 @@ a bound is ever ratified against these numbers.
 
 from typing import Any, Callable, Dict, Optional, Sequence
 
+import numpy as np
 import torch
 from torch.func import hessian, jacrev, vmap
 
@@ -330,6 +331,40 @@ def calibrate_fd_step(
 
 # --- the bridge's reporting unit -------------------------------------------------------------
 
+_QUANTILE_MAX_ELEMENTS = 16_777_216
+"""``2**24`` -- ``torch.quantile``'s own hard input-size cap (an ATen-level assert, not a
+tunable option): above this many elements it raises
+``RuntimeError: quantile() input tensor is too large`` rather than returning a value.
+
+**POST-COMPLETION REPAIR (found 2026-08-11, during plan 02.6-14's Task 2 full PU-regime
+run -- documented here since this reopens a module plan 02.6-10 had already delivered and
+sealed).** The PU regime's full Hessian tensor at plan 02.6-14's ``BRIDGE_N_POINTS=32``,
+``out_dim=768``, ``d=40`` is ``32 * 768 * 40 * 40 = 39,321,600`` elements -- 2.3x over this
+cap. ``_p90`` below is the fix: it calls ``torch.quantile`` UNCHANGED (bit-for-bit identical
+to the pre-repair behaviour) for any tensor at or below this cap, and falls back to
+``numpy.quantile``'s own default ``method="linear"`` only above it -- the SAME
+linear-interpolation formula ``torch.quantile``'s default computes
+(``index = q * (n - 1)``, interpolated between the two nearest order statistics), pinned
+equal below the cap by ``test_p90_matches_torch_quantile_below_the_cap`` rather than merely
+asserted. None of plan 02.6-10's 13 tests exercised :func:`_agreement_stats` at PU
+dimensionality, so this defect passed every one of that plan's acceptance criteria and
+surfaced only at real scale -- ``test_agreement_stats_handles_tensor_above_quantile_cap``
+below is the regression guard that would have caught it."""
+
+
+def _p90(x: torch.Tensor) -> float:
+    """The 90th percentile of ``x``'s flattened values. Delegates to ``torch.quantile``
+    unchanged when ``x.numel() <= _QUANTILE_MAX_ELEMENTS`` (the common case, and every case
+    the Swiss roll arm ever hits); above that cap -- which ``torch.quantile`` itself
+    enforces and refuses to compute past -- falls back to ``numpy.quantile`` on the same
+    flattened values, using its default ``method="linear"``, the identical interpolation
+    formula. See :data:`_QUANTILE_MAX_ELEMENTS` for the defect this fixes and the PU-regime
+    arithmetic that exceeds it."""
+    flat = x.reshape(-1)
+    if flat.numel() <= _QUANTILE_MAX_ELEMENTS:
+        return float(torch.quantile(flat, 0.90).item())
+    return float(np.quantile(flat.detach().cpu().numpy(), 0.90))
+
 
 def _agreement_stats(reference: torch.Tensor, other: torch.Tensor) -> Dict[str, float]:
     """Max, median and 90th-percentile absolute difference between ``reference`` (the
@@ -343,10 +378,10 @@ def _agreement_stats(reference: torch.Tensor, other: torch.Tensor) -> Dict[str, 
     return {
         "max_abs": float(diff.max().item()),
         "median_abs": float(diff.median().item()),
-        "p90_abs": float(torch.quantile(diff, 0.90).item()),
+        "p90_abs": _p90(diff),
         "max_abs_relative": float(rel.max().item()),
         "median_abs_relative": float(rel.median().item()),
-        "p90_abs_relative": float(torch.quantile(rel, 0.90).item()),
+        "p90_abs_relative": _p90(rel),
     }
 
 

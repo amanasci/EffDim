@@ -296,3 +296,64 @@ def test_derivative_bridge_convention_matches_sealed_modules():
     assert db.CURVATURE_CONVENTION == "trace"
     assert db.CURVATURE_CONVENTION == chart_curvature.CURVATURE_CONVENTION
     assert db.CURVATURE_CONVENTION == dc.CURVATURE_CONVENTION
+
+
+# --- POST-COMPLETION REPAIR (2026-08-11): _p90 / quantile-cap regression --------------------
+#
+# Found during plan 02.6-14's Task 2 full PU-regime run: torch.quantile raises
+# "RuntimeError: quantile() input tensor is too large" above its own hard 2**24-element
+# cap. The PU regime's full Hessian tensor (BRIDGE_N_POINTS=32, out_dim=768, d=40 ->
+# 39,321,600 elements) is 2.3x over that cap. None of this plan's original 13 tests
+# exercised _agreement_stats at PU dimensionality, so the defect passed every acceptance
+# criterion and surfaced only at real scale. These three tests are the guard.
+
+
+def test_p90_matches_torch_quantile_below_the_cap():
+    """Below db._QUANTILE_MAX_ELEMENTS, _p90 must delegate to torch.quantile UNCHANGED --
+    pinned to exact agreement, not merely 'close', since the repair's whole claim is that
+    behaviour below the cap is byte-for-byte untouched."""
+    torch.manual_seed(0)
+    x = torch.rand(10_000, dtype=torch.float64)
+    assert db._p90(x) == float(torch.quantile(x, 0.90).item())
+
+
+def test_p90_matches_numpy_linear_interpolation_above_the_cap():
+    """Just above the cap, _p90 must fall back to numpy.quantile's default
+    method="linear" -- the SAME linear-interpolation formula torch.quantile's own default
+    computes. Uses a tensor just barely over db._QUANTILE_MAX_ELEMENTS so the test stays
+    fast; also confirms torch.quantile itself refuses this exact input, so the test is
+    provably exercising the fallback branch rather than accidentally staying under it."""
+    torch.manual_seed(0)
+    n = db._QUANTILE_MAX_ELEMENTS + 1_000
+    x = torch.rand(n, dtype=torch.float64)
+    got = db._p90(x)
+    expected = float(np.quantile(x.numpy(), 0.90))
+    assert got == expected
+    with pytest.raises(RuntimeError):
+        torch.quantile(x, 0.90)
+
+
+def test_agreement_stats_handles_tensor_above_quantile_cap():
+    """The regression this repair exists for: db._agreement_stats must not raise on a
+    tensor shaped like the PU regime's full Hessian (BRIDGE_N_POINTS=32, out_dim=768,
+    d=40 -> 39,321,600 elements, 2.3x db._QUANTILE_MAX_ELEMENTS) -- synthetic, no model fit
+    needed, since the defect is in the reporting statistic, not the derivative computation
+    itself. This is the test that would have caught the crash before it reached a real run."""
+    torch.manual_seed(0)
+    shape = (32, 768, 40, 40)
+    assert torch.Size(shape).numel() > db._QUANTILE_MAX_ELEMENTS
+    reference = torch.rand(shape, dtype=torch.float64)
+    other = reference + 1e-6 * torch.rand(shape, dtype=torch.float64)
+    stats = db._agreement_stats(reference, other)
+    for key in (
+        "max_abs",
+        "median_abs",
+        "p90_abs",
+        "max_abs_relative",
+        "median_abs_relative",
+        "p90_abs_relative",
+    ):
+        assert key in stats
+        assert np.isfinite(stats[key])
+    assert stats["p90_abs"] <= stats["max_abs"]
+    assert stats["median_abs"] <= stats["p90_abs"]
