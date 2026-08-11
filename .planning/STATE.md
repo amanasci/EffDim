@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-14-PLAN.md (derivative-usability bridge run on both regimes; post-completion repair to derivative_bridge.py's quantile handling)
-last_updated: "2026-08-11T15:48:23.725Z"
+stopped_at: Completed 02.6-13-PLAN.md (CAE persistent-homology Swiss roll notebook, negative control; gate closed with 3 findings -- torn reconstruction, no high-t latent collapse, latent-cell dimensional-mismatch confound in the ranking axis, disclosed not fixed)
+last_updated: "2026-08-11T16:36:28.020Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 47
+  completed_plans: 48
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 8 of 15
+Plan: 9 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -177,6 +177,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 02.6 P11 | ~50min | 2 tasks | 1 files |
 | Phase 02.6 P12 | ~50min active (8h25m wall-clock incl. review holds) | 3 tasks | 2 files |
 | Phase 02.6 P14 | ~2h40min | 2 tasks | 3 files |
+| Phase 02.6 P13 | ~2h (1 auto task + 1 checkpoint round-trip) | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -301,6 +302,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-14: PU subsample stem corrected to subsample_20260729_a79b3460b838fd0a (verified against source), not the plan's stale subsample_20260801_* reference
 - [Phase ?]: 02.6-14: derivative_bridge.py's _agreement_stats repaired post-completion for torch.quantile's 2**24-element cap (PU full Hessian is 2.3x over it); size-safe _p90 helper + 3 regression tests; suite 331->334. Second instance in this phase of a module clearing all acceptance criteria then failing at real scale (first: 02.6-11's training-budget asymmetry)
 - [Phase ?]: 02.6-14: headline finding -- full Hessian vs reduced H_vec/H_norm disagree by 6-6800x at max_abs, up to ~40,000x at median/p90 for PU plainae/topoae, with direction flipping (roll topoae) between max and median/p90; D-21 amendment NOT exercised (cache count unchanged at 252); PU seed availability 1/1/3 vs roll's 4
+- [Phase ?]: 02.6-13: CAE PH Swiss roll notebook -- reconstructs the roll (5.2% held-out error, 1.87x better than matched plain AE) through a visibly torn/fragmented surface; 8/8 charts survive; D-03 signature narrowly missed at this single seed (7.3348 vs 7.2252, ~1.5%); no high-t latent collapse, unlike plain-AE/TopoAE; beats chance null on H0/H1
+- [Phase ?]: 02.6-13: found (not fixed) a dimensional mismatch in decoder_substrate_ph_screen_run.py's ranking axis -- CAE latent cells scored at 8-D vs plainae/topoae's 2-D, so the runner's ~6x CAE gap on latent|* cells is not trustworthy on its own; on the dimensionally-matched decoder_image|intrinsic|* cells the CAE is marginally best and all three sit inside each other's spread; R1 was ratified blind pre-measurement, not a post-hoc change; 02.6-SCREENING-RULE-02.md left frozen, finding carried to 02.6-15
 
 ### Pending Todos
 
@@ -346,8 +349,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T15:48:23.688Z
-Stopped at: Completed 02.6-14-PLAN.md (derivative-usability bridge run on both regimes; post-completion repair to derivative_bridge.py's quantile handling)
+Last session: 2026-08-11T16:36:27.983Z
+Stopped at: Completed 02.6-13-PLAN.md (CAE persistent-homology Swiss roll notebook, negative control; gate closed with 3 findings -- torn reconstruction, no high-t latent collapse, latent-cell dimensional-mismatch confound in the ranking axis, disclosed not fixed)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
