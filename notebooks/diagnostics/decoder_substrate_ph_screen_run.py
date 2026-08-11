@@ -56,11 +56,33 @@ HIDDEN = (64, 64, 64)
 LAMBDA_TOPO = 0.1
 HOLDOUT_FRACTION = 0.2
 
-# early_stop_patience is DELIBERATELY ABSENT from CFG_COMMON below, matching plan 02.6-05's
-# own choice: both cae.train_plain_ae and topoae.train_topoae default it to max_epochs + 1
-# when the key is unset, so the plain-AE and TopoAE arms run the identical full-budget
-# schedule with no early-stopping asymmetry between them.
-CFG_COMMON = dict(lr=3e-4, weight_decay=1e-4, batch=64, max_epochs=150)
+# POST-COMPLETION PROTOCOL REPAIR (found after 02.6-11 first closed, re-run under this
+# fixed config; see 02.6-11-SUMMARY.md's "Protocol repair" section for the measured
+# justification). The original CFG_COMMON below -- lr=3e-4, max_epochs=150, no early
+# stop -- kept plainae and topoae symmetric with EACH OTHER, but never checked the far
+# more consequential asymmetry against CFG_CAE's lr=1e-3 + 300-epoch + patience=25
+# convergence discipline: every plainae/topoae seed hit the 150-epoch ceiling still
+# improving (epochs_run=150, early_stopped=False), while the CAE converged and often
+# stopped early. A controlled probe (same PlainAutoEncoder, same fixture/seed, this
+# config vs the 02.2 reference config) measured a ~3.5x reconstruction-error reduction
+# from finishing convergence, landing on the 02.2 notebook's own ~4.8% figure -- so the
+# original 192-number matrix ranked one converged model against two unconverged ones,
+# not three substrates under a shared measurement apparatus. This is a repair to the
+# measurement apparatus, not a change to the ratified criterion
+# (02.6-SCREENING-RULE-02.md pins the criterion, the cells, the seeds and the
+# provenance conventions; it does not pin lr, epoch budget, or early stopping). Fixed:
+# all three arms now share ONE convergence rule -- CFG_CAE's own lr=1e-3,
+# early_stop_patience=25, early_stop_min_delta=1e-4, matching the 02.2 reference
+# verbatim -- so plainae and topoae stay symmetric with each other (the original
+# comment's stated intent) AND with cae (the asymmetry that intent never considered).
+CFG_COMMON = dict(
+    lr=1e-3,
+    weight_decay=1e-4,
+    batch=64,
+    max_epochs=300,
+    early_stop_patience=25,
+    early_stop_min_delta=1e-4,
+)
 
 DEFAULT_SEEDS = (0, 1, 2, 3)  # ratified seed protocol, 02.6-SCREENING-RULE-02.md
 
