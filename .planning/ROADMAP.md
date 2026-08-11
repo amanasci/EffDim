@@ -477,6 +477,55 @@ Plans:
 
 **Planning-time correction carried into the plans**: `chart_curvature.assert_c2_activation` **cannot** be called on a `cae.PlainAutoEncoder` — `ChartAutoEncoder` sets `self.activation`, `PlainAutoEncoder` does not, so the sealed guard hard-raises on every plain decoder. Both `02.6-RESEARCH.md` and `02.6-PATTERNS.md` state the opposite. Verified false during planning; plan `01` introduces `assert_c2_decoder`, which reaches the sealed `ZERO_SECOND_DERIVATIVE_ACTIVATIONS` frozenset by inspecting the decoder's own activation submodules instead of a recorded attribute. `cae.py` is not edited.
 
+### Phase 02.7: Manifold-Template Inference Front End (INSERTED)
+
+**Goal**: Determine **whether a latent manifold template can be inferred from an unlabelled point cloud at all**, and with what accuracy and abstention rate. This phase builds and measures the **inference front end only** — intrinsic dimension, then persistent homology under two distance metrics, then a template decision with an explicit **abstain** option. It trains no VAE, restricts no auto-encoder, and selects no template for PU. The topological-VAE arm is deferred to a follow-on phase, **gated on this front end working**.
+
+**Why inserted**: Acosta et al. (`2212.10414`) constrain a VAE's latent space to a canonical template manifold `Z` and derive curvature through the decoder. The paper **assumes template selection as a preceding step** rather than solving it: it uses TDA to infer the topology of the neural manifold and then picks a `Z` homeomorphic to it, and in its own place-cell example it additionally has task knowledge that the animal runs a circular track — so `Z = S^1` is not a blind inference there. Their implemented library is essentially spheres and products of spheres (`S^1`, `S^2`, `T^2 = S^1 x S^1`). **The step the paper assumes is the step this project does not have**, and it is the one that decides whether the method is applicable to PU embeddings at all.
+
+**Depends on**: Phase 02.6 (consumes `persistence_probe.py` and its raw-vs-normalised reading discipline; requires no verdict from it). **Blocks**: the deferred topological-VAE phase. Does **not** block Phase 02.5 or Phase 3.
+
+**What already exists and is reused, not rebuilt**
+
+| pipeline step | asset | status |
+|---|---|---|
+| intrinsic dimension | `src/effdim/geometry.py` — `mle_dimensionality`, `two_nn_dimensionality`, `danco_dimensionality`, `mind_mli/mlk_dimensionality`, `ess_dimensionality`, `tle_dimensionality`, `gmst_dimensionality` | built; **frozen this milestone — call, never modify** |
+| persistent homology | `notebooks/pu_manifold/persistence_probe.py` (02.6) | built and tested; import unchanged |
+| kNN graph | `notebooks/pu_manifold/mknn.py` | built; basis for the spectral-distance arm |
+| template decision + abstain | — | **new** |
+| spectral / diffusion distance | — | **new** |
+
+**Scope decisions taken at insertion (2026-08-11)**
+
+- **Front end only.** No VAE, no template-restricted auto-encoder, no curvature claim. The follow-on phase is gated on this one producing a front end whose accuracy and abstention rate are known.
+- **Synthetic first, PU as a single final read-only probe.** Template-selection accuracy is only measurable where the template is known by construction — the same discipline CLAUDE.md's Swiss roll check enforces. PU is probed once at the end and its answer reported, whatever it is.
+- **Both Euclidean and spectral/kNN distances, reported separately, never collapsed.** PU embeddings are `D = 768` ambient, and Euclidean persistent homology is documented to fail on a noisy circle in high ambient dimension where graph/spectral distances survive. Agreement between the two metrics is the phase's confidence signal, not a redundancy to average away.
+
+**Success criteria**
+
+1. **SC-1 — Template selection is model selection with an abstain option, ratified before measurement.** The decision rule, its thresholds, and the abstain condition are written down and committed **before any synthetic cloud is scored**, following `02.6-SCREENING-RULE-02.md`'s precedent. A front end that always emits a template is the wrong contract; "undetermined" is a valid and expected output.
+2. **SC-2 — Intrinsic dimension is estimated across multiple neighbourhood sizes and several estimators, and the spread is reported.** A plateau in `d_hat(k)` over a non-trivial range of `k` is the signal; a single `k` from a single estimator is not. Strong variation of `d_hat` across the cloud is itself evidence that **one global smooth template is the wrong model**, and must be reported as such rather than averaged into a number.
+3. **SC-3 — Persistent homology computed under BOTH Euclidean and spectral/kNN distances, reported separately.** Degrees `H_0` through `H_dhat`. Persistence must survive a non-trivial range of filtration scales **and** bootstrap/subsampling, not appear at one arbitrary radius.
+4. **SC-4 — Selection accuracy and abstention rate measured on a synthetic benchmark with known ground truth.** Generate `Z_true -> random smooth immersion -> R^D -> non-uniform sampling + noise` across the library `{S^1, S^2, T^2, disk/ball}`, varying `D`, sample count, noise, and sampling density. Report accuracy **and** abstention rate as separate numbers; a selector that never abstains is not thereby better.
+5. **SC-5 — A CLAUDE.md-mandated Swiss roll check.** The Swiss roll is a contractible 2-D sheet whose correct template is the **disk**, not `S^1/S^2/T^2` — so the check is that the front end selects the trivial template (or abstains) and that a wrong template is visibly detectable. This is why the library carries a disk/ball member.
+6. **SC-6 — One read-only probe of the PU embeddings, reporting whatever it finds including "no template in library" or "abstain."** Sealed fits are read; nothing is refit.
+
+**The prior this phase must be honest about, and is likely to confirm**: this ROADMAP already records that PU topology beyond connectedness is bounded — *no cycle above ~3x the manifold's local thickness at `n <= 2000`, with no power analysis at all for `beta_2`*. Run through the decision table that reads `beta_0 = 1` with no persistent `beta_1`, i.e. a **Euclidean/ball-like candidate, outside the `{S^1, S^2, T^2}` library**. **If PU is ball-like, "does restricting to a template help?" has no answer on PU**, because there is no non-trivial template to restrict to — and SC-6 finding exactly that is a complete, reportable outcome that legitimately terminates the follow-on arm. It is not a failure of this phase.
+
+**Cross-cutting constraints**: `src/effdim/` and `pyproject.toml` are **frozen** — the eight intrinsic-dimension estimators are called, never edited. Sealed verdicts (`GATE_VERDICT`, `CAE_VERDICT`, `TOPOAE_VERDICT`, `CURVATURE_VERDICT`) are never reopened; sealed fits are read-only. **`d_frozen = 5` is not inherited** — Phase 02's own findings flag it as suspect, so this phase re-estimates intrinsic dimension rather than assuming it, and reports its own estimate against that record. `ripser`/`persim` remain venv-installed and undeclared (known, recorded gap — not fixed here). Additive only.
+
+**Inherited discipline from Phase 02.6, which this phase must not relearn the hard way**:
+- **Read-outs are reported separately and never collapsed into a score.** Accuracy and abstention are two numbers; Euclidean and spectral PH are two answers.
+- **Normalised persistence distances are comparable only within a reference.** `02.6-FINDINGS-02.md` §5 measured intrinsic-`H1` and ambient-`H1` denominators differing by 2.15x; use raw distances for any cross-reference comparison.
+- **Write at least one acceptance criterion that exercises production dimensionality.** Phase 02.6 produced three defects that passed every toy-scale check and failed at real scale — `torch.quantile`'s undocumented `2**24` cap, a training-budget asymmetry that silently made a comparison unfair, and a safety guard bypassed by passing a bound method. At `D = 768` this phase is squarely in that regime.
+- **For any experiment that compares configurations, assert the comparison is fair** — same budget, same convergence rule, same stopping condition — not merely that each arm ran.
+
+**Design note**: persistent homology yields **candidates, not a unique manifold**. Betti numbers do not determine homeomorphism type in general; the paper's approach works because its hypothesis class is small, and homology recovery from finite samples needs sampling-density and regularity assumptions that an arbitrary cloud does not guarantee. The front end is therefore a **classifier over a small named library with an abstain option**, and must never be described as recovering the manifold. If the cloud has boundary, self-intersections, multiple components, or mixed intrinsic dimension, a single global template is inappropriate and the correct output is abstention.
+
+**Status**: **Inserted 2026-08-11. Not discussed, not researched, not planned.** Scope fixed at insertion by three decisions (front-end only; synthetic first with a single read-only PU probe; both distance metrics reported separately). Next step: `/gsd-discuss-phase 02.7`.
+
+**Plans**: none yet
+
 ### Phase 3: Decoder & Curvature Field
 
 **Goal**: A C2-smooth decoder trained from Phase 02.1's chosen representation back to the 768-d embedding, its analytically-derived mean curvature field validated against a synthetic-control falsification test before being trusted as a property of the data manifold rather than a decoder artifact.
