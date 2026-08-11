@@ -43,6 +43,33 @@ eliminated.** Phase 02.5 stage 2 is unblocked. **Next:** `02.5-10` — stage-2 p
 the D-09/D-10 reconciliation and D-12's neither-clears branch, reading `02.6-FINDINGS-02.md`
 for everything it inherits from this phase.
 
+**Carried forward to `02.5-10` — three code-review warnings in `derivative_bridge.py`
+(`02.6-REVIEW.md`, commit `1d3f666`). None affects any number Phase 02.6 recorded**, so its
+conclusions stand as written — but all three start mattering the moment `02.5-10` relies on the
+bridge for thresholding, and should be closed before it does:
+
+- **WR-01** — `finite_difference_jacobian`, `finite_difference_hessian` and `calibrate_fd_step`
+  call `chart_curvature._assert_float64(decode_batch, z)`, passing a bound method where the
+  guard expects the model. A bound method has no `.parameters`, so the guard's per-parameter
+  float64 check is **silently skipped** and a float32 model raises a raw torch dtype
+  `RuntimeError` instead of the documented `ValueError` naming `model.double()`. Only
+  `derivative_agreement` (line 426) passes the model correctly. Masked today because every
+  runner call site pre-casts with `.double()`.
+- **WR-02** — `_agreement_stats`' relative-error columns can exceed 100% when reference entries
+  are near zero rather than zero; already visible in the recorded PU table
+  (`full_hess_max_abs_rel = 1.1351e+00`). Fixing it needs a decision about what a relative error
+  against ~0 should report, so it is not purely mechanical.
+- **WR-03** — `calibrate_fd_step` computes its autodiff Hessian **unchunked**, unlike every other
+  Hessian call site. Correct today only because `BRIDGE_N_POINTS == VMAP_CHUNK` happen to be
+  numerically equal; changing either constant breaks it silently.
+
+Zero Critical and zero security findings — the review states plainly that this code has no
+network surface, no auth, no user-input path and no persistence layer, rather than padding the
+report. **WR-01 is the third defect this phase produced of one species: a contract or
+assumption that passes every acceptance criterion at toy scale and fails at real scale**
+(the other two: `torch.quantile`'s undocumented `2**24` cap, and the training-budget
+asymmetry). `02.6-FINDINGS-02.md` §12 records the pattern.
+
 **Why halted (2026-08-10, history — retained for the record).** The phase ranked decoder
 substrates by agreement between decoder-pullback curvature and analytic `H`. That score is a
 composite of three separable properties — did the architecture learn the right surface, are
