@@ -398,7 +398,7 @@ Prior history: Inserted 2026-08-10, scoped directly in this entry with no discus
 
 Replan history: `/gsd-discuss-phase` pass 2026-08-10 after the halt (`02.6-CONTEXT.md`, `02.6-DISCUSSION-LOG.md`) — the first this phase has had, and now authoritative for scope. Re-researched 2026-08-10 onto the persistent-homology agreement axis, overwriting `02.6-RESEARCH.md` (which carries a `## Retractions from Prior RESEARCH.md` table naming every withdrawn claim) and reseeding `02.6-VALIDATION.md`. `02.6-PATTERNS.md` is **partially superseded** — it and the prior research both claimed `chart_curvature.assert_c2_activation` can be called on a `cae.PlainAutoEncoder`; it cannot (`PlainAutoEncoder` sets no `self.activation`), and plan `01` introduced `assert_c2_decoder` instead. Plans `02.6-01`, `-02`, `-05` are **executed and retained** — `decoder_curvature.py`, the ratified rule, and the four-seed runner exist on disk and are reused as built assets. Plans `02.6-03`, `-04`, `-06` are **superseded by the axis change** and are not resumed; new plans are numbered from `02.6-07`. No milestone REQ-IDs; coverage is traced against the seven success criteria above as **SC-1..SC-7**, which map to `02.6-CONTEXT.md` decisions D-01..D-22.
 
-**Plans**: 10/15 plans executed
+**Plans**: 11/15 plans executed
 
 > **The `(SC-N)` tags on plans `01`–`06` below refer to the OLD SC-1..SC-5**, which described the halted curvature axis. They are left as written so the historical record reads correctly. New plans trace against the current SC-1..SC-7.
 
@@ -437,7 +437,7 @@ Plans:
 
 **Replan Wave 3** *(blocked on Wave 2)*
 
-- [ ] 02.6-11-PLAN.md — `decoder_substrate_ph_screen_run.py`: three candidates × four seeds × 16 separately labelled numbers, spread reported, measure-and-print only (SC-3, SC-4)
+- [x] 02.6-11-PLAN.md — `decoder_substrate_ph_screen_run.py`: three candidates × four seeds × 16 separately labelled numbers, spread reported, measure-and-print only (SC-3, SC-4)
 - [ ] 02.6-12-PLAN.md — **[checkpoint:human-verify]** CLAUDE.md Swiss roll PH notebooks for the **plain-AE** and **TopoAE** arms, with a matched baseline at budget parity and a chance null (SC-6)
 - [ ] 02.6-14-PLAN.md — `derivative_bridge_run.py`: the bridge on the Swiss roll **and** PU, reported separately, step calibrated per model, no threshold (SC-5)
 

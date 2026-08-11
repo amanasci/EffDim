@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.6
 current_phase_name: decoder-substrate-screening
 status: executing
-stopped_at: Completed 02.6-10-PLAN.md
-last_updated: "2026-08-11T04:21:20.537Z"
+stopped_at: Completed 02.6-11-PLAN.md
+last_updated: "2026-08-11T05:08:13.646Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 02.6 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 53
-  completed_plans: 44
+  completed_plans: 45
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.6 (decoder-substrate-screening) — EXECUTING
-Plan: 5 of 15
+Plan: 6 of 15
 
 **Why halted.** The phase ranked decoder substrates by agreement between decoder-pullback
 curvature and analytic `H`. That score is a composite of three separable properties — did the
@@ -125,7 +125,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 83% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 85% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -174,6 +174,7 @@ Progress: [████████░░] 83% of planned plans (17/17; Phases 1
 | Phase 02.6 P08 | ~25min active (2 checkpoint holds) | 3 tasks | 3 files |
 | Phase 02.6 P09 | ~35min | 2 tasks | 2 files |
 | Phase 02.6 P10 | ~35min | 1 tasks | 2 files |
+| Phase 02.6 P11 | ~50min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -289,6 +290,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-09: reproduced 02.6-SCREENING-RULE-02.md's exact travelling-caveat figures as regression tests -- intrinsic top H1 life 0.3348/11.2886 vs ambient 0.7198/4.0360, and bottleneck(ambient_H1, intrinsic_H1)=0.35988 exactly saturation_value(ambient_H1) and exactly bottleneck(empty, ambient_H1)
 - [Phase ?]: 02.6-09: requirements.mark-complete found no SC-3 entry in REQUIREMENTS.md -- phase 02.6's SC-1..SC-7 are scoped locally to 02.6-CONTEXT.md/ROADMAP.md and were never mirrored into the milestone-level REQUIREMENTS.md, same pre-existing gap noted at 02.4-02/02.5-01; not a blocker for this plan
 - [Phase ?]: 02.6-10: derivative_bridge.py built (D-16/D-17/D-18); reduce_to_H_vec pinned bit-exact against decoder_curvature.plain_decoder_curvature's own H_vec on sphere and trained-net fixtures; derivative_agreement returns full-Hessian and reduced H_vec/H_norm agreement under separate keys, no acceptance rule (S1); suite 318 -> 331 passed
+- [Phase ?]: 02.6-11: Reference-provenance block uses the FIXTURE seed (not a torch/split seed) with prescale=False, exactly reproducing 02.6-SCREENING-RULE-02.md's own illustrative recipe and test_persistence_probe.py's pinned standard_references fixture
+- [Phase ?]: 02.6-11: Measured saturation confirms the ratified caveat -- latent|ambient|H1|bottleneck saturates at exactly 0.5000 (SPREAD 0.0000) for plainae and topoae across all four seeds, but not for the CAE (mean 1.0575, SPREAD 0.5151) -- reported as a measured contrast, no bar applied, no candidate ranked
 
 ### Pending Todos
 
@@ -334,8 +337,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T04:21:20.501Z
-Stopped at: Completed 02.6-10-PLAN.md
+Last session: 2026-08-11T05:08:13.611Z
+Stopped at: Completed 02.6-11-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
