@@ -32,13 +32,26 @@ concern.
 read-out, not a defect to fix: no spanning-tree bridging of any kind is imported or used
 here, and `k` is never silently raised until the graph connects. Geodesic distance is
 computed on the largest connected component only; the dropped-point fraction is reported
-alongside it, never hidden.
+alongside it, never hidden. `geodesic_distance_matrix` additionally guards against
+returning a matrix over a shard: if the largest component holds fewer than a
+caller-supplied `min_component_size`, it raises `ValueError` naming the observed
+`dropped_fraction` rather than returning a matrix nobody asked for.
+
+**D-06: `k` is not a single chosen value.** Phase 1's frozen `k* = 15` is explicitly NOT
+inherited here -- it was frozen for `n = 10,000` PU points at `D = 768`, and this phase's
+benchmark varies `n`, `D` and density by design, so a fixed `k` means a different effective
+neighbourhood radius in every cell. `k_sweep_components` and `geodesic_matrices_over_k`
+report the **whole curve** over a caller-supplied `k_values` sequence -- never a single
+chosen `k` -- and `contiguous_stable_range` finds the longest run of a stable value in any
+such curve without applying a bar of its own: the "non-trivial contiguous range" minimum
+that decides whether a curve counts as stable is a ratified constant plan `02.7-08` fixes,
+supplied by the caller, never hard-coded here.
 
 Arrays in, dicts and arrays out -- no file I/O, no cache handling; the runner under
 `notebooks/diagnostics/` owns paths and constants.
 """
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -96,16 +109,32 @@ def component_readout(graph: csr_matrix) -> Dict[str, Any]:
     }
 
 
-def geodesic_distance_matrix(data: np.ndarray, k: int) -> Tuple[np.ndarray, Dict[str, Any]]:
+def geodesic_distance_matrix(
+    data: np.ndarray, k: int, min_component_size: Optional[int] = None
+) -> Tuple[np.ndarray, Dict[str, Any]]:
     """The graph geodesic distance matrix D-05 needs, restricted to the largest connected
     component only (D-07 -- no bridging, no raising `k` until connected). Returns
     `(D_geo, readout)`: `D_geo` is square, exactly symmetric, all-finite float64, accepted
     by `persistence_probe.persistence_diagram` with no adapter; `readout` is
     `component_readout`'s dict, so the dropped-point fraction always travels with the
     matrix.
+
+    `min_component_size`, if given, guards T-02.7-05 (silent scope loss onto a shard):
+    when the largest connected component holds fewer points than this, raises `ValueError`
+    naming the observed `dropped_fraction` instead of returning a matrix over the shard.
+    `None` (the default) applies no guard -- this module picks no numeric minimum of its
+    own; the caller who needs one supplies it.
     """
     graph = build_symmetric_knn_graph(data, k)
     readout = component_readout(graph)
+
+    if min_component_size is not None and readout["largest_size"] < min_component_size:
+        raise ValueError(
+            f"geodesic_distance_matrix: largest connected component holds "
+            f"{readout['largest_size']} points, fewer than the required "
+            f"min_component_size={min_component_size}; dropped_fraction="
+            f"{readout['dropped_fraction']!r}"
+        )
 
     largest_mask = readout["largest_mask"]
     sub_graph = graph[largest_mask][:, largest_mask]
@@ -126,3 +155,77 @@ def geodesic_distance_matrix(data: np.ndarray, k: int) -> Tuple[np.ndarray, Dict
         )
 
     return D_geo, readout
+
+
+def k_sweep_components(data: np.ndarray, k_values: Sequence[int]) -> List[Dict[str, Any]]:
+    """D-06's sweep over `k_values`: the whole component curve, one entry per `k`, each
+    carrying its own `k` plus every key `component_readout` already returns
+    (`n_components`, `labels`, `largest_label`, `largest_mask`, `largest_size`,
+    `dropped_fraction`). Never a chosen `k` and never a summary statistic over the curve --
+    the curve itself, so `contiguous_stable_range` or any other caller can judge stability
+    over the full swept range.
+    """
+    results: List[Dict[str, Any]] = []
+    for k in k_values:
+        graph = build_symmetric_knn_graph(data, k)
+        readout = component_readout(graph)
+        entry: Dict[str, Any] = {"k": int(k)}
+        entry.update(readout)
+        results.append(entry)
+    return results
+
+
+def geodesic_matrices_over_k(
+    data: np.ndarray, k_values: Sequence[int]
+) -> Dict[int, Tuple[np.ndarray, Dict[str, Any]]]:
+    """D-06's sweep, one geodesic distance matrix per `k`: `{k: (D_geo, readout)}` so a
+    caller can build one persistence diagram per `k` -- feeding
+    `persistence_probe.persistence_diagram` once per sweep point -- without hand-rolling
+    the graph-build/component-readout/shortest-path sequence themselves at each `k`. Each
+    `(D_geo, readout)` pair is exactly what `geodesic_distance_matrix` returns for that `k`:
+    largest-component-only, `dropped_fraction` always attached (D-07), no bridging.
+    """
+    results: Dict[int, Tuple[np.ndarray, Dict[str, Any]]] = {}
+    for k in k_values:
+        D_geo, readout = geodesic_distance_matrix(data, k)
+        results[int(k)] = (D_geo, readout)
+    return results
+
+
+def contiguous_stable_range(values: Sequence[Any]) -> Dict[str, Any]:
+    """The longest run of adjacent equal entries in `values`, as `{"start_index",
+    "end_index", "length", "value"}` (both indices inclusive).
+
+    Applies NO minimum-length bar of its own -- takes no such argument -- because D-06's
+    "non-trivial contiguous range" threshold is a ratified constant plan `02.7-08` fixes
+    and the caller supplies; measuring the run and deciding whether it counts as stable are
+    kept separate, the same measure-and-print discipline `persistence_probe.py`'s own
+    docstring states for its readout cells.
+
+    On a tie between runs of equal maximal length, the first (lowest `start_index`) wins.
+    Raises `ValueError` on an empty `values`.
+    """
+    if len(values) == 0:
+        raise ValueError("contiguous_stable_range: values must be non-empty")
+
+    best_start = 0
+    best_length = 1
+    best_value = values[0]
+
+    run_start = 0
+    for i in range(1, len(values) + 1):
+        if i < len(values) and values[i] == values[i - 1]:
+            continue
+        run_length = i - run_start
+        if run_length > best_length:
+            best_length = run_length
+            best_start = run_start
+            best_value = values[run_start]
+        run_start = i
+
+    return {
+        "start_index": best_start,
+        "end_index": best_start + best_length - 1,
+        "length": best_length,
+        "value": best_value,
+    }
