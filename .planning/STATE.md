@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.7
 current_phase_name: manifold-template-inference-front-end-inserted
 status: executing
-stopped_at: Completed 02.7-04-PLAN.md
-last_updated: "2026-08-12T02:27:15.717Z"
+stopped_at: Completed 02.7-05-PLAN.md
+last_updated: "2026-08-12T02:51:56.474Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 65
-  completed_plans: 53
+  completed_plans: 54
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
-Plan: 5 of 12
+Plan: 6 of 12
 
 **Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
 `02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
@@ -167,7 +167,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 82% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 83% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -225,6 +225,7 @@ Progress: [████████░░] 82% of planned plans (17/17; Phases 1
 | Phase 02.7 P02 | ~10min | 2 tasks | 2 files |
 | Phase 02.7 P03 | ~40min | 3 tasks | 2 files |
 | Phase 02.7 P04 | ~40min | 2 tasks | 2 files |
+| Phase 02.7 P05 | ~15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -361,6 +362,11 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.7-03: plateau_consensus bins per-k values to nearest integer within tolerance, dedups DUPLICATE_ESTIMATOR_PAIRS to one vote under count_distinct=True, exempts K_INVARIANT_ESTIMATORS from min_run under count_distinct=True
 - [Phase ?]: 02.7-04: betti_vector's bands parameter widened to accept sequence-or-mapping (backward-compatible with the 02.7-01 tracer's list-of-floats call), rather than rewriting the tracer
 - [Phase ?]: 02.7-04: base-component beta_0 test uses a jittered-grid fixture instead of a Gaussian blob -- a Gaussian's tail produces spurious H0 significant bars unrelated to connectivity at small B
+- [Phase ?]: 02.7-05: canonical_sample's return type widened to (points, tangent) for all four templates (incl. S1) so the tangent basis travels with every cloud
+- [Phase ?]: 02.7-05: S2 tangent basis uses Duff et al.'s branchless orthonormal-basis-from-normal, verified singularity-free at the exact poles (0,0,+-1) numerically this session, avoiding the angle-chart pole singularity entirely
+- [Phase ?]: 02.7-05: D-15's density argument implemented as a template-agnostic distance-to-anchor power-law weighted subsample (density=1.0 = uniform baseline); exact grid levels still ratified by 02.7-08
+- [Phase ?]: 02.7-05: jacobian_rank negative control built by collapsing a real lift matrix to rank 1 (not a hand-derived pathological warp) -- guarantees failure regardless of warp params, since (I+J_warp)@lift can never raise lift's rank
+- [Phase ?]: 02.7-05: Rule 3 fix -- template_tracer_run.py's immerse() call updated for the new required density argument (TRACER_DENSITY=1.0), not in this plan's files_modified but required to keep the 02.7-01 tracer functional
 
 ### Pending Todos
 
@@ -406,8 +412,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-12T02:27:15.677Z
-Stopped at: Completed 02.7-04-PLAN.md
+Last session: 2026-08-12T02:51:56.410Z
+Stopped at: Completed 02.7-05-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
