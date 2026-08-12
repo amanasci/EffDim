@@ -1,6 +1,7 @@
 """
 notebooks/pu_manifold/confidence_band.py -- D-02: per-cloud, per-metric bootstrap
-significance band for a persistence diagram bar.
+significance band for a persistence diagram bar, and the Betti-vector reading that
+consumes it.
 
 Phase 02.7 manifold-template-inference-front-end-inserted. A bar is significant iff it
 clears a bootstrap-derived confidence band (Fasy, Lecci, Rinaldo, Chazal, Singh,
@@ -30,6 +31,20 @@ that a threshold-truncated diagram can carry multiple infinite-death bars per de
 passed through -- would silently discard genuine long-lived features it should keep.
 Every call into `persistence_probe.persistence_diagram` below relies on that function's
 own unbounded default and must stay that way.
+
+**Assumption A-03.** The band is this phase's practical stand-in for a sampling-density
+guarantee, not a proof that the recovered homology is the manifold's -- homology recovery
+from finite samples needs sampling-density and regularity assumptions an arbitrary cloud
+does not guarantee, and a bootstrap band on a finite draw cannot supply them. Every reader
+of `betti_vector`'s output should read it as "significant under this band," not as
+"provably the manifold's true Betti number."
+
+**D-02's band loop and D-08's independent-draw loop are two different procedures whose
+`ripser` costs multiply, not substitute.** D-08 draws several independent point clouds
+from the immersion generator and reports how the *decision* varies across draws; D-02's
+band is computed *within* one of those draws by resampling that cloud's own points `B`
+times. The full cost shape is `(draws) x (1 main call + B bootstrap calls) x (2 metrics) x
+(grid cells)` -- no caller should size compute by counting either loop alone.
 
 Arrays in, dicts and arrays out -- no file I/O, no cache handling.
 """
@@ -95,6 +110,55 @@ def bootstrap_band(D: np.ndarray, degree: int, B: int, alpha: float, seed: int) 
     }
 
 
+def bands_for_diagram(
+    D: np.ndarray, maxdim: int, B: int, alpha: float, seed: int
+) -> Dict[int, Dict[str, Any]]:
+    """One `bootstrap_band` result per degree `0..maxdim`, keyed by degree, so a caller
+    cannot accidentally apply an `H_1` band to an `H_2` diagram (or any other degree
+    mismatch). `B`, `alpha`, `seed` carry NO default (see module docstring) and are the
+    same triple passed to every degree's `bootstrap_band` call -- the bands differ by
+    degree, not by these settings.
+
+    Returns `{degree: bootstrap_band(D, degree, B, alpha, seed) for degree in
+    range(maxdim + 1)}`.
+    """
+    if not (isinstance(maxdim, (int, np.integer)) and maxdim >= 0):
+        raise ValueError(f"bands_for_diagram: maxdim must be a non-negative int, got {maxdim!r}")
+    return {degree: bootstrap_band(D, degree, B, alpha, seed) for degree in range(maxdim + 1)}
+
+
+def band_spread(
+    D: np.ndarray, degree: int, B: int, alpha: float, seeds: Sequence[int]
+) -> Dict[str, Any]:
+    """Assumption A-04's instrument: PH seed/draw variance is still unmeasured in this
+    project, and this function is how a caller measures it rather than absorbs it. Runs
+    `bootstrap_band(D, degree, B, alpha, seed)` once per entry in `seeds` and reports the
+    per-seed `c_alpha` values themselves -- never an average or any other single number
+    standing in for them.
+
+    Returns `{"c_alpha_values", "seeds", "min", "max", "range"}`. `c_alpha_values[i]`
+    corresponds to `seeds[i]`. If the between-seed spread swamps the between-template
+    differences this instrument exists to detect, that is a finding about the criterion,
+    to be reported rather than silently averaged away.
+    """
+    if len(seeds) == 0:
+        raise ValueError("band_spread: seeds must be non-empty")
+
+    c_alpha_values: List[float] = []
+    for seed in seeds:
+        result = bootstrap_band(D, degree, B, alpha, seed)
+        c_alpha_values.append(result["c_alpha"])
+
+    c_alpha_array = np.asarray(c_alpha_values, dtype=np.float64)
+    return {
+        "c_alpha_values": c_alpha_values,
+        "seeds": list(seeds),
+        "min": float(c_alpha_array.min()),
+        "max": float(c_alpha_array.max()),
+        "range": float(c_alpha_array.max() - c_alpha_array.min()),
+    }
+
+
 def significant_bars(dgm: np.ndarray, band: float) -> np.ndarray:
     """The boolean mask of `dgm`'s bars whose life (death - birth) clears `band`."""
     dgm = np.asarray(dgm, dtype=np.float64).reshape(-1, 2)
@@ -103,20 +167,34 @@ def significant_bars(dgm: np.ndarray, band: float) -> np.ndarray:
     return (dgm[:, 1] - dgm[:, 0]) > band
 
 
-def betti_vector(dgms: Sequence[np.ndarray], bands: Sequence[float]) -> Tuple[int, int, int]:
+def betti_vector(dgms: Sequence[np.ndarray], bands: Any) -> Tuple[int, int, int]:
     """The 3-tuple `(beta_0, beta_1, beta_2)` from `dgms` (H0, H1, H2, each already
-    `finite_pairs`-filtered) and `bands` (one band per degree, from `bootstrap_band`).
+    `finite_pairs`-filtered) and `bands` -- one band per degree, indexed or keyed by
+    degree `0..2`. `bands` accepts either a plain sequence of numeric bands (the tracer's
+    own `[band_h0, band_h1, band_h2]` shape) or a mapping keyed by degree, such as
+    `bands_for_diagram`'s own per-degree `bootstrap_band` result dicts -- each entry's
+    `"band"` key is used when the entry is a dict, so both shapes serve unchanged.
 
     `beta_0` is the count of significant H0 bars PLUS 1 for the always-present base
     component -- `finite_pairs` has already dropped H0's one true infinite bar, so this
-    term restores it. `beta_1`/`beta_2` are the plain significant counts.
+    term restores it. `beta_1`/`beta_2` are the plain significant counts under their own
+    degree's band.
+
+    Raises `ValueError` naming the missing degree if `bands` supplies no entry for a
+    degree present in `dgms`.
     """
-    if len(dgms) != 3 or len(bands) != 3:
-        raise ValueError(
-            f"betti_vector: expected exactly 3 (H0, H1, H2) diagrams and bands, got "
-            f"{len(dgms)} diagrams and {len(bands)} bands"
-        )
-    beta_0 = int(np.sum(significant_bars(dgms[0], bands[0]))) + 1
-    beta_1 = int(np.sum(significant_bars(dgms[1], bands[1])))
-    beta_2 = int(np.sum(significant_bars(dgms[2], bands[2])))
+    if len(dgms) != 3:
+        raise ValueError(f"betti_vector: expected exactly 3 (H0, H1, H2) diagrams, got {len(dgms)}")
+
+    resolved_bands: List[float] = []
+    for degree in range(3):
+        try:
+            entry = bands[degree]
+        except (KeyError, IndexError):
+            raise ValueError(f"betti_vector: bands is missing a band for degree {degree}") from None
+        resolved_bands.append(float(entry["band"]) if isinstance(entry, dict) else float(entry))
+
+    beta_0 = int(np.sum(significant_bars(dgms[0], resolved_bands[0]))) + 1
+    beta_1 = int(np.sum(significant_bars(dgms[1], resolved_bands[1])))
+    beta_2 = int(np.sum(significant_bars(dgms[2], resolved_bands[2])))
     return (beta_0, beta_1, beta_2)
