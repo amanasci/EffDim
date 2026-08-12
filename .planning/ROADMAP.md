@@ -533,10 +533,10 @@ Plans:
 
 **Assumption-delta:** recorded in `02.7-08` as one **`promote`** — the primary noun generalizes from a *dimension estimate* to an *estimator-spread-over-`k`*, and from a *persistence diagram* to a *(metric, diagram)* pair. `d_hat` survives only as the conditional output of D-10's consensus rule, which returns `None` plus a reason rather than a number the estimators do not support. Encoded by the invariant test `test_no_readout_without_metric_label`.
 
-**Plans**: 12 plans
+**Plans**: 1/12 plans executed
 **Wave 1**
 
-- [ ] 02.7-01-PLAN.md — **[tracer + checkpoint:decision]** one `S^1` cloud end to end at `D = 768`, both metrics, `maxdim=2`, per-metric band, Betti lookup; the symmetrization regression test; no default for any ratifiable threshold in any module (D-01, D-02, D-04, D-05, D-07, D-11)
+- [x] 02.7-01-PLAN.md — **[tracer + checkpoint:decision]** one `S^1` cloud end to end at `D = 768`, both metrics, `maxdim=2`, per-metric band, Betti lookup; the symmetrization regression test; no default for any ratifiable threshold in any module (D-01, D-02, D-04, D-05, D-07, D-11)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.6
-current_phase_name: decoder-substrate-screening
-status: verifying
-stopped_at: Phase 02.7 planned -- 12 plans, 8 waves, plan-checker PASSED, decision coverage 16/16
-last_updated: "2026-08-11T19:51:24.968Z"
-last_activity: 2026-08-10
-last_activity_desc: Phase 02.6 execution started
+current_phase: 02.7
+current_phase_name: manifold-template-inference-front-end-inserted
+status: executing
+stopped_at: Completed 02.7-01-PLAN.md
+last_updated: "2026-08-12T01:47:31.706Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 65
-  completed_plans: 49
+  completed_plans: 50
 ---
 
 # Project State
@@ -23,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.6 — decoder-substrate-screening
+**Current focus:** Phase 02.7 — manifold-template-inference-front-end-inserted
 
 ## Current Position
 
-Phase: 02.6 (decoder-substrate-screening) — COMPLETE (replan, 2026-08-11)
-Plan: 15 of 15
+Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
+Plan: 2 of 12
 
 **Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
 `02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
@@ -109,7 +109,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-10 — Phase 02.6 execution started
+Last activity: 2026-08-11 — Phase 02.7 execution started
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -167,7 +167,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 77% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -221,6 +221,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 02.6 P14 | ~2h40min | 2 tasks | 3 files |
 | Phase 02.6 P13 | ~2h (1 auto task + 1 checkpoint round-trip) | 2 tasks | 1 files |
 | Phase 02.6 P15 | ~55min | 3 tasks | 3 files |
+| Phase 02.7 P01 | ~45min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -348,6 +349,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-13: CAE PH Swiss roll notebook -- reconstructs the roll (5.2% held-out error, 1.87x better than matched plain AE) through a visibly torn/fragmented surface; 8/8 charts survive; D-03 signature narrowly missed at this single seed (7.3348 vs 7.2252, ~1.5%); no high-t latent collapse, unlike plain-AE/TopoAE; beats chance null on H0/H1
 - [Phase ?]: 02.6-13: found (not fixed) a dimensional mismatch in decoder_substrate_ph_screen_run.py's ranking axis -- CAE latent cells scored at 8-D vs plainae/topoae's 2-D, so the runner's ~6x CAE gap on latent|* cells is not trustworthy on its own; on the dimensionally-matched decoder_image|intrinsic|* cells the CAE is marginally best and all three sit inside each other's spread; R1 was ratified blind pre-measurement, not a post-hoc change; 02.6-SCREENING-RULE-02.md left frozen, finding carried to 02.6-15
 - [Phase ?]: 02.6-15: 02.6-FINDINGS-02.md assembled -- ordering proof (b768ee4 ancestor of d5280fe), full 192-number matrix, both bridge tables, separator result, D-19 stated explicitly; named a second confound beyond 02.6-13's dimensional mismatch -- topoae.topological_loss trains toward AMBIENT-space MST agreement (d_x = pairwise_distances_f64(xb) on the raw input batch), while this phase ranks on INTRINSIC-reference agreement, so topoae's best-of-three showing on ambient cells reflects its training objective, not manifold-preservation quality; on the one dimensionally clean comparison (decoder_image|intrinsic|*) no candidate is separated from the other two. Promotes no substrate; ranking not walked to the runner-up. Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked
+- [Phase ?]: 02.7-01: Task 1 checkpoint resolved ratify-as-written -- D-01/D-04 confirmed exactly as CONTEXT.md states them, no amendment
+- [Phase ?]: 02.7-01: lookup() zero-pads betti vectors shorter than 3 entries (S1's (1,1)) before matching, to reconcile D-04's literal table text with D-11's 3-entry H2 ceiling
 
 ### Pending Todos
 
@@ -393,8 +396,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-11T19:51:24.929Z
-Stopped at: Phase 02.7 planned -- 12 plans, 8 waves, plan-checker PASSED, decision coverage 16/16
+Last session: 2026-08-12T01:47:31.667Z
+Stopped at: Completed 02.7-01-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-01-PLAN.md
+Resume file: None
 </content>
