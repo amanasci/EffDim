@@ -140,6 +140,16 @@ this project's own ~18-25 PU d_hat estimate range, i.e. a genuinely PU-regime-sh
 check, not an easy low-dimensional toy that would answer the open power question by
 assumption rather than by measurement."""
 
+H2_POWER_EXTRA_BALL_DIM_TEMPLATE_NATIVE = 0
+"""A second, cheaper H2 power arm at the templates' own native intrinsic dimension (a plain
+S^2 shell, d_true=2, vs a plain solid B^3, no product factor at all) -- added after this
+session's first attempt at H2_POWER_EXTRA_BALL_DIM=18 (the PU-regime-shaped fixture) timed
+out on BOTH arms even at a doubled ceiling (see the printed run). RESEARCH's Open Question 1
+is specifically about whether the candidate n_ph resolves H_2 on THIS phase's own S^2/T^2
+templates -- which are 2-dimensional, not 20-dimensional -- so this cheaper arm answers the
+question the phase actually needs answered, while the d=20 arm's timeout is reported
+separately as its own, genuinely harder finding, not discarded."""
+
 H2_POWER_N = CANDIDATE_N_PH
 H2_POWER_B = CANDIDATE_B
 
@@ -499,8 +509,11 @@ def _h2_power_fixture(void: bool, n: int, D: int, extra_ball_dim: int, seed: int
     else:
         shell_points, _ = template_immersion.canonical_sample("ball", n, rng_shell, d=3)
 
-    ball_points, _ = template_immersion.canonical_sample("ball", n, rng_ball, d=extra_ball_dim)
-    product_points = np.concatenate([shell_points, ball_points], axis=1)
+    if extra_ball_dim > 0:
+        ball_points, _ = template_immersion.canonical_sample("ball", n, rng_ball, d=extra_ball_dim)
+        product_points = np.concatenate([shell_points, ball_points], axis=1)
+    else:
+        product_points = shell_points  # extra_ball_dim=0 -- no product factor, template-native
 
     d_from = product_points.shape[1]
     lift = template_immersion.random_orthogonal_lift(d_from, D, rng_lift)
@@ -513,22 +526,19 @@ def _h2_power_fixture(void: bool, n: int, D: int, extra_ball_dim: int, seed: int
     return np.asarray(warped, dtype=np.float64)
 
 
-def measure_h2_power(smoke: bool) -> Dict[str, Any]:
-    if smoke:
-        return {"skipped": True, "reason": "--smoke skips the H2 power check"}
-
+def _measure_h2_power_regime(regime_label: str, extra_ball_dim: int) -> Dict[str, Any]:
     result: Dict[str, Any] = {
         "n": H2_POWER_N,
         "D": AMBIENT_D,
-        "extra_ball_dim": H2_POWER_EXTRA_BALL_DIM,
-        "intrinsic_dim": 2 + H2_POWER_EXTRA_BALL_DIM,
+        "extra_ball_dim": extra_ball_dim,
+        "intrinsic_dim": 2 + extra_ball_dim,
         "B": H2_POWER_B,
         "alpha": CANDIDATE_ALPHA,
         "arms": {},
     }
 
-    for label, void in (("void_S2_x_ball", True), ("filled_ball_x_ball", False)):
-        points = _h2_power_fixture(void, H2_POWER_N, AMBIENT_D, H2_POWER_EXTRA_BALL_DIM, CALIBRATION_SEED)
+    for label, void in ((f"void_{regime_label}", True), (f"filled_{regime_label}", False)):
+        points = _h2_power_fixture(void, H2_POWER_N, AMBIENT_D, extra_ball_dim, CALIBRATION_SEED)
         D_euclidean = _euclidean_matrix(points)
 
         t0 = time.monotonic()
@@ -567,14 +577,24 @@ def measure_h2_power(smoke: bool) -> Dict[str, Any]:
 
         result["arms"][label] = arm
 
-    void_arm = result["arms"]["void_S2_x_ball"]
-    filled_arm = result["arms"]["filled_ball_x_ball"]
+    void_arm = result["arms"][f"void_{regime_label}"]
+    filled_arm = result["arms"][f"filled_{regime_label}"]
     if void_arm.get("h2_resolved") is not None and filled_arm.get("h2_resolved") is not None:
         result["power_check_clean"] = bool(void_arm["h2_resolved"] and not filled_arm["h2_resolved"])
     else:
         result["power_check_clean"] = None
 
     return result
+
+
+def measure_h2_power(smoke: bool) -> Dict[str, Any]:
+    if smoke:
+        return {"skipped": True, "reason": "--smoke skips the H2 power check"}
+
+    return {
+        "template_native": _measure_h2_power_regime("S2_vs_ball", H2_POWER_EXTRA_BALL_DIM_TEMPLATE_NATIVE),
+        "pu_regime": _measure_h2_power_regime("S2xball18_vs_ballxball18", H2_POWER_EXTRA_BALL_DIM),
+    }
 
 
 # =============================================================================================
@@ -727,8 +747,11 @@ def main() -> None:
     print()
     print("-" * 88)
     print(
-        f"SECTION 3 -- H_2 power check: S^2 x B^{H2_POWER_EXTRA_BALL_DIM} (known void) vs "
-        f"solid-ball x B^{H2_POWER_EXTRA_BALL_DIM} (filled control), n={H2_POWER_N}, B={H2_POWER_B}"
+        f"SECTION 3 -- H_2 power check, TWO regimes: (a) template-native, plain S^2 (known void)"
+    )
+    print(
+        f"vs solid B^3 (filled control); (b) PU-regime, S^2 x B^{H2_POWER_EXTRA_BALL_DIM} vs "
+        f"solid-ball x B^{H2_POWER_EXTRA_BALL_DIM}. n={H2_POWER_N}, B={H2_POWER_B} both regimes."
     )
     print("-" * 88)
     h2_power = measure_h2_power(args.smoke)
