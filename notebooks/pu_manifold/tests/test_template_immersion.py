@@ -127,3 +127,78 @@ def test_immerse_no_notimplementederror_survives_for_any_template():
             **extra,
         )
         assert cloud["points"].shape == (40, 64)
+
+
+# --- Task 2: the Jacobian rank check, at sampled points, at D = 768 -----------------------
+
+
+def test_jacobian_rank_s2_known_good_immersion_at_production_dimension():
+    cloud = ti.immerse(
+        "S2",
+        n=120,
+        D=AMBIENT_D,
+        noise=0.0,
+        density=1.0,
+        seed=1,
+        warp_params={"strength": 0.05, "freq": 1.0},
+    )
+    result = ti.jacobian_rank(cloud, n_check=20, rank_tol=1e-6)
+    assert result["ranks"].shape == (20,)
+    assert result["min_rank"] == 2
+    assert result["expected_rank"] == 2
+    assert result["is_immersion"] is True
+
+
+def test_jacobian_rank_t2_known_good_immersion_at_production_dimension():
+    cloud = ti.immerse(
+        "T2",
+        n=120,
+        D=AMBIENT_D,
+        noise=0.0,
+        density=1.0,
+        seed=2,
+        warp_params={"strength": 0.05, "freq": 1.0},
+    )
+    result = ti.jacobian_rank(cloud, n_check=20, rank_tol=1e-6)
+    assert result["min_rank"] == 2
+    assert result["is_immersion"] is True
+
+
+def test_jacobian_rank_deliberately_collapsed_lift_is_caught():
+    cloud = ti.immerse(
+        "S2",
+        n=60,
+        D=AMBIENT_D,
+        noise=0.0,
+        density=1.0,
+        seed=3,
+        warp_params={"strength": 0.05, "freq": 1.0},
+    )
+    collapsed = dict(cloud)
+    bad_lift = np.array(cloud["lift"], copy=True)
+    bad_lift[:, 1:] = 0.0
+    collapsed["lift"] = bad_lift
+    result = ti.jacobian_rank(collapsed, n_check=10, rank_tol=1e-6)
+    assert result["min_rank"] < result["expected_rank"]
+    assert result["is_immersion"] is False
+
+
+def test_jacobian_rank_n_check_and_rank_tol_carry_no_default():
+    p = inspect.signature(ti.jacobian_rank).parameters
+    assert p["n_check"].default is inspect.Parameter.empty
+    assert p["rank_tol"].default is inspect.Parameter.empty
+
+
+def test_immerse_check_immersion_attaches_result_and_ground_truth_valid():
+    cloud = ti.immerse(
+        "S2",
+        n=120,
+        D=AMBIENT_D,
+        noise=0.0,
+        density=1.0,
+        seed=1,
+        warp_params={"strength": 0.05, "freq": 1.0},
+        check_immersion=True,
+    )
+    assert cloud["immersion_check"]["is_immersion"] is True
+    assert cloud["ground_truth_valid"] is True
