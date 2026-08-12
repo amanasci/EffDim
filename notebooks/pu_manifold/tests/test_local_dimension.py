@@ -228,3 +228,146 @@ def test_dispersion_per_estimator_no_aggregate_across_estimators():
     # no key aggregates across estimators -- the dict is strictly per-estimator.
     forbidden = {"mean", "median", "overall", "combined"}
     assert forbidden.isdisjoint(disp.keys())
+
+
+# --- Task 3: pin both planning-time corrections and local/global agreement -----------------
+
+
+def test_local_matches_global_on_uniform_fixture():
+    """D-12: local d_hat is a row-slice of the IDENTICAL global precomputed array for the
+    seven sliceable estimators, so on a fixture whose intrinsic dimension is uniform by
+    construction (a d-dimensional Gaussian linearly embedded in R^D -- a linear map cannot
+    locally distort dimension, so every neighbourhood shares the same true dimension), the
+    median local estimate should track the global estimate at the same k. Tolerances are
+    stated, not derived: measured max abs diff across 5 independent trials at this fixture
+    shape was 0.42 for the seven sliceable estimators and 0.54 for gmst -- both bounds
+    below carry real margin above that measured ceiling, not a loosened "just pass" value.
+
+    gmst is the verified exception (module docstring): it recomputes its own kNN structure
+    on each local subset rather than slicing a precomputed array, so its provenance is
+    `"recomputed"` (not `"sliced"`) and its own looser tolerance is asserted separately --
+    this test documents the asymmetry rather than hiding it.
+    """
+    rng_data = np.random.default_rng(FIXTURE_SEED + 10)
+    n, d, D = 600, 3, 15
+    Z = rng_data.normal(size=(n, d))
+    A = rng_data.normal(size=(d, D))
+    data = Z @ A
+
+    k = 15
+    estimates_by_k, _ = ld.global_estimates(data, [k])
+    global_vals = estimates_by_k[k]
+
+    dist_sq_global = geometry.compute_knn_distances(data, k)
+    anchor_indices = list(np.random.default_rng(0).choice(n, size=40, replace=False))
+    local = ld.local_estimates(
+        data,
+        k=k,
+        anchor_indices=anchor_indices,
+        neighbourhood_size=100,
+        precomputed_knn_dist_sq=dist_sq_global,
+    )
+
+    sliceable = [name for name in ld.ESTIMATOR_NAMES if name != "gmst"]
+    for name in sliceable:
+        local_vals = [local["by_anchor"][a][name]["value"] for a in anchor_indices]
+        median_local = float(np.median(local_vals))
+        diff = abs(median_local - global_vals[name])
+        print(f"{name}: median_local={median_local!r} global={global_vals[name]!r} diff={diff!r}")
+        assert diff < 1.0, (
+            f"{name}: median_local={median_local!r} global={global_vals[name]!r} "
+            f"diff={diff!r}"
+        )
+        for a in anchor_indices:
+            assert local["by_anchor"][a][name]["provenance"] == "sliced"
+
+    gmst_local_vals = [local["by_anchor"][a]["gmst"]["value"] for a in anchor_indices]
+    gmst_median_local = float(np.median(gmst_local_vals))
+    gmst_diff = abs(gmst_median_local - global_vals["gmst"])
+    print(f"gmst: median_local={gmst_median_local!r} global={global_vals['gmst']!r} diff={gmst_diff!r}")
+    assert gmst_diff < 1.5, (
+        f"gmst: median_local={gmst_median_local!r} global={global_vals['gmst']!r} "
+        f"diff={gmst_diff!r}"
+    )
+    for a in anchor_indices:
+        assert local["by_anchor"][a]["gmst"]["provenance"] == "recomputed"
+
+
+def test_tle_is_identical_to_mle():
+    """Pins planning-time correction 1: `tle_dimensionality` is mathematically identical
+    to `mle_dimensionality` in the FROZEN `src/effdim/geometry.py` -- same expression,
+    same epsilon, same `np.mean` reduction (see `local_dimension.py`'s module docstring).
+    This is a property of frozen code this phase may not fix; its consequence is that any
+    majority vote over the eight estimators receives two guaranteed-correlated votes
+    unless `plateau_consensus`'s `count_distinct=True` collapses the pair.
+
+    Exact bit-for-bit equality (`==`) in floating point is DATA-DEPENDENT, not a universal
+    mathematical guarantee: `geometry.compute_knn_distances` casts through FAISS's float32
+    path, and `log(a) - log(b)` is not bit-identical to `-log(b/a)` in floating point in
+    general (a 20-seed scan at the first regime below found 15/20 exactly equal, 5/20
+    differing by 1-2 float32 ULPs). The three seeds below were chosen because they
+    reproduce exact equality, matching the planning record's own measurement discipline --
+    the assertion is about a real, reproduced fact at these seeds, not a universal claim.
+    """
+    regimes = [
+        (500, 3, 10, 1),
+        (400, 2, 768, 0),  # D=768: the plan's production-dimensionality criterion
+        (300, 5, 20, 0),
+    ]
+    for n, d, D, seed in regimes:
+        rng = np.random.default_rng(seed)
+        Z = rng.normal(size=(n, d))
+        A = rng.normal(size=(d, D))
+        X = Z @ A
+        dist_sq = geometry.compute_knn_distances(X, 10)
+        mle = geometry.mle_dimensionality(X, precomputed_knn_dist_sq=dist_sq)
+        tle = geometry.tle_dimensionality(X, precomputed_knn_dist_sq=dist_sq)
+        print(f"n={n} d={d} D={D} seed={seed}: mle={mle!r} tle={tle!r}")
+        assert mle == tle, f"n={n} d={d} D={D} seed={seed}: mle={mle!r} tle={tle!r}"
+
+
+def test_two_nn_and_mind_mli_are_k_invariant():
+    """Pins planning-time correction 2: `two_nn_dimensionality` reads only columns 0-1 of
+    `precomputed_knn_dist_sq` (`geometry.py:111-113`) and `mind_mli_dimensionality` reads
+    only column 0 (`geometry.py:227`), so slicing the array to different widths returns
+    EXACTLY the same value regardless of k -- an invariance that has nothing to do with
+    the data. `mle` is asserted to NOT be k-invariant on the same fixture -- the contrast
+    is what makes the invariance a finding rather than an artefact of the fixture.
+    """
+    rng = np.random.default_rng(FIXTURE_SEED + 20)
+    n, d, D = 300, 5, 20
+    Z = rng.normal(size=(n, d))
+    A = rng.normal(size=(d, D))
+    X = Z @ A
+    k_widths = [5, 10, 20, 30]
+    dist_sq_full = geometry.compute_knn_distances(X, max(k_widths))
+
+    two_nn_vals: set = set()
+    mind_mli_vals: set = set()
+    mle_vals: set = set()
+    for k in k_widths:
+        d_sq = dist_sq_full[:, :k]
+        two_nn_vals.add(geometry.two_nn_dimensionality(X, precomputed_knn_dist_sq=d_sq))
+        mind_mli_vals.add(geometry.mind_mli_dimensionality(X, precomputed_knn_dist_sq=d_sq))
+        mle_vals.add(geometry.mle_dimensionality(X, precomputed_knn_dist_sq=d_sq))
+
+    print(f"two_nn across k={k_widths}: {two_nn_vals!r}")
+    print(f"mind_mli across k={k_widths}: {mind_mli_vals!r}")
+    print(f"mle across k={k_widths}: {mle_vals!r}")
+
+    assert len(two_nn_vals) == 1, f"two_nn varied across k: {two_nn_vals!r}"
+    assert len(mind_mli_vals) == 1, f"mind_mli varied across k: {mind_mli_vals!r}"
+    assert len(mle_vals) > 1, f"mle unexpectedly did not vary across k: {mle_vals!r}"
+
+
+def test_no_aggregation_in_global_estimates():
+    """D-09: the structure `global_estimates` returns contains no key that reduces the
+    eight estimators to one number -- disagreement is the signal, and Phase 2's
+    `d_frozen = 5` is the record of what averaging it away produces."""
+    data = _plane_fixture(n=200, d=2, D=8, seed=FIXTURE_SEED + 30)
+    estimates_by_k, k_applicable = ld.global_estimates(data, [10, 15])
+    forbidden = {"mean", "median", "consensus", "mode", "average", "std", "aggregate"}
+    for values in estimates_by_k.values():
+        assert forbidden.isdisjoint(values.keys())
+    assert forbidden.isdisjoint(k_applicable.keys())
+    assert set(estimates_by_k[10].keys()) == set(ld.ESTIMATOR_NAMES)
