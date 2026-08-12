@@ -448,3 +448,58 @@ def dispersion(local_by_anchor: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
             "n_anchors": int(vals.shape[0]),
         }
     return result
+
+
+# --- D-12 amendment (02.7-SCREENING-RULE-AMENDMENT-01.md): the gating subset ----------------
+
+
+def _provenance_matched_estimators(local_by_anchor: Dict[str, Any]) -> Tuple[str, ...]:
+    """The subset of :data:`ESTIMATOR_NAMES` whose local call is provenance-identical to its
+    global call at EVERY anchor in ``local_by_anchor`` -- i.e. every anchor's ``"provenance"``
+    tag for that estimator reads ``"sliced"``, never ``"recomputed"``.
+
+    A GENERAL, structural predicate over the ``"provenance"`` tag :func:`local_estimates`
+    already produces -- never a hardcoded name list. Currently this excludes exactly
+    ``{"gmst"}``, as a CONSEQUENCE of ``gmst_dimensionality`` accepting neither
+    ``precomputed_knn_dist_sq`` nor ``k`` (``geometry.py:396-400``, verified, unchanged), not
+    because ``"gmst"`` is named anywhere in this function's own logic. If a future estimator
+    were added to :data:`ESTIMATOR_NAMES` with the same structural limitation, this predicate
+    would exclude it too, automatically, with no further amendment needed to this function.
+    """
+    by_anchor = local_by_anchor["by_anchor"]
+    matched: List[str] = []
+    for name in ESTIMATOR_NAMES:
+        provenances = {by_anchor[anchor_id][name]["provenance"] for anchor_id in by_anchor}
+        if provenances == {"sliced"}:
+            matched.append(name)
+    return tuple(matched)
+
+
+def gating_dispersion(local_by_anchor: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+    """D-12's AMENDED gating input (`02.7-SCREENING-RULE-AMENDMENT-01.md`): the restriction of
+    :func:`dispersion`'s full per-estimator report to :func:`_provenance_matched_estimators` --
+    the estimators whose local and global calls are the SAME instrument at two scales, so a
+    local-versus-global disagreement is about the data, not about two different measurement
+    routes (D-12's own stated purpose).
+
+    :func:`dispersion` itself is UNCHANGED by this function and still reports all eight
+    estimators with no aggregation (D-09's discipline, pinned by
+    ``test_dispersion_per_estimator_no_aggregate_across_estimators``) -- this function is what
+    a caller uses to build ``dimension_readout["local_dispersion"]`` for
+    ``template_decision.decide``, so ``decide``'s ``max(entry["range"] for entry in
+    local_dispersion.values())`` gate is computed only over provenance-matched estimators.
+    ``decide`` itself requires no code change: it already takes the max over whatever dict its
+    caller supplies.
+
+    Raises ``ValueError`` if no estimator is provenance-matched (a degenerate input this
+    module's current eight estimators never produce, but a defensive check rather than a
+    silent empty gate)."""
+    full = dispersion(local_by_anchor)
+    matched = _provenance_matched_estimators(local_by_anchor)
+    if len(matched) == 0:
+        raise ValueError(
+            "gating_dispersion: no estimator is provenance-matched (local call identical to "
+            "global call) in this local_by_anchor result -- decide() would have no dispersion "
+            "input to gate on"
+        )
+    return {name: full[name] for name in matched}

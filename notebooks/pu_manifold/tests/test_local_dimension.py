@@ -230,6 +230,59 @@ def test_dispersion_per_estimator_no_aggregate_across_estimators():
     assert forbidden.isdisjoint(disp.keys())
 
 
+# --- D-12 amendment (02.7-SCREENING-RULE-AMENDMENT-01.md): gating_dispersion ---------------
+
+
+def test_gating_dispersion_excludes_exactly_gmst_as_a_consequence():
+    """The provenance-match predicate is structural (every anchor's "provenance" tag), not a
+    hardcoded name list -- this test asserts the CONSEQUENCE (gmst excluded) on the module's
+    own fixture, not the mechanism itself."""
+    data = _plane_fixture(n=200, d=2, D=10, seed=FIXTURE_SEED + 3)
+    dist_sq_global = geometry.compute_knn_distances(data, 15)
+    local = ld.local_estimates(
+        data,
+        k=15,
+        anchor_indices=[0, 20, 60, 90],
+        neighbourhood_size=30,
+        precomputed_knn_dist_sq=dist_sq_global,
+    )
+    gating = ld.gating_dispersion(local)
+    assert set(gating.keys()) == set(ld.ESTIMATOR_NAMES) - {"gmst"}
+    assert "gmst" not in gating
+
+
+def test_gating_dispersion_values_match_full_dispersion_report():
+    """gating_dispersion restricts dispersion()'s report -- it never recomputes or perturbs
+    the underlying per-estimator statistics."""
+    data = _plane_fixture(n=200, d=2, D=10, seed=FIXTURE_SEED + 4)
+    dist_sq_global = geometry.compute_knn_distances(data, 15)
+    local = ld.local_estimates(
+        data,
+        k=15,
+        anchor_indices=[0, 20, 60, 90],
+        neighbourhood_size=30,
+        precomputed_knn_dist_sq=dist_sq_global,
+    )
+    full = ld.dispersion(local)
+    gating = ld.gating_dispersion(local)
+    for name, stats in gating.items():
+        assert stats == full[name]
+
+
+def test_gating_dispersion_raises_when_no_estimator_is_provenance_matched():
+    """A hand-constructed degenerate input (every estimator tagged "recomputed") -- this
+    module's real eight estimators never produce this, but gating_dispersion must not
+    silently return an empty gate."""
+    fake_local = {
+        "by_anchor": {
+            0: {name: {"value": 2.0, "provenance": "recomputed"} for name in ld.ESTIMATOR_NAMES},
+            1: {name: {"value": 2.1, "provenance": "recomputed"} for name in ld.ESTIMATOR_NAMES},
+        }
+    }
+    with pytest.raises(ValueError):
+        ld.gating_dispersion(fake_local)
+
+
 # --- Task 3: pin both planning-time corrections and local/global agreement -----------------
 
 
