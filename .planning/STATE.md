@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.7
 current_phase_name: manifold-template-inference-front-end-inserted
 status: executing
-stopped_at: Completed 02.7-09-PLAN.md (Swiss roll check + D-12 amendment)
-last_updated: "2026-08-12T13:56:15.459Z"
+stopped_at: "02.7-10: runner built/tested/committed (Task 1 only); Tasks 2/3 deferred to user-initiated grid launch"
+last_updated: "2026-08-12T14:18:52.763Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
@@ -28,7 +28,23 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
-Plan: 10 of 12
+Plan: 10 of 12 — **PARTIAL** (Task 1 of 3 complete; Task 2/3 deferred by explicit user scope decision)
+
+**02.7-10 status (2026-08-12), runner-build-only.** Per an explicit user scope decision, this
+session built, tested and committed `notebooks/diagnostics/template_benchmark_run.py`
+(`ac6a3fd`) against the ratified `02.7-SCREENING-RULE.md`/`AMENDMENT-01` — Task 1 of the plan
+only. **No benchmark cell was scored, no `02.7-BENCHMARK-RESULTS.md` was produced, and Task 3's
+blocking checkpoint was not reached.** The runner was verified by `--smoke` (exits 0, prints a
+tally whose 3 counts sum to total), `--dry-run` (confirms the 15-configuration, 60-combination
+ratified grid, `D=768` present), a fabricated-partial-state resumability test, a temporary-patch
+demonstration of the `n_ph` budget-parity assertion firing (then reverted), and a
+`--force-ball-timeout-s` demonstration of the ball-timeout fallback reaching its `"timeout"`
+path without blocking the grid. Full detail: `02.7-10-SUMMARY.md`. **Next:** the user launches
+the ~17h grid themselves (`.venv/bin/python notebooks/diagnostics/template_benchmark_run.py`,
+resumable via `--resume`); plan `02.7-10`'s remaining Tasks 2/3 (grid execution,
+`02.7-BENCHMARK-RESULTS.md`, the blocking checkpoint) pick up from there, whenever that run
+happens — this plan is not re-planned or re-scoped, only its execution was split across
+sessions by explicit instruction.
 
 **Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
 `02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
@@ -230,6 +246,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 02.7 P07 | ~40min (measurement, prior session) + ~20min (close-out) | 2 tasks | 2 files |
 | Phase 02.7 P08 | ~1h10min (includes a blocking checkpoint round-trip) | 2 tasks | 2 files |
 | Phase 02.7 P09 | ~2h40min | 2 tasks | 6 files |
+| Phase 02.7 P10 | ~1h (runner-build-only session) | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -376,6 +393,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.7-07: Measured H_2 budget calibration at D=768 -- RESEARCH.md's worked ~8.25h grid estimate is low by roughly 2x; worst-measured-template (S2) 180-cell projection is ~17.05h. Assumption A-05 did NOT fire on the phase's own S^2/T^2 templates (H_2 resolves cleanly at n_ph=300, B=10, D=768). Two gaps remain unresolved and load-bearing for 02.7-08: ball's whole-cell cost is unmeasured (euclidean H2 timed out even at B=3), and the PU-regime-shaped (d=20) H_2 power check timed out on both arms.
 - [Phase ?]: 02.7-08: Screening rule 02.7-SCREENING-RULE.md ratified alone (7aa699d) -- budget Option A (n_ph=300, B=10, 3 draws, ~17.05h) with a ratified ball-timeout fallback; consensus rule count_distinct=True/majority=5-of-7/k_values=[5,10,15,20,30]; dispersion_bound=spread_bound=3.0 flagged as judgment calls; H0 significance-band question and both calibration gaps (ball's cost, PU-regime H_2 power) carried forward named
 - [Phase ?]: Swiss roll check (02.7-09) found gmst's local-dispersion instability masking the (sound) Betti-lookup core on all three clouds; checkpoint resolved by amending D-12 to exclude provenance-mismatched estimators from the local gate only (02.7-SCREENING-RULE-AMENDMENT-01.md, 948d13f), not by reconsidering any bound.
+- [Phase ?]: 02.7-10 executed runner-build-only by explicit user scope decision: template_benchmark_run.py built/tested/committed (ac6a3fd), no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md produced, Task 3 checkpoint not reached -- grid launch deferred to the user
 
 ### Pending Todos
 
@@ -421,8 +439,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-12T13:56:06.342Z
-Stopped at: Completed 02.7-09-PLAN.md (Swiss roll check + D-12 amendment)
+Last session: 2026-08-12T14:18:45.463Z
+Stopped at: 02.7-10: runner built/tested/committed (Task 1 only); Tasks 2/3 deferred to user-initiated grid launch
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md
 </content>

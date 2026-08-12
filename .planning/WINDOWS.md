@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 4
+open_count: 5
 waived_count: 0
 fixed_count: 1
-total_count: 5
-last_updated: 2026-08-12T13:55:51.767Z
+total_count: 6
+last_updated: 2026-08-12T14:21:05.897Z
 ---
 
 # Broken Windows Ledger
@@ -20,6 +20,7 @@ last_updated: 2026-08-12T13:55:51.767Z
 | 3 | 02.4 | deviation | notebooks/pu_manifold/topoae.py |  | Gap #5 (fidelity gap, found on re-audit during 02.4-07, corrected in prose only by 02.4-PREREGISTRATION-AMENDMENT-02.md): train_topoae's reconstruction term sums over ambient features (.sum(-1).mean()) where the reference implementation's nn.MSELoss() means over them, reparameterizing LAMBDA_TOPO by a factor of D. Recorded, not fixed -- closing it would change every sealed fit's training objective and requires a fresh pre-registration plus a full sixteen-fit re-run, not authorised by Amendment 2. | open |  | 2026-08-07T17:14:49.608Z |  |
 | 4 | 02.6 | deviation | notebooks/pu_manifold/tests/test_decoder_curvature.py |  | plan must-have claimed plain_decoder_curvature batch-split results are exact torch.equal bit-identical; measured false at real (hidden=64x3) architecture scale (~7e-14, amplified by pullback-metric condition number ~470), also confirmed in sealed chart_curvature.chart_mean_curvature itself via a duck-typed decoder of matching width -- test corrected to atol=1e-9, determinism (same z twice) kept as exact torch.equal | open |  | 2026-08-10T14:20:45.037Z |  |
 | 5 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-SCREENING-RULE-AMENDMENT-01.md |  | SC-5's D-02 live prediction (roll ambient beta_1=1 -> Euclidean-only spurious cycle) was never exercised through decide()'s abstain path; condition (b) fired first in every measured run. Untested under the amended gating_dispersion gate. | open |  | 2026-08-12T13:55:51.767Z |  |
+| 6 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md |  | 02.7-10 Task 2/3 not executed by explicit user scope decision -- no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md, blocking checkpoint not reached. Runner built/tested/committed only (ac6a3fd). | open |  | 2026-08-12T14:21:05.897Z |  |
 
 ````json
 [
@@ -81,6 +82,18 @@ last_updated: 2026-08-12T13:55:51.767Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-12T13:55:51.767Z",
+    "resolved_at": null
+  },
+  {
+    "id": 6,
+    "kind": "deviation",
+    "phase": "02.7",
+    "file": ".planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md",
+    "line": null,
+    "description": "02.7-10 Task 2/3 not executed by explicit user scope decision -- no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md, blocking checkpoint not reached. Runner built/tested/committed only (ac6a3fd).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T14:21:05.897Z",
     "resolved_at": null
   }
 ]
