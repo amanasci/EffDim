@@ -168,3 +168,63 @@ def test_plateau_consensus_signature_has_no_defaults():
     params = inspect.signature(ld.plateau_consensus).parameters
     for name in ("majority", "min_run", "tolerance", "count_distinct"):
         assert params[name].default is inspect.Parameter.empty, name
+
+
+# --- Task 2: local d_hat by anchor-neighbourhood slicing, gmst's separate path -------------
+
+
+def test_local_estimates_smoke_one_anchor_all_eight_present():
+    data = _plane_fixture(n=200, d=2, D=10, seed=FIXTURE_SEED + 1)
+    dist_sq_global = geometry.compute_knn_distances(data, 15)
+    result = ld.local_estimates(
+        data,
+        k=15,
+        anchor_indices=[0, 50],
+        neighbourhood_size=40,
+        precomputed_knn_dist_sq=dist_sq_global,
+    )
+    assert result["anchor_indices"] == [0, 50]
+    assert set(result["by_anchor"].keys()) == {0, 50}
+    for anchor_id in (0, 50):
+        entry = result["by_anchor"][anchor_id]
+        assert set(entry.keys()) == set(ld.ESTIMATOR_NAMES)
+        for name, cell in entry.items():
+            assert np.isfinite(cell["value"])
+            if name == "gmst":
+                assert cell["provenance"] == "recomputed"
+            else:
+                assert cell["provenance"] == "sliced"
+
+
+def test_local_estimates_neighbourhood_below_gmst_floor_raises():
+    data = _plane_fixture(n=50, d=2, D=10, seed=FIXTURE_SEED + 2)
+    dist_sq_global = geometry.compute_knn_distances(data, 5)
+    with pytest.raises(ValueError):
+        ld.local_estimates(
+            data,
+            k=5,
+            anchor_indices=[0],
+            neighbourhood_size=9,
+            precomputed_knn_dist_sq=dist_sq_global,
+        )
+
+
+def test_dispersion_per_estimator_no_aggregate_across_estimators():
+    data = _plane_fixture(n=200, d=2, D=10, seed=FIXTURE_SEED + 3)
+    dist_sq_global = geometry.compute_knn_distances(data, 15)
+    local = ld.local_estimates(
+        data,
+        k=15,
+        anchor_indices=[0, 20, 60, 90],
+        neighbourhood_size=30,
+        precomputed_knn_dist_sq=dist_sq_global,
+    )
+    disp = ld.dispersion(local)
+    assert set(disp.keys()) == set(ld.ESTIMATOR_NAMES)
+    for name, stats in disp.items():
+        assert set(stats.keys()) == {"min", "max", "range", "iqr", "n_anchors"}
+        assert stats["n_anchors"] == 4
+        assert stats["range"] == pytest.approx(stats["max"] - stats["min"])
+    # no key aggregates across estimators -- the dict is strictly per-estimator.
+    forbidden = {"mean", "median", "overall", "combined"}
+    assert forbidden.isdisjoint(disp.keys())
