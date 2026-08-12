@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.7
 current_phase_name: manifold-template-inference-front-end-inserted
 status: executing
-stopped_at: Completed 02.7-06-PLAN.md
-last_updated: "2026-08-12T03:10:31.502Z"
+stopped_at: Completed 02.7-07-PLAN.md
+last_updated: "2026-08-12T12:29:00.254Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 65
-  completed_plans: 55
+  completed_plans: 56
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
-Plan: 7 of 12
+Plan: 8 of 12
 
 **Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
 `02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
@@ -167,7 +167,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 85% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 86% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -227,6 +227,7 @@ Progress: [█████████░] 85% of planned plans (17/17; Phases 1
 | Phase 02.7 P04 | ~40min | 2 tasks | 2 files |
 | Phase 02.7 P05 | ~15min | 3 tasks | 3 files |
 | Phase 02.7 P06 | ~40min | 3 tasks | 2 files |
+| Phase 02.7 P07 | ~40min (measurement, prior session) + ~20min (close-out) | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -370,6 +371,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.7-05: Rule 3 fix -- template_tracer_run.py's immerse() call updated for the new required density argument (TRACER_DENSITY=1.0), not in this plan's files_modified but required to keep the 02.7-01 tracer functional
 - [Phase ?]: 02.7-06: decide() completes D-01/D-03/D-04's joint (Betti, d_hat) lookup gated by four named abstain conditions in fixed precedence order (d->b->c->a); Betti/dimension contradiction (D-04's stated reason for the joint key, e.g. beta_2=1 at d_hat=1) checked on both arms before agreement, routes to abstain (d) not a confident label
 - [Phase ?]: 02.7-06: tally()/assert_labelled() complete D-13's three-way correct/wrong/abstained scoring (three separate rates, never accuracy-over-non-abstained) and the metric-label invariant; required bounds set for plan 02.7-08's ratified rule document is exactly {dispersion_bound, spread_bound}, no gaps no extras
+- [Phase ?]: 02.7-07: Measured H_2 budget calibration at D=768 -- RESEARCH.md's worked ~8.25h grid estimate is low by roughly 2x; worst-measured-template (S2) 180-cell projection is ~17.05h. Assumption A-05 did NOT fire on the phase's own S^2/T^2 templates (H_2 resolves cleanly at n_ph=300, B=10, D=768). Two gaps remain unresolved and load-bearing for 02.7-08: ball's whole-cell cost is unmeasured (euclidean H2 timed out even at B=3), and the PU-regime-shaped (d=20) H_2 power check timed out on both arms.
 
 ### Pending Todos
 
@@ -415,8 +417,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-12T03:10:31.463Z
-Stopped at: Completed 02.7-06-PLAN.md
+Last session: 2026-08-12T12:29:00.213Z
+Stopped at: Completed 02.7-07-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
