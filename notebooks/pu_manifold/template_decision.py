@@ -306,7 +306,7 @@ def decide(
             "abstain_detail": detail,
             **common,
         }
-        # plan 02.7-06 Task 2 wires assert_labelled(result) in here.
+        assert_labelled(result)
         return result
 
     # (d) measurement untrustworthy -- checked first (see docstring precedence order).
@@ -364,5 +364,99 @@ def decide(
         "abstain_detail": None,
         **common,
     }
-    # plan 02.7-06 Task 2 wires assert_labelled(result) in here.
+    assert_labelled(result)
     return result
+
+
+# --- D-13: the three-way tally and the metric-label invariant ------------------------------
+
+_PER_METRIC_KEYS: Tuple[str, ...] = ("betti",)
+"""Read-out keys this module ever emits whose value is fundamentally per-metric and must
+therefore be a dict keyed by :data:`_METRIC_LABELS`, never a bare value. Currently just
+`"betti"` -- this module's only per-metric output."""
+
+
+def assert_labelled(readout: Dict[str, Any]) -> None:
+    """This module's metric-label invariant (generalized identity: the primary reporting
+    unit downstream of this phase is a **(metric, read-out) pair**, never a bare read-out).
+    Raises `ValueError` naming the offending key if `readout` carries a key in
+    :data:`_PER_METRIC_KEYS` whose value is not itself a dict keyed by a subset of
+    `{"euclidean", "geodesic"}`. A later phase that reintroduces a single unlabelled value
+    (the singular-diagram assumption D-01 was chosen specifically to avoid) goes red here
+    rather than silently reporting a number whose metric nobody can recover.
+    """
+    for key in _PER_METRIC_KEYS:
+        if key not in readout:
+            continue
+        value = readout[key]
+        if not isinstance(value, dict):
+            raise ValueError(
+                f"assert_labelled: key {key!r} carries a per-metric value "
+                f"({type(value).__name__}) with no metric label attached -- expected a dict "
+                f"keyed by {sorted(_METRIC_LABELS)!r}, got {value!r}"
+            )
+        bad_keys = set(value.keys()) - _METRIC_LABELS
+        if bad_keys:
+            raise ValueError(
+                f"assert_labelled: key {key!r} carries sub-key(s) {sorted(bad_keys)!r} not in "
+                f"the metric-label set {sorted(_METRIC_LABELS)!r}"
+            )
+
+
+def tally(results: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """D-13's three-way tally: every entry in `results` carries an `"outcome"` key in
+    `{"correct", "wrong", "abstained"}` (and, when `"abstained"`, an `"abstain_condition"`
+    letter). Every result lands in exactly one of the three disjoint buckets.
+
+    Returns `{"correct", "wrong", "abstained", "total", "accuracy", "abstention_rate",
+    "error_rate", "by_condition"}`: the three counts and `total = correct + wrong +
+    abstained`; the three rates `accuracy = correct/total`, `abstention_rate =
+    abstained/total`, `error_rate = wrong/total` -- three SEPARATE numbers, never accuracy
+    computed over non-abstained cells only (D-13 is explicit that collapsing the error rate
+    away encodes a preference in a formula instead of reporting the abstain-versus-wrong
+    tradeoff as data); and `by_condition`, a `{letter: count}` dict over
+    :data:`ABSTAIN_CONDITIONS` whose values sum to `abstained`.
+
+    On synthetic benchmark cells, ground truth is always in-library, so an abstain is a
+    miss (mostly condition (d)); on the single PU probe, an abstain may be the *correct*
+    answer -- if PU is ball-like there is no non-trivial template to restrict to. The two
+    arms' tallies are therefore never summed together; call `tally` separately per arm.
+    """
+    if len(results) == 0:
+        raise ValueError("tally: results must not be empty")
+
+    correct = wrong = abstained = 0
+    by_condition: Dict[str, int] = {letter: 0 for letter in ABSTAIN_CONDITIONS}
+
+    for entry in results:
+        outcome = entry.get("outcome")
+        if outcome == "correct":
+            correct += 1
+        elif outcome == "wrong":
+            wrong += 1
+        elif outcome == "abstained":
+            abstained += 1
+            condition = entry.get("abstain_condition")
+            if condition not in ABSTAIN_CONDITIONS:
+                raise ValueError(
+                    f"tally: an 'abstained' result must carry a valid abstain_condition in "
+                    f"{list(ABSTAIN_CONDITIONS)!r}, got {condition!r}"
+                )
+            by_condition[condition] += 1
+        else:
+            raise ValueError(
+                f"tally: unknown outcome {outcome!r}; expected one of "
+                f"'correct', 'wrong', 'abstained'"
+            )
+
+    total = correct + wrong + abstained
+    return {
+        "correct": correct,
+        "wrong": wrong,
+        "abstained": abstained,
+        "total": total,
+        "accuracy": correct / total,
+        "abstention_rate": abstained / total,
+        "error_rate": wrong / total,
+        "by_condition": by_condition,
+    }
