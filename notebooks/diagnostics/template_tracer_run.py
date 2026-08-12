@@ -50,6 +50,10 @@ production-dimensionality acceptance criterion."""
 
 TRACER_TEMPLATE = "S1"
 TRACER_NOISE = 0.02
+TRACER_DENSITY = 1.0
+"""Uniform sampling (02.7-05's `_density_select` baseline) -- this tracer draws one
+S^1 cloud, not a D-15 density-arm sweep, so the baseline level is the only one that
+applies here."""
 TRACER_WARP_PARAMS = {"strength": 0.05, "freq": 2.0, "seed": TRACER_SEED}
 
 
@@ -135,7 +139,13 @@ def main() -> None:
 
     t_immerse0 = time.monotonic()
     cloud = template_immersion.immerse(
-        TRACER_TEMPLATE, n_ph, AMBIENT_D, TRACER_NOISE, TRACER_SEED, TRACER_WARP_PARAMS
+        TRACER_TEMPLATE,
+        n_ph,
+        AMBIENT_D,
+        TRACER_NOISE,
+        TRACER_DENSITY,
+        TRACER_SEED,
+        TRACER_WARP_PARAMS,
     )
     immerse_wallclock_s = time.monotonic() - t_immerse0
     points = cloud["points"]
