@@ -15,15 +15,26 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 
 **Phase Numbering:** Integer phases (1, 2, 3, ...) = planned milestone work. Decimal phases (2.1, 2.2) = urgent insertions (marked INSERTED). Numbering restarts at 1 each milestone; v1.1's phases are 1-4.
 
+> **THE PHASE-2 STAGE IS ON HOLD (2026-08-12).** Architecture selection is tabled by user
+> decision; the **CAE** is the substrate carried into Phase 3, which is now the milestone's
+> active work. Phases 02.3, 02.5, 02.6 and 02.7 stop where they stand — see
+> `phases/02-eigenspectrum-audit-validity-gate/02-NOTE-phase-2-stage-on-hold.md` for the
+> decision, the evidence for and against the CAE, exactly where each phase stopped, the
+> carried debt, and what ends the hold. **No sealed verdict is reopened or reinterpreted.**
+> Phase 3's hard gate names a PASS and no PASS exists, so Phase 3 starts on a **deliberate
+> override**, not a satisfied precondition; the note states the consequence that override
+> carries.
+
 - [x] **Phase 1: Data Loading & Manifold Reconstruction** — Reproducible, row-aligned PU subsample loaded and an Isomap fit produced, validated for connectivity and `n_neighbors` stability (completed 2026-07-31)
 - [x] **Phase 2: Eigenspectrum Audit & Validity Gate** — Full classical-MDS eigenspectrum audited by hand; a PASS/MARGINAL/FAIL gate freezes the embedding dimension `d` (sealed 2026-08-05, **GATE_VERDICT = FAIL**, `r=0.052419`, `m=0.412071`, `d_frozen=5` — see Phase Details)
 - [x] **Phase 02.1: Geometry Representation Research** (INSERTED) — A non-Euclidean-embeddable representation identified and justified against the literature, replacing the Isomap coordinates that Phase 2's gate invalidated (sealed 2026-08-05, **GEOM-04 = Ollivier-Ricci graph-native**; the pre-registered falsifier fired and overturned the coordinate-producing fork — see Phase Details)
 - [x] **Phase 02.2: Chart Autoencoder Validity Test** (INSERTED) — The Chart Auto-Encoder method (arXiv:1912.10094) empirically validity-tested on the PU data behind a pre-registered PASS/FAIL gate (completed 2026-08-04, **CAE_VERDICT = FAIL** — see Phase Details)
-- [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
+- [ ] **Phase 02.3: Chart Auto-Encoder Iteration** (INSERTED, proposed — not yet planned; **ON HOLD 2026-08-12**) — Investigate why the CAE failed (candidate axes: chart count, chart latent dimension, training budget/epochs, loss weighting, Lipschitz penalty schedule) and produce a fresh, separately-ratified pre-registration before any new fit
 - [x] **Phase 02.4: Topological Auto-Encoder Validity Test** (INSERTED) — The Topological Auto-Encoder (Moor et al., arXiv:1906.00722) implemented and put through a pre-registered validity gate on the PU data (sealed 2026-08-07, **TOPOAE_VERDICT = FAIL** — both *global*-scoped gates failed, the *local*-scoped gate passed; see Phase Details and `02.4-FINDINGS.md`)
-- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 waited on Phase 02.6 — that dependency is now SATISFIED (2026-08-11): `02.5-10` receives a ranking, a derivative-usability table, and the separating experiment's result, not a substrate — see Phase Details and `02.6-FINDINGS-02.md`**
-- [x] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans, then REPLANNED onto persistent-homology agreement (D-01) and completed 2026-08-11 at 15/15 replan plans — no substrate promoted, none eliminated, ranking axis carries two named confounds. See `02.6-FINDINGS.md`, `02.6-FINDINGS-02.md`.**
-- [ ] **Phase 3: Decoder & Curvature Field** — C2-smooth decoder trained and its analytic mean-curvature field validated against a synthetic-manifold falsification test
+- [ ] **Phase 02.5: Local Curvature Feasibility & CAE Local Re-Gate** (INSERTED, not yet planned) — Establish empirically whether a local second fundamental form is estimable in the PU regime, then pre-register and run a *locally*-scoped gate on the Chart Auto-Encoder; resolves Phase 3's blocking dependency, which currently names a global-scoped PASS that no method has produced. **Stage 1 measured 2026-08-09, `CURVATURE_VERDICT = FAIL` under `02.5-PREREGISTRATION-AMENDMENT-01.md`'s 5-seed rule. PAUSED at plan 02.5-09's blocking checkpoint after the CAE chart decoder failed its Swiss roll check; stage-2 plans 02.5-10..13 waited on Phase 02.6 — that dependency is now SATISFIED (2026-08-11): `02.5-10` receives a ranking, a derivative-usability table, and the separating experiment's result, not a substrate — see Phase Details and `02.6-FINDINGS-02.md`** **ON HOLD 2026-08-12 at 9/13 plans with `02.5-09`'s Task 3 checkpoint still open; plans `02.5-10`..`13` are not scheduled. WR-01/02/03 (`derivative_bridge.py`) were routed here and now land on whoever next thresholds on the bridge — see `02-NOTE-phase-2-stage-on-hold.md`.**
+- [x] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans, then REPLANNED onto persistent-homology agreement (D-01) and completed 2026-08-11 at 15/15 replan plans — no substrate promoted, none eliminated, ranking axis carries two named confounds. See `02.6-FINDINGS.md`, `02.6-FINDINGS-02.md`.** **Its selection question is TABLED 2026-08-12 — the substrate was chosen by user decision (CAE), not by this screening.**
+- [ ] **Phase 02.7: Manifold-Template Inference Front End** (INSERTED) — A screening rule that infers a named manifold template from a point cloud, behind D-01/D-03's joint decision and D-16's in-library positive controls. **ON HOLD 2026-08-12 at 10/12 plans: `02.7-10` Tasks 2/3 (the ~17h benchmark grid) unrun, `02.7-11`/`02.7-12` unstarted, and `notebooks/02.7_swiss_roll_template_check.ipynb` prints 1 of 4 read-out lines true (GMST local-dispersion instability plus inflated banded β₀; both controls fail their labels). Does not block Phase 3.**
+- [ ] **Phase 3: Decoder & Curvature Field** — Per-point mean-curvature field via autodiff through a C2-smooth CAE chart decoder, Swiss roll first, synthetic control last. **ACTIVE from 2026-08-12 on a deliberate override of its own PASS precondition — see `02-NOTE-phase-2-stage-on-hold.md` §3.**
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
 ## Phase Details
@@ -572,73 +583,40 @@ Plans:
 
 ### Phase 3: Decoder & Curvature Field
 
-**Goal**: A C2-smooth decoder trained from Phase 02.1's chosen representation back to the 768-d embedding, its analytically-derived mean curvature field validated against a synthetic-control falsification test before being trusted as a property of the data manifold rather than a decoder artifact.
+**Goal**: A per-point mean-curvature field over the PU manifold, computed by autodiff through a C2-smooth CAE chart decoder, checked on a known-answer manifold before it is computed on PU and against a synthetic control after.
 
-> **AMENDED after Phase 2's FAIL.** This phase originally decoded from the frozen *Isomap* coordinates and depended on a PASS or MARGINAL verdict. Phase 2 returned FAIL (`m = 0.412071`), so those coordinates are the output of an invalidated step: the pullback metric would conflate real curvature with parameterization damage, undetectable by CURV-06/07's synthetic control (a synthetic manifold passing the gate never reproduces the pathology). Working dimension also open — `D_FROZEN = 5` flagged suspect in `02-FINDINGS.md` §6.4 against three estimates clustering at 18-25. Phase 02.1 supplies both the representation and the dimension. Re-plan against its output; DEC/CURV requirement text still refers to Isomap coordinates and needs the same amendment. **Further amended after Phase 02.2's insertion.** Phase 02.2 tested whether a Chart Auto-Encoder representation is a valid input for this decoding step; Phase 3 does not start until a CAE verdict reads PASS. **Further amended after Phase 02.2's FAIL (2026-08-04).** `CAE_VERDICT = FAIL` (see Phase 02.2's Outcome above); the user chose to iterate rather than adopt Krein or stop. **Further amended after Phase 02.1 sealed (2026-08-05).** Phase 02.1's falsifier fired and its GEOM-04 answer is **Ollivier-Ricci graph-native**, which drops or rewrites all thirteen DEC/CURV requirements: 9 dropped (DEC-01..05, CURV-01/02/04/05), 3 rewritten (CURV-03's extrinsic mean-curvature vector becomes an intrinsic Ricci scalar — a different mathematical object, not a renaming; CURV-06/07 re-architect onto a tree-and-expander fixture), 1 amended (CURV-08). **The success criteria and requirement list below are stale against that outcome and must be re-planned, not merely re-pointed.** At the same gate the user chose Phase 02.4 (Topological Auto-Encoder) as the next attempt, so this phase now waits on 02.4's verdict rather than 02.3's — and 02.4, being coordinate-producing, would if it PASSes reinstate much of the DEC/CURV set that 02.1's graph-native answer drops. Which representation Phase 3 decodes from is therefore still open, and depends on 02.4's outcome.
+**Substrate**: the **Chart Auto-Encoder**, fixed by user decision 2026-08-12. Selection is tabled, not resolved — the choice rests on readiness and a clean defect ledger, **not** on measured superiority. Full record, including the evidence against: `phases/02-eigenspectrum-audit-validity-gate/02-NOTE-phase-2-stage-on-hold.md`.
 
-**Depends on**: Phase 02.4 **PASS** (the operative precondition — Phase 3 must check its verdict artifact before running any expensive cell; until 02.4 exists and passes, Phase 3 stays blocked). Phase 02.1 supplies the sealed representation analysis and the graph-native recommendation that applies if 02.4 fails. Phase 02.2's verdict is sealed at FAIL and is not a precondition; Phase 02.3 is superseded as the next step and is not a precondition. Phase 2 supplies the eigenspectrum evidence and FAIL verdict that motivated the original change; a Phase 2 PASS was never a precondition.
-**Requirements**: DEC-01..05, CURV-01..08
-**Success Criteria**:
+**Depends on**: nothing outstanding. The phase's original precondition — a **PASS** from 02.4 — is **deliberately overridden**; no PASS exists anywhere in this milestone (02, 02.2, 02.4, 02.5 stage 1 are all FAIL). The override and its consequence must be recorded in this phase's own artifacts, never inherited as a silent green light.
 
-  1. A decoder maps the Phase 02.2-validated Chart Auto-Encoder chart representation to the 768-d embedding using a C2-smooth activation throughout, no ReLU-family activation, reproducible from a recorded torch seed (DEC-01, DEC-02, DEC-05)
-  2. Held-out reconstruction quality shown as both aggregate metric and per-output-dimension distribution, not just training loss (DEC-03, DEC-04)
-  3. First and second fundamental forms computed via batched `torch.func` autodiff, yielding the mean curvature vector field and its norm, labelled only as a vector norm and never as Gaussian or principal curvature (CURV-01..03)
-  4. Metric tensor's per-point conditioning shown with near-singular points flagged; decoder second derivatives verified non-zero and finite away from training nodes; curvature confirmed evaluated only at/near actual Isomap coordinates, never extrapolated (CURV-04, CURV-05, CURV-08)
-  5. PU manifold's curvature compared against the same decoder architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension/ambient size (CURV-06, CURV-07)
+**Scope**: curvature is **local**. `II_p` depends only on a neighbourhood of `p`, so the milestone's global-scoped FAILs do not block a piecewise field (`02.4-FINDINGS.md`). No global parameterization is attempted and none is claimed.
 
-**Plans**: TBD
-**Research**: Needs a research pass during planning — SUMMARY.md flags the mean-curvature-in-high-codimension math (first/second fundamental form, `‖H‖` derivation, `torch.func` batched Jacobian/Hessian via `vmap`) as dense, easy to get subtly wrong on tensor shapes/index conventions.
-**Hard gate**: The synthetic-control falsification test (CURV-06, CURV-07) must complete and be reported before Phase 4 starts, not run alongside it.
+**Requirements**: DEC-01..05 and CURV-01..08 are **stale** — written against Isomap coordinates and a global chart. Re-mint at plan time; do not re-point.
 
-> **RE-SCOPED to local curvature (2026-08-07, additive — nothing above is deleted or retracted).**
-> Everything above this note describes Phase 3 as it was specified before this re-scope: a *global*
-> C2-smooth decoder over a single parameterization, with mean curvature computed via first/second
-> fundamental forms over that global chart. The re-scope changes the target of what Phase 3
-> estimates, not whether it can proceed — Phase 3's blocking dependency on a PASS verdict (line
-> above) is untouched by this note and is not resolved here.
->
-> **Why.** Mean curvature is a *local* invariant — the second fundamental form `II_p` at a point `p`
-> depends only on an arbitrarily small neighbourhood of `p`. A manifold need not admit any single
-> global chart to have a well-defined curvature field everywhere (the sphere is the standard
-> counterexample: no single chart covers it, yet its curvature is defined and known at every point).
-> So the milestone's repeated failure to obtain *global* coordinates — Phase 2's `GATE_VERDICT =
-> FAIL`, Phase 02.2's `CAE_VERDICT = FAIL`, Phase 02.4's `TOPOAE_VERDICT = FAIL` — does not, by
-> itself, block a curvature field built from *local* charts. See
-> `.planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-FINDINGS.md` for the
-> full cross-phase argument: every one of those three FAILs is a failure of a *global* statistic
-> (flat-target Euclidean embeddability, whole-embedding distance/reconstruction fidelity,
-> whole-held-out-set topological/reconstruction fidelity), and every *local*-scoped gate measured in
-> this milestone (02.2's chart-transition cycle residual, 02.4's rank-structure statistic) passed.
->
-> **Re-scoped goal.** Phase 3 now targets estimating the second fundamental form **locally, per
-> point**, and assembling the curvature field piecewise across the point cloud — not a single global
-> parameterization's Jacobian/Hessian. Phase 4 is **preserved unchanged**: it partitions on curvature
-> quantiles and compares regional crossmodal MKNN, a question that survives intact under a
-> piecewise-local curvature field exactly as it did under a global one.
->
-> **Open questions this re-scope inherits, recorded without resolving them:**
->
-> - **Sample density is the binding constraint, not geometry.** A local quadratic fit needs
->   `d(d+1)/2` coefficients per normal direction — 15 at `d=5`, 171 at `d=18`, 210 at `d=20`, 325 at
->   `d=25` — against the `k*=15` neighbourhood size this milestone's gates have used throughout and
->   `n=10,000` points in ambient dimension 768. At the intrinsic dimensions the measured evidence
->   actually clusters around (18–25, per `02.4-FINDINGS.md` §2.2), this is badly underdetermined at
->   `k*=15`. Raising `k` buys more equations but costs locality — the tradeoff is unresolved.
-> - **Which vehicle.** Two candidate routes are open and neither is licensed by anything measured so
->   far: (a) local PCA plus quadric/jet fitting, which needs no learned model; (b) using a learned
->   decoder as the local parameterization. On (b): 02.4's TopoAE decoder is C-infinity under SiLU and
->   passed its own *local* gate (T3, rank structure) while failing the *global* ones (T1, T2) — so the
->   gate that failed tested a property local curvature estimation does not require. This is noted as
->   a reason (b) is not obviously disqualified, **not** as evidence it is licensed — any such use
->   would need its own locally-scoped pre-registration, not an inheritance from 02.4's gate as
->   measured.
-> - **Feasibility should be settled on a manifold with a known answer first**, per `CLAUDE.md`'s
->   standing Swiss roll rule: a Swiss roll with analytic mean curvature, degrading ambient dimension,
->   intrinsic dimension, and sample density toward the PU regime, to find empirically where the local
->   curvature estimator breaks down — before it is trusted on data with no known answer.
->
-> None of these questions is resolved by this note; they are the questions Phase 3's next
-> `/gsd-discuss-phase` or `/gsd-spec-phase` session must take up before planning.
+**Start simple.** Each step is cheap, readable, and gates the next. Nothing below is pre-registered; add gate machinery only when a step's result would otherwise be untrustworthy.
+
+  1. **Swiss roll first, known answer.** Existing `chart_curvature.py` + a fresh 2-chart CAE fit on the roll, curvature vs analytic `H` by Spearman. `02.5-09` measured `-0.0604` here against a raw-point baseline of `0.6712` — reproduce that measurement first, then try to beat it. **If it cannot clear the raw-point baseline, Phase 3 stops here and reports** — that is a complete outcome, not a failure to work around.
+  2. **PU curvature field, one fit, one seed.** Sealed 02.2 CAE fit read-only or one fresh fit; `torch.func` Jacobian/Hessian per chart; emit `‖H‖` per point plus metric-tensor conditioning. Descriptive only — a histogram and a map, no verdict.
+  3. **Seeds and sanity.** Repeat across ≥3 seeds, report spread. Flag near-singular metric points; confirm second derivatives are non-zero and finite; evaluate only at/near data, never extrapolated.
+  4. **Synthetic control.** Same architecture and protocol fitted to flat plane / sphere / saddle at matched `d` and ambient 768. States what the PU numbers can and cannot mean.
+
+**Success criteria**
+
+  1. A curvature Swiss roll check passes with the CAE chart decoder, or the phase reports the failure and stops (step 1).
+  2. `‖H‖` per point over the PU cloud, from batched `torch.func` autodiff, labelled as a mean-curvature **vector norm** — never Gaussian or principal curvature.
+  3. C2-smooth activation throughout the decoder, asserted in code (`decoder_curvature.assert_c2_decoder`); ReLU's second derivative is identically zero and silently zeroes `II`.
+  4. Seed spread reported, not a single draw; near-singular metric points flagged rather than averaged in.
+  5. Synthetic control completed and reported **before** Phase 4 starts, with the parameterization-damage caveat stated plainly: a synthetic manifold that passes never reproduces the pathology the override carries.
+
+**Assets to reuse, not rebuild**: `chart_curvature.py` (exact chart curvature via `torch.func`, 02.5-08), `decoder_curvature.py` (curvature with no chart routing + C2 guard, 02.6-01), `derivative_bridge.py` (autodiff vs finite-difference agreement, 02.6-10), `cae.py` (sealed — import, never edit), `notebooks/02.5_swiss_roll_chart_curvature_check.ipynb`.
+
+**Constraints**: `src/effdim/` and `pyproject.toml` frozen this milestone. Sealed verdicts and sealed fits are read-only. `d_frozen = 5` is **not** inherited — state and justify the working dimension. `k* = 15` against `d(d+1)/2` coefficients is badly underdetermined at `d` in 18–25; if the decoder route is used, that constraint is the reason.
+
+**Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
+
+**Plans**: TBD. **Next**: `/gsd-discuss-phase 3`.
+
+**History**: this entry was rewritten 2026-08-12 to drop four superseded amendment layers (Isomap decoding, the 02.2 PASS precondition, the 02.1 graph-native rewrite of DEC/CURV, the 02.4 wait) and the 2026-08-07 local re-scope note, all of which are now either resolved by the substrate decision or restated above. Prior text is in git history and `02-NOTE-phase-2-stage-on-hold.md`; no sealed verdict or measured number is changed by the rewrite.
 
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 
@@ -692,7 +670,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 1 -> 2 -> 02.1 -> 02.2 -> 02.3 -> 3 -> 4, gated as described above. Phase 02.1 was inserted after Phase 2 returned FAIL; Phase 3 now depends on 02.1's output rather than on a Phase 2 PASS. Phase 02.2 was inserted after 02.1 to empirically test the Chart Auto-Encoder representation before Phase 3 commits to decoding from it. Phase 02.2 completed all six plans and returned `CAE_VERDICT = FAIL`; at that phase gate the user chose to iterate rather than adopt 02.1's Krein representation or stop, so Phase 02.3 (Chart Auto-Encoder Iteration) is proposed — not yet discussed, researched, or planned — and Phase 3 now depends on *that* phase's PASS rather than on 02.2's (sealed, permanently FAIL) verdict.
+**Execution Order:** Phases 1 -> 2 -> 02.1 -> 02.2 -> 02.4 ran and are closed. The phase-2 stage (02.3, 02.5, 02.6, 02.7) is **ON HOLD from 2026-08-12** — architecture selection tabled, nothing further scheduled there. Remaining order is **3 -> 4**, with Phase 3 running on a CAE substrate under a deliberate override of its PASS precondition.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -702,6 +680,9 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.2. Chart Autoencoder Validity Test (INSERTED) | v1.1 | 6/6 | Complete    | 2026-08-04 |
 | 02.3. Chart Auto-Encoder Iteration (INSERTED, proposed) | v1.1 | 0/TBD | Proposed — not planned | - |
 | 02.4. Topological Auto-Encoder Validity Test (INSERTED) | v1.1 | 8/8 | Complete    | 2026-08-07 |
-| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Not started (blocked on 02.4) | - |
+| 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
+| 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
+| 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
+| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Active — unplanned (gate overridden) | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
