@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 02.7
 current_phase_name: manifold-template-inference-front-end-inserted
 status: executing
-stopped_at: Completed 02.7-01-PLAN.md
-last_updated: "2026-08-12T01:47:31.706Z"
+stopped_at: Completed 02.7-02-PLAN.md
+last_updated: "2026-08-12T01:56:23.208Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 65
-  completed_plans: 50
+  completed_plans: 51
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
-Plan: 2 of 12
+Plan: 3 of 12
 
 **Outcome (2026-08-11).** The replan (persistent-homology agreement axis) ran to completion.
 `02.6-FINDINGS-02.md` assembles the ordering proof, the full 192-number matrix, the ranking
@@ -167,7 +167,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 77% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 78% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -222,6 +222,7 @@ Progress: [████████░░] 77% of planned plans (17/17; Phases 1
 | Phase 02.6 P13 | ~2h (1 auto task + 1 checkpoint round-trip) | 2 tasks | 1 files |
 | Phase 02.6 P15 | ~55min | 3 tasks | 3 files |
 | Phase 02.7 P01 | ~45min | 3 tasks | 6 files |
+| Phase 02.7 P02 | ~10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -351,6 +352,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.6-15: 02.6-FINDINGS-02.md assembled -- ordering proof (b768ee4 ancestor of d5280fe), full 192-number matrix, both bridge tables, separator result, D-19 stated explicitly; named a second confound beyond 02.6-13's dimensional mismatch -- topoae.topological_loss trains toward AMBIENT-space MST agreement (d_x = pairwise_distances_f64(xb) on the raw input batch), while this phase ranks on INTRINSIC-reference agreement, so topoae's best-of-three showing on ambient cells reflects its training objective, not manifold-preservation quality; on the one dimensionally clean comparison (decoder_image|intrinsic|*) no candidate is separated from the other two. Promotes no substrate; ranking not walked to the runner-up. Phase 02.6 complete at 15/15 replan plans; Phase 02.5 stage 2 unblocked
 - [Phase ?]: 02.7-01: Task 1 checkpoint resolved ratify-as-written -- D-01/D-04 confirmed exactly as CONTEXT.md states them, no amendment
 - [Phase ?]: 02.7-01: lookup() zero-pads betti vectors shorter than 3 entries (S1's (1,1)) before matching, to reconcile D-04's literal table text with D-11's 3-entry H2 ceiling
+- [Phase ?]: 02.7-02: geodesic_distance_matrix's min_component_size guard is optional (default None, opt-in) rather than a required no-default argument -- None disables the check entirely so the module still chooses no numeric threshold of its own, while staying backward-compatible with plan 02.7-01's existing call sites
+- [Phase ?]: 02.7-02: contiguous_stable_range is deliberately bar-free -- takes no minimum-length argument, since D-06's stability threshold is a ratified constant plan 02.7-08 fixes and supplies, not chosen in this module
 
 ### Pending Todos
 
@@ -396,8 +399,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-12T01:47:31.667Z
-Stopped at: Completed 02.7-01-PLAN.md
+Last session: 2026-08-12T01:56:14.740Z
+Stopped at: Completed 02.7-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
