@@ -202,3 +202,106 @@ def test_immerse_check_immersion_attaches_result_and_ground_truth_valid():
     )
     assert cloud["immersion_check"]["is_immersion"] is True
     assert cloud["ground_truth_valid"] is True
+
+
+# --- Task 3: the negative control -- a deliberately collapsed warp must be caught ---------
+
+
+def test_jacobian_rank_negative_control():
+    """D-14's own reason for the rank check: a map that stops being an immersion silently
+    corrupts the ground-truth label, with no way to detect that after the fact. This test
+    does BOTH halves so neither can pass alone: a warp deliberately built to collapse one
+    intrinsic direction MUST fail (`is_immersion is False`), and the identical template at
+    the identical D/seed/rank_tol with the real, uncollapsed lift MUST pass -- a check that
+    only ever fires, or only ever passes, is not a check.
+    """
+    cloud = ti.immerse(
+        "S2",
+        n=80,
+        D=AMBIENT_D,
+        noise=0.0,
+        density=1.0,
+        seed=42,
+        warp_params={"strength": 0.05, "freq": 1.0},
+    )
+
+    # Negative control: a lift whose output ignores all but one ambient input direction --
+    # rank(lift) == 1 forces rank(lift . warp) <= 1 < d_true == 2 at every point, regardless
+    # of the warp (composed_map's Jacobian is (I + J_warp) @ lift, and multiplying a rank-1
+    # matrix on the right can never raise its rank).
+    collapsed = dict(cloud)
+    collapsing_lift = np.array(cloud["lift"], copy=True)
+    collapsing_lift[:, 1:] = 0.0
+    collapsed["lift"] = collapsing_lift
+    negative = ti.jacobian_rank(collapsed, n_check=15, rank_tol=1e-6)
+    assert negative["is_immersion"] is False
+    assert negative["min_rank"] < negative["expected_rank"]
+
+    # Positive control: same template, D, seed, rank_tol -- the real (uncollapsed) lift.
+    positive = ti.jacobian_rank(cloud, n_check=15, rank_tol=1e-6)
+    assert positive["is_immersion"] is True
+    assert positive["min_rank"] == positive["expected_rank"]
+
+
+def test_all_four_templates_pass_rank_check_at_production_dimension():
+    cases = (
+        ("S1", {}, 1),
+        ("S2", {}, 2),
+        ("T2", {}, 2),
+        ("ball", {"d": 5}, 5),
+    )
+    for template, extra, expected_d_true in cases:
+        cloud = ti.immerse(
+            template,
+            n=60,
+            D=AMBIENT_D,
+            noise=0.0,
+            density=1.0,
+            seed=7,
+            warp_params={"strength": 0.05, "freq": 1.0},
+            **extra,
+        )
+        assert cloud["d_true"] == expected_d_true
+        result = ti.jacobian_rank(cloud, n_check=12, rank_tol=1e-6)
+        assert result["expected_rank"] == expected_d_true, template
+        assert result["min_rank"] == expected_d_true, template
+        assert result["is_immersion"] is True, template
+
+
+def test_sphere_rank_check_survives_the_pole_region():
+    """Pins the reason the normalized-Gaussian-plus-tangent-basis construction was chosen
+    over the spherical-angle chart: a rank check evaluated deliberately AT what an angle
+    chart would call the poles must still read rank 2, never a spurious rank-1. A later
+    refactor back to an angle chart would go red here instead of silently corrupting the
+    ground truth near the poles.
+    """
+    poles = np.array(
+        [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, -1.0],
+            [1e-9, 0.0, 1.0],
+            [0.0, 1e-9, -1.0],
+        ]
+    )
+    poles = (poles / np.linalg.norm(poles, axis=1, keepdims=True)).astype(np.float64)
+    b1, b2 = ti._onb_from_normal(poles)
+    tangent_basis = np.stack([b1, b2], axis=2).astype(np.float64)
+
+    rng = np.random.default_rng(FIXTURE_SEED)
+    lift = ti.random_orthogonal_lift(3, AMBIENT_D, rng)
+    warp_seed = 12345
+    warp_params = {"strength": 0.05, "freq": 1.0, "seed": warp_seed}
+
+    pole_cloud = {
+        "canonical_points": poles,
+        "tangent_basis": tangent_basis,
+        "lift": lift,
+        "warp_params": warp_params,
+        "warp_seed": warp_seed,
+        "d_true": 2,
+        "D": AMBIENT_D,
+    }
+    result = ti.jacobian_rank(pole_cloud, n_check=poles.shape[0], rank_tol=1e-6)
+    assert result["ranks"].tolist() == [2, 2, 2, 2]
+    assert result["min_rank"] == 2
+    assert result["is_immersion"] is True
