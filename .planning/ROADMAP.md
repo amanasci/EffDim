@@ -533,7 +533,7 @@ Plans:
 
 **Assumption-delta:** recorded in `02.7-08` as one **`promote`** — the primary noun generalizes from a *dimension estimate* to an *estimator-spread-over-`k`*, and from a *persistence diagram* to a *(metric, diagram)* pair. `d_hat` survives only as the conditional output of D-10's consensus rule, which returns `None` plus a reason rather than a number the estimators do not support. Encoded by the invariant test `test_no_readout_without_metric_label`.
 
-**Plans**: 2/12 plans executed
+**Plans**: 3/12 plans executed
 **Wave 1**
 
 - [x] 02.7-01-PLAN.md — **[tracer + checkpoint:decision]** one `S^1` cloud end to end at `D = 768`, both metrics, `maxdim=2`, per-metric band, Betti lookup; the symmetrization regression test; no default for any ratifiable threshold in any module (D-01, D-02, D-04, D-05, D-07, D-11)
@@ -541,7 +541,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 02.7-02-PLAN.md — `geodesic_graph.py`: the `k` sweep, the component curve, dropped fractions, no bridging (D-05, D-06, D-07)
-- [ ] 02.7-03-PLAN.md — `local_dimension.py`: eight estimators over `k` with no aggregation, plateau-consensus, anchor-neighbourhood local estimates, and both frozen-estimator corrections pinned (D-09, D-10, D-12)
+- [x] 02.7-03-PLAN.md — `local_dimension.py`: eight estimators over `k` with no aggregation, plateau-consensus, anchor-neighbourhood local estimates, and both frozen-estimator corrections pinned (D-09, D-10, D-12)
 - [ ] 02.7-04-PLAN.md — `confidence_band.py`: the Fasy per-cloud per-metric bootstrap band, and the `beta_1 = 0` disc case a gap cut cannot return (D-02)
 - [ ] 02.7-05-PLAN.md — `template_immersion.py`: four templates, orthogonal lift, named warp, Jacobian rank checked at `D = 768`, negative control (D-14, D-15)
 - [ ] 02.7-06-PLAN.md — `template_decision.py`: joint `(Betti, d_hat)` key, four named abstain conditions, three-way tally, metric-label invariant (D-01, D-03, D-04, D-13)
