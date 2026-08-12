@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 3
+open_count: 4
 waived_count: 0
 fixed_count: 1
-total_count: 4
-last_updated: 2026-08-10T14:20:45.037Z
+total_count: 5
+last_updated: 2026-08-12T13:55:51.767Z
 ---
 
 # Broken Windows Ledger
@@ -19,6 +19,7 @@ last_updated: 2026-08-10T14:20:45.037Z
 | 2 | 02.4 | deviation | .planning/phases/02.4-topological-auto-encoder-validity-test-inserted/02.4-PREREGISTRATION.md |  | Known Limitation 2's 'paper's own minimum searched lambda' justification for LAMBDA_TOPO=0.1 is withdrawn (fifth fidelity gap: reconstruction term sums over features vs reference's mean, so EffDim's lambda is ~D times smaller in paper convention than stated). LAMBDA_TOPO unchanged, no re-fit; pre-registration doc itself must be corrected by plan 02.4-08. | fixed |  | 2026-08-07T16:58:35.354Z | 2026-08-07T17:14:42.235Z |
 | 3 | 02.4 | deviation | notebooks/pu_manifold/topoae.py |  | Gap #5 (fidelity gap, found on re-audit during 02.4-07, corrected in prose only by 02.4-PREREGISTRATION-AMENDMENT-02.md): train_topoae's reconstruction term sums over ambient features (.sum(-1).mean()) where the reference implementation's nn.MSELoss() means over them, reparameterizing LAMBDA_TOPO by a factor of D. Recorded, not fixed -- closing it would change every sealed fit's training objective and requires a fresh pre-registration plus a full sixteen-fit re-run, not authorised by Amendment 2. | open |  | 2026-08-07T17:14:49.608Z |  |
 | 4 | 02.6 | deviation | notebooks/pu_manifold/tests/test_decoder_curvature.py |  | plan must-have claimed plain_decoder_curvature batch-split results are exact torch.equal bit-identical; measured false at real (hidden=64x3) architecture scale (~7e-14, amplified by pullback-metric condition number ~470), also confirmed in sealed chart_curvature.chart_mean_curvature itself via a duck-typed decoder of matching width -- test corrected to atol=1e-9, determinism (same z twice) kept as exact torch.equal | open |  | 2026-08-10T14:20:45.037Z |  |
+| 5 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-SCREENING-RULE-AMENDMENT-01.md |  | SC-5's D-02 live prediction (roll ambient beta_1=1 -> Euclidean-only spurious cycle) was never exercised through decide()'s abstain path; condition (b) fired first in every measured run. Untested under the amended gating_dispersion gate. | open |  | 2026-08-12T13:55:51.767Z |  |
 
 ````json
 [
@@ -68,6 +69,18 @@ last_updated: 2026-08-10T14:20:45.037Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-10T14:20:45.037Z",
+    "resolved_at": null
+  },
+  {
+    "id": 5,
+    "kind": "deviation",
+    "phase": "02.7",
+    "file": ".planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-SCREENING-RULE-AMENDMENT-01.md",
+    "line": null,
+    "description": "SC-5's D-02 live prediction (roll ambient beta_1=1 -> Euclidean-only spurious cycle) was never exercised through decide()'s abstain path; condition (b) fired first in every measured run. Untested under the amended gating_dispersion gate.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-12T13:55:51.767Z",
     "resolved_at": null
   }
 ]
