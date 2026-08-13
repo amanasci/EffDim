@@ -87,6 +87,19 @@ task's reproduction anchor."""
 
 FIXTURE_SEED = 20260807
 N_POINTS = 3000
+"""The original pre-registered value (03-01, commit 4dc9b05). Superseded for the default
+sweep by 03-02-AMENDMENT-01.md, which found this insufficient to estimate a
+second-derivative quantity (curvature) reliably at n_charts<=3 -- CLAUDE.md's "~3,000
+points" protocol was written for reconstruction sanity, a zeroth-order property. This
+constant itself is NOT changed by the amendment (Section 4): raw_baseline_context() still
+measures RAW_BASELINE_CONTEXT against exactly this value, unconditionally. The amended
+sweep passes N_POINTS_AMENDED (or --n-points) into run_cell() explicitly instead."""
+
+N_POINTS_AMENDED = 12000
+"""03-02-AMENDMENT-01.md's amended point count. Not the module default -- callers opt in
+via --n-points 12000 (or any explicit override), which also routes the record to a
+distinct cache key so the sealed n=3000 grid is never clobbered or resumed-into."""
+
 CHART_DIM = 2
 EMBED_DIM = 8
 HIDDEN = [64, 64]
@@ -552,12 +565,23 @@ def main() -> None:
         "floor decision. Runs no new cells. Also printed automatically as the "
         "trailing step of a full (non-smoke, non-dry-run) invocation.",
     )
+    parser.add_argument(
+        "--n-points",
+        type=int,
+        default=None,
+        help="03-02-AMENDMENT-01.md: override N_POINTS for the real sweep (e.g. 12000). "
+        "Does not change raw_baseline_context(), which always measures against the "
+        "original N_POINTS=3000 fixture. Without --record-path, routes the record to a "
+        "distinct cache key (03_swiss_roll_curvature_sweep_n<N>.jsonl) so the sealed "
+        "n=3000 grid is never clobbered or resumed-into.",
+    )
     args = parser.parse_args()
 
     n_charts_values = (
         tuple(int(v) for v in args.n_charts.split(",")) if args.n_charts else N_CHARTS_SWEEP
     )
     seeds = tuple(int(v) for v in args.seeds.split(",")) if args.seeds else TORCH_SEEDS
+    n_points = args.n_points if args.n_points is not None else N_POINTS
 
     print("=" * 92)
     print("Phase 3 Plan 01: Swiss roll n_charts x seed curvature sweep runner")
@@ -591,10 +615,13 @@ def main() -> None:
         print("--smoke tally: 1/1 cell completed. Nothing written to the record file.")
         return
 
+    default_record_name = (
+        "03_swiss_roll_curvature_sweep.jsonl"
+        if n_points == N_POINTS
+        else f"03_swiss_roll_curvature_sweep_n{n_points}.jsonl"
+    )
     record_path = (
-        Path(args.record_path)
-        if args.record_path
-        else (CACHE_DIR / "03_swiss_roll_curvature_sweep.jsonl")
+        Path(args.record_path) if args.record_path else (CACHE_DIR / default_record_name)
     )
 
     if args.summary:
@@ -602,7 +629,7 @@ def main() -> None:
         summarize(record_path)
         return
 
-    print(f"record_path={record_path}")
+    print(f"record_path={record_path}  n_points={n_points}")
 
     grid = build_grid(n_charts_values, seeds)
     print(f"cells in this invocation's scope: {len(grid)}")
@@ -610,6 +637,15 @@ def main() -> None:
     completed = load_completed(record_path) if args.resume else {}
     if args.resume:
         print(f"--resume: {len(completed)} cell(s) already on record, will be skipped.")
+        for rec in completed.values():
+            if int(rec.get("n_points", N_POINTS)) != n_points:
+                raise ValueError(
+                    f"--resume: record_path={record_path} already contains a cell recorded "
+                    f"at n_points={rec.get('n_points')}, but this invocation requested "
+                    f"n_points={n_points} -- a mid-sweep n_points change would silently make "
+                    "two halves of the table incomparable (02.6-FINDINGS-02.md section 12's "
+                    "defect pattern). Use a distinct --record-path instead."
+                )
 
     rho_raw = raw_baseline_context()
 
@@ -625,7 +661,7 @@ def main() -> None:
             break
 
         t0 = time.monotonic()
-        record = run_cell(n_charts=n_charts, seed=seed)
+        record = run_cell(n_charts=n_charts, seed=seed, n_points=n_points)
         record["rho_raw_context"] = rho_raw
         append_record(record_path, record)
         elapsed = time.monotonic() - t0
