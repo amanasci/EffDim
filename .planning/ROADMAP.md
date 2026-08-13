@@ -617,16 +617,39 @@ Plans:
 **Plans**: 11 plans across 8 waves. Wave order: `01` tracer — declare the 0.65 floor and the `n_charts` scope ruling at two blocking decision checkpoints, build the roll sweep runner, reproduce `-0.0604` end to end → `02` run the 4×5 roll sweep and decide the Step-1 gate ∥ `03` close WR-01/02/03 in `derivative_bridge.py` ∥ `04` `synthetic_controls.py` (flat / sphere / saddle at `d=20, D=768`) → `05` D-08 forward-mode toggle and D-09 equivalence → `06` the CLAUDE.md-mandated Swiss roll sanity notebook ∥ `07` build the PU sweep runner with its timing probe and pre-declared D-07 selection rule → `08` execute the 9-fit PU grid, select `n_charts`, decide D-12 escalation → `09` the PU `‖H‖` field across 3 seeds plus the finite-difference bridge at PU scale → `10` the synthetic control fits → `11` `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint. Plans `01`, `02`, `06`, `08` and `11` are non-autonomous. **D-05a's stop-and-report branch is planned explicitly**: on a non-clear at plan `02`, plans `05`–`10` do not run and plan `11` is re-pointed to `["03-02", "03-03", "03-04"]` to write a Step-1-only record.
 
 Plans:
+**Wave 1**
+
 - [ ] 03-01-PLAN.md — Tracer: declare the Step-1 floor and the `n_charts` scope ruling, build the roll sweep runner, prove the whole path end to end (CURV-01, CURV-03, DEC-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03-02-PLAN.md — Run the 4×5 Swiss roll sweep, apply the floor to the best config, decide the gate or take the D-05a branch (DEC-05, CURV-03, CURV-04)
 - [ ] 03-03-PLAN.md — Close WR-01/02/03 in `derivative_bridge.py` with regression tests (CURV-05)
 - [ ] 03-04-PLAN.md — `synthetic_controls.py`: flat / sphere / saddle at `d=20, D=768`, saddle cross-checked against finite differences (CURV-06)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 03-05-PLAN.md — D-08 forward-mode toggle (spike first, reverse stays default) and D-09 equivalence, reverse path pinned bit-identical (CURV-01, CURV-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 03-06-PLAN.md — CLAUDE.md-mandated `notebooks/03_swiss_roll_chart_curvature_field_check.ipynb` (DEC-01, DEC-02, CURV-03)
 - [ ] 03-07-PLAN.md — Build the PU sweep runner: `chart_dim=20` justified, timing probe, four D-07 diagnostics, selection rule declared up front (DEC-01, DEC-03, DEC-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 03-08-PLAN.md — Execute the 9-fit PU grid, apply the pre-declared rule, decide D-12 escalation (DEC-03, DEC-04, DEC-05)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 03-09-PLAN.md — Steps 2–3: PU `‖H‖` field across 3 seeds, `cond(g)` distribution with percentile flagging, no-extrapolation proof, bridge at PU scale (CURV-03, CURV-04, CURV-05, CURV-08)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 03-10-PLAN.md — Step 4: matched synthetic control fits, four-axis comparison, parameterization-damage caveat beside the numbers (CURV-06, CURV-07)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 03-11-PLAN.md — `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint (DEC-01..05, CURV-01..08)
 
 **Next**: `/gsd-execute-phase 3`.

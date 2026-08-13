@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 3
 current_phase_name: decoder-curvature-field
-status: needs_planning
-stopped_at: Phase 3 context gathered
+status: ready_to_execute
+stopped_at: Phase 3 planned — 11 plans in 8 waves
 last_updated: "2026-08-13T14:17:13.082Z"
-last_activity: 2026-08-11
-last_activity_desc: Phase 02.7 execution started
+last_activity: 2026-08-13
+last_activity_desc: Phase 3 planned (11 plans, 8 waves, plan-checker PASSED)
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 65
+  total_plans: 76
   completed_plans: 59
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 3 (decoder-curvature-field) — **ACTIVE, NOT YET PLANNED**
+Phase: 3 (decoder-curvature-field) — **PLANNED, READY TO EXECUTE** (11 plans, 8 waves)
 
 **THE PHASE-2 STAGE IS ON HOLD (2026-08-12, user decision).** Architecture selection is
 tabled. The **CAE** is the substrate carried into Phase 3. Phases 02.3, 02.5, 02.6 and 02.7
@@ -45,7 +45,17 @@ evidence to expect: `02.5-09`'s chart-decoder curvature Spearman `-0.0604` again
 raw-point baseline's `0.6712`. Phase 3's DEC/CURV requirement text is also **stale** against
 02.1's graph-native GEOM-04 answer and needs re-planning, not re-pointing.
 
-**Next:** `/gsd-discuss-phase 3`, then plan it.
+**Phase 3 planned 2026-08-13.** 11 plans across 8 waves; plan-checker returned VERIFICATION
+PASSED with 0 blockers and 0 warnings. Requirements coverage 13/13, decision coverage 16/16
+(`03-CONTEXT.md` D-01..D-15 plus D-05a). The 13 stale DEC/CURV requirements are **re-minted**
+in-namespace with rewritten text; `03-11` writes the old→new mapping into `REQUIREMENTS.md`.
+Both overrides — the 02.4 PASS gate override and D-05's `n_charts` scope ruling across the
+02.3 hold boundary — are ratified at blocking checkpoints in `03-01`, in Phase 3's own
+artifacts, not inherited. Tracer is `03-01`: fit → chart decoder → `torch.func` curvature →
+Spearman vs analytic `H`, reproducing `-0.0604` before anything expands to PU. D-05a's
+stop-and-report is a real terminal branch in `03-02`, not an error path.
+
+**Next:** `/gsd-execute-phase 3`.
 
 ### Where the held phases stopped
 
