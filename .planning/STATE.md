@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 3
+current_phase: 03
 current_phase_name: decoder-curvature-field
-status: ready_to_execute
-stopped_at: Phase 3 planned — 11 plans in 8 waves
-last_updated: "2026-08-13T14:17:13.082Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md (D-02/D-05 ratified, tracer reproduced -0.0604)
+last_updated: "2026-08-13T15:53:23.079Z"
 last_activity: 2026-08-13
-last_activity_desc: Phase 3 planned (11 plans, 8 waves, plan-checker PASSED)
+last_activity_desc: Phase 3 Plan 01 executed (D-02/D-05 ratified, tracer reproduced rho_chart=-0.0604)
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 76
-  completed_plans: 59
+  completed_plans: 60
 ---
 
 # Project State
@@ -23,11 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 3 — decoder & curvature field, decoding from a CAE substrate
+**Current focus:** Phase 03 — decoder-curvature-field
 
 ## Current Position
 
-Phase: 3 (decoder-curvature-field) — **PLANNED, READY TO EXECUTE** (11 plans, 8 waves)
+Phase: 03 (decoder-curvature-field) — EXECUTING
+Plan: 01 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
+at n_charts=8, seed=0 through the full chain. Next: 03-02 (full 20-cell sweep, median/floor
+read-out).
 
 **THE PHASE-2 STAGE IS ON HOLD (2026-08-12, user decision).** Architecture selection is
 tabled. The **CAE** is the substrate carried into Phase 3. Phases 02.3, 02.5, 02.6 and 02.7
@@ -229,7 +232,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 79% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -293,6 +296,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 02.7 P08 | ~1h10min (includes a blocking checkpoint round-trip) | 2 tasks | 2 files |
 | Phase 02.7 P09 | ~2h40min | 2 tasks | 6 files |
 | Phase 02.7 P10 | ~1h (runner-build-only session) | 1 tasks | 1 files |
+| Phase 03 P01 | ~25min active (2 checkpoint round-trips) | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -440,6 +444,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 02.7-08: Screening rule 02.7-SCREENING-RULE.md ratified alone (7aa699d) -- budget Option A (n_ph=300, B=10, 3 draws, ~17.05h) with a ratified ball-timeout fallback; consensus rule count_distinct=True/majority=5-of-7/k_values=[5,10,15,20,30]; dispersion_bound=spread_bound=3.0 flagged as judgment calls; H0 significance-band question and both calibration gaps (ball's cost, PU-regime H_2 power) carried forward named
 - [Phase ?]: Swiss roll check (02.7-09) found gmst's local-dispersion instability masking the (sound) Betti-lookup core on all three clouds; checkpoint resolved by amending D-12 to exclude provenance-mismatched estimators from the local gate only (02.7-SCREENING-RULE-AMENDMENT-01.md, 948d13f), not by reconsidering any bound.
 - [Phase ?]: 02.7-10 executed runner-build-only by explicit user scope decision: template_benchmark_run.py built/tested/committed (ac6a3fd), no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md produced, Task 3 checkpoint not reached -- grid launch deferred to the user
+- [Phase ?]: Phase 3 D-02 (Step-1 floor: median rho_chart > 0.65, raw-point 0.6712 demoted to context) and D-05 (n_charts opened as an in-scope Phase 3 hyperparameter, swept set {2,3,5,8}) ratified at 03-01's blocking checkpoints, before any Phase 3 rho_chart value existed
 
 ### Pending Todos
 
@@ -485,8 +490,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-13T14:17:13.064Z
-Stopped at: Phase 3 context gathered
+Last session: 2026-08-13T15:52:35.188Z
+Stopped at: Completed 03-01-PLAN.md (D-02/D-05 ratified, tracer reproduced -0.0604)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/03-decoder-curvature-field/03-CONTEXT.md
+Resume file: None
 </content>

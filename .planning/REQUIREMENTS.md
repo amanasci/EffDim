@@ -80,13 +80,13 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 - [ ] **DEC-02**: Verify no ReLU-family activation appears anywhere in the decoder, since its second derivative is identically zero
 - [ ] **DEC-03**: Held-out reconstruction quality shown, not just training loss
 - [ ] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown, so good averages cannot hide subset failures
-- [ ] **DEC-05**: Decoder training reproducible from a recorded torch seed
+- [x] **DEC-05**: Decoder training reproducible from a recorded torch seed
 
 ### Curvature Field (CURV)
 
-- [ ] **CURV-01**: First fundamental form computed from the decoder Jacobian via `torch.func` autodiff, batched over all points rather than looped
+- [x] **CURV-01**: First fundamental form computed from the decoder Jacobian via `torch.func` autodiff, batched over all points rather than looped
 - [ ] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
-- [ ] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
+- [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
 - [ ] **CURV-04**: Conditioning of the metric tensor shown, with near-singular points flagged, so a non-immersion point cannot silently corrupt the field
 - [ ] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
 - [ ] **CURV-06**: PU manifold's curvature compared against the same decoder architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension and ambient size
@@ -202,10 +202,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEC-02 | Phase 3 | Pending |
 | DEC-03 | Phase 3 | Pending |
 | DEC-04 | Phase 3 | Pending |
-| DEC-05 | Phase 3 | Pending |
-| CURV-01 | Phase 3 | Pending |
+| DEC-05 | Phase 3 | Complete |
+| CURV-01 | Phase 3 | Complete |
 | CURV-02 | Phase 3 | Pending |
-| CURV-03 | Phase 3 | Pending |
+| CURV-03 | Phase 3 | Complete |
 | CURV-04 | Phase 3 | Pending |
 | CURV-05 | Phase 3 | Pending |
 | CURV-06 | Phase 3 | Pending |

@@ -614,12 +614,12 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: 11 plans across 8 waves. Wave order: `01` tracer — declare the 0.65 floor and the `n_charts` scope ruling at two blocking decision checkpoints, build the roll sweep runner, reproduce `-0.0604` end to end → `02` run the 4×5 roll sweep and decide the Step-1 gate ∥ `03` close WR-01/02/03 in `derivative_bridge.py` ∥ `04` `synthetic_controls.py` (flat / sphere / saddle at `d=20, D=768`) → `05` D-08 forward-mode toggle and D-09 equivalence → `06` the CLAUDE.md-mandated Swiss roll sanity notebook ∥ `07` build the PU sweep runner with its timing probe and pre-declared D-07 selection rule → `08` execute the 9-fit PU grid, select `n_charts`, decide D-12 escalation → `09` the PU `‖H‖` field across 3 seeds plus the finite-difference bridge at PU scale → `10` the synthetic control fits → `11` `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint. Plans `01`, `02`, `06`, `08` and `11` are non-autonomous. **D-05a's stop-and-report branch is planned explicitly**: on a non-clear at plan `02`, plans `05`–`10` do not run and plan `11` is re-pointed to `["03-02", "03-03", "03-04"]` to write a Step-1-only record.
+**Plans**: 11 plans across 8 waves (1/11 executed). Wave order: `01` tracer — declare the 0.65 floor and the `n_charts` scope ruling at two blocking decision checkpoints, build the roll sweep runner, reproduce `-0.0604` end to end **(DONE 2026-08-13: D-02/D-05 ratified, rho_chart=-0.06041003026778113 reproduced at n_charts=8, seed=0)** → `02` run the 4×5 roll sweep and decide the Step-1 gate ∥ `03` close WR-01/02/03 in `derivative_bridge.py` ∥ `04` `synthetic_controls.py` (flat / sphere / saddle at `d=20, D=768`) → `05` D-08 forward-mode toggle and D-09 equivalence → `06` the CLAUDE.md-mandated Swiss roll sanity notebook ∥ `07` build the PU sweep runner with its timing probe and pre-declared D-07 selection rule → `08` execute the 9-fit PU grid, select `n_charts`, decide D-12 escalation → `09` the PU `‖H‖` field across 3 seeds plus the finite-difference bridge at PU scale → `10` the synthetic control fits → `11` `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint. Plans `01`, `02`, `06`, `08` and `11` are non-autonomous. **D-05a's stop-and-report branch is planned explicitly**: on a non-clear at plan `02`, plans `05`–`10` do not run and plan `11` is re-pointed to `["03-02", "03-03", "03-04"]` to write a Step-1-only record.
 
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Tracer: declare the Step-1 floor and the `n_charts` scope ruling, build the roll sweep runner, prove the whole path end to end (CURV-01, CURV-03, DEC-05)
+- [x] 03-01-PLAN.md — Tracer: declare the Step-1 floor and the `n_charts` scope ruling, build the roll sweep runner, prove the whole path end to end (CURV-01, CURV-03, DEC-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -721,6 +721,6 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 0/11 | Active — planned (gate overridden) | - |
+| 3. Decoder & Curvature Field | v1.1 | 1/11 | In Progress | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
