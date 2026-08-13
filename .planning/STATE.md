@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.7
-current_phase_name: manifold-template-inference-front-end-inserted
-status: executing
-stopped_at: "02.7-10: runner built/tested/committed (Task 1 only); Tasks 2/3 deferred to user-initiated grid launch"
-last_updated: "2026-08-12T14:18:52.763Z"
+current_phase: 3
+current_phase_name: decoder-curvature-field
+status: needs_planning
+stopped_at: Phase 3 context gathered
+last_updated: "2026-08-13T14:17:13.082Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 6
   total_plans: 65
-  completed_plans: 58
+  completed_plans: 59
 ---
 
 # Project State
@@ -23,12 +23,48 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 02.7 — manifold-template-inference-front-end-inserted
+**Current focus:** Phase 3 — decoder & curvature field, decoding from a CAE substrate
 
 ## Current Position
 
-Phase: 02.7 (manifold-template-inference-front-end-inserted) — EXECUTING
-Plan: 10 of 12 — **PARTIAL** (Task 1 of 3 complete; Task 2/3 deferred by explicit user scope decision)
+Phase: 3 (decoder-curvature-field) — **ACTIVE, NOT YET PLANNED**
+
+**THE PHASE-2 STAGE IS ON HOLD (2026-08-12, user decision).** Architecture selection is
+tabled. The **CAE** is the substrate carried into Phase 3. Phases 02.3, 02.5, 02.6 and 02.7
+stop where they stand and are not scheduled. Full record — the evidence for and against the
+CAE, exactly where each phase stopped, the carried debt, and what ends the hold:
+`.planning/phases/02-eigenspectrum-audit-validity-gate/02-NOTE-phase-2-stage-on-hold.md`.
+**No sealed verdict is reopened, softened, or reinterpreted by the hold.**
+
+**Phase 3 starts on a deliberate gate override.** Its `Depends on` line names a **PASS** and
+no PASS exists in this milestone (02, 02.2, 02.4, 02.5 stage 1 are all FAIL). Phase 3's plan
+must record the override in its own artifacts and carry the consequence: a curvature field
+decoded from an unvalidated parameterization conflates real curvature with parameterization
+damage, and CURV-06/07's synthetic control provably cannot detect that. Adverse CAE-specific
+evidence to expect: `02.5-09`'s chart-decoder curvature Spearman `-0.0604` against the
+raw-point baseline's `0.6712`. Phase 3's DEC/CURV requirement text is also **stale** against
+02.1's graph-native GEOM-04 answer and needs re-planning, not re-pointing.
+
+**Next:** `/gsd-discuss-phase 3`, then plan it.
+
+### Where the held phases stopped
+
+- **02.5** — 9/13 plans; `02.5-09` Task 3 blocking checkpoint still OPEN; `02.5-10`..`13`
+  unstarted. WR-01/02/03 (`derivative_bridge.py`, `02.6-REVIEW.md`, commit `1d3f666`) were
+  routed to `02.5-10` and now land on whoever next thresholds on the bridge.
+
+- **02.7** — 10/12 plans; `02.7-10` Tasks 2/3 (the ~17h grid) unrun; `02.7-11`/`02.7-12`
+  unstarted; `notebooks/02.7_swiss_roll_template_check.ipynb` prints 1 of 4 read-out lines
+  true (GMST local-dispersion instability fires abstain (b) on all three clouds; banded β₀
+  inflated to 26/29 on the roll and 22/53 on T2 where truth needs 1; both in-library controls
+  fail their labels; condition (c) never exercised).
+
+- **02.3** — proposed only, never planned; unretracted, available fallback.
+- **02, 02.1, 02.6** — executed, every plan summarized, `VERIFICATION.md` missing on all three.
+- **5 open windows** in `.planning/WINDOWS.md`; `/gsd-ship` blocks until each is closed or
+  waived with a recorded reason.
+
+### Superseded — Phase 02.7 position at the moment of the hold
 
 **02.7-10 status (2026-08-12), runner-build-only.** Per an explicit user scope decision, this
 session built, tested and committed `notebooks/diagnostics/template_benchmark_run.py`
@@ -439,8 +475,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-12T14:18:45.463Z
-Stopped at: 02.7-10: runner built/tested/committed (Task 1 only); Tasks 2/3 deferred to user-initiated grid launch
+Last session: 2026-08-13T14:17:13.064Z
+Stopped at: Phase 3 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md
+Resume file: .planning/phases/03-decoder-curvature-field/03-CONTEXT.md
 </content>
