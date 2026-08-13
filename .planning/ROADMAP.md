@@ -614,7 +614,22 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: TBD. **Next**: `/gsd-discuss-phase 3`.
+**Plans**: 11 plans across 8 waves. Wave order: `01` tracer — declare the 0.65 floor and the `n_charts` scope ruling at two blocking decision checkpoints, build the roll sweep runner, reproduce `-0.0604` end to end → `02` run the 4×5 roll sweep and decide the Step-1 gate ∥ `03` close WR-01/02/03 in `derivative_bridge.py` ∥ `04` `synthetic_controls.py` (flat / sphere / saddle at `d=20, D=768`) → `05` D-08 forward-mode toggle and D-09 equivalence → `06` the CLAUDE.md-mandated Swiss roll sanity notebook ∥ `07` build the PU sweep runner with its timing probe and pre-declared D-07 selection rule → `08` execute the 9-fit PU grid, select `n_charts`, decide D-12 escalation → `09` the PU `‖H‖` field across 3 seeds plus the finite-difference bridge at PU scale → `10` the synthetic control fits → `11` `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint. Plans `01`, `02`, `06`, `08` and `11` are non-autonomous. **D-05a's stop-and-report branch is planned explicitly**: on a non-clear at plan `02`, plans `05`–`10` do not run and plan `11` is re-pointed to `["03-02", "03-03", "03-04"]` to write a Step-1-only record.
+
+Plans:
+- [ ] 03-01-PLAN.md — Tracer: declare the Step-1 floor and the `n_charts` scope ruling, build the roll sweep runner, prove the whole path end to end (CURV-01, CURV-03, DEC-05)
+- [ ] 03-02-PLAN.md — Run the 4×5 Swiss roll sweep, apply the floor to the best config, decide the gate or take the D-05a branch (DEC-05, CURV-03, CURV-04)
+- [ ] 03-03-PLAN.md — Close WR-01/02/03 in `derivative_bridge.py` with regression tests (CURV-05)
+- [ ] 03-04-PLAN.md — `synthetic_controls.py`: flat / sphere / saddle at `d=20, D=768`, saddle cross-checked against finite differences (CURV-06)
+- [ ] 03-05-PLAN.md — D-08 forward-mode toggle (spike first, reverse stays default) and D-09 equivalence, reverse path pinned bit-identical (CURV-01, CURV-02)
+- [ ] 03-06-PLAN.md — CLAUDE.md-mandated `notebooks/03_swiss_roll_chart_curvature_field_check.ipynb` (DEC-01, DEC-02, CURV-03)
+- [ ] 03-07-PLAN.md — Build the PU sweep runner: `chart_dim=20` justified, timing probe, four D-07 diagnostics, selection rule declared up front (DEC-01, DEC-03, DEC-04)
+- [ ] 03-08-PLAN.md — Execute the 9-fit PU grid, apply the pre-declared rule, decide D-12 escalation (DEC-03, DEC-04, DEC-05)
+- [ ] 03-09-PLAN.md — Steps 2–3: PU `‖H‖` field across 3 seeds, `cond(g)` distribution with percentile flagging, no-extrapolation proof, bridge at PU scale (CURV-03, CURV-04, CURV-05, CURV-08)
+- [ ] 03-10-PLAN.md — Step 4: matched synthetic control fits, four-axis comparison, parameterization-damage caveat beside the numbers (CURV-06, CURV-07)
+- [ ] 03-11-PLAN.md — `03-FINDINGS.md`, the presentation notebook, and the 13-requirement re-mint (DEC-01..05, CURV-01..08)
+
+**Next**: `/gsd-execute-phase 3`.
 
 **History**: this entry was rewritten 2026-08-12 to drop four superseded amendment layers (Isomap decoding, the 02.2 PASS precondition, the 02.1 graph-native rewrite of DEC/CURV, the 02.4 wait) and the 2026-08-07 local re-scope note, all of which are now either resolved by the substrate decision or restated above. Prior text is in git history and `02-NOTE-phase-2-stage-on-hold.md`; no sealed verdict or measured number is changed by the rewrite.
 
@@ -683,6 +698,6 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 0/TBD | Active — unplanned (gate overridden) | - |
+| 3. Decoder & Curvature Field | v1.1 | 0/11 | Active — planned (gate overridden) | - |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
