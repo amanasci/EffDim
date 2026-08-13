@@ -41,10 +41,11 @@ Invoke:
 
 import argparse
 import json
+import statistics
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -290,6 +291,202 @@ def run_cell(
 
 
 # =============================================================================================
+# Summary layer (plan 03-02): full sweep table, median-of-5-seeds statistic, floor
+# application to the best swept config, D-05a stop-and-report branch. This layer only
+# reads the JSONL record back and prints -- it never writes a verdict artifact (D-15).
+# =============================================================================================
+
+SUMMARY_TABLE_COLUMNS: Tuple[str, ...] = (
+    "n_charts_configured",
+    "n_charts_used",
+    "seed",
+    "rho_chart",
+    "median_cosine_similarity",
+    "median_magnitude_ratio",
+    "magnitude_ratio_cv",
+    "calibration_slope",
+    "calibration_r2",
+    "cond_median",
+    "cond_max",
+    "cae_mse_per_dim",
+    "plain_mse_per_dim",
+    "curv_wall_s",
+)
+"""The four fidelity axes (direction/magnitude/calibration/rank) stay separate columns --
+no composite score is ever formed. n_charts_used sits immediately beside
+n_charts_configured because D-05's monotone finding is stated in charts actually used, and
+a config that collapses to fewer live charts is a different measurement from the one
+requested."""
+
+
+def print_full_sweep_table(records: List[Dict[str, Any]]) -> None:
+    """One row per (n_charts_configured, seed) pair -- the full sweep table, so the
+    best-of-N is visible rather than hidden (D-04)."""
+    header = " | ".join(SUMMARY_TABLE_COLUMNS)
+    print(header)
+    print("-" * len(header))
+    for rec in sorted(records, key=lambda r: (r["n_charts_configured"], r["seed"])):
+        cells = []
+        for col in SUMMARY_TABLE_COLUMNS:
+            val = rec.get(col)
+            if isinstance(val, float):
+                cells.append(f"{val:.4f}")
+            else:
+                cells.append(str(val))
+        print(" | ".join(cells))
+
+
+def per_config_summary(
+    records: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """One row per n_charts value: median rho_chart over its recorded seeds (D-01 -- the
+    median is THE statistic), the min and max (the full spread), the per-seed values
+    listed inline, and the median n_charts_used. Deliberately no mean anywhere in this
+    function -- do not print a mean, and do not print a best-seed row as if it were the
+    result."""
+    by_config: Dict[int, List[Dict[str, Any]]] = {}
+    for rec in records:
+        by_config.setdefault(int(rec["n_charts_configured"]), []).append(rec)
+
+    rows: List[Dict[str, Any]] = []
+    for n_charts in sorted(by_config):
+        cells = sorted(by_config[n_charts], key=lambda r: r["seed"])
+        rhos = [float(c["rho_chart"]) for c in cells]
+        used = [int(c["n_charts_used"]) for c in cells]
+        rows.append(
+            {
+                "n_charts": n_charts,
+                "n_cells": len(cells),
+                "median_rho": statistics.median(rhos),
+                "min_rho": min(rhos),
+                "max_rho": max(rhos),
+                "per_seed_rho": [(int(c["seed"]), float(c["rho_chart"])) for c in cells],
+                "median_n_charts_used": statistics.median(used),
+            }
+        )
+    return rows
+
+
+def print_per_config_summary(rows: List[Dict[str, Any]]) -> None:
+    print(
+        "per-config summary (median rho_chart over recorded seeds is the D-01 statistic "
+        "-- never a mean, never a best-seed row):"
+    )
+    for row in rows:
+        per_seed = ", ".join(f"seed{s}={rho:.4f}" for s, rho in row["per_seed_rho"])
+        print(
+            f"  n_charts={row['n_charts']:<2d}  n_cells={row['n_cells']}  "
+            f"median_rho_chart={row['median_rho']:.4f}  "
+            f"spread=[{row['min_rho']:.4f}, {row['max_rho']:.4f}]  "
+            f"median_n_charts_used={row['median_n_charts_used']:.1f}  "
+            f"per-seed: {per_seed}"
+        )
+
+
+def print_context_baseline(records: List[Dict[str, Any]]) -> None:
+    """The raw-point 0.6712 centroid baseline, printed as context that gates nothing
+    (D-02) -- with the 02.5-09-SUMMARY.md section 3 caveat that it missed 02.5-05's own
+    notebook's >0.90 sanity bar, so it is a baseline that works, not one validated as
+    correct."""
+    rho_raw = records[0].get("rho_raw_context") if records else None
+    if rho_raw is None:
+        print(
+            f"context: raw-point centroid baseline RAW_BASELINE_CONTEXT={RAW_BASELINE_CONTEXT} "
+            "-- CONTEXT ONLY, GATES NOTHING (no recorded cell to read it from yet)."
+        )
+        return
+    print(
+        f"context: raw-point centroid baseline rho = {rho_raw:.4f} "
+        f"(RAW_BASELINE_CONTEXT = {RAW_BASELINE_CONTEXT}) -- CONTEXT ONLY, GATES NOTHING. "
+        "It missed 02.5-05's own notebook's >0.90 sanity bar (02.5-09-SUMMARY.md section 3), "
+        "so it is a baseline that works, not one validated as correct."
+    )
+
+
+def print_floor_decision(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """D-02/D-04: compare the BEST swept config's median against ROLL_FLOOR. Prints
+    STEP-1 GATE: CLEARS or STEP-1 GATE: DOES NOT CLEAR, then unconditionally prints the
+    multiple-comparisons caveat naming the exact number of configs swept -- N configs
+    give N shots at a fixed bar, and the floor was applied to the best of them."""
+    if not rows:
+        print("STEP-1 GATE: no cells recorded yet -- nothing to decide.")
+        return None
+
+    best = max(rows, key=lambda r: r["median_rho"])
+    cleared = best["median_rho"] > ROLL_FLOOR
+    if cleared:
+        print(
+            f"STEP-1 GATE: CLEARS -- n_charts={best['n_charts']}  "
+            f"median rho_chart={best['median_rho']:.4f}  "
+            f"spread=[{best['min_rho']:.4f}, {best['max_rho']:.4f}]  "
+            f"> ROLL_FLOOR={ROLL_FLOOR}"
+        )
+    else:
+        print(
+            f"STEP-1 GATE: DOES NOT CLEAR -- best observed config n_charts={best['n_charts']}  "
+            f"median rho_chart={best['median_rho']:.4f}  "
+            f"spread=[{best['min_rho']:.4f}, {best['max_rho']:.4f}]  "
+            f"<= ROLL_FLOOR={ROLL_FLOOR}"
+        )
+    print(
+        f"multiple-comparisons caveat: {len(rows)} n_charts config(s) were swept and "
+        f"ROLL_FLOOR was applied to the best of them -- {len(rows)} configs give "
+        f"{len(rows)} shots at a fixed bar, which loosens the effective bar relative to a "
+        "single pre-committed config. Named here, not hidden."
+    )
+    return {"cleared": cleared, "best": best}
+
+
+def print_d05a_branch() -> None:
+    """D-05a's stop-and-report branch, printed only on a non-clear -- a complete phase
+    outcome, not an error to work around."""
+    print("=" * 92)
+    print(
+        "D-05a: the roll did not clear ROLL_FLOOR at any swept n_charts. Phase 3 stops and "
+        "reports. This is a complete outcome, not a failure to work around. Two concrete "
+        "follow-on actions:"
+    )
+    print(
+        '  1. Re-point plan 03-11\'s depends_on to ["03-02", "03-03", "03-04"] (drop the '
+        "steps 2-3 plans it no longer needs)."
+    )
+    print(
+        "  2. Write a Step-1-only 03-FINDINGS.md from this SUMMARY, and do not execute "
+        "plans 03-05 through 03-10."
+    )
+    print("=" * 92)
+
+
+def summarize(record_path: Path) -> None:
+    """Reads the JSONL record back and prints the full sweep table, the per-config
+    median-and-spread rows, the context baseline, the floor decision with its
+    unconditional multiple-comparisons caveat, and (on a non-clear) the D-05a branch.
+    Never raises on a partial record -- reports how many of the planned cells are
+    present and summarizes whatever is there."""
+    records = list(load_completed(record_path).values())
+    total_planned = len(N_CHARTS_SWEEP) * len(TORCH_SEEDS)
+
+    print("=" * 92)
+    print(f"STEP-1 SWEEP SUMMARY -- {len(records)} of {total_planned} planned cells present")
+    print("=" * 92)
+
+    if not records:
+        print("No cells recorded yet -- nothing to summarize.")
+        return
+
+    print_full_sweep_table(records)
+    print("-" * 92)
+    rows = per_config_summary(records)
+    print_per_config_summary(rows)
+    print("-" * 92)
+    print_context_baseline(records)
+    print("-" * 92)
+    outcome = print_floor_decision(rows)
+    if outcome is not None and not outcome["cleared"]:
+        print_d05a_branch()
+
+
+# =============================================================================================
 # CLI
 # =============================================================================================
 
@@ -347,6 +544,14 @@ def main() -> None:
         default=None,
         help="Comma-separated override of TORCH_SEEDS, e.g. '0'.",
     )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Read the JSONL record back and print the full sweep table, the "
+        "per-config median-and-spread rows, the context baseline, and the D-02/D-04 "
+        "floor decision. Runs no new cells. Also printed automatically as the "
+        "trailing step of a full (non-smoke, non-dry-run) invocation.",
+    )
     args = parser.parse_args()
 
     n_charts_values = (
@@ -391,6 +596,12 @@ def main() -> None:
         if args.record_path
         else (CACHE_DIR / "03_swiss_roll_curvature_sweep.jsonl")
     )
+
+    if args.summary:
+        print(f"record_path={record_path}")
+        summarize(record_path)
+        return
+
     print(f"record_path={record_path}")
 
     grid = build_grid(n_charts_values, seeds)
@@ -426,6 +637,8 @@ def main() -> None:
         n_run += 1
 
     print(f"completed {n_run} cell(s) this invocation.")
+    print()
+    summarize(record_path)  # the default trailing step of a full run
 
 
 if __name__ == "__main__":
