@@ -132,3 +132,12 @@ None - no external service configuration required.
 ---
 *Phase: 03-decoder-curvature-field*
 *Completed: 2026-08-14*
+
+## Self-Check: PASSED
+
+- FOUND: notebooks/pu_manifold/derivative_bridge.py
+- FOUND: notebooks/pu_manifold/tests/test_derivative_bridge.py
+- FOUND: .planning/phases/03-decoder-curvature-field/03-03-SUMMARY.md
+- FOUND: 3382665 (Task 1 commit)
+- FOUND: 76f26f2 (Task 2 commit)
+- FOUND: a55a19a (SUMMARY commit)
