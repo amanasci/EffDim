@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-07-SUPPLEMENT-01.md (opt-in GPU device support)
-last_updated: "2026-08-14T16:00:00.000Z"
+stopped_at: Completed 03-06-SUMMARY.md (Swiss roll sanity notebook for the chart-decoder curvature field, checkpoint approved)
+last_updated: "2026-08-14T17:00:47.693Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 76
-  completed_plans: 65
+  completed_plans: 66
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03 (decoder-curvature-field) — EXECUTING
-Plan: 6 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
+Plan: 7 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
 at n_charts=8, seed=0 through the full chain. Next: 03-02 (full 20-cell sweep, median/floor
 read-out).
 
@@ -247,7 +247,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 86% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -317,6 +317,7 @@ Progress: [█████████░] 86% of planned plans (17/17; Phases 1
 | Phase 03 P04 | ~15min | 2 tasks | 2 files |
 | Phase 03 P05 | ~15min | 3 tasks | 2 files |
 | Phase 03 P07 | ~90min | 3 tasks | 1 files |
+| Phase 03 P06 | ~25min active | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -471,6 +472,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 03-04: make_sphere_control derives ||H||=d/R in closed form (not via graph_mean_curvature -- a sphere has no single graph-of-function parametrization over all d dims); saddle's hand-computed grad/hess cross-checked against independent finite-difference to rtol=1e-8, closing 03-RESEARCH.md Assumption A2
 - [Phase ?]: chart_curvature.py mode toggle: forward-Hessian composition is jacfwd(jacfwd(f)) (primary, spiked clean on real decoder), not the documented jacfwd(jacrev(f)) fallback; ~23.6x single-chunk wall-clock speedup measured. mode stays add-alongside, reverse default unchanged.
 - [Phase ?]: 03-07: PU curvature sweep runner built -- PU_CHART_DIM=20 with D-11 guard, timing probe measured nine-cell grid at ~5.6h (over 5h envelope), four D-07 diagnostics kept separate, lexicographic selection rule declared before any PU number
+- [Phase ?]: 03-06: Swiss roll sanity notebook for the chart-decoder curvature field committed and approved -- forward-mode toggle (plan 03-05) now proven equal to reverse on a real fit, not only a synthetic fixture; rho_chart=0.7817 at n_charts=2,seed=0,n=3000 independently reproduces the sweep runner's own value for that cell
 
 ### Pending Todos
 
@@ -516,8 +518,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-14T15:19:20.313Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-08-14T17:00:39.947Z
+Stopped at: Completed 03-06-SUMMARY.md (Swiss roll sanity notebook for the chart-decoder curvature field, checkpoint approved)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
