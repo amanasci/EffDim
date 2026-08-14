@@ -216,3 +216,12 @@ None -- no external service configuration required.
 ---
 *Phase: 03-decoder-curvature-field*
 *Completed: 2026-08-14*
+
+## Self-Check: PASSED
+
+- FOUND: `notebooks/diagnostics/swiss_roll_curvature_sweep_run.py`
+- FOUND: `.planning/phases/03-decoder-curvature-field/03-02-AMENDMENT-01.md`
+- FOUND: `.planning/phases/03-decoder-curvature-field/03-02-SUMMARY.md`
+- FOUND: `notebooks/.cache/03_swiss_roll_curvature_sweep.jsonl` (n=3000 control, 20 records, unmodified)
+- FOUND: `notebooks/.cache/03_swiss_roll_curvature_sweep_n12000.jsonl` (n=12000 amended, 20 records)
+- FOUND commits: `58b430d`, `c42e052`, `a014c77`, `0f2e7dc`
