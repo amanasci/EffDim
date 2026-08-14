@@ -5,8 +5,8 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-07-PLAN.md
-last_updated: "2026-08-14T15:19:20.332Z"
+stopped_at: Completed 03-07-SUPPLEMENT-01.md (opt-in GPU device support)
+last_updated: "2026-08-14T16:00:00.000Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 02.7 execution started
 progress:
@@ -58,7 +58,22 @@ artifacts, not inherited. Tracer is `03-01`: fit → chart decoder → `torch.fu
 Spearman vs analytic `H`, reproducing `-0.0604` before anything expands to PU. D-05a's
 stop-and-report is a real terminal branch in `03-02`, not an error path.
 
-**Next:** `/gsd-execute-phase 3`.
+**03-07-SUPPLEMENT-01 (2026-08-14, developer-directed, not a numbered plan).** `03-07`'s
+timing probe measured the nine-cell PU grid at ~5.6-5.7h against D-13's 5-hour envelope
+(training ~16,100-16,200s dominates; curvature ~4,000-4,040s reverse mode). Rather than narrow
+the sweep or drop seeds — both would damage the pre-declared 3x3 design — added opt-in
+CPU/CUDA `--device` support to `cae.py`, `chart_curvature.py`, and both curvature runners.
+Default `cpu`, zero behaviour change; model construction untouched, moved to device only
+after construction (`model.to(device)`), so `torch.manual_seed`'s RNG order is unaffected.
+Verified: anchor `rho_chart = -0.06041003026778113` reproduced exactly three times across the
+four commits; all 286 existing tests pass unmodified (`286 passed, 1 skipped` — the new
+CUDA-skipif device-parity test); `_assert_float64` untouched. No CUDA hardware available on
+this machine, so the CUDA path is written and guarded but unexercised here — see
+`03-07-SUPPLEMENT-01.md` for the colleague's setup walkthrough and the three caveats
+(no cross-device bit reproduction, hardware-dependent float64 throughput, do-not-mix-devices).
+`03-08` is now unblocked to run the real grid on either device.
+
+**Next:** `/gsd-execute-phase 3` (plan `03-08`, the real nine-cell PU grid).
 
 ### Where the held phases stopped
 
