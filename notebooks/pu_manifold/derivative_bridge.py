@@ -340,6 +340,38 @@ def reduce_to_H_vec(J: torch.Tensor, Hess: torch.Tensor) -> torch.Tensor:
     return raw - torch.einsum("boi,bi->bo", J, alpha)
 
 
+# --- the shared chunked autodiff-Hessian discipline (WR-03) ---------------------------------
+
+
+def _chunked_vmap_hessian(
+    decode_one: Callable[[torch.Tensor], torch.Tensor], z: torch.Tensor
+) -> torch.Tensor:
+    """Autodiff Hessian of ``decode_one`` at every row of ``z``, computed at the fixed
+    ``chart_curvature.VMAP_CHUNK`` width with a short final chunk padded up to it via
+    ``chart_curvature._pad_to_chunk`` and the padding discarded -- the exact chunking
+    structure :func:`derivative_agreement`'s own autodiff block already uses, reused rather
+    than re-derived (per :data:`_chunked_eval`'s own precedent for the finite-difference
+    side).
+
+    02.6-REVIEW.md WR-03: this factors out ``calibrate_fd_step``'s comparison Hessian, which
+    used to call ``vmap(hessian(decode_one))(z)`` on the WHOLE batch in one shot -- correct
+    only by the numeric coincidence that ``BRIDGE_N_POINTS == VMAP_CHUNK`` in every run this
+    module has ever been driven by. Calling this helper from both :func:`calibrate_fd_step`
+    and :func:`derivative_agreement` means the two compute their comparison Hessian under one
+    identical discipline: peak memory bounded by ``VMAP_CHUNK`` regardless of ``z``'s batch
+    size, and the same bit-reproducibility guarantee ``chart_curvature.VMAP_CHUNK``'s own
+    docstring documents (a batch computed in one chunk width is not bit-identical to the same
+    rows computed at a different width).
+    """
+    parts = []
+    for start in range(0, z.shape[0], VMAP_CHUNK):
+        real = z[start : start + VMAP_CHUNK]
+        n_real = real.shape[0]
+        chunk = _pad_to_chunk(real)
+        parts.append(vmap(hessian(decode_one))(chunk)[:n_real])
+    return torch.cat(parts, dim=0)
+
+
 # --- calibration: making assumption A-06 actionable -----------------------------------------
 
 DEFAULT_CALIBRATION_STEPS: Sequence[float] = (1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8)
@@ -373,8 +405,11 @@ def calibrate_fd_step(
     # decode_batch (through torch.func's autodiff machinery rather than a chunk loop), so a
     # float32-parameter model's bare RuntimeError is caught here too, before it ever reaches
     # finite_difference_hessian's own -- separately-guarded -- calls below.
+    # WR-03: chunked at chart_curvature.VMAP_CHUNK via _chunked_vmap_hessian, the same helper
+    # derivative_agreement uses for its own comparison Hessian -- correct above VMAP_CHUNK,
+    # not merely by BRIDGE_N_POINTS == VMAP_CHUNK coinciding.
     try:
-        autodiff_hess = vmap(hessian(decode_one))(z)
+        autodiff_hess = _chunked_vmap_hessian(decode_one, z)
     except RuntimeError as exc:
         raise _friendly_model_dtype_error(exc) from exc
     if autodiff_hess.dtype != torch.float64:
@@ -430,15 +465,41 @@ def _p90(x: torch.Tensor) -> float:
     return float(np.quantile(flat.detach().cpu().numpy(), 0.90))
 
 
-def _agreement_stats(reference: torch.Tensor, other: torch.Tensor) -> Dict[str, float]:
+DEFAULT_REL_FLOOR = 1e-12
+"""Default ``rel_floor`` for :func:`_agreement_stats`' ``near_zero_reference_fraction``
+diagnostic (WR-02) -- chosen relative to the float64 scale a decoder Hessian entry sits at
+(the whole quantity lives many orders of magnitude above float64 machine epsilon,
+``~2.2e-16``), not to any acceptance bar. D-18 forbids thresholding on this module's numbers;
+this constant only decides which entries the reporting fraction below counts as "thin
+denominator," never which pass or fail."""
+
+
+def _agreement_stats(
+    reference: torch.Tensor, other: torch.Tensor, rel_floor: float = DEFAULT_REL_FLOOR
+) -> Dict[str, float]:
     """Max, median and 90th-percentile absolute difference between ``reference`` (the
     autodiff side) and ``other`` (the finite-difference side), and the same three relative to
     ``reference``'s own scale. Shared by the full-tensor and both reduced comparisons in
     :func:`derivative_agreement` so the two levels are computed identically and only differ
-    in which tensors are handed in."""
+    in which tensors are handed in.
+
+    **Thin-denominator caveat (WR-02), in the style of
+    ``persistence_probe.max_persistence``'s own caveat.** ``max_abs_relative`` (and its
+    median/p90 siblings) divide by ``reference.abs()`` clamped only at ``1e-300`` -- enough to
+    avoid an exact 0/0, not enough to keep a merely NEAR-zero reference entry from making the
+    relative statistic arbitrarily large while the absolute disagreement stays tiny. This is
+    not hypothetical: the recorded PU bridge table already shows it
+    (``full_hess_max_abs_rel = 1.1351e+00``, over 100%, for ``cae_seed20260804`` chart 3).
+    ``near_zero_reference_fraction`` -- the fraction of ``reference`` entries with
+    ``abs(reference) < rel_floor`` -- is reported alongside so a reader can tell that apart
+    from a genuine disagreement. It is a reading aid; D-18's report-never-gate discipline
+    applies no threshold to it.
+    """
     diff = (reference - other).abs().reshape(-1)
-    scale = reference.abs().reshape(-1).clamp_min(1e-300)
+    ref_abs = reference.abs().reshape(-1)
+    scale = ref_abs.clamp_min(1e-300)
     rel = diff / scale
+    near_zero_reference_fraction = float((ref_abs < rel_floor).to(torch.float64).mean().item())
     return {
         "max_abs": float(diff.max().item()),
         "median_abs": float(diff.median().item()),
@@ -446,6 +507,7 @@ def _agreement_stats(reference: torch.Tensor, other: torch.Tensor) -> Dict[str, 
         "max_abs_relative": float(rel.max().item()),
         "median_abs_relative": float(rel.median().item()),
         "p90_abs_relative": _p90(rel),
+        "near_zero_reference_fraction": near_zero_reference_fraction,
     }
 
 
@@ -499,17 +561,19 @@ def derivative_agreement(
 
     decode_one = plain_decoder_map(model)
 
-    # autodiff Jacobian and Hessian, chunked at chart_curvature.VMAP_CHUNK exactly as
+    # autodiff Jacobian, chunked at chart_curvature.VMAP_CHUNK exactly as
     # decoder_curvature.plain_decoder_curvature -- reused, not re-derived.
-    J_parts, Hess_parts = [], []
+    J_parts = []
     for start in range(0, batch, VMAP_CHUNK):
         real = z[start : start + VMAP_CHUNK]
         n_real = real.shape[0]
         chunk = _pad_to_chunk(real)
         J_parts.append(vmap(jacrev(decode_one))(chunk)[:n_real].detach())
-        Hess_parts.append(vmap(hessian(decode_one))(chunk)[:n_real].detach())
     J = torch.cat(J_parts, dim=0)
-    Hess_autodiff = torch.cat(Hess_parts, dim=0)
+
+    # autodiff Hessian, WR-03: shared with calibrate_fd_step's own comparison Hessian via
+    # _chunked_vmap_hessian rather than a second, independently-written chunk loop.
+    Hess_autodiff = _chunked_vmap_hessian(decode_one, z).detach()
 
     def decode_batch(zz: torch.Tensor) -> torch.Tensor:
         return model.decode(zz)

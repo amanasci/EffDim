@@ -311,6 +311,57 @@ def test_derivative_bridge_float32_model_raises_friendly_value_error():
         db.calibrate_fd_step(model.decode, z)
 
 
+def test_calibrate_fd_step_chunks_above_vmap_chunk():
+    """WR-03: ``calibrate_fd_step`` must not compute its comparison Hessian unchunked above
+    ``chart_curvature.VMAP_CHUNK`` -- it must return without raising for a batch strictly
+    larger than the chunk width, and its ``best_step`` must agree with the same computation
+    restricted to the first ``VMAP_CHUNK`` rows of the same batch, to within the step
+    ladder's own one-decade granularity. Uses ``_SphereDecoder``, the file's cheap
+    closed-form fixture, at 40 rows against ``VMAP_CHUNK == 32``.
+    """
+    model = _SphereDecoder(1.5)
+    z = _fixed_z(batch=40)
+    assert z.shape[0] > chart_curvature.VMAP_CHUNK
+
+    result_full = db.calibrate_fd_step(model.decode, z)
+    result_first_chunk = db.calibrate_fd_step(model.decode, z[: chart_curvature.VMAP_CHUNK])
+
+    steps = sorted(db.DEFAULT_CALIBRATION_STEPS)
+    idx_full = steps.index(result_full["best_step"])
+    idx_chunk = steps.index(result_first_chunk["best_step"])
+    print(
+        f"calibrate_fd_step above VMAP_CHUNK: best_step(40 rows)={result_full['best_step']!r}, "
+        f"best_step(32 rows)={result_first_chunk['best_step']!r}"
+    )
+    assert abs(idx_full - idx_chunk) <= 1
+
+
+def test_derivative_bridge_reports_near_zero_relative_reference_fraction():
+    """WR-02: ``near_zero_reference_fraction`` must be strictly positive when a reference
+    tensor has a deliberately near-zero entry driving ``max_abs_relative`` above 1.0, and
+    exactly ``0.0`` for a well-scaled reference -- so a reader can tell "one thin
+    denominator" from "genuine disagreement" without inspecting raw tensors.
+    """
+    torch.manual_seed(0)
+    reference = torch.rand(100, dtype=torch.float64) + 0.5  # well-scaled, all >= 0.5
+    other = reference + 1e-6 * torch.rand(100, dtype=torch.float64)
+    stats = db._agreement_stats(reference, other)
+    assert stats["near_zero_reference_fraction"] == 0.0
+
+    reference_thin = reference.clone()
+    reference_thin[0] = 1e-14  # well below DEFAULT_REL_FLOOR == 1e-12
+    other_thin = reference_thin.clone()
+    other_thin[0] = 1e-14 + 1e-8  # tiny absolute diff, enormous relative diff at that entry
+    stats_thin = db._agreement_stats(reference_thin, other_thin)
+    print(
+        f"near_zero_reference_fraction diagnostic: well-scaled={stats['near_zero_reference_fraction']!r}, "
+        f"thin={stats_thin['near_zero_reference_fraction']!r}, "
+        f"thin max_abs_relative={stats_thin['max_abs_relative']!r}"
+    )
+    assert stats_thin["max_abs_relative"] > 1.0
+    assert stats_thin["near_zero_reference_fraction"] > 0.0
+
+
 def test_derivative_bridge_convention_matches_sealed_modules():
     assert db.CURVATURE_CONVENTION == "trace"
     assert db.CURVATURE_CONVENTION == chart_curvature.CURVATURE_CONVENTION
