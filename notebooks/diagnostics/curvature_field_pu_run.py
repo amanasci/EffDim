@@ -103,6 +103,22 @@ Invoke:
     .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --timing-probe --pu-n 200
     .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --select-only
     .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --resume
+    .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --device cuda --timing-probe
+    .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --device cuda --resume
+
+**03-07-SUPPLEMENT-01: opt-in GPU support, three caveats stated here and in ``--device``'s
+help text.** (1) GPU runs do NOT reproduce CPU runs bit-for-bit -- CUDA RNG differs from CPU
+RNG, so ``torch.manual_seed(seed)`` draws a different model on a different device; a GPU cell
+is a different draw, not a reproduction, which is why every record now carries a ``device``
+field. (2) float64 throughput is hardware-dependent -- curvature is float64-only
+(``chart_curvature._assert_float64`` is never relaxed), and float64 on a consumer GPU can run
+at 1/32-1/64 of float32 (vs ~1/2 on a data-center GPU), so the curvature term may be SLOWER on
+a consumer GPU than on CPU even though training (float32, the dominant nine-cell term at
+~16,100-16,200s vs ~4,000-4,040s for curvature) should be faster. Run ``--timing-probe
+--device cuda`` first and compare against a CPU probe before committing to the full grid. (3)
+Do not mix devices within one grid -- all nine cells (plus the three D-12 controls) must run
+on the same device, or the three-seed spread mixes two different draws; ``--resume`` refuses
+to continue a record whose device disagrees with the one requested.
 """
 
 import argparse
@@ -197,6 +213,28 @@ if PU_CHART_DIM != 20:
         "it is the outlier against TwoNN's 19.5, local-PCA's median 25.0, and the "
         "median-of-eight-estimators' 18. No code path in this file may reach chart_dim=5."
     )
+
+
+def resolve_device(device_str: str) -> torch.device:
+    """Parse and validate a ``--device`` CLI argument ('cpu', 'cuda', or 'cuda:N'). Fails
+    with an actionable message, naming the installed torch build, if ``cuda`` is requested
+    but ``torch.cuda.is_available()`` is False -- 03-07-SUPPLEMENT-01's setup notes give the
+    exact install command."""
+    device = torch.device(device_str)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise SystemExit(
+            f"--device={device_str!r} requested but torch.cuda.is_available() is False. "
+            f"The installed torch build is CPU-only ({torch.__version__}). Install a CUDA "
+            "build matching your driver's CUDA version, e.g.:\n"
+            "  .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu121\n"
+            "(see https://pytorch.org/get-started/locally/ for the correct cuXXX tag), then "
+            "verify with:\n"
+            '  .venv/bin/python -c "import torch; print(torch.cuda.is_available())"\n'
+            "See .planning/phases/03-decoder-curvature-field/03-07-SUPPLEMENT-01.md for the "
+            "full setup walkthrough."
+        )
+    return device
+
 
 # =============================================================================================
 # Printable restatements -- used by --dry-run so the justification, override, PH-cell choice
@@ -302,8 +340,12 @@ def _split(n: int, split_seed: int, holdout_fraction: float) -> Tuple[np.ndarray
 # =============================================================================================
 
 
-def build_cae(n_charts: int) -> "cae.ChartAutoEncoder":
-    return cae.ChartAutoEncoder(
+def build_cae(n_charts: int, device: torch.device = torch.device("cpu")) -> "cae.ChartAutoEncoder":
+    """Constructed exactly as before, then moved to ``device`` AFTER construction
+    (``model.to(device)``) -- never by passing ``device=`` into the constructor -- so
+    ``torch.manual_seed(seed)``'s RNG consumption order is unaffected (03-07-SUPPLEMENT-01,
+    hard constraint 2). Default ``cpu``: zero behaviour change."""
+    model = cae.ChartAutoEncoder(
         in_dim=AMBIENT_DIM,
         embed_dim=PU_EMBED_DIM,
         chart_dim=PU_CHART_DIM,
@@ -311,12 +353,15 @@ def build_cae(n_charts: int) -> "cae.ChartAutoEncoder":
         hidden=[PU_HIDDEN_WIDTH, PU_HIDDEN_WIDTH, PU_HIDDEN_WIDTH],
         activation=PU_ACTIVATION,
     )
+    return model.to(device)
 
 
-def build_control() -> "cae.PlainAutoEncoder":
-    return cae.PlainAutoEncoder(
+def build_control(device: torch.device = torch.device("cpu")) -> "cae.PlainAutoEncoder":
+    """Same construct-then-``.to(device)`` discipline as :func:`build_cae`."""
+    model = cae.PlainAutoEncoder(
         AMBIENT_DIM, PU_EMBED_DIM, hidden=(PU_HIDDEN_WIDTH,) * 3, activation=PU_ACTIVATION
     )
+    return model.to(device)
 
 
 def _protocol_cfg(seed: int, n_charts: Optional[int], max_epochs: int = MAX_EPOCHS) -> Dict[str, Any]:
@@ -433,8 +478,12 @@ def _run_cae_cell(
     max_epochs: int,
     ph_jitter_seed: Optional[int] = None,
 ) -> Dict[str, Any]:
+    # Device is derived from the already-placed input tensor rather than threaded as its
+    # own parameter (main() moves x_train32/x_holdout64/x_ph64 to the target device once,
+    # before any cell runs).
+    device = x_train32.device
     torch.manual_seed(seed)
-    model = build_cae(n_charts)
+    model = build_cae(n_charts, device=device)
     cfg = _protocol_cfg(seed, n_charts, max_epochs=max_epochs)
     t0 = time.monotonic()
     fit = cae.train_cae(model, x_train32, cfg)
@@ -472,6 +521,8 @@ def _run_cae_cell(
         "occupancy": occ,
         "reconstruction": recon_stats,
         "ph": ph,
+        "device": str(device),
+        "torch_version": torch.__version__,
     }
 
 
@@ -483,8 +534,9 @@ def _run_control_cell(
     max_epochs: int,
 ) -> Dict[str, Any]:
     """D-12's matched control -- computed but never acted on here."""
+    device = x_train32.device
     torch.manual_seed(seed)
-    model = build_control()
+    model = build_control(device=device)
     cfg = _protocol_cfg(seed, n_charts=None, max_epochs=max_epochs)
     t0 = time.monotonic()
     fit = cae.train_plain_ae(model, x_train32, cfg)
@@ -510,6 +562,8 @@ def _run_control_cell(
         "early_stopped": fit["early_stopped"],
         "reconstruction": recon_stats,
         "ph": ph,
+        "device": str(device),
+        "torch_version": torch.__version__,
     }
 
 
@@ -710,17 +764,30 @@ def print_d12_trigger(
 def run_timing_probe(
     x_train32: torch.Tensor, x_full64: torch.Tensor, pu_n: int, record_path: Path
 ) -> Dict[str, Any]:
+    # Device is derived from the already-placed input tensor (main() moves x_train32 and
+    # x_full64 to the target device once, before this probe runs; main() already printed
+    # the device banner).
+    device = x_train32.device
+    if device.type == "cuda":
+        print(
+            "CAVEAT: curvature is float64-only, and on a consumer GPU float64 throughput "
+            "can run at 1/32-1/64 of float32 (vs ~1/2 on a data-center GPU), so the "
+            "curvature term below may be SLOWER on this GPU than on CPU even though "
+            "training (float32) should be faster. Compare against a CPU probe before "
+            "committing to the full grid (03-07-SUPPLEMENT-01)."
+        )
+
     _banner("TIMING PROBE -- training, n_charts=16 (the most expensive swept value)")
     cfg = _protocol_cfg(PU_SEEDS[0], 16)
     train_timing = cae.timing_probe(
-        lambda: build_cae(16), x_train32, cfg, n_steps=TIMING_PROBE_TRAIN_STEPS
+        lambda: build_cae(16, device=device), x_train32, cfg, n_steps=TIMING_PROBE_TRAIN_STEPS
     )
     print(f"seconds_per_training_step={train_timing['seconds_per_step']:.4f}")
     print(f"projected_per_fit_training_wallclock_s={train_timing['projected_wallclock_s']:.1f}")
     print(f"training_exceeds_wallclock_ceiling={train_timing['exceeds_ceiling']}")
 
     _banner(f"TIMING PROBE -- curvature at chart_dim={PU_CHART_DIM}, out_dim={AMBIENT_DIM}, pu_n={pu_n}")
-    model = build_cae(16)
+    model = build_cae(16, device=device)
     model.double()
     x_slice = x_full64[:pu_n]
 
@@ -789,6 +856,8 @@ def run_timing_probe(
         "projected_nine_cell_grand_total_s": projected_total_s,
         "envelope_s": envelope_s,
         "over_budget": over_budget,
+        "device": str(device),
+        "torch_version": torch.__version__,
     }
     append_record(record_path, record)
 
@@ -856,6 +925,19 @@ def run_grid(
     completed = load_completed(record_path) if resume else {}
     if resume:
         print(f"--resume: {len(completed)} record(s) already on disk, matched by config_id.")
+        # 03-07-SUPPLEMENT-01 caveat 3: never mix devices within one grid -- a resumed
+        # record from a different device would mix two different RNG draws.
+        device = x_train32.device
+        for config_id, rec in completed.items():
+            rec_device = rec.get("device", "cpu")
+            if rec_device != str(device):
+                raise ValueError(
+                    f"--resume: record_path={record_path} already contains cell "
+                    f"{config_id!r} recorded at device={rec_device!r}, but this invocation "
+                    f"requested device={str(device)!r} -- mixing devices within one grid "
+                    "mixes two different RNG draws (03-07-SUPPLEMENT-01 caveat 3). Use a "
+                    "distinct --record-path instead."
+                )
 
     n_run = 0
 
@@ -1004,6 +1086,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Read the JSONL record back, print the full table, apply the selection rule "
         "and name the selected n_charts, without running any fit.",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        help="03-07-SUPPLEMENT-01: 'cpu' (default, zero behaviour change), 'cuda', or "
+        "'cuda:N'. Fails with an actionable message if cuda is requested but unavailable. "
+        "THREE CAVEATS: (1) GPU runs do NOT reproduce CPU runs bit-for-bit -- CUDA RNG "
+        "differs from CPU RNG, so a GPU cell is a different draw, not a reproduction; every "
+        "record carries its own 'device' field for exactly this reason. (2) float64 "
+        "throughput is hardware-dependent -- curvature is float64-only, and on a consumer "
+        "GPU float64 can run at 1/32-1/64 of float32 (vs ~1/2 on a data-center GPU), so the "
+        "curvature term may be SLOWER on a consumer GPU than on CPU even though training "
+        "(the dominant nine-cell term) should be faster -- run --timing-probe --device cuda "
+        "first and compare. (3) Do not mix devices within one grid -- every cell (plus the "
+        "D-12 controls) must share one device, or the seed spread mixes two different "
+        "draws; --resume refuses to continue a record whose device disagrees.",
+    )
     return parser
 
 
@@ -1011,9 +1110,16 @@ def main() -> None:
     parser = build_arg_parser()
     args = parser.parse_args()
     record_path = Path(args.record_path) if args.record_path else _default_record_path()
+    device = resolve_device(args.device)
 
     _banner("Phase 3 Plan 07: PU curvature-field sweep runner")
     print(f"record_path={record_path}")
+    print(f"device={device}  torch_version={torch.__version__}")
+    if device.type == "cuda":
+        print(
+            "CAVEAT: GPU runs do NOT reproduce CPU runs bit-for-bit (CUDA RNG != CPU RNG); "
+            "this is a different draw, recorded as such via each record's 'device' field."
+        )
 
     if args.dry_run:
         print_dry_run_report()
@@ -1024,11 +1130,17 @@ def main() -> None:
         return
 
     x_full64_np = _load_subsample()
-    x_full32 = torch.tensor(x_full64_np, dtype=torch.float32)
-    x_full64 = torch.tensor(x_full64_np, dtype=torch.float64)
+    # Tensors are built on CPU first (torch.tensor from a numpy array always lands on
+    # CPU), then moved to the target device in one place; index tensors are moved
+    # explicitly rather than relying on numpy-array indexing to auto-place against a
+    # non-CPU tensor.
+    x_full32 = torch.tensor(x_full64_np, dtype=torch.float32).to(device)
+    x_full64 = torch.tensor(x_full64_np, dtype=torch.float64).to(device)
     train_idx, holdout_idx = _split(x_full64_np.shape[0], PU_SPLIT_SEED, PU_HOLDOUT_FRACTION)
-    x_train32 = x_full32[train_idx]
-    x_holdout64 = x_full64[holdout_idx]
+    train_idx_t = torch.as_tensor(train_idx, dtype=torch.long, device=device)
+    holdout_idx_t = torch.as_tensor(holdout_idx, dtype=torch.long, device=device)
+    x_train32 = x_full32[train_idx_t]
+    x_holdout64 = x_full64[holdout_idx_t]
     x_ph64 = x_holdout64[:N_PH_PU]
 
     if args.timing_probe:
