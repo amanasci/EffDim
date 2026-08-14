@@ -7,8 +7,8 @@ current_phase_name: decoder-curvature-field
 status: executing
 stopped_at: Completed 03-06-SUMMARY.md (Swiss roll sanity notebook for the chart-decoder curvature field, checkpoint approved)
 last_updated: "2026-08-14T17:00:47.693Z"
-last_activity: 2026-08-11
-last_activity_desc: Phase 02.7 execution started
+last_activity: 2026-08-14
+last_activity_desc: Phase 3 plans 01-07 executed; 03-08 blocked on external GPU compute
 progress:
   total_phases: 9
   completed_phases: 6
