@@ -76,10 +76,10 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 > **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1 selects the replacement representation; re-read "Isomap coordinates" throughout this section and the next as "the coordinates of the representation chosen in Phase 02.1," and re-plan Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control — is unchanged.
 
-- [ ] **DEC-01**: Train a decoder mapping Isomap coordinates to the original 768-d embedding, using a C2-smooth activation throughout the forward path
+- [x] **DEC-01**: Train a decoder mapping Isomap coordinates to the original 768-d embedding, using a C2-smooth activation throughout the forward path
 - [ ] **DEC-02**: Verify no ReLU-family activation appears anywhere in the decoder, since its second derivative is identically zero
-- [ ] **DEC-03**: Held-out reconstruction quality shown, not just training loss
-- [ ] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown, so good averages cannot hide subset failures
+- [x] **DEC-03**: Held-out reconstruction quality shown, not just training loss
+- [x] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown, so good averages cannot hide subset failures
 - [x] **DEC-05**: Decoder training reproducible from a recorded torch seed
 
 ### Curvature Field (CURV)
@@ -198,10 +198,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOPO-06 | Phase 02.4 | Complete |
 | TOPO-07 | Phase 02.4 | Complete |
 | TOPO-08 | Phase 02.4 | Complete |
-| DEC-01 | Phase 3 | Pending |
+| DEC-01 | Phase 3 | Complete |
 | DEC-02 | Phase 3 | Pending |
-| DEC-03 | Phase 3 | Pending |
-| DEC-04 | Phase 3 | Pending |
+| DEC-03 | Phase 3 | Complete |
+| DEC-04 | Phase 3 | Complete |
 | DEC-05 | Phase 3 | Complete |
 | CURV-01 | Phase 3 | Complete |
 | CURV-02 | Phase 3 | Complete |

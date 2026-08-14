@@ -614,7 +614,7 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: 5/11 plans executed
+**Plans**: 6/11 plans executed
 
 Plans:
 **Wave 1**
@@ -634,7 +634,7 @@ Plans:
 **Wave 4** *(blocked on Wave 3 completion)*
 
 - [ ] 03-06-PLAN.md — CLAUDE.md-mandated `notebooks/03_swiss_roll_chart_curvature_field_check.ipynb` (DEC-01, DEC-02, CURV-03)
-- [ ] 03-07-PLAN.md — Build the PU sweep runner: `chart_dim=20` justified, timing probe, four D-07 diagnostics, selection rule declared up front (DEC-01, DEC-03, DEC-04)
+- [x] 03-07-PLAN.md — Build the PU sweep runner: `chart_dim=20` justified, timing probe, four D-07 diagnostics, selection rule declared up front (DEC-01, DEC-03, DEC-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -721,6 +721,6 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 5/11 | In Progress|  |
+| 3. Decoder & Curvature Field | v1.1 | 6/11 | In Progress|  |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
