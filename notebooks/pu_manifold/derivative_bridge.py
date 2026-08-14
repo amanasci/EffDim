@@ -121,18 +121,72 @@ chunk's decoder output at ``8192 * 768 * 8 bytes ~= 50 MB``, comfortably bounded
 how large a batch or latent dimension a caller supplies."""
 
 
+def _assert_decode_batch_float64(
+    decode_batch: Callable[[torch.Tensor], torch.Tensor], z_chart: torch.Tensor
+) -> None:
+    """Raise ``ValueError`` naming ``z_chart.double()`` when ``z_chart`` itself is not
+    float64 (02.6-REVIEW.md WR-01, the ``z``-half). This is the ``z``-only half of the fix on
+    purpose: ``finite_difference_jacobian``, ``finite_difference_hessian`` and
+    ``calibrate_fd_step`` are handed ``decode_batch`` (``model.decode``, a bound method, or an
+    arbitrary closure) rather than the model object, so -- unlike the sealed per-model guard
+    ``derivative_agreement`` still uses below, unchanged -- this function has no
+    ``.parameters()`` to read and cannot check the model's own dtype from an attribute.
+
+    The model-dtype half is enforced downstream, at the point ``decode_batch`` is actually
+    invoked (:func:`_chunked_eval` for the two functions above, and directly inside
+    :func:`calibrate_fd_step`'s autodiff call) -- both translate the bare ``RuntimeError`` a
+    float32-parameter decoder raises on a float64 input into the same friendly ``ValueError``
+    naming ``model.double()``, rather than this function spending a SEPARATE probe call on
+    ``decode_batch`` purely to detect it. A dedicated probe call would silently inflate this
+    module's own bounded-cost invocation-count contract
+    (``test_finite_difference_hessian_invocation_count_matches_chunk_arithmetic`` pins the
+    exact ``ceil(batch * n_offsets / MAX_FD_ROWS)`` call count), so the check rides on the
+    real computation's first call instead of adding a new one.
+    """
+    if z_chart.dtype != torch.float64:
+        raise ValueError(
+            f"derivative_bridge runs in float64 throughout; got z_chart.dtype={z_chart.dtype}. "
+            f"Second derivatives are where float32 noise shows. Pass z_chart.double()."
+        )
+
+
+def _friendly_model_dtype_error(exc: Optional[BaseException] = None) -> ValueError:
+    """Build the one ``ValueError`` message every WR-01 call site raises when
+    ``decode_batch`` turns out not to be float64 -- either because it raised (a
+    float32-parameter decoder's own matmul against a float64 input) or because it returned a
+    non-float64 output without raising. Factored so the wording is identical everywhere it
+    fires."""
+    suffix = f" ({exc!r})" if exc is not None else ""
+    return ValueError(
+        f"derivative_bridge: decode_batch is not float64{suffix} -- the underlying model is "
+        f"not float64. Call model.double() first."
+    )
+
+
 def _chunked_eval(
     decode_batch: Callable[[torch.Tensor], torch.Tensor], points: torch.Tensor
 ) -> torch.Tensor:
     """Invoke ``decode_batch`` on chunks of at most :data:`MAX_FD_ROWS` rows, concatenating
     the results in the original row order. Bounds peak memory per call; does not change the
     result. The number of ``decode_batch`` calls this makes is
-    ``ceil(points.shape[0] / MAX_FD_ROWS)``."""
+    ``ceil(points.shape[0] / MAX_FD_ROWS)``.
+
+    Each chunk call is wrapped to translate a float32-parameter model's bare ``RuntimeError``
+    (mismatched dtypes against the float64 ``points`` this function is always called with)
+    into the same friendly ``ValueError`` :func:`_assert_decode_batch_float64` raises for the
+    ``z``-side check -- the WR-01 fix's model-half, applied here rather than as a separate
+    probe call so the invocation count above stays exact."""
     n = points.shape[0]
-    parts = [
-        decode_batch(points[start : start + MAX_FD_ROWS])
-        for start in range(0, n, MAX_FD_ROWS)
-    ]
+    parts = []
+    for start in range(0, n, MAX_FD_ROWS):
+        chunk = points[start : start + MAX_FD_ROWS]
+        try:
+            out = decode_batch(chunk)
+        except RuntimeError as exc:
+            raise _friendly_model_dtype_error(exc) from exc
+        if out.dtype != torch.float64:
+            raise _friendly_model_dtype_error()
+        parts.append(out)
     return torch.cat(parts, dim=0)
 
 
@@ -153,7 +207,7 @@ def finite_difference_jacobian(
     axis, for the whole batch, is stacked into one tensor and issued to ``decode_batch`` in
     chunks of at most :data:`MAX_FD_ROWS` rows.
     """
-    _assert_float64(decode_batch, z)
+    _assert_decode_batch_float64(decode_batch, z)
     if h <= 0:
         raise ValueError(f"finite_difference_jacobian: h must be positive; got {h}.")
     if z.ndim != 2:
@@ -198,11 +252,12 @@ def finite_difference_hessian(
     tensor and issued to ``decode_batch`` in chunks of at most :data:`MAX_FD_ROWS` rows -- one
     ``decode_batch`` call per chunk, so the number of calls is
     ``ceil(batch * n_offsets / MAX_FD_ROWS)`` with ``n_offsets = 1 + 2*d + 4*d*(d-1)/2`` (see
-    :data:`MAX_FD_ROWS`), never proportional to ``batch`` alone. Requires float64 input,
-    checked by ``chart_curvature._assert_float64`` reused unchanged rather than by a new
-    check.
+    :data:`MAX_FD_ROWS`), never proportional to ``batch`` alone. Requires float64 input:
+    :func:`_assert_decode_batch_float64` checks ``z`` up front, and :func:`_chunked_eval`
+    translates a float32-parameter model's own dtype-mismatch failure into the same friendly
+    ``ValueError``, since it is handed a closure rather than the model object (WR-01).
     """
-    _assert_float64(decode_batch, z)
+    _assert_decode_batch_float64(decode_batch, z)
     if h <= 0:
         raise ValueError(f"finite_difference_hessian: h must be positive; got {h}.")
     if z.ndim != 2:
@@ -305,7 +360,7 @@ def calibrate_fd_step(
     is the function that makes assumption A-06 actionable rather than a warning: a caller
     working on a differently-scaled decoder calls this instead of trusting the default blind.
     """
-    _assert_float64(decode_batch, z)
+    _assert_decode_batch_float64(decode_batch, z)
     if z.ndim != 2:
         raise ValueError(f"calibrate_fd_step: z must be (batch, d); got shape {tuple(z.shape)}.")
     if z.shape[0] == 0:
@@ -314,7 +369,16 @@ def calibrate_fd_step(
     def decode_one(zz: torch.Tensor) -> torch.Tensor:
         return decode_batch(zz.unsqueeze(0)).squeeze(0)
 
-    autodiff_hess = vmap(hessian(decode_one))(z)
+    # Same WR-01 translation as _chunked_eval: this is calibrate_fd_step's own first call to
+    # decode_batch (through torch.func's autodiff machinery rather than a chunk loop), so a
+    # float32-parameter model's bare RuntimeError is caught here too, before it ever reaches
+    # finite_difference_hessian's own -- separately-guarded -- calls below.
+    try:
+        autodiff_hess = vmap(hessian(decode_one))(z)
+    except RuntimeError as exc:
+        raise _friendly_model_dtype_error(exc) from exc
+    if autodiff_hess.dtype != torch.float64:
+        raise _friendly_model_dtype_error()
 
     step_errors: Dict[float, float] = {}
     for h in steps:

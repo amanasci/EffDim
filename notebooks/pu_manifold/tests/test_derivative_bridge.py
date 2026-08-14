@@ -292,6 +292,25 @@ def test_finite_difference_hessian_refuses_float32():
         db.finite_difference_hessian(model.decode, z)
 
 
+def test_derivative_bridge_float32_model_raises_friendly_value_error():
+    """WR-01: ``finite_difference_jacobian``, ``finite_difference_hessian`` and
+    ``calibrate_fd_step`` are handed ``decode_batch`` (never the model object), so a
+    float32-parameter model must still raise the friendly ``ValueError`` naming
+    ``model.double()`` -- not torch's bare ``RuntimeError`` from inside the matmul.
+    Reuses ``_LinearDecoder``, cast to float32 via ``nn.Module.float()``, against the same
+    float64 ``z`` every other fixture in this file uses.
+    """
+    model = _LinearDecoder().float()
+    z = _fixed_z()
+
+    with pytest.raises(ValueError, match="model.double"):
+        db.finite_difference_jacobian(model.decode, z, h=1e-4)
+    with pytest.raises(ValueError, match="model.double"):
+        db.finite_difference_hessian(model.decode, z, h=1e-4)
+    with pytest.raises(ValueError, match="model.double"):
+        db.calibrate_fd_step(model.decode, z)
+
+
 def test_derivative_bridge_convention_matches_sealed_modules():
     assert db.CURVATURE_CONVENTION == "trace"
     assert db.CURVATURE_CONVENTION == chart_curvature.CURVATURE_CONVENTION
