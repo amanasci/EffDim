@@ -526,8 +526,8 @@ def chart_curvature_field(
 
     n = x.shape[0]
     H_vec: Optional[torch.Tensor] = None
-    H_norm = torch.empty(n, dtype=torch.float64)
-    metric_cond = torch.empty(n, dtype=torch.float64)
+    H_norm = torch.empty(n, dtype=torch.float64, device=x.device)
+    metric_cond = torch.empty(n, dtype=torch.float64, device=x.device)
 
     used = sorted(int(i) for i in torch.unique(assignment).tolist())
     for chart_idx in used:
@@ -537,7 +537,7 @@ def chart_curvature_field(
             sl = slice(start, start + batch_size)
             out = chart_mean_curvature(model, coords[sl], chart_idx, mode=mode)
             if H_vec is None:
-                H_vec = torch.empty(n, out["H_vec"].shape[1], dtype=torch.float64)
+                H_vec = torch.empty(n, out["H_vec"].shape[1], dtype=torch.float64, device=x.device)
             target = rows[sl]
             H_vec[target] = out["H_vec"]
             H_norm[target] = out["H_norm"]
@@ -775,14 +775,17 @@ def randomized_trace_mean_curvature_nongating(
         )
     g_inv_sqrt = torch.einsum("bij,bj,bkj->bik", evecs, evals.pow(-0.5), evecs)
 
+    # The generator stays CPU-only (its seed->draw mapping is independent of device, same
+    # reasoning as cae.farthest_point_sample); only the drawn probe vector is moved to
+    # z_chart's device before it meets any device-resident tensor.
     generator = torch.Generator().manual_seed(int(seed))
-    acc = torch.zeros(batch, J.shape[1], dtype=z_chart.dtype)
+    acc = torch.zeros(batch, J.shape[1], dtype=z_chart.dtype, device=z_chart.device)
     for _ in range(n_probes):
         eps = (
             torch.randint(0, 2, (batch, chart_dim), generator=generator, dtype=z_chart.dtype)
             * 2.0
             - 1.0
-        )
+        ).to(z_chart.device)
         xi = torch.einsum("bij,bj->bi", g_inv_sqrt, eps)
         acc = acc + directional_second_derivative(decode_one, z_chart, xi)
     raw = acc / float(n_probes)

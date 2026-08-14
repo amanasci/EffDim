@@ -215,7 +215,7 @@ class ChartAutoEncoder(nn.Module):
         out = self.forward(x)
         idx = out["p"].argmax(dim=1)
         y_charts = out["y_charts"]
-        return y_charts[torch.arange(y_charts.shape[0]), idx]
+        return y_charts[torch.arange(y_charts.shape[0], device=y_charts.device), idx]
 
 
 # --- loss (eq. 3) -----------------------------------------------------------------------
@@ -259,7 +259,8 @@ def _chart_encoder_spectral_product(encoder: nn.Module) -> torch.Tensor:
     exact spectral norm (largest singular value) via :func:`_robust_spectral_norm`. Exact
     SVD, not the power-iteration reparametrization route -- see
     :func:`lipschitz_penalty`'s docstring."""
-    prod = torch.ones((), dtype=torch.float64)
+    device = next(encoder.parameters()).device
+    prod = torch.ones((), dtype=torch.float64, device=device)
     for layer in encoder.modules():
         if isinstance(layer, nn.Linear):
             prod = prod * _robust_spectral_norm(layer.weight)
@@ -298,16 +299,22 @@ def farthest_point_sample(x: torch.Tensor, n_seeds: int, seed: int) -> torch.Ten
     same seed return identical index arrays. No new package is installed for this: at
     ``N_CHARTS_INIT=16`` seeds over ten thousand rows the hand-rolled greedy routine is
     trivially fast."""
+    # The generator itself stays CPU-only regardless of x's device (torch.Generator()
+    # defaults to a CPU RNG stream, and its seed->draw mapping is independent of any
+    # tensor's device), so `chosen` -- the index bookkeeping -- also stays on CPU
+    # throughout, preserving the exact RNG consumption order this function has always had.
+    # Only the values used to index/compare against `x` are moved to x's device.
+    device = x.device
     g = torch.Generator().manual_seed(seed)
     n = x.shape[0]
     chosen = torch.empty(n_seeds, dtype=torch.long)
     chosen[0] = torch.randint(0, n, (1,), generator=g)
-    min_dist = torch.full((n,), float("inf"))
+    min_dist = torch.full((n,), float("inf"), device=device)
     for i in range(n_seeds):
-        d = torch.cdist(x, x[chosen[i]].unsqueeze(0)).squeeze(1)
+        d = torch.cdist(x, x[chosen[i].to(device)].unsqueeze(0)).squeeze(1)
         min_dist = torch.minimum(min_dist, d)
         if i + 1 < n_seeds:
-            chosen[i + 1] = torch.argmax(min_dist)
+            chosen[i + 1] = torch.argmax(min_dist).cpu()
     return chosen
 
 
@@ -323,8 +330,8 @@ def fps_pretrain_loss(
     signal, and stays at its initialisation forever. Returns a dict with the three named
     components (``recon``, ``center``, ``xent``) plus their ``total``."""
     n_seeds = x_seeds.shape[0]
-    idx = torch.arange(n_seeds)
     z = model.encode(x_seeds)
+    idx = torch.arange(n_seeds, device=z.device)
     z_charts_all = model.chart_coords(z)  # (n_seeds, n_charts, chart_dim)
     z_alpha = z_charts_all[idx, seed_chart_index]  # (n_seeds, chart_dim) -- own chart's coord
     y_charts_all = model._decode_from_chart_coords(z_charts_all)  # (n_seeds, n_charts, out_dim)
@@ -430,8 +437,8 @@ def train_cae(model: nn.Module, x_train: torch.Tensor, cfg: Dict[str, Any]) -> D
         with torch.no_grad():
             z_train = model.encode(x_train)
         seed_idx = farthest_point_sample(z_train, n_charts_cfg, seed=seed)
-        x_seeds = x_train[seed_idx]
-        seed_chart_index = torch.arange(n_charts_cfg)
+        x_seeds = x_train[seed_idx.to(x_train.device)]
+        seed_chart_index = torch.arange(n_charts_cfg, device=x_train.device)
         for epoch in range(fps_pretrain_epochs):
             optimizer.zero_grad()
             loss_dict = fps_pretrain_loss(model, x_seeds, seed_chart_index)
@@ -456,7 +463,9 @@ def train_cae(model: nn.Module, x_train: torch.Tensor, cfg: Dict[str, Any]) -> D
     plateau_count = 0
     if not wallclock_truncated:
         for epoch in range(max_epochs):
-            perm = torch.from_numpy(rng.permutation(n))
+            # rng.permutation is numpy, unaffected by device -- only the resulting index
+            # tensor is moved, so the minibatch shuffle sequence itself is untouched.
+            perm = torch.from_numpy(rng.permutation(n)).to(x_train.device)
             epoch_recon = 0.0
             epoch_xent = 0.0
             epoch_lip = 0.0
@@ -541,7 +550,7 @@ def timing_probe(
     steps_done = 0
     start = time.monotonic()
     while steps_done < n_steps:
-        perm = torch.randperm(n)
+        perm = torch.randperm(n, device=x_train.device)
         for i in range(0, n, batch_size):
             if steps_done >= n_steps:
                 break
@@ -669,7 +678,9 @@ def _train_decoder_protocol(
     plateau_count = 0
 
     for epoch in range(max_epochs):
-        perm = torch.from_numpy(rng.permutation(n))
+        # rng.permutation is numpy, unaffected by device -- only the resulting index
+        # tensor is moved, so the minibatch shuffle sequence itself is untouched.
+        perm = torch.from_numpy(rng.permutation(n)).to(inputs.device)
         epoch_recon = 0.0
         n_batches = 0
         for i in range(0, n, batch_size):
@@ -923,14 +934,19 @@ def unfaithfulness_coverage(
     runs used a hundred samples; the pre-registered value here (``UNFAITHFUL_SAMPLES``)
     is larger for a less noisy coverage estimate. Returns ``unfaithfulness``,
     ``coverage``, ``n_samples``, ``n_distinct`` as native Python floats/ints."""
+    device = x_train.device
     surviving = list(surviving_indices)
     n_surv = len(surviving)
-    chart_idx = torch.tensor([surviving[i % n_surv] for i in range(n_samples)], dtype=torch.long)
+    chart_idx = torch.tensor(
+        [surviving[i % n_surv] for i in range(n_samples)], dtype=torch.long, device=device
+    )
 
+    # The generator stays CPU-only (its seed->draw mapping is independent of device, same
+    # reasoning as farthest_point_sample); only the drawn coordinates are moved to device.
     g = torch.Generator().manual_seed(seed)
-    coords = torch.rand((n_samples, model.chart_dim), generator=g)
+    coords = torch.rand((n_samples, model.chart_dim), generator=g).to(device)
 
-    decoded = torch.empty((n_samples, model.out_dim), dtype=x_train.dtype)
+    decoded = torch.empty((n_samples, model.out_dim), dtype=x_train.dtype, device=device)
     with torch.no_grad():
         for alpha in surviving:
             mask = chart_idx == alpha
@@ -1143,12 +1159,12 @@ def state_dict_to_arrays(state_dict: Dict[str, torch.Tensor]) -> Dict[str, np.nd
 def arrays_to_state_dict(
     arrays: Dict[str, np.ndarray], reference_state_dict: Dict[str, torch.Tensor]
 ) -> Dict[str, torch.Tensor]:
-    """Invert :func:`state_dict_to_arrays`, casting each array to the dtype and shape of
+    """Invert :func:`state_dict_to_arrays`, casting each array to the dtype and device of
     the corresponding tensor in ``reference_state_dict``."""
     out: Dict[str, torch.Tensor] = {}
     for key, ref in reference_state_dict.items():
         arr = arrays[key]
-        out[key] = torch.tensor(arr, dtype=ref.dtype).reshape(ref.shape)
+        out[key] = torch.tensor(arr, dtype=ref.dtype, device=ref.device).reshape(ref.shape)
     return out
 
 
