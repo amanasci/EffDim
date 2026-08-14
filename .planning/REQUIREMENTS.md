@@ -85,7 +85,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 ### Curvature Field (CURV)
 
 - [x] **CURV-01**: First fundamental form computed from the decoder Jacobian via `torch.func` autodiff, batched over all points rather than looped
-- [ ] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
+- [x] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
 - [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
 - [x] **CURV-04**: Conditioning of the metric tensor shown, with near-singular points flagged, so a non-immersion point cannot silently corrupt the field
 - [x] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
@@ -204,7 +204,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEC-04 | Phase 3 | Pending |
 | DEC-05 | Phase 3 | Complete |
 | CURV-01 | Phase 3 | Complete |
-| CURV-02 | Phase 3 | Pending |
+| CURV-02 | Phase 3 | Complete |
 | CURV-03 | Phase 3 | Complete |
 | CURV-04 | Phase 3 | Complete |
 | CURV-05 | Phase 3 | Complete |

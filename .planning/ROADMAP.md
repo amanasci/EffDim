@@ -614,7 +614,7 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: 4/11 plans executed
+**Plans**: 5/11 plans executed
 
 Plans:
 **Wave 1**
@@ -629,7 +629,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-05-PLAN.md — D-08 forward-mode toggle (spike first, reverse stays default) and D-09 equivalence, reverse path pinned bit-identical (CURV-01, CURV-02)
+- [x] 03-05-PLAN.md — D-08 forward-mode toggle (spike first, reverse stays default) and D-09 equivalence, reverse path pinned bit-identical (CURV-01, CURV-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -721,6 +721,6 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 4/11 | In Progress|  |
+| 3. Decoder & Curvature Field | v1.1 | 5/11 | In Progress|  |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
