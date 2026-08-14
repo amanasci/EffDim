@@ -614,7 +614,7 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: 2/11 plans executed
+**Plans**: 3/11 plans executed
 
 Plans:
 **Wave 1**
@@ -624,7 +624,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 03-02-PLAN.md — Run the 4×5 Swiss roll sweep, apply the floor to the best config, decide the gate or take the D-05a branch (DEC-05, CURV-03, CURV-04)
-- [ ] 03-03-PLAN.md — Close WR-01/02/03 in `derivative_bridge.py` with regression tests (CURV-05)
+- [x] 03-03-PLAN.md — Close WR-01/02/03 in `derivative_bridge.py` with regression tests (CURV-05)
 - [ ] 03-04-PLAN.md — `synthetic_controls.py`: flat / sphere / saddle at `d=20, D=768`, saddle cross-checked against finite differences (CURV-06)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -721,6 +721,6 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 2/11 | In Progress|  |
+| 3. Decoder & Curvature Field | v1.1 | 3/11 | In Progress|  |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>

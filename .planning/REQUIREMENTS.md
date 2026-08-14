@@ -88,7 +88,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 - [ ] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
 - [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
 - [x] **CURV-04**: Conditioning of the metric tensor shown, with near-singular points flagged, so a non-immersion point cannot silently corrupt the field
-- [ ] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
+- [x] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
 - [ ] **CURV-06**: PU manifold's curvature compared against the same decoder architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension and ambient size
 - [ ] **CURV-07**: Whether the measured curvature is a property of the data manifold or an artifact of the fitted decoder shown, on the evidence of CURV-06
 - [ ] **CURV-08**: Curvature only evaluated at or near the actual Isomap coordinates, never extrapolated beyond their support
@@ -207,7 +207,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-02 | Phase 3 | Pending |
 | CURV-03 | Phase 3 | Complete |
 | CURV-04 | Phase 3 | Complete |
-| CURV-05 | Phase 3 | Pending |
+| CURV-05 | Phase 3 | Complete |
 | CURV-06 | Phase 3 | Pending |
 | CURV-07 | Phase 3 | Pending |
 | CURV-08 | Phase 3 | Pending |
