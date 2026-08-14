@@ -37,6 +37,18 @@ Invoke:
     .venv/bin/python notebooks/diagnostics/swiss_roll_curvature_sweep_run.py --smoke
     .venv/bin/python notebooks/diagnostics/swiss_roll_curvature_sweep_run.py --n-charts 8 --seeds 0 --max-combos 1
     .venv/bin/python notebooks/diagnostics/swiss_roll_curvature_sweep_run.py --resume
+    .venv/bin/python notebooks/diagnostics/swiss_roll_curvature_sweep_run.py --device cuda --resume
+
+**03-07-SUPPLEMENT-01: opt-in GPU support, three caveats stated here and in ``--device``'s
+help text.** (1) GPU runs do NOT reproduce CPU runs bit-for-bit -- CUDA RNG differs from CPU
+RNG, so ``torch.manual_seed(seed)`` draws a different model on a different device; a GPU cell
+is a different draw, not a reproduction, which is why every record now carries a ``device``
+field. (2) float64 throughput is hardware-dependent -- curvature is float64-only
+(``chart_curvature._assert_float64`` is never relaxed), and float64 on a consumer GPU can run
+at 1/32-1/64 of float32 throughput (vs ~1/2 on a data-center GPU), so the curvature term may
+be SLOWER on a consumer GPU than on CPU even though training (float32) should be faster.
+(3) Do not mix devices within one sweep -- every cell in a comparable table must share one
+device, or the seed spread mixes two different draws.
 """
 
 import argparse
@@ -104,6 +116,27 @@ CHART_DIM = 2
 EMBED_DIM = 8
 HIDDEN = [64, 64]
 K_BASELINE = 30
+
+def resolve_device(device_str: str) -> torch.device:
+    """Parse and validate a ``--device`` CLI argument ('cpu', 'cuda', or 'cuda:N'). Fails
+    with an actionable message, naming the installed torch build, if ``cuda`` is requested
+    but ``torch.cuda.is_available()`` is False -- 03-07-SUPPLEMENT-01's setup notes give the
+    exact install command."""
+    device = torch.device(device_str)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise SystemExit(
+            f"--device={device_str!r} requested but torch.cuda.is_available() is False. "
+            f"The installed torch build is CPU-only ({torch.__version__}). Install a CUDA "
+            "build matching your driver's CUDA version, e.g.:\n"
+            "  .venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cu121\n"
+            "(see https://pytorch.org/get-started/locally/ for the correct cuXXX tag), then "
+            "verify with:\n"
+            '  .venv/bin/python -c "import torch; print(torch.cuda.is_available())"\n'
+            "See .planning/phases/03-decoder-curvature-field/03-07-SUPPLEMENT-01.md for the "
+            "full setup walkthrough."
+        )
+    return device
+
 
 BASE_CFG: Dict[str, Any] = dict(
     lr=1e-3,
@@ -200,11 +233,18 @@ def run_cell(
     *,
     n_points: int = N_POINTS,
     max_epochs: Optional[int] = None,
+    device: torch.device = torch.device("cpu"),
 ) -> Dict[str, Any]:
     """One (n_charts, seed) measurement, following
     ``02.5_swiss_roll_chart_curvature_check.ipynb``'s cell sequence exactly. ``n_points``
     and ``max_epochs`` are overridable only for ``--smoke``'s cheap wiring check; the real
-    sweep always uses the module constants (``N_POINTS``, ``BASE_CFG["max_epochs"]``)."""
+    sweep always uses the module constants (``N_POINTS``, ``BASE_CFG["max_epochs"]``).
+
+    ``device``: default ``cpu``, zero behaviour change. Both models are constructed exactly
+    as before, on CPU, under ``torch.manual_seed(seed)`` -- device placement happens strictly
+    AFTER construction via ``model.to(device)``, so this argument never touches RNG
+    consumption order (03-07-SUPPLEMENT-01, hard constraint 2). See that supplement for the
+    non-reproducibility-across-devices and float64-throughput caveats."""
     fx = curvature_probe.make_swiss_roll_fixture(n=n_points, seed=FIXTURE_SEED)
     X, t, H_true_norm, global_std = fx["X"], fx["t"], fx["H_norm"], fx["global_std"]
 
@@ -233,8 +273,12 @@ def run_cell(
     perm = rng.permutation(n_points)
     n_train = int(0.8 * n_points)
     train_idx, holdout_idx = perm[:n_train], perm[n_train:]
-    x_all = torch.tensor(X, dtype=torch.float32)
-    x_train, x_holdout = x_all[train_idx], x_all[holdout_idx]
+    x_all = torch.tensor(X, dtype=torch.float32).to(device)
+    # Index tensors are moved to `device` explicitly rather than relying on numpy-array
+    # indexing to auto-place itself against a non-CPU tensor.
+    train_idx_t = torch.as_tensor(train_idx, dtype=torch.long, device=device)
+    holdout_idx_t = torch.as_tensor(holdout_idx, dtype=torch.long, device=device)
+    x_train, x_holdout = x_all[train_idx_t], x_all[holdout_idx_t]
 
     cfg = dict(BASE_CFG)
     if max_epochs is not None:
@@ -250,11 +294,13 @@ def run_cell(
         hidden=HIDDEN,
         activation="silu",
     )
+    model = model.to(device)  # AFTER construction only -- never touches RNG consumption order
     cae.train_cae(model, x_train, {**cfg, "seed": seed, "n_charts": n_charts})
     model.eval()
 
     torch.manual_seed(seed)
     plain = cae.PlainAutoEncoder(3, CHART_DIM, hidden=tuple(HIDDEN), activation="silu")
+    plain = plain.to(device)  # AFTER construction only -- same reasoning as `model` above
     cae.train_plain_ae(plain, x_train, dict(cfg))
     plain.eval()
     train_wall_s = time.time() - train0
@@ -265,15 +311,16 @@ def run_cell(
     cae_stats = cae.reconstruction_stats(x_holdout.double(), y_hold.double())
     plain_stats = cae.reconstruction_stats(x_holdout.double(), y_plain.double())
 
-    model.double()  # second derivatives are exactly where float32 noise shows first
+    model.double()  # second derivatives are exactly where float32 noise shows first; runs
+    # in float64 on every device -- chart_curvature._assert_float64 is never relaxed
     curv0 = time.time()
     field = chart_curvature.chart_curvature_field(model, x_all.double())
     curv_wall_s = time.time() - curv0
     activation = chart_curvature.assert_c2_activation(model)
 
-    H_chart = field["H_vec"].numpy()
-    h_chart = field["H_norm"].numpy()
-    cond = field["metric_condition_number"].numpy()
+    H_chart = field["H_vec"].cpu().numpy()
+    h_chart = field["H_norm"].cpu().numpy()
+    cond = field["metric_condition_number"].cpu().numpy()
 
     rho_chart = curvature_probe.spearman_gate_statistic(h_chart, H_true_norm)
     mre_chart = curvature_probe.median_relative_error(h_chart, H_true_norm)
@@ -300,6 +347,8 @@ def run_cell(
         "train_wall_s": float(train_wall_s),
         "curv_wall_s": float(curv_wall_s),
         "activation": activation,
+        "device": str(device),
+        "torch_version": torch.__version__,
     }
 
 
@@ -575,6 +624,21 @@ def main() -> None:
         "distinct cache key (03_swiss_roll_curvature_sweep_n<N>.jsonl) so the sealed "
         "n=3000 grid is never clobbered or resumed-into.",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        help="03-07-SUPPLEMENT-01: 'cpu' (default, zero behaviour change), 'cuda', or "
+        "'cuda:N'. Fails with an actionable message if cuda is requested but unavailable. "
+        "THREE CAVEATS: (1) GPU runs do NOT reproduce CPU runs bit-for-bit -- CUDA RNG "
+        "differs from CPU RNG, so a GPU cell is a different draw, not a reproduction; every "
+        "record carries its own 'device' field for exactly this reason. (2) float64 "
+        "throughput is hardware-dependent -- curvature is float64-only, and on a consumer "
+        "GPU float64 can run at 1/32-1/64 of float32 (vs ~1/2 on a data-center GPU), so the "
+        "curvature term may be SLOWER on a consumer GPU than on CPU even though training "
+        "should be faster. (3) Do not mix devices within one sweep -- every cell must share "
+        "one device, or the seed spread mixes two different draws.",
+    )
     args = parser.parse_args()
 
     n_charts_values = (
@@ -582,6 +646,7 @@ def main() -> None:
     )
     seeds = tuple(int(v) for v in args.seeds.split(",")) if args.seeds else TORCH_SEEDS
     n_points = args.n_points if args.n_points is not None else N_POINTS
+    device = resolve_device(args.device)
 
     print("=" * 92)
     print("Phase 3 Plan 01: Swiss roll n_charts x seed curvature sweep runner")
@@ -589,6 +654,12 @@ def main() -> None:
         f"ROLL_FLOOR = {ROLL_FLOOR}  (D-02 absolute floor on median rho_chart; "
         f"RAW_BASELINE_CONTEXT = {RAW_BASELINE_CONTEXT} is context only, gates nothing)"
     )
+    print(f"device={device}  torch_version={torch.__version__}")
+    if device.type == "cuda":
+        print(
+            "CAVEAT: GPU runs do NOT reproduce CPU runs bit-for-bit (CUDA RNG != CPU RNG); "
+            "this is a different draw, recorded as such via each record's 'device' field."
+        )
     print("=" * 92)
 
     if args.dry_run:
@@ -605,7 +676,7 @@ def main() -> None:
 
     if args.smoke:
         print("--smoke: n_charts=2 seed=0 max_epochs=5 n_points=300 (wiring check only)")
-        record = run_cell(n_charts=2, seed=0, n_points=300, max_epochs=5)
+        record = run_cell(n_charts=2, seed=0, n_points=300, max_epochs=5, device=device)
         print(
             f"  n_charts_used={record['n_charts_used']}  rho_chart={record['rho_chart']:.4f}  "
             f"train_wall_s={record['train_wall_s']:.1f}  curv_wall_s={record['curv_wall_s']:.2f}  "
@@ -646,6 +717,17 @@ def main() -> None:
                     "two halves of the table incomparable (02.6-FINDINGS-02.md section 12's "
                     "defect pattern). Use a distinct --record-path instead."
                 )
+            # 03-07-SUPPLEMENT-01 caveat 3: never mix devices within one sweep -- a
+            # resumed cell recorded on a different device would mix two different draws.
+            rec_device = rec.get("device", "cpu")
+            if rec_device != str(device):
+                raise ValueError(
+                    f"--resume: record_path={record_path} already contains a cell recorded "
+                    f"at device={rec_device!r}, but this invocation requested "
+                    f"device={str(device)!r} -- mixing devices within one sweep mixes two "
+                    "different RNG draws (03-07-SUPPLEMENT-01 caveat 3). Use a distinct "
+                    "--record-path instead."
+                )
 
     rho_raw = raw_baseline_context()
 
@@ -661,7 +743,7 @@ def main() -> None:
             break
 
         t0 = time.monotonic()
-        record = run_cell(n_charts=n_charts, seed=seed, n_points=n_points)
+        record = run_cell(n_charts=n_charts, seed=seed, n_points=n_points, device=device)
         record["rho_raw_context"] = rho_raw
         append_record(record_path, record)
         elapsed = time.monotonic() - t0
