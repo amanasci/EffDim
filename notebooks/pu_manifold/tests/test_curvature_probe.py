@@ -1611,6 +1611,134 @@ def test_chart_curvature_reverse_mode_is_bit_identical_to_sealed_baseline():
     assert torch.equal(H_vec, golden)
 
 
+def test_chart_curvature_forward_mode_matches_reverse_to_float64_round_off():
+    """D-09's equivalence proof, mirroring ``test_chart_curvature_dxd_solve_matches_explicit_projector``'s
+    structure exactly but comparing ``mode="forward"`` against ``mode="reverse"`` instead of
+    against a hand-written reference projector -- the ``d``-by-``d``-solve optimization earned
+    its place this way, and the forward-mode toggle must earn its place the same way, proved
+    rather than merely asserted.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=3)
+    chart_idx = 1
+    z_chart = torch.rand(6, model.chart_dim, dtype=torch.float64)
+
+    reverse = cc.chart_mean_curvature(model, z_chart, chart_idx, mode="reverse")
+    forward = cc.chart_mean_curvature(model, z_chart, chart_idx, mode="forward")
+
+    assert reverse["jacobian_shape"] == forward["jacobian_shape"]
+    assert reverse["hessian_shape"] == forward["hessian_shape"]
+
+    torch.testing.assert_close(forward["H_vec"], reverse["H_vec"], rtol=1e-9, atol=1e-12)
+    torch.testing.assert_close(forward["H_norm"], reverse["H_norm"], rtol=1e-9, atol=1e-12)
+    torch.testing.assert_close(
+        forward["metric_condition_number"],
+        reverse["metric_condition_number"],
+        rtol=1e-9,
+        atol=1e-12,
+    )
+    assert forward["mode"] == "forward"
+    assert reverse["mode"] == "reverse"
+
+
+def test_chart_curvature_forward_mode_keeps_shape_assertions():
+    """RESEARCH Pitfall 5: a wrong ``torch.func`` transform composition still runs and
+    silently returns a differently-shaped tensor rather than raising. This pins that the
+    forward path returns the exact expected tuple shapes -- the only thing that would catch a
+    composition that silently returned a Jacobian-shaped Hessian."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=4)
+    chart_idx = 0
+    z_chart = torch.rand(5, model.chart_dim, dtype=torch.float64)
+
+    out = cc.chart_mean_curvature(model, z_chart, chart_idx, mode="forward")
+
+    assert out["jacobian_shape"] == (5, model.out_dim, model.chart_dim)
+    assert out["hessian_shape"] == (5, model.out_dim, model.chart_dim, model.chart_dim)
+    assert out["H_vec"].shape == (5, model.out_dim)
+
+
+def test_chart_curvature_forward_mode_calls_c2_guard():
+    """Mirrors ``test_chart_curvature_refuses_relu_decoder``: a ReLU-family decoder has an
+    identically-zero second derivative and would return an identically-zero second
+    fundamental form without raising. The C2 guard must be reached on the forward path too,
+    not only on reverse."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    relu_model = _small_cae("relu", seed=1)
+    z_chart = torch.rand(4, 2, dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="relu"):
+        cc.chart_mean_curvature(relu_model, z_chart, 0, mode="forward")
+
+    silu_model = _small_cae("silu", seed=1)
+    out = cc.chart_mean_curvature(silu_model, z_chart, 0, mode="forward")
+    assert out["H_vec"].shape == (4, silu_model.out_dim)
+    assert torch.isfinite(out["H_vec"]).all()
+
+
+def test_chart_curvature_rejects_unknown_mode():
+    """An unknown ``mode`` string raises ``ValueError`` naming the offending value, rather
+    than silently falling through to a default -- on both public entry points."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=5)
+    z_chart = torch.rand(4, model.chart_dim, dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="sideways"):
+        cc.chart_mean_curvature(model, z_chart, 0, mode="sideways")
+
+    # model.out_dim == in_dim for a ChartAutoEncoder (cae.py stores no separate in_dim
+    # attribute); ambient rows must match it for encode() to accept them.
+    x = torch.rand(4, model.out_dim, dtype=torch.float64)
+    with pytest.raises(ValueError, match="sideways"):
+        cc.chart_curvature_field(model, x, mode="sideways")
+
+
+def test_chart_curvature_field_forward_mode_matches_reverse_across_charts():
+    """Field-level D-09 equivalence, reusing ``test_chart_curvature_field_reassembles_in_row_order``'s
+    exact point-cloud construction (a multi-chart cloud, not a fresh invention) so
+    ``mode="forward"`` and ``mode="reverse"`` are compared over rows spanning at least two
+    charts, at the same float64 round-off band as the per-chart proof, and are shown to agree
+    on chart assignment and chart count too."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=2)
+    rng = np.random.default_rng(7)
+    x = torch.tensor(rng.standard_normal((24, 12)), dtype=torch.float64)
+
+    field_reverse = cc.chart_curvature_field(model, x, batch_size=8, mode="reverse")
+    field_forward = cc.chart_curvature_field(model, x, batch_size=8, mode="forward")
+
+    assert field_reverse["n_charts_used"] == field_forward["n_charts_used"]
+    assert torch.equal(field_reverse["chart_assignment"], field_forward["chart_assignment"])
+
+    torch.testing.assert_close(
+        field_forward["H_vec"], field_reverse["H_vec"], rtol=1e-9, atol=1e-12
+    )
+    torch.testing.assert_close(
+        field_forward["H_norm"], field_reverse["H_norm"], rtol=1e-9, atol=1e-12
+    )
+    torch.testing.assert_close(
+        field_forward["metric_condition_number"],
+        field_reverse["metric_condition_number"],
+        rtol=1e-9,
+        atol=1e-12,
+    )
+
+
 # --- Plan 02.5-08 Task 2: the checks a rank statistic cannot make -----------------------
 #
 # 02.5-NOTE-randomized-trace.md Addendum C. The decoder arm computes H_F, the EXACT
