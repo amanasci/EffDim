@@ -165,3 +165,12 @@ None. All 8 new tests passed on first run; the finite-difference cross-check's i
 ---
 *Phase: 03-decoder-curvature-field*
 *Completed: 2026-08-14*
+
+## Self-Check: PASSED
+
+- FOUND: `notebooks/pu_manifold/synthetic_controls.py`
+- FOUND: `notebooks/pu_manifold/tests/test_synthetic_controls.py`
+- FOUND: `.planning/phases/03-decoder-curvature-field/03-04-SUMMARY.md`
+- FOUND: commit `9406bd4` (Task 1)
+- FOUND: commit `0621f89` (Task 2)
+- FOUND: commit `089a409` (plan summary)
