@@ -59,7 +59,17 @@ from typing import Any, Callable, Dict, Optional, Sequence
 
 import numpy as np
 import torch
-from torch.func import hessian, jacrev, jvp, vmap
+from torch.func import hessian, jacfwd, jacrev, jvp, vmap
+
+CURVATURE_MODES = ("reverse", "forward")
+"""The two legal values of the ``mode`` keyword on :func:`chart_mean_curvature` and
+:func:`chart_curvature_field`. ``"reverse"`` is the default and STAYS the default, before and
+after the forward path's equivalence tests pass -- this is an explicit user instruction, not a
+provisional state. The toggle exists so a forward-mode composition that turns out to be a bad
+idea (an unimplemented ``vmap`` batching rule, a hidden numerical regression) can be abandoned
+by simply never passing ``mode="forward"``, without touching a single line of the reverse path
+every existing call site, the ``02.5-09`` notebook, and every sealed roll number depend on.
+Flipping the default would silently change what every existing call site computes with."""
 
 CURVATURE_CONVENTION = "trace"
 """``H = tr_g(II)``, the unnormalized ``g``-trace of the second fundamental form -- never the
@@ -251,8 +261,54 @@ def _chunked_jacobian(
 # --- the gating computation: exact g-trace of the normal-projected Hessian ----------------
 
 
+def _jacobian_hessian(
+    decode_one: Callable[[torch.Tensor], torch.Tensor], chunk: torch.Tensor, mode: str
+) -> "tuple[torch.Tensor, torch.Tensor]":
+    """Dispatch the Jacobian/Hessian construction on ``mode``. This is the ONLY thing that
+    branches on ``mode`` anywhere in this module -- everything downstream of the returned
+    ``(J, Hess)`` pair (the ``g``-trace-first, ``d x d``-solve, normal-project block) is
+    identical mathematics regardless of how the two tensors were produced, and stays
+    byte-for-byte untouched by this function's existence.
+
+    ``mode == "reverse"``: ``vmap(jacrev(decode_one))`` for the Jacobian and
+    ``vmap(hessian(decode_one))`` -- ``hessian = jacfwd(jacrev(f))`` -- for the Hessian. Moved
+    verbatim from this function's pre-03-05 inline call sites; this is the path every existing
+    caller, the ``02.5-09`` notebook, and every sealed roll number depend on staying bit-exact.
+
+    ``mode == "forward"``: ``vmap(jacfwd(decode_one))`` for the Jacobian (about ``d`` passes
+    instead of reverse's ``D``), and ``vmap(jacfwd(jacfwd(decode_one)))`` for the Hessian.
+    **Spike evidence (plan 03-05 Task 1):** ``vmap(jacfwd(jacfwd(decode_one)))`` was run
+    against the real ``cae.ChartAutoEncoder`` chart-decoder architecture (``chart_dim=20,
+    out_dim=768, hidden=[250,250,250], activation="silu"``, float64) and completed without
+    raising, returning the expected ``(batch, out_dim, chart_dim, chart_dim)`` shape. This is
+    therefore the PRIMARY forward-Hessian composition, not the documented
+    ``jacfwd(jacrev(f))`` fallback -- the fallback was not needed. A single-chunk (32-row)
+    Hessian at that architecture measured ~6.08s in reverse mode
+    (``vmap(hessian(decode_one))``) versus ~0.26s in forward mode
+    (``vmap(jacfwd(jacfwd(decode_one)))``), roughly a 23.6x wall-clock speedup -- well short of
+    the ~38x operation-count ceiling (expected: PyTorch's forward-mode path is less optimized
+    than its reverse path, and ``vmap`` over dual numbers carries its own constants) but a
+    real, substantial, measured win. See the plan SUMMARY for the full spike transcript.
+
+    Any other value: ``raise ValueError`` naming the offending string, in the
+    refuse-and-name-the-fix style of :func:`_assert_float64` -- never a silent fall-through to
+    a default.
+    """
+    if mode == "reverse":
+        J = vmap(jacrev(decode_one))(chunk)
+        Hess = vmap(hessian(decode_one))(chunk)
+    elif mode == "forward":
+        J = vmap(jacfwd(decode_one))(chunk)
+        Hess = vmap(jacfwd(jacfwd(decode_one)))(chunk)
+    else:
+        raise ValueError(
+            f"_jacobian_hessian: unknown mode {mode!r}; must be one of {CURVATURE_MODES}."
+        )
+    return J, Hess
+
+
 def chart_mean_curvature(
-    model: Any, z_chart: torch.Tensor, chart_idx: int
+    model: Any, z_chart: torch.Tensor, chart_idx: int, mode: str = "reverse"
 ) -> Dict[str, Any]:
     """Exact mean curvature vector of the manifold parameterized by chart ``chart_idx``'s
     decoder, at each chart coordinate in ``z_chart``.
@@ -260,6 +316,15 @@ def chart_mean_curvature(
     ``z_chart``: ``(batch, chart_dim)`` coordinates **within one chart's own coordinate
     space** -- ``model.chart_coords(z)[:, chart_idx, :]``, NOT the initial-encoder embedding
     ``z``. See :func:`chart_decoder_map` for why that distinction is the whole point.
+
+    ``mode``: which differentiation path constructs the Jacobian and Hessian -- see
+    :data:`CURVATURE_MODES` and :func:`_jacobian_hessian`. Defaults to, and stays defaulted
+    to, ``"reverse"``: that is the path every existing call site, the ``02.5-09`` notebook,
+    and every sealed roll number were measured against. ``"forward"`` is opt-in only, proved
+    equal to ``"reverse"`` at float64 round-off by ``test_chart_curvature_forward_mode_matches_reverse_to_float64_round_off``,
+    and only ever selected by an explicit caller. Only the Jacobian/Hessian construction
+    branches on ``mode`` -- everything below it, including this docstring's mathematics, is
+    identical for both.
 
     Returns a dict, not a bare tensor, because three separate things must be visible to the
     caller and the plan requires all of them: the curvature itself, the shapes the
@@ -271,7 +336,7 @@ def chart_mean_curvature(
       ``"metric_condition_number"``  ``(batch,)``          ``cond(g)`` per point
       ``"jacobian_shape"``           tuple                 as produced, for the shape assertion
       ``"hessian_shape"``            tuple                 as produced, for the shape assertion
-      ``"chart_idx"``, ``"activation"``                    provenance
+      ``"chart_idx"``, ``"activation"``, ``"mode"``        provenance
 
     Mathematics, under this module's ``H = tr_g(II)`` trace convention:
 
@@ -347,7 +412,7 @@ def chart_mean_curvature(
         # on the chunk's width, so this is exact rather than approximate.
         chunk = _pad_to_chunk(real)
 
-        J = vmap(jacrev(decode_one))(chunk)
+        J, Hess = _jacobian_hessian(decode_one, chunk, mode)
         if tuple(J.shape) != (VMAP_CHUNK, out_dim, chart_dim):
             raise ValueError(
                 f"chart_mean_curvature: expected Jacobian of shape "
@@ -356,7 +421,6 @@ def chart_mean_curvature(
                 f"(RESEARCH Pitfall 5)."
             )
 
-        Hess = vmap(hessian(decode_one))(chunk)
         if tuple(Hess.shape) != (VMAP_CHUNK, out_dim, chart_dim, chart_dim):
             raise ValueError(
                 f"chart_mean_curvature: expected Hessian of shape "
@@ -395,6 +459,7 @@ def chart_mean_curvature(
         "chart_idx": int(chart_idx),
         "activation": activation,
         "curvature_convention": CURVATURE_CONVENTION,
+        "mode": mode,
     }
 
 
@@ -413,7 +478,7 @@ def chart_mean_curvature_norm(H: torch.Tensor) -> torch.Tensor:
 
 
 def chart_curvature_field(
-    model: Any, x: torch.Tensor, batch_size: int = 32
+    model: Any, x: torch.Tensor, batch_size: int = 32, mode: str = "reverse"
 ) -> Dict[str, Any]:
     """Per-point mean curvature over an ambient point cloud, each row measured in the chart
     the model itself assigns to it.
@@ -422,6 +487,10 @@ def chart_curvature_field(
     ``chart_probs(z).argmax(dim=1)``, then for each chart index calls
     :func:`chart_mean_curvature` on exactly the rows assigned to that chart, using that
     chart's own coordinates, and reassembles the result in the original row order.
+
+    ``mode``: threaded verbatim to every :func:`chart_mean_curvature` call, one per chart. See
+    that function's docstring and :data:`CURVATURE_MODES` -- ``"reverse"`` is the default and
+    stays the default.
 
     Returns ``{"H_vec": (n, out_dim), "H_norm": (n,), "chart_assignment": (n,),
     "metric_condition_number": (n,), "n_charts_used": int, "batch_size": int,
@@ -466,7 +535,7 @@ def chart_curvature_field(
         coords = z_charts[rows, chart_idx, :]
         for start in range(0, rows.shape[0], batch_size):
             sl = slice(start, start + batch_size)
-            out = chart_mean_curvature(model, coords[sl], chart_idx)
+            out = chart_mean_curvature(model, coords[sl], chart_idx, mode=mode)
             if H_vec is None:
                 H_vec = torch.empty(n, out["H_vec"].shape[1], dtype=torch.float64)
             target = rows[sl]
