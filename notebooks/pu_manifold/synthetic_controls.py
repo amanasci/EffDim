@@ -163,3 +163,63 @@ def make_sphere_control(
         "global_std": global_std,
         "R": R,
     }
+
+
+# --- Saddle control --------------------------------------------------------------------
+
+
+def make_saddle_control(
+    n: int, d: int, D: int, seed: int, domain_radius: float = 2.0
+) -> Dict[str, np.ndarray]:
+    """Mixed-sign saddle control: ``f(x) = 0.5 * x^T Q x`` with ``Q = diag(signs)``,
+    ``signs`` a fixed, seed-shuffled mix of ``d // 2`` values of ``+1`` and the rest ``-1``
+    (``trace(Q) == 0`` at even ``d``), embedded as the graph ``M = {(x, f(x))}`` in
+    ``R^{d+1}``, then rotated and padded to ``D``.
+
+    Chosen deliberately over ``make_graph_of_function_fixture``'s Gaussian-bump family: a
+    bump field decays to near-zero far from its bump centres, so its near-zero region reads
+    "flat here" -- whereas the saddle's near-zero region reads "positive and negative
+    curvature cancelling in the trace." Only the second exercises the failure mode
+    ``cond(g)`` exists to disambiguate: a near-zero ``||H||`` because the trace cancels and
+    a near-zero ``||H||`` because the pullback metric is nearly singular produce the same
+    symptom for opposite reasons.
+
+    ``grad`` (``(n, 1, d)``) and ``hess`` (``(n, 1, d, d)``) are hand-computed directly from
+    the quadratic form -- ``grad[i, 0, :] = x[i] * signs``, ``hess[i, 0, :, :] =
+    diag(signs)`` -- and fed to ``curvature_probe.graph_mean_curvature`` unmodified; this
+    function writes no new curvature mathematics, only the two derivative arrays of its own
+    quadratic, and those are cross-checked against an independent
+    central-finite-difference computation
+    (``test_synthetic_saddle_control_matches_finite_difference``) rather than trusted by
+    inspection.
+
+    Returns the standard dict (``X``, ``x_param``, ``H_vec``, ``H_norm``, ``global_std``)
+    plus ``signs`` and ``domain_radius`` for provenance.
+    """
+    rng = np.random.default_rng(seed)
+    n_pos = d // 2
+    signs = np.array([1.0] * n_pos + [-1.0] * (d - n_pos), dtype=np.float64)
+    rng.shuffle(signs)
+
+    x = rng.uniform(-domain_radius, domain_radius, size=(n, d))
+
+    grad = (x * signs)[:, None, :]  # (n, 1, d)
+    hess = np.repeat(np.diag(signs)[None, None, :, :], n, axis=0)  # (n, 1, d, d)
+
+    H_local = curvature_probe.graph_mean_curvature(grad, hess)  # (n, d + 1)
+
+    f_x = 0.5 * np.einsum("ij,j,ij->i", x, signs, x)  # (n,)
+    X_local = np.concatenate([x, f_x[:, None]], axis=1)  # (n, d + 1)
+
+    X, H_vec, global_std = rotate_and_pad(X_local, H_local, D, seed)
+    H_norm = np.linalg.norm(H_vec, axis=-1)
+
+    return {
+        "X": X,
+        "x_param": x,
+        "H_vec": H_vec,
+        "H_norm": H_norm,
+        "global_std": global_std,
+        "signs": signs,
+        "domain_radius": domain_radius,
+    }
