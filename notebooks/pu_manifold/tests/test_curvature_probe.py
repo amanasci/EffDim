@@ -19,6 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
 import pytest
+import torch  # only used at module scope by test_chart_curvature_cpu_cuda_agree_to_float64_tolerance's
+# skipif condition below -- every other test in this file still imports torch locally, per this
+# file's original "no torch at collection time" discipline; torch is already a hard runtime
+# dependency of every module this file exercises, so this top-level import changes nothing.
 from sklearn.datasets import make_swiss_roll
 from sklearn.neighbors import NearestNeighbors
 
@@ -1703,6 +1707,57 @@ def test_chart_curvature_rejects_unknown_mode():
     x = torch.rand(4, model.out_dim, dtype=torch.float64)
     with pytest.raises(ValueError, match="sideways"):
         cc.chart_curvature_field(model, x, mode="sideways")
+
+
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="requires CUDA -- inert on this CPU-only development machine and on CI",
+)
+def test_chart_curvature_cpu_cuda_agree_to_float64_tolerance():
+    """Device-parity check for Phase 3's opt-in GPU support (03-07-SUPPLEMENT-01.md).
+
+    CUDA RNG differs from CPU RNG, so ``torch.manual_seed(seed)`` draws a DIFFERENT model
+    on each device -- a bit-identity assertion across devices would be meaningless (and,
+    per :data:`chart_curvature.VMAP_CHUNK`'s own docstring, even a batch-width change on
+    the SAME device already moves bits at ~1e-14 to ~1e-18, so cross-device bit-identity
+    was never on the table). Instead: build one model on CPU under the module's normal
+    construct-then-``.to(device)`` discipline, deep-copy its exact trained parameters onto
+    a CUDA copy (so both models share literally the same weights), and check the computed
+    curvature field agrees to a documented float64 cross-device tolerance.
+
+    Inert everywhere this suite currently runs (no CUDA available), which is the point --
+    it exists to be exercised on the colleague's GPU machine, not here."""
+    import copy
+
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model_cpu = _small_cae("silu", seed=9)
+    model_cuda = copy.deepcopy(model_cpu).to("cuda").double()
+
+    z_chart_cpu = torch.rand(6, model_cpu.chart_dim, dtype=torch.float64)
+    z_chart_cuda = z_chart_cpu.to("cuda")
+
+    out_cpu = cc.chart_mean_curvature(model_cpu, z_chart_cpu, chart_idx=1)
+    out_cuda = cc.chart_mean_curvature(model_cuda, z_chart_cuda, chart_idx=1)
+
+    # Documented cross-device float64 tolerance -- NOT bit-identity (unachievable across
+    # devices; see docstring above). rtol/atol chosen an order of magnitude above the
+    # same-device batch-width drift (~1e-14) this module's own docstring already measures,
+    # so a real cross-device numerical divergence is caught without false alarms on the
+    # noise floor this module already documents as expected.
+    torch.testing.assert_close(
+        out_cuda["H_vec"].cpu(), out_cpu["H_vec"], rtol=1e-6, atol=1e-8
+    )
+    torch.testing.assert_close(
+        out_cuda["metric_condition_number"].cpu(),
+        out_cpu["metric_condition_number"],
+        rtol=1e-6,
+        atol=1e-8,
+    )
+    assert out_cpu["H_vec"].device.type == "cpu"
+    assert out_cuda["H_vec"].device.type == "cuda"
 
 
 def test_chart_curvature_field_forward_mode_matches_reverse_across_charts():
