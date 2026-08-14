@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-01-PLAN.md (D-02/D-05 ratified, tracer reproduced -0.0604)
-last_updated: "2026-08-13T15:53:23.079Z"
-last_activity: 2026-08-13
-last_activity_desc: Phase 3 Plan 01 executed (D-02/D-05 ratified, tracer reproduced rho_chart=-0.0604)
+stopped_at: Completed 03-02-PLAN.md (Step-1 gate MISS at n=3000, Amendment 1, CLEARS at n=12000 on two tied configs nc=2/nc=8)
+last_updated: "2026-08-14T14:07:29.332Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 02.7 execution started
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 76
-  completed_plans: 60
+  completed_plans: 61
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03 (decoder-curvature-field) — EXECUTING
-Plan: 01 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
+Plan: 2 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
 at n_charts=8, seed=0 through the full chain. Next: 03-02 (full 20-cell sweep, median/floor
 read-out).
 
@@ -232,7 +232,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [████████░░] 79% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [████████░░] 80% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -297,6 +297,7 @@ Progress: [████████░░] 79% of planned plans (17/17; Phases 1
 | Phase 02.7 P09 | ~2h40min | 2 tasks | 6 files |
 | Phase 02.7 P10 | ~1h (runner-build-only session) | 1 tasks | 1 files |
 | Phase 03 P01 | ~25min active (2 checkpoint round-trips) | 3 tasks | 1 files |
+| Phase 03 P02 | ~1h20min active + ~13h wall-clock (n=12000 sweep) | 3 tasks | 2 tracked + 2 gitignored cache files |
 
 ## Accumulated Context
 
@@ -445,6 +446,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: Swiss roll check (02.7-09) found gmst's local-dispersion instability masking the (sound) Betti-lookup core on all three clouds; checkpoint resolved by amending D-12 to exclude provenance-mismatched estimators from the local gate only (02.7-SCREENING-RULE-AMENDMENT-01.md, 948d13f), not by reconsidering any bound.
 - [Phase ?]: 02.7-10 executed runner-build-only by explicit user scope decision: template_benchmark_run.py built/tested/committed (ac6a3fd), no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md produced, Task 3 checkpoint not reached -- grid launch deferred to the user
 - [Phase ?]: Phase 3 D-02 (Step-1 floor: median rho_chart > 0.65, raw-point 0.6712 demoted to context) and D-05 (n_charts opened as an in-scope Phase 3 hyperparameter, swept set {2,3,5,8}) ratified at 03-01's blocking checkpoints, before any Phase 3 rho_chart value existed
+- [Phase ?]: Amendment 1: N_POINTS 3000 -> 12000 -- curvature (2nd-derivative) needs denser sampling than CLAUDE.md's reconstruction-sanity Swiss roll protocol provides; pre-registered n=3000 gate MISS (median 0.4347) not retracted, n=12000 gate CLEARS on two tied configs (nc=2 median 0.8302, nc=8 median 0.8234, differ by 0.0068)
+- [Phase ?]: D-05's monotone-in-charts-used premise partly falsified at n=12000 (Spearman -0.5586 p=0.0105 -> -0.2866 p=0.221, not significant); flagged for 03-11's requirement re-mint, D-05 itself not reopened
 
 ### Pending Todos
 
@@ -490,8 +493,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-13T15:52:35.188Z
-Stopped at: Completed 03-01-PLAN.md (D-02/D-05 ratified, tracer reproduced -0.0604)
+Last session: 2026-08-14T14:07:29.314Z
+Stopped at: Completed 03-02-PLAN.md (Step-1 gate MISS at n=3000, Amendment 1, CLEARS at n=12000 on two tied configs nc=2/nc=8)
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
