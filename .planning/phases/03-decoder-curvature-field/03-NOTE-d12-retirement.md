@@ -2,7 +2,9 @@
 
 **Date:** 2026-08-15
 **Status:** decision recorded. No sealed verdict is reopened, softened, or reinterpreted by
-this note.
+this note. **D-12's retirement itself is final and does not depend on §5's open C0 threshold**
+(see §1) — at Task 5's checkpoint the proposed C0 threshold was explicitly left **DEFERRED, not
+ratified** (§5), while the retirement was reaffirmed unconditionally.
 **Raised by:** the developer.
 
 ---
@@ -13,6 +15,13 @@ Stop comparing the CAE against a plain autoencoder. The plain AE was only ever a
 for detecting a broken or undertrained CAE; if the CAE succeeds at reconstruction at both the C0
 and the C2 level, a relative comparison against a model there is no intention of shipping adds
 nothing. A direct absolute bar is strictly better than a proxy.
+
+**This retirement is unconditional, confirmed at Task 5's checkpoint.** It rests entirely on the
+comparison being the wrong instrument for a C2 question (§§2–4) — not on any threshold value.
+§5's proposed C0 number is a separate, still-open question with its own state (DEFERRED). A
+reader must not infer that D-12's retirement is "pending" that number: it is not. The trigger
+stays retired whether the C0 leg's threshold ends up at `2.5e-04`, some other value, or is
+restructured entirely.
 
 ## 2. D-12 FIRED BEFORE IT WAS RETIRED
 
@@ -111,10 +120,30 @@ with training-length artifacts specific to each model's own stopping behaviour.
 **Proposed absolute C0 threshold: `mse_per_dim < 2.5e-04`** — just above the measured CAE
 ceiling (`2.438e-04`) on the corrected nine-cell grid, so every corrected-grid cell that has
 actually been measured clears it, and the bar is a real ceiling rather than an untested
-extrapolation. **PROPOSED, awaiting developer ratification at this task's checkpoint** — a
-threshold chosen after seeing this distribution is weaker than one pre-registered, and that is a
-known cost of replacing the criterion mid-phase rather than something to paper over. This
-number is not settled by this note.
+extrapolation. A threshold chosen after seeing this distribution is weaker than one
+pre-registered, and that is a known cost of replacing the criterion mid-phase rather than
+something to paper over.
+
+**Resolved at Task 5's checkpoint: `DEFERRED`, not ratified.** The number stays marked
+PROPOSED and is **not settled by this note**. Two reasons, both recorded rather than papered
+over:
+
+1. **Adopting the isometry prior (`03-NOTE-isometry-prior-spike.md`) would change what
+   reconstruction the CAE actually achieves.** The prior trades some reconstruction accuracy for
+   decoder-Jacobian conditioning by construction (it is a training-time term added to the
+   objective), so a C0 threshold fixed now, before that question is settled, could be
+   invalidated by the very fix this phase is trying to land. The threshold cannot be fixed
+   until the prior question resolves.
+2. **A circularity concern, raised at the checkpoint and not yet answered.** The proposed
+   `2.5e-04` is anchored to the CAE's own measured ceiling (`2.438e-04`) on the corrected grid —
+   that describes what the model *already does*, not an independent bar for what it *should*
+   do. A threshold fitted to the model's own observed performance cannot fail by construction,
+   which defeats the point of a gate. The plain AE's measured `mse_per_dim = 2.2646e-05` at 300
+   epochs (§5's own table above) was raised as an alternative anchor — an order of magnitude
+   tighter, and independent of the CAE's own measured behaviour — and is **also deferred**
+   pending the same resolution as point 1.
+
+Both open questions are left open here; neither is decided by this note.
 
 **C2 leg — curvature fidelity against analytic `H` on the Swiss roll clearing the existing
 `ROLL_FLOOR = 0.65` on median `rho_chart`.** This bar is unchanged, already declared in

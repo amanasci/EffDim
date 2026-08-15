@@ -1,9 +1,13 @@
-# 03-NOTE Isometry Prior Spike — halted on budget, before any ladder cell trained
+# 03-NOTE Isometry Prior Spike — halted on budget, then halted again by developer decision
 
 **Date:** 2026-08-15
-**Status:** spike — gates nothing, selects nothing, adopts nothing. Halted at the `--probe`
-budget gate before any weight-ladder cell was trained. No `rho_chart`, `cond(g)`,
-`median_magnitude_ratio` or `calibration_slope` number exists from this spike.
+**Status:** spike — gates nothing, selects nothing, adopts nothing. **Two distinct halts, not
+one.** (1) The runner's own pre-declared `--probe` budget gate stopped the ladder before any
+cell trained (`BUDGET NOT MET` — §3). (2) At Task 5's checkpoint, the developer separately
+decided to HALT here rather than raise the budget or shrink the ladder, pending additional
+information not yet provided (§8). Neither halt produced a measurement. No `rho_chart`,
+`cond(g)`, `median_magnitude_ratio` or `calibration_slope` number exists from this spike, and
+none will until the developer's second halt is lifted.
 **Raised by:** the developer, from a measured structural fact. Reconstruction loss is a C0
 quantity and curvature is a C2 quantity; small C0 error does not bound C2 error, so nothing in
 `cae.train_cae`'s objective constrains the decoder's derivatives unless something is added that
@@ -43,8 +47,9 @@ numerically, the untouched `cae.train_cae` code path.
 
 **`cae.py` was not edited.** `git diff --quiet notebooks/pu_manifold/cae.py` passes. The
 permanent form of this seam — a four-line optional `extra_loss=None` callable parameter on
-`cae.train_cae`, replacing the scoped shim — is **proposed to the developer at Task 5's
-checkpoint and is not applied by this plan.**
+`cae.train_cae`, replacing the scoped shim — was proposed to the developer at Task 5's
+checkpoint. **Resolved: confirmed NOT applied.** The scoped `cae.chart_loss` shim
+(`decoder_prior_active`) stays as the tested mechanism; `cae.py` remains unedited.
 
 `notebooks/diagnostics/swiss_roll_isometry_prior_sweep_run.py` — the weight-ladder runner,
 copying the fixture, protocol and metric call sequence from
@@ -111,7 +116,9 @@ mechanism could be tested.
 **Not taken.** Task 3's pre-declared branch ("if the isometry arm prints `MECHANISM NOT
 DEMONSTRATED`, run the conformal arm") never triggers, because the isometry arm never printed
 any mechanism verdict at all — it halted at the budget gate before training a single ladder
-cell. The conformal arm therefore also carries no measurement from this spike.
+cell. The conformal arm therefore also carries no measurement from this spike. **Confirmed at
+Task 5's checkpoint: moot** — no mechanism verdict exists because no ladder cell trained, so
+there is nothing for the conformal branch to respond to yet.
 
 ## 5. Limitations, unhedged
 
@@ -143,6 +150,9 @@ what CLAUDE.md forbids inside a sanity-check notebook.
 and pass before any PU fit runs with a non-zero prior weight.** That obligation stands
 regardless of this spike's outcome, and is not discharged by anything in this note — there is,
 as of this note, nothing to discharge it against, since no adoption evidence exists yet.
+**Confirmed at Task 5's checkpoint:** this is CLAUDE.md's standing rule for any new
+manifold-learning model variant, not a new decision made here — it was restated for
+confirmation, not decided.
 
 ## 7. What this note does NOT claim
 
@@ -157,10 +167,32 @@ as of this note, nothing to discharge it against, since no adoption evidence exi
   per-epoch cost. A larger budget, a smaller ladder, or a cheaper Jacobian computation are all
   live options a developer could choose — none is chosen here.
 
-## 8. What a developer decides next
+## 8. Checkpoint resolution (2026-08-15) — the developer's second, separate halt
 
-This is the open question this note takes to Task 5's checkpoint: raise `LADDER_BUDGET_S`
-(the measured `E=50` cost of `3635.9s` is only ~21% over budget), shrink the ladder (fewer
-seeds, fewer weights, or a smaller `n_points`/`n_charts`), accept the spike as an incomplete
-negative result and stop here, or something else. `decoder_priors.py` and the runner both exist,
-are tested, and are re-runnable at any revised scope without further code changes.
+Task 5's checkpoint took four questions to the developer, on top of §3's budget halt. Resolved:
+
+**(a) The isometry-prior spike: HALT, deliberately, distinct from §3's budget halt.** The
+developer is stopping here and has additional information to provide before the spike
+proceeds — this is not the runner refusing on its own pre-declared terms (that already
+happened in §3); it is a separate, deliberate developer decision **not** to raise
+`LADDER_BUDGET_S`, **not** to shrink the ladder, and **not** to run any ladder cell for now.
+Both halts are real and are recorded distinctly: §3 is the runner's own terminal branch,
+firing automatically against a declared budget before any human judgement was invoked; this
+one is a human choosing to stop even though §3's proposed relief valves (raise the budget ~21%,
+or shrink the ladder) were available and were not taken. **The spike remains exactly where §3
+left it: no ladder cell trained, no `rho_chart`/`cond(g)`/`median_magnitude_ratio`/
+`calibration_slope` number, no mechanism or bias verdict.** `decoder_priors.py` and the runner
+both exist, are tested, and are re-runnable at any revised scope without further code changes,
+whenever the developer's additional information resolves the halt.
+
+**(b) The conformal branch: not run, confirmed moot** — see §4.
+
+**(c) The `extra_loss` seam: confirmed NOT applied** — see §2. `cae.py` stays unedited; the
+scoped `cae.chart_loss` shim is the tested mechanism.
+
+**(d) The notebook obligation: confirmed** — see §6. Standing CLAUDE.md rule, not decided here.
+
+**What remains open:** the "additional information" the developer will provide before deciding
+whether to raise the budget, shrink the ladder, or abandon the spike. This note will be updated
+again if and when that happens. Nothing in this section changes the fact stated throughout this
+note: **this spike delivered tested, working infrastructure and zero measurement.**
