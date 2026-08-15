@@ -89,13 +89,19 @@ separate axes, ``persistence_probe``'s sixteen uncollapsed cells -- and a compos
 a departure that would have to be named as one.
 
 **D-12's escalation trigger is computed but never acted on here.** One matched
-``cae.PlainAutoEncoder(768, PU_EMBED_DIM, hidden=(250,250,250), activation="silu")`` control
-is fit per seed under the same protocol. The trigger fires when the best ``d=20`` CAE
-config loses to this control on BOTH held-out reconstruction AND PH H0/H1 agreement. This
-runner computes and prints whether it fires; it does not escalate to a ``d`` sweep -- that
-is plan 03-08's decision. Known limitation, carried from ``02.5-09``: reconstruction and
-topology do not predict curvature quality (seeds 0 and 3 differed by 0.29 percentage points
-of reconstruction error and 0.49 of Spearman), so this trigger is EXPECTED to fire.
+``cae.PlainAutoEncoder(768, PU_CHART_DIM, hidden=(250,250,250), activation="silu")`` control
+is fit per seed under the same protocol -- ``PU_CHART_DIM`` (20), the CAE's own effective
+bottleneck, NOT ``PU_EMBED_DIM`` (40): 03-08-DEFECTS-01.md defect 1 found the control
+originally built at 40 solved a strictly easier reconstruction problem at double the CAE's
+narrowest-point capacity. An OPTIONAL, separately-labelled 40-dim capacity-reference
+control (``PU_CONTROL_CAPACITY_DIM``) is also fit per seed and reported on its own row, but
+is never read by the trigger below. The trigger fires when the best ``d=20`` CAE config
+loses to the MATCHED (20-dim) control on BOTH held-out reconstruction AND PH H0/H1
+agreement. This runner computes and prints whether it fires; it does not escalate to a
+``d`` sweep -- that is plan 03-08's decision. Known limitation, carried from ``02.5-09``:
+reconstruction and topology do not predict curvature quality (seeds 0 and 3 differed by
+0.29 percentage points of reconstruction error and 0.49 of Spearman), so this trigger is
+EXPECTED to fire.
 
 Invoke:
     .venv/bin/python notebooks/diagnostics/curvature_field_pu_run.py --dry-run
@@ -146,6 +152,11 @@ PU_CHART_DIM = 20
 ``d_frozen = 5`` is rejected rather than inherited."""
 
 PU_EMBED_DIM = 40
+PU_CONTROL_CAPACITY_DIM = PU_EMBED_DIM
+"""03-08-DEFECTS-01.md defect 1: the OPTIONAL, separately-labelled 40-dim capacity-reference
+control (``config_id`` prefix ``control40_``). Genuinely informative as its own row (a plain
+autoencoder at the CAE's total embed_dim capacity) but MUST NOT be read as the D-12 matched
+comparison -- that control is built at ``PU_CHART_DIM`` (20), the CAE's actual bottleneck."""
 PU_HIDDEN_WIDTH = 250
 PU_ACTIVATION = "silu"
 PU_N_CHARTS_SWEEP = (4, 8, 16)
@@ -155,14 +166,31 @@ PU_SEEDS = (20260813, 20260814, 20260815)
 PU_SPLIT_SEED = 20260813
 PU_HOLDOUT_FRACTION = 0.2
 
-# 02.2 training protocol constants, carried across for comparability.
+# Training protocol. 03-08-DEFECTS-01.md defect 2: MAX_EPOCHS=40/EARLY_STOP_PATIENCE=5/
+# LIP_WEIGHT=1e-2 were carried across from 02.2's own sealed-fit protocol
+# (notebooks/diagnostics/cae_train_run.py) "for comparability", not independently justified
+# at PU scale -- and 02.2's own findings (02.2-06-SUMMARY.md) named "training budget/epochs,
+# loss weighting, the Lipschitz penalty schedule" as unresolved candidate axes for a future
+# iteration phase that never ran. Measured consequence at PU scale: `train_cae` early-stops
+# on TOTAL loss (reconstruction + cross-entropy + the Lipschitz penalty), and with
+# LIP_WEIGHT 10x heavier than the roll's own protocol, 5 of 9 grid cells stopped at
+# epochs_run=7 -- a plateau in the penalty term, not in reconstruction, ended training.
+# FIX: EARLY_STOP_PATIENCE and LIP_WEIGHT are realigned to the Swiss roll runner's own
+# established protocol (300/25/1e-3 in swiss_roll_curvature_sweep_run.py's BASE_CFG) on
+# exactly the two parameters that cause the truncation; MAX_EPOCHS is deliberately NOT
+# raised to the roll's 300 -- see 03-08-SUPPLEMENT-02.md for the full reasoning and the
+# expected wall-clock consequence. FPS_PRETRAIN_EPOCHS (5 vs the roll's 20) is left
+# unchanged: the defect's own measured mechanism (total-loss early stopping under a
+# tight patience and a heavy Lipschitz term) does not implicate the pre-training stage,
+# and CLAUDE.md's keep-it-simple rule argues against widening the fix beyond the
+# mechanism that was actually diagnosed.
 ADAM_LR = 3e-4
 WEIGHT_DECAY = 1e-4
 BATCH = 64
 MAX_EPOCHS = 40
-EARLY_STOP_PATIENCE = 5
+EARLY_STOP_PATIENCE = 25
 EARLY_STOP_MIN_DELTA = 1e-4
-LIP_WEIGHT = 1e-2
+LIP_WEIGHT = 1e-3
 LIP_EVERY_N_STEPS = 1
 FPS_PRETRAIN_EPOCHS = 5
 WALLCLOCK_CEILING_S = 7200
@@ -181,8 +209,20 @@ AMBIENT_DIM = 768
 N_PH_PU = 300
 """Matches ``template_benchmark_run.py``'s ``N_PH = 300``, the PH subsample size already
 established and cost-justified at D=768 by ``ph_budget_calibration_run.py``."""
-PRESCALE_PU = True
-"""Matches ``decoder_substrate_ph_screen_run.py``'s ``PRESCALE_CLOUDS = True``."""
+PRESCALE_PU = "median_distance"
+"""03-08-DEFECTS-01.md defect 3 fix. Originally ``True`` (matching
+``decoder_substrate_ph_screen_run.py``'s ``PRESCALE_CLOUDS = True``), which multiplies each
+cloud by ``topoae.latent_unit_scale`` -- mean per-dimension variance 1, a scale that still
+grows as ``sqrt(d)``, so comparing the 40-dim ``latent`` cloud against the 768-dim ``ambient``
+reference (``sqrt(768/40) ~ 4.4x``) saturated by construction: every ``latent|ambient|*``
+bottleneck cell measured in the nine-cell grid was pinned at exactly its saturation ceiling
+(0.5, 12 of 12 records including controls), i.e. it measured ambient dimension, not topology.
+``"median_distance"`` (``persistence_probe.cloud_distance_matrix``'s new opt-in mode) instead
+fixes each cloud's own median pairwise distance to 1 -- a dimension-invariant distance-scale
+statistic, verified against 03-08-DEFECTS-01.md's identical-structure-at-two-dimensions test
+to give a non-saturated, near-zero bottleneck where the old default gave the saturation
+ceiling exactly. ``persistence_probe``'s default (``True``/``False``) behaviour is unchanged
+by this fix -- this is a PU-runner-local opt-in, not a change to any other call site."""
 
 # Smoke-mode sizes -- deliberately tiny, to prove the wiring, never the real grid.
 SMOKE_TRAIN_N = 400
@@ -356,10 +396,22 @@ def build_cae(n_charts: int, device: torch.device = torch.device("cpu")) -> "cae
     return model.to(device)
 
 
-def build_control(device: torch.device = torch.device("cpu")) -> "cae.PlainAutoEncoder":
-    """Same construct-then-``.to(device)`` discipline as :func:`build_cae`."""
+def build_control(
+    latent_dim: int, device: torch.device = torch.device("cpu")
+) -> "cae.PlainAutoEncoder":
+    """03-08-DEFECTS-01.md defect 1 fix: ``latent_dim`` is now an explicit, required
+    argument rather than being hardcoded to ``PU_EMBED_DIM``. The D-12 escalation trigger's
+    control MUST be built at ``latent_dim=PU_CHART_DIM`` (20) -- the CAE's own narrowest
+    point (``encode -> z (embed_dim=40) -> chart_coords -> chart_dim=20 -> decode``) -- not
+    at ``PU_EMBED_DIM`` (40), which was double the CAE's effective bottleneck and so solved
+    a strictly easier reconstruction problem. ``PlainAutoEncoder``'s own docstring names the
+    question this control exists to answer: "whether the atlas bought anything over one
+    chart at matched capacity" -- at 40 vs 20, capacity was not matched. The 40-dim control
+    is kept as an OPTIONAL, separately-labelled capacity reference (see
+    :data:`PU_CONTROL_CAPACITY_DIM`), never as the D-12 comparison. Same
+    construct-then-``.to(device)`` discipline as :func:`build_cae`."""
     model = cae.PlainAutoEncoder(
-        AMBIENT_DIM, PU_EMBED_DIM, hidden=(PU_HIDDEN_WIDTH,) * 3, activation=PU_ACTIVATION
+        AMBIENT_DIM, latent_dim, hidden=(PU_HIDDEN_WIDTH,) * 3, activation=PU_ACTIVATION
     )
     return model.to(device)
 
@@ -429,12 +481,16 @@ slice (measured per-dimension variance ~1e-16 to 1e-18, i.e. genuinely indisting
 from float64 round-off, not a code bug -- a two-epoch fit on 400 rows through a
 768<->250x3<->40<->20 architecture has had on the order of a dozen gradient steps, nowhere
 near enough to escape its initialization). ``persistence_probe.cloud_distance_matrix``'s
-global isotropic prescale (``1 / sqrt(mean variance)``) is specifically designed to divide
-by that variance, so on this exact pathology it amplifies float64 round-off by a factor of
-~1e8, and ``persistence_diagram``'s own symmetry check (deliberately strict, no silent
-auto-symmetrization) then correctly refuses a matrix that is no longer symmetric to
-default tolerance. Real grid and control cells never hit this: they train to convergence
-(40 epochs with early stopping, on 8,000 rows) and were verified not to collapse this way.
+prescale normalizer -- originally the global isotropic ``1 / sqrt(mean variance)``, now
+``PRESCALE_PU``'s ``"median_distance"`` mode (03-08-DEFECTS-01.md defect 3) -- divides by a
+scale statistic computed FROM the cloud itself, so on this exact pathology (a near-constant
+cloud whose own variance and whose own pairwise distances both collapse toward the float64
+noise floor) either normalizer divides by a near-zero denominator and amplifies round-off by
+a similarly large factor, and ``persistence_diagram``'s own symmetry check (deliberately
+strict, no silent auto-symmetrization) then correctly refuses a matrix that is no longer
+symmetric to default tolerance. Real grid and control cells never hit this: they train
+under a protocol realigned to avoid premature early stopping (03-08-DEFECTS-01.md defect 2)
+and were verified not to collapse this way.
 The fix applied ONLY here is a small seeded Gaussian perturbation, several orders of
 magnitude above the float64 noise floor and several orders below the ambient data's own
 scale, added to the latent and decoder-image clouds before the PH call -- restoring a
@@ -532,11 +588,15 @@ def _run_control_cell(
     x_holdout64: torch.Tensor,
     x_ph64: torch.Tensor,
     max_epochs: int,
+    latent_dim: int,
 ) -> Dict[str, Any]:
-    """D-12's matched control -- computed but never acted on here."""
+    """One ``PlainAutoEncoder`` control at ``latent_dim``. Called at ``latent_dim=
+    PU_CHART_DIM`` for D-12's matched control (computed but never acted on here) and,
+    optionally, at ``latent_dim=PU_CONTROL_CAPACITY_DIM`` for the separately-labelled
+    capacity reference -- see :func:`build_control` and 03-08-DEFECTS-01.md defect 1."""
     device = x_train32.device
     torch.manual_seed(seed)
-    model = build_control(device=device)
+    model = build_control(latent_dim, device=device)
     cfg = _protocol_cfg(seed, n_charts=None, max_epochs=max_epochs)
     t0 = time.monotonic()
     fit = cae.train_plain_ae(model, x_train32, cfg)
@@ -557,6 +617,7 @@ def _run_control_cell(
     return {
         "kind": "control_cell",
         "seed": seed,
+        "latent_dim": latent_dim,
         "train_wallclock_s": train_wallclock_s,
         "epochs_run": fit["epochs_run"],
         "early_stopped": fit["early_stopped"],
@@ -622,8 +683,17 @@ def _grid_records(completed: Dict[str, Dict[str, Any]]) -> Dict[Tuple[int, int],
     return out
 
 
-def _control_records(completed: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return [rec for rec in completed.values() if rec.get("kind") == "control_cell"]
+def _control_records(
+    completed: Dict[str, Dict[str, Any]], latent_dim: Optional[int] = None
+) -> List[Dict[str, Any]]:
+    """All ``control_cell`` records, optionally filtered to one ``latent_dim``.
+    03-08-DEFECTS-01.md defect 1: :func:`print_d12_trigger` MUST pass
+    ``latent_dim=PU_CHART_DIM`` so the escalation trigger only ever reads the matched
+    (20-dim) control, never the 40-dim capacity reference."""
+    records = [rec for rec in completed.values() if rec.get("kind") == "control_cell"]
+    if latent_dim is None:
+        return records
+    return [rec for rec in records if int(rec.get("latent_dim", PU_CHART_DIM)) == latent_dim]
 
 
 def _planned_cells() -> List[Tuple[int, int]]:
@@ -719,10 +789,22 @@ def print_d12_trigger(
     control_records: List[Dict[str, Any]],
     selection_result: Dict[str, Any],
 ) -> None:
-    """D-12's escalation trigger -- computed and printed, never acted on here."""
+    """D-12's escalation trigger -- computed and printed, never acted on here.
+
+    03-08-DEFECTS-01.md defect 1: filters ``control_records`` down to ``latent_dim ==
+    PU_CHART_DIM`` (the matched control) BEFORE computing anything, regardless of what the
+    caller passed in -- so a caller that (by mistake or by including the optional 40-dim
+    capacity reference) hands this function a mixed list can never silently pull an
+    unmatched control into the D-12 comparison."""
+    control_records = [
+        rec for rec in control_records if int(rec.get("latent_dim", PU_CHART_DIM)) == PU_CHART_DIM
+    ]
     selected = selection_result.get("selected_n_charts")
     if selected is None or not control_records:
-        print("D-12 trigger: no CAE selection or no control records available; not evaluated.")
+        print(
+            "D-12 trigger: no CAE selection or no matched (latent_dim=PU_CHART_DIM) control "
+            "records available; not evaluated."
+        )
         return
 
     best_cells = [rec for (nc, _seed), rec in grid_records.items() if nc == selected]
@@ -960,29 +1042,41 @@ def run_grid(
         n_run += 1
         print(f"[{config_id}] done in {time.monotonic() - t0:.1f}s")
 
-    for seed in PU_SEEDS:
-        config_id = f"control_seed{seed}"
-        if resume and config_id in completed:
-            print(f"  [skip, resumed] {config_id}")
-            continue
-        if _budget_reached():
-            print(f"--max-combos={max_combos} reached; stopping this invocation.")
-            return
-        print(f"[{config_id}] fitting D-12 control...")
-        t0 = time.monotonic()
-        rec = _run_control_cell(seed, x_train32, x_holdout64, x_ph64, max_epochs=MAX_EPOCHS)
-        rec["config_id"] = config_id
-        append_record(record_path, rec)
-        n_run += 1
-        print(f"[{config_id}] done in {time.monotonic() - t0:.1f}s")
+    # 03-08-DEFECTS-01.md defect 1: two labelled control sets. "control_seed{seed}" is the
+    # matched D-12 control (latent_dim=PU_CHART_DIM=20) -- the only one print_d12_trigger may
+    # read. "control40_seed{seed}" is the OPTIONAL, separately-labelled 40-dim capacity
+    # reference (latent_dim=PU_CONTROL_CAPACITY_DIM) -- informative on its own, never fed to
+    # the D-12 trigger (print_d12_trigger filters it out even if passed in by mistake).
+    control_sets = (
+        ("control", PU_CHART_DIM),
+        ("control40", PU_CONTROL_CAPACITY_DIM),
+    )
+    for prefix, latent_dim in control_sets:
+        for seed in PU_SEEDS:
+            config_id = f"{prefix}_seed{seed}"
+            if resume and config_id in completed:
+                print(f"  [skip, resumed] {config_id}")
+                continue
+            if _budget_reached():
+                print(f"--max-combos={max_combos} reached; stopping this invocation.")
+                return
+            print(f"[{config_id}] fitting control (latent_dim={latent_dim})...")
+            t0 = time.monotonic()
+            rec = _run_control_cell(
+                seed, x_train32, x_holdout64, x_ph64, max_epochs=MAX_EPOCHS, latent_dim=latent_dim
+            )
+            rec["config_id"] = config_id
+            append_record(record_path, rec)
+            n_run += 1
+            print(f"[{config_id}] done in {time.monotonic() - t0:.1f}s")
 
     completed_after = load_completed(record_path)
     grid_records = _grid_records(completed_after)
     if len(grid_records) == len(_planned_cells()):
         result = apply_selection_rule(grid_records)
-        control_records = _control_records(completed_after)
-        if len(control_records) == len(PU_SEEDS):
-            print_d12_trigger(grid_records, control_records, result)
+        matched_control_records = _control_records(completed_after, latent_dim=PU_CHART_DIM)
+        if len(matched_control_records) == len(PU_SEEDS):
+            print_d12_trigger(grid_records, matched_control_records, result)
 
 
 # =============================================================================================
@@ -996,7 +1090,12 @@ def print_dry_run_report() -> None:
     print(f"Planned grid: {len(cells)} cells (n_charts x seed):")
     for nc, seed in cells:
         print(f"  n_charts={nc} seed={seed}")
-    print(f"Plus {len(PU_SEEDS)} D-12 control cell(s) (one PlainAutoEncoder per seed).")
+    print(
+        f"Plus {len(PU_SEEDS)} matched D-12 control cell(s) (PlainAutoEncoder at "
+        f"latent_dim=PU_CHART_DIM={PU_CHART_DIM}, one per seed) and {len(PU_SEEDS)} "
+        f"OPTIONAL capacity-reference control cell(s) (latent_dim=PU_CONTROL_CAPACITY_DIM="
+        f"{PU_CONTROL_CAPACITY_DIM}, never fed to the D-12 trigger)."
+    )
     print()
     print(DIMENSION_JUSTIFICATION_TEXT)
     print()
@@ -1021,10 +1120,19 @@ def run_select_only(record_path: Path) -> None:
         return
     result = apply_selection_rule(grid_records)
     print(f"Selected n_charts: {result['selected_n_charts']}")
-    control_records = _control_records(completed)
-    print(f"{len(control_records)} of {len(PU_SEEDS)} planned D-12 control cells present.")
-    if control_records:
-        print_d12_trigger(grid_records, control_records, result)
+    matched_control_records = _control_records(completed, latent_dim=PU_CHART_DIM)
+    capacity_control_records = _control_records(completed, latent_dim=PU_CONTROL_CAPACITY_DIM)
+    print(
+        f"{len(matched_control_records)} of {len(PU_SEEDS)} planned matched "
+        f"(latent_dim={PU_CHART_DIM}) D-12 control cells present."
+    )
+    print(
+        f"{len(capacity_control_records)} of {len(PU_SEEDS)} planned capacity-reference "
+        f"(latent_dim={PU_CONTROL_CAPACITY_DIM}) control cells present (informational only, "
+        "never fed to the D-12 trigger)."
+    )
+    if matched_control_records:
+        print_d12_trigger(grid_records, matched_control_records, result)
 
 
 # =============================================================================================
