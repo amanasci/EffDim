@@ -69,12 +69,20 @@ roll's winning ``n_charts`` from selecting a PU hyperparameter, and nothing meas
    the atlas's latent space preserve the topology of the data as given. The matching
    ``wasserstein_norm`` cells and the four ``decoder_image|ambient|*`` cells are reported as
    context (the decoder-image cells answer a reconstruction-quality question the separate
-   reconstruction diagnostic already covers). The PH subsample size (300 rows) and the
-   prescale policy (``prescale=True``) are REUSED verbatim from the values already
-   established at PU/D=768 scale in this milestone -- ``template_benchmark_run.py``'s
-   ``N_PH = 300`` (justified by ``ph_budget_calibration_run.py``'s measured cost envelope)
-   and ``decoder_substrate_ph_screen_run.py``'s ``PRESCALE_CLOUDS = True`` -- rather than
-   choosing new values here.
+   reconstruction diagnostic already covers). The PH subsample size (300 rows) is REUSED
+   verbatim from ``template_benchmark_run.py``'s ``N_PH = 300`` (justified by
+   ``ph_budget_calibration_run.py``'s measured cost envelope) rather than chosen here.
+
+   **The prescale policy is NOT inherited.** This runner uses ``PRESCALE_PU =
+   "median_distance"``, not the ``prescale=True`` mean-per-dimension-variance policy used
+   by ``decoder_substrate_ph_screen_run.py``'s ``PRESCALE_CLOUDS = True``. Under
+   ``prescale=True`` the distance scale still grows as ``sqrt(d)``, so comparing a
+   ``PU_EMBED_DIM``-dimensional latent against a 768-dimensional ambient reference
+   saturates the bottleneck BY CONSTRUCTION and measures ambient dimension rather than
+   topology -- see ``03-08-DEFECTS-01.md`` defect 3 for the measured evidence
+   (identical structure embedded at d=40 and d=768 saturates exactly; median-pairwise-
+   distance and diameter normalizers both give bottleneck 0.0000). Do not "restore"
+   ``prescale=True`` here for consistency with prior runners: that consistency is the bug.
 
 **The selection rule, declared before any grid cell runs.** Print the full 3x3 table --
 every diagnostic's per-seed value and its across-seed median -- then (a) DISQUALIFY any
