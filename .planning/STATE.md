@@ -5,10 +5,10 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-06-SUMMARY.md (Swiss roll sanity notebook for the chart-decoder curvature field, checkpoint approved)
-last_updated: "2026-08-14T17:00:47.693Z"
+stopped_at: Completed 03-08-SUPPLEMENT-02.md (fixed the three DEFECTS-01 instrumentation defects; PU grid re-run not yet started)
+last_updated: "2026-08-14T22:30:00.000Z"
 last_activity: 2026-08-14
-last_activity_desc: Phase 3 plans 01-07 executed; 03-08 blocked on external GPU compute
+last_activity_desc: Fixed the three 03-08-DEFECTS-01.md defects (unmatched D-12 control, truncated training protocol, PH sqrt(d) saturation); 02.6 audited and noted; 03-08's real grid still unrun
 progress:
   total_phases: 9
   completed_phases: 6
@@ -73,7 +73,39 @@ this machine, so the CUDA path is written and guarded but unexercised here — s
 (no cross-device bit reproduction, hardware-dependent float64 throughput, do-not-mix-devices).
 `03-08` is now unblocked to run the real grid on either device.
 
-**Next:** `/gsd-execute-phase 3` (plan `03-08`, the real nine-cell PU grid).
+**03-08 first grid run INVALIDATED, three defects found and fixed (2026-08-14,
+`03-08-DEFECTS-01.md` / `03-08-SUPPLEMENT-02.md`, developer-directed, not numbered plans).**
+The nine-cell PU grid ran to completion and applied its pre-declared selection rule
+(`n_charts=16`), but every axis it ranked on was corrupted by instrumentation defects, none
+concerning the CAE itself — **that selection must not be used.** Defect 1: the D-12 control
+was built at `PlainAutoEncoder(768, 40, ...)`, double the CAE's actual bottleneck
+(`chart_dim=20`) — fixed, the matched control is now built at `PU_CHART_DIM`, with the 40-dim
+variant kept as a separately-labelled, non-gating capacity reference. Defect 2:
+`EARLY_STOP_PATIENCE=5` + `LIP_WEIGHT=1e-2` (10x the roll's) let `train_cae`'s total-loss
+early stopping end 5 of 9 cells at `epochs_run=7` — fixed by realigning both to the roll's
+values (`25`, `1e-3`); `MAX_EPOCHS` deliberately left at 40 (reasoning and wall-clock
+consequence in `03-08-SUPPLEMENT-02.md` §3 — the existing `~5.6-5.7h` timing-probe ceiling
+already assumed the full cap with no early-stopping credit, so this fix should not raise it).
+Defect 3: `persistence_probe.cloud_distance_matrix(prescale=True)`'s variance-based
+normalizer leaves a distance scale growing as `sqrt(d)`, so the 40-dim-latent-vs-768-dim-
+ambient PH comparison saturated by construction (every `latent|*` cell read exactly `0.5,
+saturated=True` in all 12 records) — fixed by adding an opt-in, dimension-invariant
+`prescale="median_distance"` mode to `persistence_probe.py` (default `True`/`False` behaviour
+byte-identical; verified against the defect's own measured evidence and a new regression
+test), now wired into the PU runner. Roll anchor `rho_chart = -0.06041003026778113` reproduces
+exactly (verified by direct call, not from cache); all tests pass (`289 passed, 1 skipped` —
+286 original + 3 new). **Cross-phase audit (defect 3 only, per `03-08-DEFECTS-01.md`'s own
+implication section):** Phase 02.6's `decoder_substrate_ph_screen_run.py` also compares
+cross-ambient-dimension clouds under `prescale=True` (8-12 of 16 cells per candidate,
+`1.22x`-`2.0x` mismatches, much smaller than PU's `4.4x`) — noted at
+`02.6-NOTE-ph-saturation-artifact.md`, additive only, no sealed 02.6 number changed; the note
+also records evidence AGAINST defect 3 being the dominant cause of 02.6's one observed
+saturated cell. Phase 02.7's three call sites (`template_benchmark_run.py`,
+`ph_budget_calibration_run.py`, `template_tracer_run.py`) all use `prescale=False` exclusively
+and are unaffected — checked directly, no note needed. **The real grid has not been re-run.**
+
+**Next:** `/gsd-execute-phase 3` (plan `03-08`, the real nine-cell PU grid, now under the
+fixed instrumentation).
 
 ### Where the held phases stopped
 
