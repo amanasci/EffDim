@@ -320,6 +320,84 @@ def test_prescale_is_an_isometry_up_to_uniform_scale(standard_references):
             assert float(diff.max()) < 1e-6
 
 
+# --- 03-08-DEFECTS-01.md defect 3: the dimension-invariant "median_distance" normalizer ---
+
+
+def test_median_distance_prescale_is_dimension_invariant_defect3():
+    """03-08-DEFECTS-01.md defect 3: ``prescale=True``'s variance-based normalizer
+    (``topoae.latent_unit_scale``, mean per-dimension variance 1) leaves a distance scale
+    that still grows as ``sqrt(d)``, so comparing identical intrinsic structure
+    isometrically embedded at two different ambient dimensions saturates -- not because the
+    structures differ, but because the dimensions do. ``prescale="median_distance"`` is the
+    verified fix: a dimension-invariant distance-scale normalizer that gives a near-zero,
+    NON-saturated bottleneck on the same pair.
+
+    Isometric embedding at two dimensions: zero-padding a fixed ``(n, d0)`` cloud out to
+    ``(n, d)`` changes no pairwise Euclidean distance at all (asserted below), so any
+    difference the OLD default reports between the two embeddings is entirely an artifact
+    of the read-out instrument, not of the underlying structure -- the same construction
+    used to verify the fix in ``03-08-DEFECTS-01.md``."""
+    rng = np.random.default_rng(20260814)
+    n, d0 = 300, 10
+    X0 = rng.normal(size=(n, d0))
+
+    def embed(d: int) -> np.ndarray:
+        pad = np.zeros((n, d - d0))
+        return np.concatenate([X0, pad], axis=1)
+
+    x_low, x_high = embed(40), embed(768)
+
+    # The embedding is isometric: raw (unscaled) distance matrices are identical.
+    D_low_raw, _ = pp.cloud_distance_matrix(x_low, prescale=False)
+    D_high_raw, _ = pp.cloud_distance_matrix(x_high, prescale=False)
+    assert np.allclose(D_low_raw, D_high_raw)
+
+    # OLD default (prescale=True): saturated -- characterizes the defect, does not fix it.
+    D_low_old, _ = pp.cloud_distance_matrix(x_low, prescale=True)
+    D_high_old, _ = pp.cloud_distance_matrix(x_high, prescale=True)
+    h0_low_old = pp.persistence_diagram(D_low_old)[0]
+    h0_high_old = pp.persistence_diagram(D_high_old)[0]
+    old_agreement = pp.ph_agreement(h0_low_old, h0_high_old)
+    print(
+        f"OLD (variance) prescale: bottleneck={old_agreement['bottleneck']!r} "
+        f"saturated={old_agreement['saturated']!r}"
+    )
+    assert old_agreement["saturated"] is True
+
+    # NEW opt-in (prescale="median_distance"): non-saturated, near zero -- the fix.
+    D_low_new, _ = pp.cloud_distance_matrix(x_low, prescale="median_distance")
+    D_high_new, _ = pp.cloud_distance_matrix(x_high, prescale="median_distance")
+    h0_low_new = pp.persistence_diagram(D_low_new)[0]
+    h0_high_new = pp.persistence_diagram(D_high_new)[0]
+    new_agreement = pp.ph_agreement(h0_low_new, h0_high_new)
+    print(
+        f"NEW (median_distance) prescale: bottleneck={new_agreement['bottleneck']!r} "
+        f"saturated={new_agreement['saturated']!r}"
+    )
+    assert new_agreement["saturated"] is False
+    assert new_agreement["bottleneck"] < 0.05
+
+
+def test_median_pairwise_scale_normalizes_median_distance_to_one():
+    """Tolerance ``1e-6``, matching ``test_prescale_is_an_isometry_up_to_uniform_scale``'s
+    own measured bound: ``torch.cdist``'s formula-based computation
+    (``||a||^2 + ||b||^2 - 2*a.b``) loses float64 precision proportional to the operand
+    magnitude, not exact to machine epsilon."""
+    circle = _circle_fixture(n=300, seed=20260814)
+    scale = pp.median_pairwise_scale(circle)
+    scaled = circle * scale
+    D_scaled, _ = pp.cloud_distance_matrix(scaled, prescale=False)
+    n = D_scaled.shape[0]
+    off_diag = D_scaled[~np.eye(n, dtype=bool)]
+    assert abs(float(np.median(off_diag)) - 1.0) < 1e-6
+
+
+def test_cloud_distance_matrix_rejects_unknown_prescale_value():
+    circle = _circle_fixture(n=50, seed=20260814)
+    with pytest.raises(ValueError):
+        pp.cloud_distance_matrix(circle, prescale="bogus")
+
+
 def test_readout_matrix_end_to_end_one_candidate_one_seed():
     """Task 1's tracer: the whole 16-cell slice at deliberately small scale. Standard-shaped
     fixture -> intrinsic and ambient references -> one ``PlainAutoEncoder`` trained a

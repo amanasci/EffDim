@@ -46,7 +46,7 @@ separately and never collapsed -- the criterion is ratified explicitly non-gatin
 and the phase promotes no substrate (D-10).
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -222,19 +222,72 @@ def ph_agreement(model_dgm: np.ndarray, ref_dgm: np.ndarray) -> Dict[str, Any]:
 # --- cloud to distance matrix, with Q1's symmetric optional pre-scaling --------------------
 
 
-def cloud_distance_matrix(points: Any, prescale: bool) -> Tuple[np.ndarray, float]:
+def median_pairwise_scale(points: Any) -> float:
+    """03-08-DEFECTS-01.md defect 3's verified fix: a dimension-invariant distance-scale
+    normalizer, added ADDITIVELY beside (never replacing) ``topoae.latent_unit_scale``.
+
+    ``topoae.latent_unit_scale`` fixes MEAN PER-DIMENSION VARIANCE to 1 -- isotropic and
+    neighbour-preserving, correct for what it was designed for (D-05/Q1's cross-space
+    comparability at MATCHED ambient dimension) -- but the *distance* scale it leaves behind
+    still grows as ``sqrt(d)``, so it does not close a gap between clouds living at different
+    ambient dimensions (measured directly: applied_scale ratios of 1, 2.00, 3.578, 8.763 for
+    d in (10, 40, 128, 768), matching ``sqrt(d/10)`` exactly).
+
+    This normalizer instead fixes the cloud's own MEDIAN PAIRWISE EUCLIDEAN DISTANCE to 1 --
+    a distance-scale statistic, dimension-invariant by construction for two clouds of the
+    same intrinsic structure regardless of the ambient dimension each happens to be living
+    in. Verified against the same identical-structure-at-two-dimensions test defect 3 was
+    diagnosed with: current (variance) normalizer gives bottleneck=ceiling=2.4144 (saturated);
+    this normalizer gives bottleneck=0.0000, ceiling=0.0637 (not saturated).
+
+    Returns ``1.0`` (no rescaling) rather than raising or dividing by zero when the cloud's
+    own median pairwise distance is not strictly positive (fewer than 2 points, or every
+    point coincident) -- the same never-``nan``-never-``inf`` discipline as this module's
+    other denominators.
+    """
+    pts = torch.as_tensor(np.asarray(points, dtype=np.float64), dtype=torch.float64)
+    if pts.ndim != 2:
+        raise ValueError(
+            f"median_pairwise_scale: points must be a 2-d (n, d) array; got shape "
+            f"{tuple(pts.shape)}."
+        )
+    n = pts.shape[0]
+    if n < 2:
+        return 1.0
+    D = topoae.pairwise_distances_f64(pts)
+    off_diag = D[~torch.eye(n, dtype=torch.bool)]
+    median_dist = float(torch.median(off_diag))
+    if not (median_dist > 0.0):
+        return 1.0
+    return 1.0 / median_dist
+
+
+def cloud_distance_matrix(points: Any, prescale: Union[bool, str]) -> Tuple[np.ndarray, float]:
     """The one entry point that turns a point cloud into a distance matrix.
 
-    ``prescale`` is a REQUIRED positional argument with no default, so no call site can
-    silently inherit a convention. When ``True`` it multiplies the cloud by
-    ``topoae.latent_unit_scale(cloud)`` first and returns the applied scalar alongside the
-    matrix; when ``False`` it returns ``1.0``. Distances go through
-    ``topoae.pairwise_distances_f64`` unchanged -- the float64 discipline is sealed, tested
-    code and is not re-derived here.
+    ``prescale`` is a REQUIRED argument with no default, so no call site can silently
+    inherit a convention. Three values are accepted:
 
-    ``topoae.latent_unit_scale`` is a single global isotropic scalar, so multiplying by it
-    is an isometry up to uniform scale and cannot reorder neighbours -- which is why (Q1)
-    it is safe to apply symmetrically to model clouds and reference clouds alike.
+    - ``True`` (unchanged, the existing default behaviour, byte-identical to before defect
+      3's fix): multiplies the cloud by ``topoae.latent_unit_scale(cloud)`` first and
+      returns the applied scalar alongside the matrix.
+    - ``False`` (unchanged): no rescaling, returns ``1.0``.
+    - ``"median_distance"`` (NEW, opt-in, defect 3's fix -- 03-08-DEFECTS-01.md /
+      03-08-SUPPLEMENT-02.md): multiplies the cloud by :func:`median_pairwise_scale`
+      instead -- a dimension-invariant distance-scale normalizer, for comparisons that
+      cross an ambient-dimension gap (e.g. a latent cloud against a much-higher-dimensional
+      ambient reference), where ``True``'s variance-based scalar leaves the distance scale
+      growing as ``sqrt(d)`` and any such comparison saturates by construction.
+
+    Any other value raises ``ValueError`` naming the three accepted values. Distances go
+    through ``topoae.pairwise_distances_f64`` unchanged -- the float64 discipline is sealed,
+    tested code and is not re-derived here.
+
+    Every scalar this function can apply (``topoae.latent_unit_scale`` or
+    :func:`median_pairwise_scale`) is a single global isotropic scalar, so multiplying by it
+    is an isometry up to uniform scale and cannot reorder neighbours -- which is why (Q1) it
+    is safe to apply symmetrically to model clouds and reference clouds alike, under either
+    mode.
     """
     pts = torch.as_tensor(np.asarray(points, dtype=np.float64), dtype=torch.float64)
     if pts.ndim != 2:
@@ -243,11 +296,19 @@ def cloud_distance_matrix(points: Any, prescale: bool) -> Tuple[np.ndarray, floa
             f"{tuple(pts.shape)}."
         )
 
-    if prescale:
+    if prescale is True:
         scale = topoae.latent_unit_scale(pts)
         pts = pts * scale
-    else:
+    elif prescale is False:
         scale = 1.0
+    elif prescale == "median_distance":
+        scale = median_pairwise_scale(pts)
+        pts = pts * scale
+    else:
+        raise ValueError(
+            "cloud_distance_matrix: prescale must be True, False, or the string "
+            f"'median_distance'; got {prescale!r}."
+        )
 
     D = topoae.pairwise_distances_f64(pts).numpy()
     return D, float(scale)
@@ -257,7 +318,7 @@ def cloud_distance_matrix(points: Any, prescale: bool) -> Tuple[np.ndarray, floa
 
 
 def readout_matrix(
-    spaces: Dict[str, Any], references: Dict[str, Any], prescale: bool
+    spaces: Dict[str, Any], references: Dict[str, Any], prescale: Union[bool, str]
 ) -> Dict[str, Any]:
     """The phase's reporting unit: exactly one diagram per cloud (four ``ripser`` calls
     per candidate per seed -- ``spaces["latent"]``, ``spaces["decoder_image"]``,
@@ -268,7 +329,9 @@ def readout_matrix(
 
     ``spaces`` maps ``"latent"`` and ``"decoder_image"`` to point clouds; ``references``
     maps ``"intrinsic"`` and ``"ambient"`` to point clouds; ``prescale`` is again required
-    with no default, and (Q1) applies identically to every one of the four clouds.
+    with no default (``True``, ``False``, or the opt-in ``"median_distance"`` -- see
+    :func:`cloud_distance_matrix`), and (Q1) applies identically to every one of the four
+    clouds.
 
     Returns one flat dict carrying:
 
