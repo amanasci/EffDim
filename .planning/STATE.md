@@ -107,6 +107,23 @@ and are unaffected — checked directly, no note needed. **The real grid has not
 **Next:** `/gsd-execute-phase 3` (plan `03-08`, the real nine-cell PU grid, now under the
 fixed instrumentation).
 
+**Corrected grid re-run; D-12 fired on both legs and is retired (2026-08-15, quick task
+`260815-e1t`, developer-directed).** The corrected 9-cell PU grid has now been re-run (15
+records total). D-12's escalation trigger (`--select-only`, `n_charts=4` selected against the
+matched `latent_dim=20` control) FIRED on both legs — `loses_reconstruction=True`,
+`loses_ph_agreement=True`, `TRIGGER FIRES = True` — and is **retired**, not silently dropped:
+`03-NOTE-d12-retirement.md` records the fired-then-retired result in full and the reasoning
+(the CAE-vs-plain-AE comparison is entirely C0, and small C0 error does not bound C2/curvature
+error — the disjoint-regularizer finding shows nothing in `cae.train_cae`'s objective
+constrains the decoder's derivatives at any order). D-12 is replaced by a direct two-part C0/C2
+criterion: an absolute `mse_per_dim` ceiling (proposed `2.5e-04`, awaiting ratification) plus
+the existing `ROLL_FLOOR = 0.65` on Swiss-roll `rho_chart`. In the same session, a first-order
+isometry prior on the chart decoder's Jacobian (`notebooks/pu_manifold/decoder_priors.py`,
+opt-in, `cae.py` untouched) was spiked on the Swiss roll as a candidate fix for the measured
+`cond(g) = 4.886e7` pathology; the spike **halted at its own pre-declared compute-budget gate
+before any weight-ladder cell trained** (the prior roughly triples per-epoch training cost), so
+no mechanism or bias verdict exists yet — see `03-NOTE-isometry-prior-spike.md`.
+
 ### Where the held phases stopped
 
 - **02.5** — 9/13 plans; `02.5-09` Task 3 blocking checkpoint still OPEN; `02.5-10`..`13`
