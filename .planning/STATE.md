@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-08-SUPPLEMENT-02.md (fixed the three DEFECTS-01 instrumentation defects; PU grid re-run not yet started)
-last_updated: "2026-08-14T22:30:00.000Z"
-last_activity: 2026-08-14
-last_activity_desc: Fixed the three 03-08-DEFECTS-01.md defects (unmatched D-12 control, truncated training protocol, PH sqrt(d) saturation); 02.6 audited and noted; 03-08's real grid still unrun
+stopped_at: Completed 03-09 (--field and --bridge executed; PU curvature field delivered on one seed of three, status partial)
+last_updated: "2026-08-16T13:55:00.000Z"
+last_activity: 2026-08-16
+last_activity_desc: Closed out 03-08 (grid complete, n_charts=4 by the unchanged pre-declared rule); converged the CAE on PU with total-loss early stopping removed (holdout mse_per_dim -62.2%, cond(g) unmoved); delivered the 03-09 curvature field on one seed
 progress:
   total_phases: 9
   completed_phases: 6
   total_plans: 76
-  completed_plans: 66
+  completed_plans: 68
 ---
 
 # Project State
@@ -28,9 +28,39 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03 (decoder-curvature-field) — EXECUTING
-Plan: 7 of 11 complete — `03-01` ratified D-02/D-05 and reproduced 02.5-09's rho_chart=-0.0604
-at n_charts=8, seed=0 through the full chain. Next: 03-02 (full 20-cell sweep, median/floor
-read-out).
+Plan: 9 of 11 complete — `03-08` closed out (nine-cell grid complete, `n_charts=4` selected by
+the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
+(synthetic controls) then `03-11` (phase record).
+
+**03-09 is `status: partial`.** Tasks 1 and 2 complete and verified; Task 3 needs a three-seed
+spread and only seed 20260813 has a converged checkpoint, by explicit developer scope. No
+dispersion is claimed anywhere.
+
+**Developer directive, 2026-08-16: "train the CAE until it succeeds on PU, base off
+reconstruction loss, then compute the deliverable curvature field."** Resolved at a blocking
+question to *stopping criterion only* — the pre-declared selection rule was NOT re-ranked on
+reconstruction, which would have moved the answer from 4 to 16 and is threat T-3-24. Records:
+`03-08-SUPPLEMENT-03.md` (the converged fit) and `03-09-SUMMARY.md` (the field).
+
+Two results carry forward:
+
+1. **Removing total-loss early stopping cut held-out `mse_per_dim` 62.2%** (1.247445e-04 →
+   4.710866e-05) from a one-line change to a stopping parameter, no architecture or optimizer
+   change. Every grid number in `03-08-SUMMARY.md` was measured under the truncating protocol.
+   **The curve did not plateau** — best epoch is the last epoch, trailing 25-epoch improvement
+   5.271e-02 against a 1.0e-03 tolerance. The budget ended training, not convergence.
+2. **`cond(g)` did not move** (median 9.758e+06 → 1.0033e+07). The disjoint-regularizer finding
+   confirmed: `train_cae` regularizes `chart_encoders`, curvature is decoded through
+   `chart_decoders` + `embedding_decoder`, and they share no parameter. Reconstruction
+   convergence cannot buy decoder conditioning and did not. `cond(g) ~ 1e7` amplifies the
+   bridge's derivative disagreement ~750-fold; the decoder-side lever is
+   `03-NOTE-isometry-prior-spike.md`, which halted at its own budget gate.
+
+**The field has no scale until 03-10 runs.** `||H||` median 1.3590e+03 is numerically precise
+to ~5 significant figures (the bridge shows autodiff and finite differences agreeing to ~5e-08
+relative on the raw Hessian, `near_zero_reference_fraction = 0.0` everywhere), but whether PU is
+genuinely that curved or the CAE learned a wiggly surface that reconstructs well is not
+separable by anything measured so far. 03-10's synthetic controls are that calibration.
 
 **THE PHASE-2 STAGE IS ON HOLD (2026-08-12, user decision).** Architecture selection is
 tabled. The **CAE** is the substrate carried into Phase 3. Phases 02.3, 02.5, 02.6 and 02.7
