@@ -246,8 +246,11 @@ called flat. Descriptive only: nothing passes or fails on it, and the run does n
 on it -- the full epoch budget is always spent, and the verdict is printed after the fact."""
 
 CONVERGE_CKPT_STEM = "03_converged_cae_pu"
-"""torch checkpoint stem for the converged fit, so the curvature field (plan 03-09's --field)
-loads this model rather than retraining it. Gitignored cache, like every other artifact here."""
+"""torch checkpoint stem prefix for a converged fit, so the curvature field (plan 03-09's
+--field) loads the model rather than retraining it. Gitignored cache, like every other
+artifact here. The full stem is per ``(n_charts, seed)`` -- see :func:`_converge_ckpt_path`:
+one fixed stem would let a second seed silently overwrite the first, and the three-seed
+spread this milestone reports needs all of them on disk at once."""
 
 SUBSAMPLE_STEM = "subsample_20260729_a79b3460b838fd0a"
 """The frozen Phase 1 10,000-row PU subsample every prior fit in this milestone was trained
@@ -506,6 +509,13 @@ def _converge_cfg(seed: int, n_charts: int, max_epochs: int) -> Dict[str, Any]:
     cfg["early_stop_patience"] = max_epochs + 1
     cfg["wallclock_ceiling_s"] = float("inf")
     return cfg
+
+
+def _converge_ckpt_path(n_charts: int, seed: int) -> Path:
+    """One checkpoint file per ``(n_charts, seed)``. Keyed rather than fixed so converging a
+    second seed cannot overwrite the first -- the reported unit in this milestone is the
+    three-seed spread, which requires all three models to coexist on disk."""
+    return cache.cache_path(f"{CONVERGE_CKPT_STEM}_nc{n_charts}_seed{seed}", "pt")
 
 
 def _recon_curve(history: List[Dict[str, Any]]) -> List[float]:
@@ -1304,7 +1314,7 @@ def run_converge(
         float(baseline["reconstruction"]["mse_per_dim"]) if baseline is not None else None
     )
 
-    ckpt_path = cache.cache_path(CONVERGE_CKPT_STEM, "pt")
+    ckpt_path = _converge_ckpt_path(n_charts, seed)
     torch.save(
         {
             "state_dict": model.state_dict(),
