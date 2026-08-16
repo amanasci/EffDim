@@ -93,6 +93,31 @@ SADDLE_DOMAIN_RADIUS = 2.0
 
 CONTROL_RECORD_STEM = "03_synthetic_controls"
 
+CONTROL_EPOCH_BLOCK = 25
+"""Epochs per ``train_cae`` call. **This is a documented deviation from the PU protocol, not
+a tuning choice, and it exists because the matched protocol does not survive its own budget.**
+
+Measured 2026-08-16 on the flat fixture at full scale (n=10000, d=20, D=768, n_charts=4):
+a single continuous 300-epoch ``train_cae`` call diverges to non-finite weights at roughly
+epoch 220 (~27,500 optimizer steps), surfacing as
+``linalg.svd: input matrix contained non-finite values`` inside ``cae.lipschitz_penalty``'s
+spectral-norm product. The identical configuration -- same data, same seed, same
+hyperparameters -- trained in 25-epoch blocks completed all 300 epochs cleanly, with encoder,
+decoder and embedding-decoder weight magnitudes stable throughout (enc 0.16 -> 0.48,
+dec 0.22 -> 0.51, emb 0.16 -> 0.64) and reconstruction descending monotonically.
+
+``cae.train_cae`` constructs a fresh optimizer per call, so blocking silently restarts Adam's
+moment estimates every ``CONTROL_EPOCH_BLOCK`` epochs. That difference is the only systematic
+one between the two runs, which points at accumulated optimizer state rather than weight
+magnitude as the divergence mechanism -- a hypothesis consistent with the evidence and NOT a
+confirmed cause; confirming it needs a continuous run with per-step instrumentation.
+
+**Consequence for interpretation, which must travel with any control number:** the controls
+are therefore NOT trained identically to the converged PU fit (one continuous 300-epoch call).
+Architecture, data scale, optimizer settings, learning rate, batch, Lipschitz weight and epoch
+budget all still match; the optimizer-state schedule does not. Set ``--epoch-block 0`` to run
+continuously and reproduce the divergence."""
+
 MIN_TRUE_NORM = 1e-12
 """``curvature_fidelity_report``'s own ``min_true_norm`` default, restated so this module can
 ask the applicability question BEFORE calling it rather than catching its refusal. Used only
@@ -192,6 +217,60 @@ def build_matched_cae(
     return model.to(device)
 
 
+def train_blocked(
+    model: Any,
+    x_train32: torch.Tensor,
+    seed: int,
+    n_charts: int,
+    max_epochs: int,
+    block: int,
+) -> Dict[str, Any]:
+    """Train for ``max_epochs`` in ``block``-epoch segments, concatenating the histories.
+
+    ``block <= 0`` runs a single continuous call -- the true PU protocol, which is known to
+    diverge on the flat fixture at this budget (see :data:`CONTROL_EPOCH_BLOCK`). Kept as an
+    option precisely so the divergence stays reproducible rather than becoming folklore.
+
+    FPS pre-training runs only in the first segment: it is a one-off initialization stage
+    (eq. 5, seeded per-chart), and repeating it every block would restart the atlas from its
+    seed points over and over, which would be a far larger protocol change than the optimizer
+    restart this function already carries."""
+    if block <= 0:
+        cfg = pu._converge_cfg(seed, n_charts, max_epochs)
+        fit = cae.train_cae(model, x_train32, cfg)
+        fit["epoch_block"] = 0
+        fit["n_blocks"] = 1
+        return fit
+
+    history: List[Dict[str, Any]] = []
+    total = 0
+    early_stopped = False
+    wallclock_truncated = False
+    n_blocks = 0
+    while total < max_epochs:
+        this_block = min(block, max_epochs - total)
+        cfg = pu._converge_cfg(seed, n_charts, this_block)
+        if n_blocks > 0:
+            cfg["fps_pretrain_epochs"] = 0
+        fit = cae.train_cae(model, x_train32, cfg)
+        history.extend(fit["history"])
+        total += int(fit["epochs_run"])
+        n_blocks += 1
+        early_stopped = early_stopped or bool(fit["early_stopped"])
+        wallclock_truncated = wallclock_truncated or bool(fit["wallclock_truncated"])
+        if fit["early_stopped"] or fit["wallclock_truncated"]:
+            break
+    return {
+        "history": history,
+        "epochs_run": total,
+        "early_stopped": early_stopped,
+        "wallclock_truncated": wallclock_truncated,
+        "cfg": pu._converge_cfg(seed, n_charts, max_epochs),
+        "epoch_block": block,
+        "n_blocks": n_blocks,
+    }
+
+
 def _fidelity_axes(H_est: np.ndarray, H_true: np.ndarray) -> Dict[str, Any]:
     """The four axes, kept as four. ``curvature_fidelity_report`` supplies direction,
     magnitude and calibration; ``spearman_gate_statistic`` supplies rank;
@@ -248,6 +327,7 @@ def run_one_control(
     max_epochs: int,
     seed: int,
     device: torch.device,
+    epoch_block: int = CONTROL_EPOCH_BLOCK,
 ) -> Dict[str, Any]:
     fx = build_fixture(name, n=n, d=chart_dim, D=ambient, seed=seed)
     X = np.asarray(fx["X"], dtype=np.float64)
@@ -264,9 +344,8 @@ def run_one_control(
 
     torch.manual_seed(seed)
     model = build_matched_cae(n_charts, chart_dim, embed_dim, ambient, device)
-    cfg = pu._converge_cfg(seed, n_charts, max_epochs)
     t0 = time.monotonic()
-    fit = cae.train_cae(model, x_train32, cfg)
+    fit = train_blocked(model, x_train32, seed, n_charts, max_epochs, epoch_block)
     train_wallclock_s = time.monotonic() - t0
 
     model.eval().double()
@@ -308,6 +387,15 @@ def run_one_control(
         "epochs_run": fit["epochs_run"],
         "early_stopped": fit["early_stopped"],
         "wallclock_truncated": fit["wallclock_truncated"],
+        "epoch_block": fit["epoch_block"],
+        "n_blocks": fit["n_blocks"],
+        "protocol_deviation": (
+            "trained in %d-epoch blocks; cae.train_cae builds a fresh optimizer per call, so "
+            "Adam moment estimates restart each block. The continuous PU protocol diverges to "
+            "non-finite weights at ~epoch 220 on the flat fixture. Architecture, data, lr, "
+            "batch, Lipschitz weight and epoch budget all still match the PU fit; the "
+            "optimizer-state schedule does not." % fit["epoch_block"]
+        ) if fit["epoch_block"] > 0 else "none -- single continuous call, the true PU protocol",
         "c2_activation": c2_activation,
         "fidelity": axes,
         "h_norm_est": pu._dist_summary(h_est_norm, pu.FIELD_HIST_BINS),
@@ -429,8 +517,19 @@ def print_dry_run_report(n_charts: int, max_epochs: int) -> None:
     print(f"  lip_weight           = {pu.LIP_WEIGHT}   every {pu.LIP_EVERY_N_STEPS} step(s)")
     print(f"  fps_pretrain_epochs  = {pu.FPS_PRETRAIN_EPOCHS}")
     print(f"  max_epochs           = {max_epochs}   (converged protocol: early stopping structurally inert)")
+    print(f"  epoch_block          = {CONTROL_EPOCH_BLOCK}   PROTOCOL DEVIATION -- see below")
     print(f"  fixture seed         = {CONTROL_FIXTURE_SEED}   (distinct from PU_SPLIT_SEED={pu.PU_SPLIT_SEED})")
     print(f"  cond(g) flag policy  = within-config {pu.COND_FLAG_PERCENTILE:.0f}th percentile, same as the PU field")
+    print()
+    print("PROTOCOL DEVIATION, stated where the protocol is stated:")
+    print("  A single continuous 300-epoch train_cae call DIVERGES to non-finite weights at")
+    print("  ~epoch 220 on the flat fixture (linalg.svd on a NaN weight inside")
+    print("  cae.lipschitz_penalty). The same configuration in 25-epoch blocks completes all")
+    print("  300 epochs cleanly. train_cae builds a fresh optimizer per call, so blocking")
+    print("  restarts Adam's moment estimates each block -- the only systematic difference")
+    print("  between the two runs. Architecture, data, lr, batch, Lipschitz weight and epoch")
+    print("  budget still match the PU fit; the optimizer-state schedule does NOT.")
+    print("  --epoch-block 0 reproduces the divergence.")
     print("\nFour axes, reported as four columns and never combined into one score:")
     print("  direction (median cosine) | magnitude (median ratio AND CV) | calibration (slope, intercept, R2) | rank (spearman rho)")
     print(DAMAGE_CAVEAT)
@@ -479,6 +578,7 @@ def run_controls(
     n_charts: int,
     max_epochs: int,
     device: torch.device,
+    epoch_block: int = CONTROL_EPOCH_BLOCK,
 ) -> None:
     completed = load_completed(record_path) if resume else {}
     records: List[Dict[str, Any]] = []
@@ -504,6 +604,7 @@ def run_controls(
             max_epochs=max_epochs,
             seed=CONTROL_FIXTURE_SEED,
             device=device,
+            epoch_block=epoch_block,
         )
         append_record(record_path, rec)
         records.append(rec)
@@ -569,6 +670,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "rule selected for PU). Matched means matched.",
     )
     parser.add_argument(
+        "--epoch-block",
+        type=int,
+        default=CONTROL_EPOCH_BLOCK,
+        help=f"Epochs per train_cae call (default: {CONTROL_EPOCH_BLOCK}). 0 runs a single "
+        "continuous call -- the true PU protocol, which diverges to non-finite weights at "
+        "~epoch 220 on the flat fixture. See CONTROL_EPOCH_BLOCK's docstring.",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default="cpu",
@@ -597,7 +706,9 @@ def main() -> None:
         return
 
     fixtures = [args.fixture] if args.fixture else list(CONTROL_FIXTURES)
-    run_controls(record_path, args.resume, fixtures, args.n_charts, args.epochs, device)
+    run_controls(
+        record_path, args.resume, fixtures, args.n_charts, args.epochs, device, args.epoch_block
+    )
 
 
 if __name__ == "__main__":
