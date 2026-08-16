@@ -23,35 +23,80 @@ sup-norm reconstruction error, unfaithfulness/coverage, the chart-transition cyc
 
 ## 1. Prerequisites — read this before anything else
 
-### 1.1 The data file must be transferred manually. The repo alone is not enough.
+### 1.1 The data file — two valid paths
 
-The run depends on a frozen subsample that is **gitignored and irreproducible**. Cloning the
-repo does not get it. Two files must be copied into `notebooks/.cache/` on the GPU machine:
+The run depends on a frozen subsample of the HuggingFace dataset
+`UniverseTBD/pu-embeddings`, config `legacysurvey_dinov3_vitb16` (101,725 rows x 768), from
+which 10,000 rows are drawn under seed `20260729` and L2-normalized. The file is gitignored, so
+cloning the repo does not get it. Either path below is fine — **path B avoids the 123 MB
+transfer** and is self-verifying.
+
+The rest of `notebooks/.cache/` (~7.4 GB) is **not** needed under either path.
+
+#### Path A — copy the two files (guaranteed bit-identical)
 
 ```
-notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz         (123 MB — required)
-notebooks/.cache/subsample_20260729_a79b3460b838fd0a.meta.json   (164 B  — required)
+notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz         (123 MB)
+notebooks/.cache/subsample_20260729_a79b3460b838fd0a.meta.json   (164 B)
 ```
 
-Do **not** substitute, regenerate, or re-draw this subsample. Every prior fit in this milestone
-was trained and split against it, and the runner deliberately raises `FileNotFoundError` and
-halts rather than drawing a different one. If the file is missing, stop and ask for it.
+#### Path B — rebuild from HuggingFace, with pinned library versions
 
-The rest of `notebooks/.cache/` (~7.4 GB) is **not** needed. Only these two files.
+The draw is fully deterministic:
+`np.random.default_rng(20260729).choice(101725, 10000, replace=False)`, sorted. It has been
+verified to reproduce the stored `row_indices` exactly.
 
-### 1.2 Verify the file arrived intact
+**The version pin is the whole catch.** `subsample.load_subsample` builds its cache key from
+`{dataset, seed, n_rows, normalize, datasets_version, numpy_version}`, so the stem hash
+`a79b3460b838fd0a` encodes `datasets 5.0.1` + `numpy 2.5.1`. Under any other versions the
+rebuild lands at a **different filename**, and the runner — which hardcodes
+`SUBSAMPLE_STEM = "subsample_20260729_a79b3460b838fd0a"` — will not find it and will halt.
+It fails loudly rather than silently using the wrong data, but you must pin to avoid it:
+
+```bash
+.venv/bin/pip install "numpy==2.5.1" "datasets==5.0.1"
+.venv/bin/python -c "
+import sys; sys.path.insert(0,'notebooks')
+from pu_manifold import subsample as ss
+ss.load_subsample(dict(dataset='legacysurvey_dinov3_vitb16', seed=20260729,
+                       n_rows=10000, normalize=True))
+print('built')
+"
+ls notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz   # must exist under THIS name
+```
+
+If the resulting filename differs, the versions are wrong. Fix the pins or fall back to path A —
+do not rename the file to match, and do not edit `SUBSAMPLE_STEM`.
+
+Under **either** path, do not substitute, re-draw, or otherwise alter the subsample. Every prior
+fit in this milestone was trained and split against it.
+
+### 1.2 Verify the data — required under both paths
 
 ```bash
 cd <repo root>
 ls -l notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz   # expect ~123121268 bytes
 .venv/bin/python -c "
-import numpy as np
-a = np.load('notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz')['legacysurvey']
-print(a.shape, a.dtype)   # expect (10000, 768)
+import sys, numpy as np; sys.path.insert(0,'notebooks')
+from pu_manifold import subsample as ss
+z = np.load('notebooks/.cache/subsample_20260729_a79b3460b838fd0a.npz')
+a = z['legacysurvey']
+print('shape      ', a.shape, a.dtype)                      # expect (10000, 768) float64
+print('mean_norm  ', float(np.linalg.norm(a, axis=1).mean()))  # expect 1.0 (rows are L2-normalized)
+print('row sha256 ', ss.row_indices_sha256(z['row_indices']))
 "
 ```
 
-Stop if the shape is not `(10000, 768)`.
+Required values — **stop and report if any differs**:
+
+```
+shape       (10000, 768) float64
+mean_norm   1.0
+row sha256  20b40cb5d4f57dc2d90214f61445c38648be57ba384d61b22d82bf11b8b0ca28
+```
+
+The sha256 over `row_indices` is the authoritative check: it proves the same 10,000 rows were
+drawn, independent of how the file arrived.
 
 ---
 
