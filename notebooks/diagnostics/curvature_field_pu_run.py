@@ -1533,8 +1533,21 @@ def load_converged_model(n_charts: int, seed: int, device: torch.device) -> Any:
 def _dist_summary(values: np.ndarray, bins: int) -> Dict[str, Any]:
     """A distribution reported AS a distribution. The maximum alone cannot tell one bad point
     from a marginal field, which is the whole reason this returns percentiles and a histogram
-    rather than an extreme."""
-    hist_counts, hist_edges = np.histogram(values, bins=bins)
+    rather than an extreme.
+
+    A constant array has no finite bin range and numpy refuses it. That is not an error
+    condition here: the flat synthetic control's analytic ``||H||`` is exactly zero at every
+    point, which is precisely why that fixture is useful. Such an input gets a single
+    degenerate bin instead of a raised exception; every percentile below is still exact, and
+    a non-constant input takes the identical path it always did."""
+    try:
+        hist_counts, hist_edges = np.histogram(values, bins=bins)
+    except ValueError:
+        # numpy refuses when the data range cannot be split into `bins` finite-sized bins --
+        # an exactly constant array, or one whose spread is below float resolution at its own
+        # magnitude. Both are degenerate ranges, not errors, and both collapse to one bin.
+        hist_counts = np.array([values.size])
+        hist_edges = np.array([float(values.min()), float(values.max())])
     return {
         "n": int(values.size),
         "min": float(values.min()),
