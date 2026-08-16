@@ -118,6 +118,21 @@ Architecture, data scale, optimizer settings, learning rate, batch, Lipschitz we
 budget all still match; the optimizer-state schedule does not. Set ``--epoch-block 0`` to run
 continuously and reproduce the divergence."""
 
+CONSTANT_TRUTH_REL_TOL = 1e-9
+"""Relative spread below which an analytic ``||H||`` field counts as CONSTANT.
+
+A constant truth makes two of the four axes undefined rather than merely uninformative, and
+reporting them anyway invites exactly the misreading this module exists to prevent. The
+sphere is the case: its analytic ``||H|| = d / R`` is identical at every point, so
+
+* **rank (Spearman rho)** correlates against a vector with no ranks to correlate -- any value
+  it returns is noise in the estimate alone, and 0.005 means nothing;
+* **calibration (slope, intercept, R-squared)** regresses on a zero-variance predictor, so
+  ``R2 = 0`` is arithmetic, not a finding.
+
+Direction and magnitude stay fully meaningful against a constant truth: a sphere's ``H``
+points radially inward with a known length, so both a cosine and a ratio are well posed."""
+
 MIN_TRUE_NORM = 1e-12
 """``curvature_fidelity_report``'s own ``min_true_norm`` default, restated so this module can
 ask the applicability question BEFORE calling it rather than catching its refusal. Used only
@@ -299,17 +314,41 @@ def _fidelity_axes(H_est: np.ndarray, H_true: np.ndarray) -> Dict[str, Any]:
     report = chart_curvature.curvature_fidelity_report(H_est, H_true)
     h_est_norm = np.linalg.norm(H_est, axis=-1)
     h_true_norm = np.linalg.norm(H_true, axis=-1)
-    rho = curvature_probe.spearman_gate_statistic(h_est_norm, h_true_norm)
     mre = curvature_probe.median_relative_error(h_est_norm, h_true_norm)
+
+    # A constant analytic field leaves rank and calibration undefined -- see
+    # CONSTANT_TRUTH_REL_TOL. Direction and magnitude remain well posed.
+    scale = max(abs(float(np.median(h_true_norm))), MIN_TRUE_NORM)
+    constant_truth = bool(float(np.ptp(h_true_norm)) / scale <= CONSTANT_TRUTH_REL_TOL)
+    if constant_truth:
+        rank_value: Any = None
+        calib: Dict[str, Any] = {
+            "calibration_slope": None,
+            "calibration_intercept": None,
+            "calibration_r2": None,
+        }
+    else:
+        rank_value = float(curvature_probe.spearman_gate_statistic(h_est_norm, h_true_norm))
+        calib = {
+            "calibration_slope": report["calibration_slope"],
+            "calibration_intercept": report["calibration_intercept"],
+            "calibration_r2": report["calibration_r2"],
+        }
     return {
         "applicable": True,
+        "constant_truth": constant_truth,
+        "rank_calibration_applicable": not constant_truth,
+        "rank_calibration_note": (
+            "analytic ||H|| is constant over this fixture: Spearman rho has no ranks to "
+            "correlate and the calibration regression has a zero-variance predictor, so both "
+            "are UNDEFINED here and are reported as null rather than as numbers. Direction "
+            "and magnitude remain well posed."
+        ) if constant_truth else "",
         "direction_median_cosine": report["median_cosine_similarity"],
         "magnitude_median_ratio": report["median_magnitude_ratio"],
         "magnitude_ratio_cv": report["magnitude_ratio_cv"],
-        "calibration_slope": report["calibration_slope"],
-        "calibration_intercept": report["calibration_intercept"],
-        "calibration_r2": report["calibration_r2"],
-        "rank_spearman_rho": float(rho),
+        **calib,
+        "rank_spearman_rho": rank_value,
         "median_relative_error": float(mre),
         "n_points": report["n_points"],
         "n_excluded": report["n_excluded"],
@@ -473,8 +512,13 @@ def print_control_row(rec: Dict[str, Any]) -> None:
         print("  four axes, never combined:")
         print(f"    direction   median cosine        = {f['direction_median_cosine']:.6f}")
         print(f"    magnitude   median ratio         = {f['magnitude_median_ratio']:.6f}   CV = {f['magnitude_ratio_cv']:.6f}")
-        print(f"    calibration slope={f['calibration_slope']:.6f} intercept={f['calibration_intercept']:.6e} R2={f['calibration_r2']:.6f}")
-        print(f"    rank        spearman rho         = {f['rank_spearman_rho']:.6f}")
+        if f.get("rank_calibration_applicable", True):
+            print(f"    calibration slope={f['calibration_slope']:.6f} intercept={f['calibration_intercept']:.6e} R2={f['calibration_r2']:.6f}")
+            print(f"    rank        spearman rho         = {f['rank_spearman_rho']:.6f}")
+        else:
+            print("    calibration UNDEFINED (constant analytic field -- zero-variance predictor)")
+            print("    rank        UNDEFINED (constant analytic field -- no ranks to correlate)")
+            print(f"      {f['rank_calibration_note']}")
         print(f"  median_relative_error (context, non-gating) = {f['median_relative_error']:.6f}")
     est, tru, c = rec["h_norm_est"], rec["h_norm_true"], rec["cond"]
     print(f"  ||H|| est : median={est['median']:.6e} p95={est['p95']:.6e} max={est['max']:.6e}")
@@ -555,9 +599,11 @@ def run_smoke(record_path: Path, device: torch.device) -> None:
         append_record(record_path, rec)
         f = rec["fidelity"]
         if f.get("applicable", True):
+            rho = f["rank_spearman_rho"]
+            rho_txt = "UNDEFINED(const truth)" if rho is None else f"{rho:.4f}"
             print(
                 f"  {name}: cosine={f['direction_median_cosine']:.4f} "
-                f"rho={f['rank_spearman_rho']:.4f} "
+                f"rho={rho_txt} "
                 f"mag_ratio={f['magnitude_median_ratio']:.4g} "
                 f"||H||est_median={rec['h_norm_est']['median']:.4g} "
                 f"charts_used={rec['n_charts_used']}"
