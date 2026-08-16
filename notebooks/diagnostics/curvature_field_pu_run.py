@@ -141,14 +141,19 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# This module's own directory, so derivative_bridge_run's pinned chart-decode composition can
+# be imported rather than copied (see :func:`_chart_decoder_view`). Explicit rather than
+# relying on Python adding the script's directory, which only happens under __main__.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from pu_manifold import cache, cae, chart_curvature, persistence_probe  # noqa: E402
+import derivative_bridge_run  # noqa: E402
+from pu_manifold import cache, cae, chart_curvature, derivative_bridge, persistence_probe  # noqa: E402
 
 # =============================================================================================
 # Constants -- the working dimension, the architecture, the protocol, the sweep.
@@ -251,6 +256,48 @@ CONVERGE_CKPT_STEM = "03_converged_cae_pu"
 artifact here. The full stem is per ``(n_charts, seed)`` -- see :func:`_converge_ckpt_path`:
 one fixed stem would let a second seed silently overwrite the first, and the three-seed
 spread this milestone reports needs all of them on disk at once."""
+
+# --- the deliverable curvature field (plan 03-09) ---------------------------------------------
+COND_FLAG_PERCENTILE = 99.0
+"""Points whose ``cond(g)`` exceeds this WITHIN-CONFIG percentile are FLAGGED and excluded
+from the reported ``||H||`` summary -- flagged, never averaged in, and never deleted.
+
+A percentile and not an absolute bound, for a structural reason rather than a stylistic one.
+No absolute near-singular threshold is pre-registered anywhere in 02.5 or 02.6; REQUIREMENTS.md
+rules out a fixed absolute curvature threshold explicitly because scale depends on the specific
+fit; and this milestone's own established pattern is comparative or percentile-based throughout.
+An absolute cut chosen here would be a number invented after the distribution was visible.
+
+This is the ONLY conditioning cut anywhere in this file. Every other percentile below (90, 99)
+is distribution REPORTING -- it describes the spread, it does not remove a point."""
+
+FIELD_HIST_BINS = 20
+"""Bin count for the marginal ``||H||`` and ``cond(g)`` histograms. Reporting granularity."""
+
+FIELD_JOINT_BINS = 12
+"""Bin count per axis for the joint ``||H||``-versus-``cond(g)`` histogram. Small ``||H||`` with
+large ``cond(g)`` and small ``||H||`` with small ``cond(g)`` mean opposite things -- a decoder
+differential that is nearly rank-deficient, versus genuine near-zero curvature from principal
+curvatures cancelling in the trace -- and they are indistinguishable in either marginal alone."""
+
+BRIDGE_N_POINTS_PU = 96
+"""Evaluation points for the finite-difference bridge at PU scale.
+
+Deliberately NOT equal to ``chart_curvature.VMAP_CHUNK`` (32). WR-03's whole point is that
+``calibrate_fd_step``'s correctness must not depend on the point count and the autodiff chunk
+width happening to be numerically equal; a run at exactly the chunk width would pass whether
+or not the chunking fix works. Three times the chunk width exercises the fix at real scale
+rather than assuming the coincidence held.
+
+Cost, re-derived for ``d = 20`` rather than inherited from ``derivative_bridge_run.py``'s
+``d = 40`` figure: the stencil costs ``1 + 2d + 4 * d * (d - 1) / 2`` decoder evaluations per
+point, which is ``1 + 40 + 760 = 801`` here, against ``derivative_bridge.MAX_FD_ROWS = 8192``.
+See :func:`print_bridge_budget`, which prints the arithmetic rather than asserting it silently."""
+
+SECOND_DERIV_PROBE_ROWS = 64
+"""Held-out rows on which the Hessian is recomputed directly as CURV-05's positive evidence.
+Held-out specifically, not training rows: a second derivative that is non-zero only where the
+model was fit says nothing about the field being reported over the whole cloud."""
 
 SUBSAMPLE_STEM = "subsample_20260729_a79b3460b838fd0a"
 """The frozen Phase 1 10,000-row PU subsample every prior fit in this milestone was trained
@@ -1108,7 +1155,26 @@ def run_smoke(x_train32: torch.Tensor, x_holdout64: torch.Tensor, record_path: P
     )
     rec["kind"] = "smoke_cell"
     rec["config_id"] = "smoke"
+
+    # --field's own wiring, proved on the same deliberately tiny fit. The smoke model is
+    # rebuilt from the smoke cell's protocol rather than loaded from a checkpoint: --field's
+    # real path refuses to train a replacement, so smoke exercises the record-shape half
+    # (h_norm / cond / flagged / joint_hist) without pretending a two-epoch fit is converged.
+    torch.manual_seed(SMOKE_SEED)
+    smoke_model = build_cae(SMOKE_N_CHARTS, device=x_train_s.device)
+    smoke_cfg = _protocol_cfg(SMOKE_SEED, SMOKE_N_CHARTS, max_epochs=SMOKE_MAX_EPOCHS)
+    cae.train_cae(smoke_model, x_train_s, smoke_cfg)
+    smoke_model.eval().double()
+    field_rec = _field_record(
+        smoke_model, x_holdout_s, x_holdout_s, SMOKE_N_CHARTS, SMOKE_SEED
+    )
+    field_rec["kind"] = "smoke_field_cell"
+    field_rec["config_id"] = "smoke_field"
+    rec["smoke_field_groups_present"] = sorted(
+        k for k in ("h_norm", "cond", "flagged", "joint_hist") if k in field_rec
+    )
     append_record(record_path, rec)
+    append_record(record_path, field_rec)
 
     print("SMOKE TALLY:")
     print(f"  train_wallclock_s={rec['train_wallclock_s']:.2f}")
@@ -1118,6 +1184,10 @@ def run_smoke(x_train32: torch.Tensor, x_holdout64: torch.Tensor, record_path: P
     print(f"  reconstruction.dim_mse_p95={rec['reconstruction']['dim_mse_p95']:.6g}")
     print(f"  ph.latent|ambient|H0|bottleneck_norm={rec['ph']['latent|ambient|H0|bottleneck_norm']:.4g}")
     print(f"  ph.latent|ambient|H1|bottleneck_norm={rec['ph']['latent|ambient|H1|bottleneck_norm']:.4g}")
+    print(f"  field groups present: {rec['smoke_field_groups_present']}")
+    print(f"  field.flagged.count={field_rec['flagged']['count']}")
+    print(f"  field.h_norm.median={field_rec['h_norm']['median']:.4g}")
+    print(f"  field.joint_hist bins={len(field_rec['joint_hist']['counts'])}")
     print("SMOKE: exit 0.")
 
 
@@ -1402,6 +1472,472 @@ def run_converge(
 
 
 # =============================================================================================
+# --field: the phase's deliverable. Per-point mean-curvature VECTOR NORM over the PU cloud,
+# with its metric conditioning beside it, never instead of it.
+# =============================================================================================
+
+
+FIELD_MODE_TEXT = f"""--field -- the phase's deliverable (plan 03-09, ROADMAP steps 2 and 3)
+
+Quantity: the per-point mean-curvature VECTOR NORM ||H||. Never Gaussian curvature, never a
+principal curvature. At codimension {AMBIENT_DIM} - {PU_CHART_DIM} there is no canonical normal
+direction, so any signed scalar reduction would flip sign with an arbitrary choice; the vector
+norm is the only reportable scalar.
+
+Config: n_charts = {CONVERGE_N_CHARTS}, the value the pre-declared rule selected on the
+corrected nine-cell grid. Seeds: {list(PU_SEEDS)} -- the reported unit is the three-seed
+spread, and a single seed is printed as a probe with no spread table.
+
+Points: all rows of the frozen subsample, each measured in the chart the model itself assigns
+it. No grid, no interpolation, no synthetic coordinate is constructed anywhere in this mode,
+and the chart assignment is independently recomputed and checked against the field's own.
+
+Near-singular policy: points whose cond(g) exceeds the WITHIN-CONFIG
+{COND_FLAG_PERCENTILE:.0f}th percentile are FLAGGED and reported separately -- never averaged
+into the ||H|| summary and never deleted. This percentile is the only conditioning cut in the
+file; no absolute cond(g) or ||H|| threshold is introduced anywhere, because scale depends on
+the specific fit and REQUIREMENTS.md rules out a fixed absolute curvature threshold for exactly
+that reason.
+
+Reported jointly: ||H|| against cond(g) as a two-dimensional histogram, because small ||H||
+with a near-singular metric and small ||H|| from principal curvatures cancelling in the trace
+look identical in either marginal and mean opposite things.
+
+The model is LOADED from its converged checkpoint. A seed with no checkpoint is reported
+missing and skipped; this mode never trains a replacement."""
+
+
+def load_converged_model(n_charts: int, seed: int, device: torch.device) -> Any:
+    """Rebuild the converged CAE from its checkpoint. Never retrains: a missing checkpoint is
+    a named error, because silently training a replacement would put a DIFFERENT model behind
+    the same reported number."""
+    ckpt_path = _converge_ckpt_path(n_charts, seed)
+    if not ckpt_path.exists():
+        raise FileNotFoundError(
+            f"No converged checkpoint at {ckpt_path}. Run "
+            f"`--converge --converge-n-charts {n_charts} --converge-seed {seed}` first. "
+            "This mode never trains a replacement."
+        )
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    if int(ckpt["n_charts"]) != n_charts or int(ckpt["seed"]) != seed:
+        raise ValueError(
+            f"{ckpt_path} carries n_charts={ckpt['n_charts']} seed={ckpt['seed']}, "
+            f"but n_charts={n_charts} seed={seed} was requested."
+        )
+    model = build_cae(n_charts, device=device).double()
+    model.load_state_dict(ckpt["state_dict"])
+    model.eval()
+    return model, ckpt
+
+
+def _dist_summary(values: np.ndarray, bins: int) -> Dict[str, Any]:
+    """A distribution reported AS a distribution. The maximum alone cannot tell one bad point
+    from a marginal field, which is the whole reason this returns percentiles and a histogram
+    rather than an extreme."""
+    hist_counts, hist_edges = np.histogram(values, bins=bins)
+    return {
+        "n": int(values.size),
+        "min": float(values.min()),
+        "p05": float(np.percentile(values, 5)),
+        "p25": float(np.percentile(values, 25)),
+        "median": float(np.median(values)),
+        "p75": float(np.percentile(values, 75)),
+        "p90": float(np.percentile(values, 90)),
+        "p95": float(np.percentile(values, 95)),
+        "p99": float(np.percentile(values, 99)),
+        "max": float(values.max()),
+        "mean": float(values.mean()),
+        "hist_counts": [int(c) for c in hist_counts],
+        "hist_edges": [float(e) for e in hist_edges],
+    }
+
+
+def _second_derivative_evidence(model: Any, x_rows64: torch.Tensor) -> Dict[str, Any]:
+    """CURV-05's POSITIVE evidence: the decoder's second derivatives are non-zero and finite
+    at HELD-OUT points.
+
+    ``assert_c2_activation`` already refuses a ReLU-family decoder, whose Hessian would be
+    identically zero almost everywhere. That is the absence of a refusal. This records the
+    presence of curvature-bearing second derivatives instead, measured directly rather than
+    inferred from the field having been computed at all."""
+    with torch.no_grad():
+        z = model.encode(x_rows64)
+        z_charts = model.chart_coords(z)
+        assignment = model.chart_probs(z).argmax(dim=1)
+
+    max_abs = 0.0
+    all_finite = True
+    n_rows = 0
+    for chart_idx in sorted(int(i) for i in torch.unique(assignment).tolist()):
+        rows = torch.nonzero(assignment == chart_idx, as_tuple=False).squeeze(-1)
+        decode_one = chart_curvature.chart_decoder_map(model, chart_idx)
+        for row in rows.tolist():
+            coord = z_charts[row, chart_idx, :].detach().clone()
+            hess = torch.func.hessian(decode_one)(coord)
+            all_finite = all_finite and bool(torch.isfinite(hess).all().item())
+            max_abs = max(max_abs, float(hess.abs().max().item()))
+            n_rows += 1
+    return {
+        "n_rows": n_rows,
+        "hessian_max_abs_entry": max_abs,
+        "hessian_strictly_positive": bool(max_abs > 0.0),
+        "hessian_all_finite": all_finite,
+        "rows_are_holdout": True,
+    }
+
+
+def _no_extrapolation_evidence(model: Any, x64: torch.Tensor, field: Dict[str, Any]) -> Dict[str, Any]:
+    """CURV-08. Independently recompute the chart assignment and check it against the one the
+    field used. Every evaluated point is a real data row, measured in the chart the model
+    itself assigned it -- this mode constructs no grid, no interpolation and no synthetic
+    coordinate anywhere, so there is nothing off-manifold to evaluate."""
+    with torch.no_grad():
+        recomputed = model.chart_probs(model.encode(x64)).argmax(dim=1)
+    used = field["chart_assignment"]
+    matches = bool(torch.equal(recomputed.to(used.device), used))
+    return {
+        "assignment_independently_recomputed": True,
+        "assignment_matches_field": matches,
+        "n_points": int(x64.shape[0]),
+        "constructed_points": 0,
+    }
+
+
+def _field_record(
+    model: Any,
+    x64: torch.Tensor,
+    x_holdout64: torch.Tensor,
+    n_charts: int,
+    seed: int,
+) -> Dict[str, Any]:
+    t0 = time.monotonic()
+    field = chart_curvature.chart_curvature_field(model, x64, mode="reverse")
+    field_wallclock_s = time.monotonic() - t0
+
+    h_norm = field["H_norm"].detach().cpu().numpy().astype(np.float64)
+    cond = field["metric_condition_number"].detach().cpu().numpy().astype(np.float64)
+    assignment = field["chart_assignment"].detach().cpu().numpy()
+
+    # Flag, never average in. The cut is the within-config percentile and nothing else.
+    flag_threshold = float(np.percentile(cond, COND_FLAG_PERCENTILE))
+    flagged_mask = cond > flag_threshold
+    unflagged_mask = ~flagged_mask
+
+    distinct, counts = np.unique(assignment, return_counts=True)
+
+    joint_counts, joint_h_edges, joint_cond_edges = np.histogram2d(
+        h_norm, np.log10(np.maximum(cond, np.finfo(np.float64).tiny)), bins=FIELD_JOINT_BINS
+    )
+
+    return {
+        "kind": "field_cell",
+        "config_id": f"field_nc{n_charts}_seed{seed}",
+        "n_charts": n_charts,
+        "seed": seed,
+        "n_points": int(x64.shape[0]),
+        "field_wallclock_s": field_wallclock_s,
+        "curvature_convention": field["curvature_convention"],
+        "quantity": "mean curvature vector norm ||H||",
+        "h_norm": _dist_summary(h_norm[unflagged_mask], FIELD_HIST_BINS),
+        "h_norm_all_points": _dist_summary(h_norm, FIELD_HIST_BINS),
+        "cond": _dist_summary(cond, FIELD_HIST_BINS),
+        "flagged": {
+            "percentile": COND_FLAG_PERCENTILE,
+            "threshold": flag_threshold,
+            "count": int(flagged_mask.sum()),
+            "fraction": float(flagged_mask.mean()),
+            "indices": [int(i) for i in np.nonzero(flagged_mask)[0]],
+            "h_norm_of_flagged": [float(v) for v in h_norm[flagged_mask]],
+            "reported_separately_not_averaged_in": True,
+        },
+        "joint_hist": {
+            "counts": [[int(c) for c in row] for row in joint_counts],
+            "h_norm_edges": [float(e) for e in joint_h_edges],
+            "log10_cond_edges": [float(e) for e in joint_cond_edges],
+            "axes": "rows=||H|| bins, cols=log10(cond(g)) bins",
+        },
+        "n_charts_used": int(field["n_charts_used"]),
+        "per_chart_counts": {int(c): int(n) for c, n in zip(distinct.tolist(), counts.tolist())},
+        "no_extrapolation": _no_extrapolation_evidence(model, x64, field),
+        "second_derivative": _second_derivative_evidence(
+            model, x_holdout64[:SECOND_DERIV_PROBE_ROWS]
+        ),
+        "device": str(x64.device),
+        "torch_version": torch.__version__,
+    }
+
+
+def print_field_caveat() -> None:
+    """The gate-override caveat, printed with the numbers rather than filed away from them."""
+    print(
+        "\nCAVEAT -- these numbers are DESCRIPTIVE, not a verdict on the PU manifold's "
+        "curvature.\nThey are decoded from a parameterization no gate in this milestone has "
+        "validated: every\nsealed verdict here is FAIL, and Phase 3 proceeds on an explicit "
+        "override of its own\nprecondition. A curvature field so decoded CONFLATES real "
+        "curvature with parameterization\ndamage, and nothing below separates the two. See "
+        "02-NOTE-phase-2-stage-on-hold.md section 3."
+    )
+
+
+def run_field(
+    x_all64: torch.Tensor,
+    x_holdout64: torch.Tensor,
+    record_path: Path,
+    resume: bool,
+    n_charts: int,
+    seeds: Sequence[int],
+) -> None:
+    completed = load_completed(record_path) if resume else {}
+    records: List[Dict[str, Any]] = []
+    missing: List[int] = []
+
+    for seed in seeds:
+        config_id = f"field_nc{n_charts}_seed{seed}"
+        if resume and config_id in completed:
+            print(f"  [skip, resumed] {config_id}")
+            records.append(completed[config_id])
+            continue
+        try:
+            model, ckpt = load_converged_model(n_charts, seed, x_all64.device)
+        except FileNotFoundError as exc:
+            print(f"  [no converged checkpoint] seed={seed}: {exc}")
+            missing.append(seed)
+            continue
+        _banner(f"FIELD -- n_charts={n_charts} seed={seed} over {x_all64.shape[0]} points")
+        print(f"model: epochs_run={ckpt['epochs_run']} from {_converge_ckpt_path(n_charts, seed)}")
+        rec = _field_record(model, x_all64, x_holdout64, n_charts, seed)
+        append_record(record_path, rec)
+        records.append(rec)
+        print(f"field wall clock: {rec['field_wallclock_s']:.1f}s")
+
+    if not records:
+        print("No field records: no converged checkpoint exists yet for any requested seed.")
+        return
+
+    _banner("FIELD -- mean curvature VECTOR NORM ||H|| (never Gaussian, never principal)")
+    print(
+        "At codimension 768 - 20 there is no canonical normal direction, so any SIGNED scalar\n"
+        "reduction would flip sign with an arbitrary choice. The vector norm is the only\n"
+        "reportable scalar, and every number below is that norm."
+    )
+    for rec in records:
+        h = rec["h_norm"]
+        c = rec["cond"]
+        f = rec["flagged"]
+        print(f"\nseed={rec['seed']}  n_points={rec['n_points']}  charts_used={rec['n_charts_used']}")
+        print(
+            f"  ||H|| (unflagged, n={h['n']}): min={h['min']:.4e} p05={h['p05']:.4e} "
+            f"p25={h['p25']:.4e} median={h['median']:.4e} p75={h['p75']:.4e} "
+            f"p95={h['p95']:.4e} max={h['max']:.4e} mean={h['mean']:.4e}"
+        )
+        print(
+            f"  cond(g): median={c['median']:.4e} p90={c['p90']:.4e} p99={c['p99']:.4e} "
+            f"max={c['max']:.4e}"
+        )
+        print(
+            f"  flagged at the within-config {f['percentile']:.0f}th percentile "
+            f"(cond > {f['threshold']:.4e}): {f['count']} points "
+            f"({100.0 * f['fraction']:.2f}%), reported separately, not averaged in"
+        )
+        ne = rec["no_extrapolation"]
+        sd = rec["second_derivative"]
+        print(
+            f"  no-extrapolation: assignment recomputed independently and "
+            f"{'MATCHES' if ne['assignment_matches_field'] else 'DISAGREES WITH'} the field's; "
+            f"{ne['constructed_points']} constructed points"
+        )
+        print(
+            f"  second derivatives on {sd['n_rows']} HELD-OUT rows: "
+            f"max|Hessian|={sd['hessian_max_abs_entry']:.4e} "
+            f"strictly_positive={sd['hessian_strictly_positive']} "
+            f"all_finite={sd['hessian_all_finite']}"
+        )
+        print(f"  field wall clock: {rec['field_wallclock_s']:.1f}s")
+
+    if len(records) > 1:
+        _banner("FIELD -- across-seed spread")
+        for label, path in (
+            ("||H|| median (unflagged)", ("h_norm", "median")),
+            ("||H|| p95 (unflagged)", ("h_norm", "p95")),
+            ("cond(g) median", ("cond", "median")),
+            ("cond(g) max", ("cond", "max")),
+            ("flagged count", ("flagged", "count")),
+        ):
+            vals = [rec[path[0]][path[1]] for rec in records]
+            seeds_str = " ".join(f"{v:.4e}" if isinstance(v, float) else str(v) for v in vals)
+            print(f"  {label}: {seeds_str}  median={_median([float(v) for v in vals]):.4e}")
+    else:
+        print(
+            f"\nONE SEED ONLY ({len(records)} of {len(seeds)} requested). This is a PROBE, not "
+            "the reported\nunit -- this milestone reports a three-seed spread, and no spread "
+            "table is printed for a\nsingle draw."
+        )
+    if missing:
+        print(f"Seeds without a converged checkpoint: {missing}")
+
+    print_field_caveat()
+
+
+# =============================================================================================
+# --bridge: the independent, non-torch.func check on the same second derivatives.
+# =============================================================================================
+
+
+def _bridge_evals_per_point(d: int) -> int:
+    """``1 + 2d + 4 * d * (d - 1) / 2`` decoder evaluations per point -- the stencil's own
+    arithmetic, re-derived at this ``d`` rather than inherited from the d=40 precedent."""
+    return 1 + 2 * d + 4 * d * (d - 1) // 2
+
+
+def print_bridge_budget() -> None:
+    per_point = _bridge_evals_per_point(PU_CHART_DIM)
+    print(
+        f"bridge cost at d={PU_CHART_DIM}: 1 + 2*{PU_CHART_DIM} + "
+        f"4*{PU_CHART_DIM}*({PU_CHART_DIM}-1)/2 = {per_point} decoder evaluations per point, "
+        f"against derivative_bridge.MAX_FD_ROWS = {derivative_bridge.MAX_FD_ROWS}."
+    )
+    print(
+        f"BRIDGE_N_POINTS_PU = {BRIDGE_N_POINTS_PU}, strictly greater than "
+        f"chart_curvature.VMAP_CHUNK = {chart_curvature.VMAP_CHUNK}, so the WR-03 chunking fix "
+        "is exercised rather than assumed."
+    )
+
+
+def _chart_decoder_view(model: Any, chart_idx: int) -> Any:
+    """The duck-typed view ``derivative_agreement`` dispatches on, built over
+    ``derivative_bridge_run.decode_closure`` -- which pins its batched two-hop composition
+    against the sealed ``chart_curvature.chart_decoder_map`` to 1e-12 before returning
+    (T-02.6R-25). Imported rather than re-derived so a second copy of that composition cannot
+    drift from the sealed one."""
+    decode_batch = derivative_bridge_run.decode_closure(model, chart_idx)
+    return derivative_bridge_run._ChartDecodeModelView(
+        decode_batch,
+        PU_ACTIVATION,
+        model.chart_decoders[chart_idx],
+        model.embedding_decoder,
+    )
+
+
+def run_bridge(
+    x_holdout64: torch.Tensor,
+    record_path: Path,
+    resume: bool,
+    n_charts: int,
+    seed: int,
+) -> None:
+    """``derivative_bridge.derivative_agreement`` against the converged PU chart decoder.
+
+    What this check can and cannot establish, stated before any number is printed: agreement
+    shows the derivative COMPUTATION is stable -- that ``torch.func``'s autodiff second
+    derivatives and an independent finite-difference stencil see the same surface. It says
+    nothing whatever about whether that surface is the right one. A net that learned a smooth
+    but WRONG surface passes this check cleanly.
+
+    No threshold is applied and no boolean judgement is printed. 02.6-FINDINGS-02.md recorded
+    the full-Hessian and reduced levels disagreeing by three to five orders of magnitude with
+    a substrate-dependent direction; that is a reported observation, not a bar."""
+    config_id = f"bridge_nc{n_charts}_seed{seed}"
+    completed = load_completed(record_path) if resume else {}
+    if resume and config_id in completed:
+        print(f"  [skip, resumed] {config_id}")
+        return
+
+    model, ckpt = load_converged_model(n_charts, seed, x_holdout64.device)
+
+    _banner(f"BRIDGE -- finite-difference agreement, n_charts={n_charts} seed={seed}")
+    print(
+        "Agreement here shows the derivative COMPUTATION is stable. It does NOT show the\n"
+        "learned surface is correct: a net that learned a smooth but wrong surface passes\n"
+        "this check cleanly. No threshold is applied and no verdict is printed."
+    )
+    print_bridge_budget()
+
+    # Held-out rows only, grouped by the model's own chart assignment so each group is
+    # differentiated in its own chart's coordinate space. No off-manifold point is built.
+    x_probe = x_holdout64[:BRIDGE_N_POINTS_PU]
+    with torch.no_grad():
+        z = model.encode(x_probe)
+        z_charts = model.chart_coords(z)
+        assignment = model.chart_probs(z).argmax(dim=1)
+
+    groups: List[Dict[str, Any]] = []
+    t0 = time.monotonic()
+    for chart_idx in sorted(int(i) for i in torch.unique(assignment).tolist()):
+        rows = torch.nonzero(assignment == chart_idx, as_tuple=False).squeeze(-1)
+        coords = z_charts[rows, chart_idx, :].detach().clone().double()
+        view = _chart_decoder_view(model, chart_idx)
+        out = derivative_bridge.derivative_agreement(view, coords)
+        cond = out["metric_condition_number"].detach().cpu().numpy().astype(np.float64)
+        groups.append(
+            {
+                "chart_idx": chart_idx,
+                "n_points": int(rows.numel()),
+                "full_hessian_agreement": out["full_hessian_agreement"],
+                "reduced_mean_curvature_agreement": out["reduced_mean_curvature_agreement"],
+                "fd_step_used": out["fd_step_used"],
+                "activation": out["activation"],
+                "metric_condition_number": [float(v) for v in cond],
+            }
+        )
+    bridge_wallclock_s = time.monotonic() - t0
+
+    rec = {
+        "kind": "bridge_cell",
+        "config_id": config_id,
+        "n_charts": n_charts,
+        "seed": seed,
+        "n_points_requested": BRIDGE_N_POINTS_PU,
+        "evals_per_point": _bridge_evals_per_point(PU_CHART_DIM),
+        "max_fd_rows": derivative_bridge.MAX_FD_ROWS,
+        "vmap_chunk": chart_curvature.VMAP_CHUNK,
+        "epochs_run": ckpt["epochs_run"],
+        "groups": groups,
+        "bridge_wallclock_s": bridge_wallclock_s,
+        "device": str(x_holdout64.device),
+        "torch_version": torch.__version__,
+    }
+    append_record(record_path, rec)
+
+    for g in groups:
+        print(f"\nchart {g['chart_idx']}  n_points={g['n_points']}  activation={g['activation']}")
+        print(f"  fd_step_used={g['fd_step_used']:.6e}")
+        fh = g["full_hessian_agreement"]
+        # near_zero_reference_fraction is printed beside EVERY relative column, always --
+        # not only beside a large one. Deciding when to show it would mean comparing a bridge
+        # statistic against a constant, which this mode does not do anywhere.
+        print(
+            f"  full_hessian_agreement: max_abs={fh['max_abs']:.4e} "
+            f"median_abs={fh['median_abs']:.4e} p90_abs={fh['p90_abs']:.4e}"
+        )
+        print(
+            f"    relative: max={fh['max_abs_relative']:.4e} "
+            f"median={fh['median_abs_relative']:.4e} p90={fh['p90_abs_relative']:.4e} "
+            f"[near_zero_reference_fraction={fh['near_zero_reference_fraction']:.4e}]"
+        )
+        for level in ("H_vec", "H_norm"):
+            rm = g["reduced_mean_curvature_agreement"][level]
+            print(
+                f"  reduced_mean_curvature_agreement[{level}]: max_abs={rm['max_abs']:.4e} "
+                f"median_abs={rm['median_abs']:.4e} p90_abs={rm['p90_abs']:.4e}"
+            )
+            print(
+                f"    relative: max={rm['max_abs_relative']:.4e} "
+                f"median={rm['median_abs_relative']:.4e} p90={rm['p90_abs_relative']:.4e} "
+                f"[near_zero_reference_fraction={rm['near_zero_reference_fraction']:.4e}]"
+            )
+        cond = np.asarray(g["metric_condition_number"], dtype=np.float64)
+        print(
+            f"  cond(g) over these points: median={np.median(cond):.4e} max={cond.max():.4e}"
+        )
+    print(f"\nbridge wall clock: {bridge_wallclock_s:.1f}s")
+    print(
+        "The two levels are reported separately and never combined. 02.6-FINDINGS-02.md "
+        "recorded\nthem disagreeing by three to five orders of magnitude; that is an "
+        "observation, not a bar."
+    )
+
+
+# =============================================================================================
 # --dry-run and --select-only reporting.
 # =============================================================================================
 
@@ -1428,6 +1964,25 @@ def print_dry_run_report() -> None:
     print(PH_CELL_CHOICE_TEXT)
     print()
     print(SELECTION_RULE_TEXT)
+    print()
+    print(FIELD_MODE_TEXT)
+    print()
+    print("--bridge -- the independent finite-difference check (plan 03-09, ROADMAP step 3)")
+    print()
+    print(
+        "Agreement shows the derivative COMPUTATION is stable -- that torch.func's autodiff\n"
+        "second derivatives and an independent finite-difference stencil see the same surface.\n"
+        "It does NOT show the learned surface is correct: a net that learned a smooth but wrong\n"
+        "surface passes cleanly. No threshold is applied and no boolean verdict is printed."
+    )
+    print_bridge_budget()
+    print(
+        "Points come from the HELD-OUT rows, grouped by the model's own chart assignment so "
+        "each\ngroup is differentiated in its own chart's coordinate space. No off-manifold "
+        "point is built.\nThe full-Hessian and reduced mean-curvature levels are reported "
+        "under permanently separate\nkeys, never combined, with near_zero_reference_fraction "
+        "beside every relative column."
+    )
     print()
     print("--dry-run: nothing executed, nothing written.")
 
@@ -1526,6 +2081,32 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "bar: the curve is descriptive. Saves a checkpoint for the curvature field.",
     )
     parser.add_argument(
+        "--field",
+        action="store_true",
+        help="Compute the phase's deliverable: the per-point mean-curvature VECTOR NORM "
+        "||H|| over the full PU cloud at the selected n_charts, with cond(g) reported as a "
+        "distribution beside it, near-singular points FLAGGED by a within-config percentile "
+        "rather than averaged in, and a joint ||H||-versus-cond(g) histogram. Loads the "
+        "converged checkpoint; never trains a replacement.",
+    )
+    parser.add_argument(
+        "--bridge",
+        action="store_true",
+        help="Run derivative_bridge.derivative_agreement against the converged PU chart "
+        f"decoder at {BRIDGE_N_POINTS_PU} held-out, chart-assigned points -- the "
+        "independent, non-torch.func check on the same second derivatives. Reports the full "
+        "Hessian and reduced mean-curvature levels under separate keys with the "
+        "near-zero-reference fraction beside every relative column. Applies no threshold.",
+    )
+    parser.add_argument(
+        "--field-seeds",
+        type=int,
+        nargs="+",
+        default=list(PU_SEEDS),
+        help=f"Seeds for --field (default: all three, {list(PU_SEEDS)}). A seed with no "
+        "converged checkpoint is reported as missing and skipped, never silently retrained.",
+    )
+    parser.add_argument(
         "--converge-epochs",
         type=int,
         default=CONVERGE_MAX_EPOCHS,
@@ -1610,6 +2191,27 @@ def main() -> None:
 
     if args.smoke:
         run_smoke(x_train32, x_holdout64, record_path)
+        return
+
+    if args.bridge:
+        run_bridge(
+            x_holdout64,
+            record_path,
+            args.resume,
+            n_charts=args.converge_n_charts,
+            seed=args.converge_seed,
+        )
+        return
+
+    if args.field:
+        run_field(
+            x_full64,
+            x_holdout64,
+            record_path,
+            args.resume,
+            n_charts=args.converge_n_charts,
+            seeds=args.field_seeds,
+        )
         return
 
     if args.converge:
