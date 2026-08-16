@@ -203,6 +203,52 @@ LIP_EVERY_N_STEPS = 1
 FPS_PRETRAIN_EPOCHS = 5
 WALLCLOCK_CEILING_S = 7200
 
+# --- convergence mode (developer-directed, 2026-08-16) ---------------------------------------
+# Directive: "train CAE until it succeeds on PU, base off reconstruction loss", resolved at a
+# blocking question to STOPPING CRITERION ONLY -- the pre-declared lexicographic selection rule
+# (apply_selection_rule) is NOT touched, NOT re-ranked, and still owns the choice of n_charts.
+# It selected n_charts=4 on the corrected nine-cell grid; that is what CONVERGE_N_CHARTS is.
+#
+# The defect this mode exists to remove is measured and recorded in 03-NOTE-d12-retirement.md
+# section 5: train_cae early-stops on TOTAL loss (recon + cross-entropy + Lipschitz), so the
+# nc=4 PU fit halts at epoch 30 under EARLY_STOP_PATIENCE=25 whether MAX_EPOCHS is 40 or 300 --
+# bit-identically, the cap was never binding -- while its reconstruction is still descending.
+#
+# The fix here is deliberately the narrowest one that removes that mechanism, and it is applied
+# in this runner's own cfg, never in cae.py: early_stop_patience is made STRUCTURALLY INERT
+# (max_epochs + 1 -- plateau_count increments at most once per epoch, so it cannot be reached
+# within max_epochs) and the wallclock ceiling is disabled. Same pattern as
+# cae_faithfulness_run.py. Every other protocol constant is the grid's, unchanged, so the
+# converged fit stays comparable to the nine grid rows it is read against.
+CONVERGE_MAX_EPOCHS = 300
+"""The Swiss roll runner's own established MAX_EPOCHS (swiss_roll_curvature_sweep_run.py's
+BASE_CFG), reused rather than re-derived. At the 21.4 s/epoch measured for nc=4 at PU scale
+(03-NOTE-d12-retirement.md section 5: 30 epochs in 641 s) this projects to ~1.8 h for one seed."""
+
+CONVERGE_N_CHARTS = 4
+"""NOT a new choice. The value apply_selection_rule returned on the corrected nine-cell grid,
+by the rule declared in plan 03-07 before any PU number existed. Asserted against the live
+selection at run time (see run_converge) so this constant cannot silently drift from the rule."""
+
+CONVERGE_SEED = PU_SEEDS[0]
+"""One seed. The developer's explicit scope decision: converge seed 20260813 first, read the
+curve, then decide whether the other two seeds are worth their wall clock. A single seed is a
+PROBE, never the reported unit -- this milestone's reporting unit is the three-seed spread."""
+
+CONVERGE_PLATEAU_WINDOW = 25
+"""Epochs in the trailing window the plateau test reads. Matches EARLY_STOP_PATIENCE, so the
+question asked is exactly the one the disabled stopping rule would have asked -- of the
+reconstruction term alone rather than of the total."""
+
+CONVERGE_PLATEAU_REL_TOL = 1e-3
+"""Relative improvement across the trailing window below which the reconstruction curve is
+called flat. Descriptive only: nothing passes or fails on it, and the run does not stop early
+on it -- the full epoch budget is always spent, and the verdict is printed after the fact."""
+
+CONVERGE_CKPT_STEM = "03_converged_cae_pu"
+"""torch checkpoint stem for the converged fit, so the curvature field (plan 03-09's --field)
+loads this model rather than retraining it. Gitignored cache, like every other artifact here."""
+
 SUBSAMPLE_STEM = "subsample_20260729_a79b3460b838fd0a"
 """The frozen Phase 1 10,000-row PU subsample every prior fit in this milestone was trained
 and split against. Gitignored, irreproducible here -- see :func:`_load_subsample`."""
@@ -441,6 +487,67 @@ def _protocol_cfg(seed: int, n_charts: Optional[int], max_epochs: int = MAX_EPOC
     if n_charts is not None:
         cfg["n_charts"] = n_charts
     return cfg
+
+
+def _converge_cfg(seed: int, n_charts: int, max_epochs: int) -> Dict[str, Any]:
+    """The grid's protocol with exactly two parameters changed, both of them stopping
+    parameters and neither of them a model or optimizer parameter:
+
+    * ``early_stop_patience = max_epochs + 1`` -- structurally inert. ``train_cae`` increments
+      ``plateau_count`` at most once per epoch and breaks only when it reaches the patience, so
+      a patience above the epoch budget can never be reached. Total-loss early stopping is
+      therefore removed, not merely loosened.
+    * ``wallclock_ceiling_s = inf`` -- the other way ``train_cae`` can stop short.
+
+    ``lr``, ``weight_decay``, ``batch``, ``lip_weight``, ``lip_every_n_steps`` and
+    ``fps_pretrain_epochs`` are the grid's own values, untouched, so the converged fit differs
+    from a grid cell in how long it trains and in nothing else."""
+    cfg = _protocol_cfg(seed, n_charts, max_epochs=max_epochs)
+    cfg["early_stop_patience"] = max_epochs + 1
+    cfg["wallclock_ceiling_s"] = float("inf")
+    return cfg
+
+
+def _recon_curve(history: List[Dict[str, Any]]) -> List[float]:
+    """The per-epoch reconstruction term of the main training stage, in epoch order. The FPS
+    pre-training stage is excluded: it optimizes a different objective (eq. 5, seeded per-chart)
+    over a handful of seed points, so its ``recon`` is not on the same footing as the main
+    loop's and splicing the two would put a discontinuity in the middle of the curve the
+    plateau test reads."""
+    return [float(h["recon"]) for h in history if h.get("stage") == "main"]
+
+
+def _plateau_report(curve: List[float], window: int, rel_tol: float) -> Dict[str, Any]:
+    """Descriptive read of the reconstruction curve's tail. Nothing passes or fails here.
+
+    Reports the relative improvement across the trailing ``window`` epochs. A curve still
+    descending at the end of its budget is a real, reportable outcome -- it means the budget,
+    not convergence, ended training, and the honest response is to say so rather than to call
+    the last epoch 'converged'."""
+    n = len(curve)
+    if n == 0:
+        return {"status": "no_curve", "n_epochs": 0}
+    # A window needs two distinct points to measure improvement across, so a single-epoch
+    # curve has no trailing window at all -- report that rather than indexing off the end.
+    if n < 2:
+        return {"status": "too_short", "n_epochs": n, "recon_final": curve[-1]}
+    window = min(window, n - 1)
+    start = curve[-(window + 1)]
+    end = curve[-1]
+    rel_improvement = (start - end) / abs(start) if start != 0.0 else 0.0
+    best = min(curve)
+    return {
+        "status": "flat" if rel_improvement < rel_tol else "still_descending",
+        "n_epochs": n,
+        "window": window,
+        "recon_first": curve[0],
+        "recon_at_window_start": start,
+        "recon_final": end,
+        "recon_best": best,
+        "recon_best_epoch": int(curve.index(best)) + 1,
+        "rel_improvement_over_window": float(rel_improvement),
+        "rel_tol": rel_tol,
+    }
 
 
 # =============================================================================================
@@ -1088,6 +1195,203 @@ def run_grid(
 
 
 # =============================================================================================
+# --converge: one fit of the SELECTED config, trained with total-loss early stopping removed.
+# =============================================================================================
+
+
+def run_converge(
+    x_train32: torch.Tensor,
+    x_holdout64: torch.Tensor,
+    x_ph64: torch.Tensor,
+    record_path: Path,
+    resume: bool,
+    n_charts: int,
+    seed: int,
+    max_epochs: int,
+) -> None:
+    """Train the pre-declared selected config to the end of a generous fixed epoch budget with
+    total-loss early stopping structurally removed, and report where its reconstruction curve
+    actually goes.
+
+    Scope, stated so it cannot be over-read:
+
+    * This does NOT re-select ``n_charts``. The selection rule is unchanged and still owns that
+      choice; this function asserts against it rather than replacing it.
+    * There is no pass/fail bar. The developer's resolution was 'convergence only, no bar' --
+      the curve is reported wherever it lands and the curvature field is computed on the result
+      either way.
+    * One seed is a PROBE. The reported unit in this milestone is the three-seed spread.
+    """
+    device = x_train32.device
+    completed = load_completed(record_path) if resume else {}
+    config_id = f"converge_nc{n_charts}_seed{seed}_ep{max_epochs}"
+    if resume and config_id in completed:
+        print(f"  [skip, resumed] {config_id}")
+        return
+
+    # The selected n_charts must come from the rule, not from this function's own default.
+    grid_records = _grid_records(load_completed(record_path))
+    if len(grid_records) == len(_planned_cells()):
+        selected = int(apply_selection_rule(grid_records)["selected_n_charts"])
+        if selected != n_charts:
+            raise ValueError(
+                f"--converge was asked for n_charts={n_charts}, but the pre-declared "
+                f"selection rule on the complete grid in {record_path} selects "
+                f"n_charts={selected}. The rule owns this choice (03-08 Task 2, threat "
+                "T-3-24); pass --converge-n-charts explicitly only if you intend to "
+                "override it, and record the override."
+            )
+        print(f"selection-rule check: rule selects n_charts={selected}, matches this run.")
+    else:
+        print(
+            f"selection-rule check: SKIPPED -- {len(grid_records)} of "
+            f"{len(_planned_cells())} grid cells on disk, rule not applicable."
+        )
+
+    _banner(f"CONVERGE -- n_charts={n_charts} seed={seed} max_epochs={max_epochs}")
+    cfg = _converge_cfg(seed, n_charts, max_epochs)
+    print(
+        f"stopping: early_stop_patience={cfg['early_stop_patience']} (inert: > max_epochs), "
+        f"wallclock_ceiling_s={cfg['wallclock_ceiling_s']}"
+    )
+    print(
+        f"grid protocol otherwise unchanged: lr={cfg['lr']} batch={cfg['batch']} "
+        f"lip_weight={cfg['lip_weight']} fps_pretrain_epochs={cfg['fps_pretrain_epochs']}"
+    )
+
+    torch.manual_seed(seed)
+    model = build_cae(n_charts, device=device)
+    t0 = time.monotonic()
+    fit = cae.train_cae(model, x_train32, cfg)
+    train_wallclock_s = time.monotonic() - t0
+    print(f"training done: epochs_run={fit['epochs_run']} in {train_wallclock_s:.1f}s")
+
+    # The whole point of the mode: if training stopped short anyway, say so loudly rather than
+    # reporting a converged-looking number for a fit that was cut off.
+    if fit["early_stopped"] or fit["wallclock_truncated"]:
+        print(
+            "WARNING: this fit stopped before its epoch budget "
+            f"(early_stopped={fit['early_stopped']}, "
+            f"wallclock_truncated={fit['wallclock_truncated']}) -- the stopping rule this mode "
+            "exists to remove has fired anyway. Treat every number below as an unconverged fit."
+        )
+
+    curve = _recon_curve(fit["history"])
+    plateau = _plateau_report(curve, CONVERGE_PLATEAU_WINDOW, CONVERGE_PLATEAU_REL_TOL)
+
+    model.eval().double()
+    with torch.no_grad():
+        z_holdout = model.encode(x_holdout64)
+        recon_holdout = model.reconstruct(x_holdout64)
+        z_ph = model.encode(x_ph64)
+        decoder_image_ph = model.reconstruct(x_ph64)
+
+    recon_stats = cae.reconstruction_stats(x_holdout64, recon_holdout)
+    occ = _occupancy_diagnostic(model, z_holdout)
+    t_curv = time.monotonic()
+    field = chart_curvature.chart_curvature_field(model, x_holdout64, mode="reverse")
+    curv_wallclock_s = time.monotonic() - t_curv
+    cond_stats = _cond_diagnostic(field)
+    ph = _ph_diagnostic(
+        z_ph.cpu().numpy(), decoder_image_ph.cpu().numpy(), x_ph64.cpu().numpy()
+    )
+
+    # The grid's own cell at the same (n_charts, seed) is the only honest reference point for
+    # what the longer budget bought: same architecture, same seed, same split, same everything
+    # except the stopping rule.
+    baseline = grid_records.get((n_charts, seed))
+    baseline_mse = (
+        float(baseline["reconstruction"]["mse_per_dim"]) if baseline is not None else None
+    )
+
+    ckpt_path = cache.cache_path(CONVERGE_CKPT_STEM, "pt")
+    torch.save(
+        {
+            "state_dict": model.state_dict(),
+            "n_charts": n_charts,
+            "seed": seed,
+            "chart_dim": PU_CHART_DIM,
+            "embed_dim": PU_EMBED_DIM,
+            "hidden_width": PU_HIDDEN_WIDTH,
+            "activation": PU_ACTIVATION,
+            "ambient_dim": AMBIENT_DIM,
+            "config_id": config_id,
+            "cfg": _to_jsonable(cfg),
+            "epochs_run": fit["epochs_run"],
+            "device": str(device),
+            "torch_version": torch.__version__,
+            "dtype": "float64",
+        },
+        ckpt_path,
+    )
+    print(f"checkpoint saved: {ckpt_path} (eval mode, float64)")
+
+    rec = {
+        "kind": "converge_cell",
+        "config_id": config_id,
+        "n_charts": n_charts,
+        "seed": seed,
+        "max_epochs": max_epochs,
+        "train_wallclock_s": train_wallclock_s,
+        "curv_wallclock_s": curv_wallclock_s,
+        "epochs_run": fit["epochs_run"],
+        "early_stopped": fit["early_stopped"],
+        "wallclock_truncated": fit["wallclock_truncated"],
+        "recon_curve_main": curve,
+        "plateau": plateau,
+        "cond": cond_stats,
+        "occupancy": occ,
+        "reconstruction": recon_stats,
+        "ph": ph,
+        "grid_baseline_mse_per_dim": baseline_mse,
+        "checkpoint_path": str(ckpt_path),
+        "device": str(device),
+        "torch_version": torch.__version__,
+    }
+    append_record(record_path, rec)
+
+    _banner("CONVERGE -- reconstruction curve read-out (descriptive, no bar)")
+    print(f"epochs_run={fit['epochs_run']} of budget {max_epochs}")
+    if plateau.get("status") in ("flat", "still_descending"):
+        print(
+            f"train recon: first={plateau['recon_first']:.6e} "
+            f"final={plateau['recon_final']:.6e} "
+            f"best={plateau['recon_best']:.6e} @epoch {plateau['recon_best_epoch']}"
+        )
+        print(
+            f"trailing {plateau['window']}-epoch relative improvement="
+            f"{plateau['rel_improvement_over_window']:.3e} "
+            f"(tol {plateau['rel_tol']:.1e}) -> {plateau['status']}"
+        )
+    else:
+        print(f"plateau test not applicable: status={plateau['status']} n_epochs={plateau['n_epochs']}")
+    print(f"holdout mse_per_dim={recon_stats['mse_per_dim']:.6e}")
+    print(f"holdout mean_norm={recon_stats['mean_norm']:.6f}")
+    if baseline_mse is not None:
+        delta = recon_stats["mse_per_dim"] - baseline_mse
+        pct = 100.0 * delta / baseline_mse
+        direction = "WORSE" if delta > 0 else "better"
+        print(
+            f"vs the same cell in the 40-epoch grid ({baseline_mse:.6e}): "
+            f"{delta:+.6e} ({pct:+.1f}%, {direction})"
+        )
+        print(
+            "A holdout figure that got WORSE while the training curve improved is "
+            "overfitting, not convergence -- read the two lines above together."
+        )
+    print(f"argmax chart occupancy: {occ['n_distinct_charts']} of {n_charts} distinct")
+    print(
+        f"cond(g): median={cond_stats['median']:.4e} p90={cond_stats['p90']:.4e} "
+        f"p99={cond_stats['p99']:.4e} max={cond_stats['max']:.4e}"
+    )
+    print(f"curvature wall clock over {x_holdout64.shape[0]} holdout rows: {curv_wallclock_s:.1f}s")
+    print(
+        "\nONE SEED. This is a probe, not the reported unit -- this milestone reports a "
+        "three-seed spread."
+    )
+
+
+# =============================================================================================
 # --dry-run and --select-only reporting.
 # =============================================================================================
 
@@ -1203,6 +1507,37 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "and name the selected n_charts, without running any fit.",
     )
     parser.add_argument(
+        "--converge",
+        action="store_true",
+        help="Train the pre-declared SELECTED config with total-loss early stopping "
+        "structurally removed (early_stop_patience > max_epochs, wallclock ceiling "
+        "disabled) and report where its reconstruction curve lands. Does NOT re-select "
+        "n_charts -- the selection rule is unchanged and is asserted against. No pass/fail "
+        "bar: the curve is descriptive. Saves a checkpoint for the curvature field.",
+    )
+    parser.add_argument(
+        "--converge-epochs",
+        type=int,
+        default=CONVERGE_MAX_EPOCHS,
+        help=f"Epoch budget for --converge (default: {CONVERGE_MAX_EPOCHS}). Always spent in "
+        "full -- the budget is the only stopping rule left.",
+    )
+    parser.add_argument(
+        "--converge-n-charts",
+        type=int,
+        default=CONVERGE_N_CHARTS,
+        help=f"n_charts for --converge (default: {CONVERGE_N_CHARTS}, the value the "
+        "pre-declared rule selected on the corrected nine-cell grid). A value disagreeing "
+        "with the live rule raises rather than silently overriding it.",
+    )
+    parser.add_argument(
+        "--converge-seed",
+        type=int,
+        default=CONVERGE_SEED,
+        help=f"Seed for --converge (default: {CONVERGE_SEED}). One seed is a probe; the "
+        "reported unit in this milestone is the three-seed spread.",
+    )
+    parser.add_argument(
         "--device",
         type=str,
         default="cpu",
@@ -1265,6 +1600,19 @@ def main() -> None:
 
     if args.smoke:
         run_smoke(x_train32, x_holdout64, record_path)
+        return
+
+    if args.converge:
+        run_converge(
+            x_train32,
+            x_holdout64,
+            x_ph64,
+            record_path,
+            args.resume,
+            n_charts=args.converge_n_charts,
+            seed=args.converge_seed,
+            max_epochs=args.converge_epochs,
+        )
         return
 
     run_grid(x_train32, x_holdout64, x_ph64, record_path, args.resume, args.max_combos)
