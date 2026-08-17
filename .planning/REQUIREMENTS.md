@@ -74,24 +74,30 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 ### Decoder (DEC)
 
-> **AMENDED 2026-07-31 (Phase 2 FAIL).** DEC-01 and the CURV requirements below are written against *Isomap coordinates*. Those are the output of the step Phase 2 invalidated. Phase 02.1 selects the replacement representation; re-read "Isomap coordinates" throughout this section and the next as "the coordinates of the representation chosen in Phase 02.1," and re-plan Phase 3 against it. The requirement *intent* — a C2-smooth decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control — is unchanged.
+> **SUPERSEDED 2026-08-17 by `## Phase 3 Requirement Re-Mint`.** The 2026-07-31 amendment asked a
+> reader to re-read "Isomap coordinates" as the Phase 02.1 replacement. That patch is withdrawn:
+> all 13 DEC / CURV requirements below are now re-minted with rewritten text under the same IDs,
+> so nothing needs re-reading. Two premises died — *Isomap coordinates* and *a single global
+> chart* — and the re-minted text names what replaced them. See the dated re-mint section at the
+> end of this file for the old-to-new mapping. The requirement *intent* is unchanged: a C2-smooth
+> decoder whose Jacobian yields an analytic curvature field, falsified against a synthetic control.
 
-- [x] **DEC-01**: Train a decoder mapping Isomap coordinates to the original 768-d embedding, using a C2-smooth activation throughout the forward path
-- [x] **DEC-02**: Verify no ReLU-family activation appears anywhere in the decoder, since its second derivative is identically zero
-- [x] **DEC-03**: Held-out reconstruction quality shown, not just training loss
-- [x] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown, so good averages cannot hide subset failures
-- [x] **DEC-05**: Decoder training reproducible from a recorded torch seed
+- [x] **DEC-01**: Train a per-chart decoder — `cae.ChartAutoEncoder`'s `chart_decoders[i]` composed with the single shared `embedding_decoder` — mapping each point's own chart coordinate to the 768-d embedding, with a C2-smooth activation throughout the forward path
+- [x] **DEC-02**: No ReLU-family activation anywhere in the decoder, enforced by a guard that raises (`chart_curvature.assert_c2_activation`, `decoder_curvature.assert_c2_decoder`) rather than merely verified once
+- [x] **DEC-03**: Held-out reconstruction quality shown per `n_charts` configuration in the PU sweep, not training loss and not from a single fit
+- [x] **DEC-04**: Both an aggregate reconstruction metric and a per-output-dimension distribution shown for every configuration, so a good average cannot hide a subset failure
+- [x] **DEC-05**: Every fit reproducible from a recorded torch seed, and every result reported across seeds — at least 5 on the Swiss roll gate, 3 on PU — never from a single draw
 
 ### Curvature Field (CURV)
 
-- [x] **CURV-01**: First fundamental form computed from the decoder Jacobian via `torch.func` autodiff, batched over all points rather than looped
-- [x] **CURV-02**: Second fundamental form computed as the normal-projected ambient Hessian of the decoder
-- [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled as a vector norm and never as Gaussian or principal curvature
-- [x] **CURV-04**: Conditioning of the metric tensor shown, with near-singular points flagged, so a non-immersion point cannot silently corrupt the field
-- [x] **CURV-05**: Decoder's second derivatives verified non-zero and finite away from training nodes
-- [x] **CURV-06**: PU manifold's curvature compared against the same decoder architecture fitted to known-geometry synthetic manifolds (flat plane, sphere, saddle) at matched dimension and ambient size
-- [ ] **CURV-07**: Whether the measured curvature is a property of the data manifold or an artifact of the fitted decoder shown, on the evidence of CURV-06
-- [ ] **CURV-08**: Curvature only evaluated at or near the actual Isomap coordinates, never extrapolated beyond their support
+- [x] **CURV-01**: First fundamental form `g = J^T J` from the chart decoder's Jacobian via `torch.func`, batched with `vmap` rather than looped, under a selectable reverse or forward differentiation mode whose outputs agree to float64 round-off
+- [x] **CURV-02**: Second fundamental form as the normal-projected ambient Hessian, computed trace-first-then-project — the `g`-trace and the normal projection commute, so the trace is taken first and the projection applied by a `chart_dim` by `chart_dim` solve; no `(D, D)` projector and no full `II` tensor is ever materialized
+- [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled a vector norm and never Gaussian or principal curvature, under the pinned `CURVATURE_CONVENTION = "trace"`, `H = tr_g(II)` — a unit `d`-sphere gives a norm of `d`, not 1
+- [x] **CURV-04**: Conditioning of the pullback metric shown as a distribution — histogram, median, 90th and 99th percentile, maximum — with points above a within-config percentile flagged and excluded from the reported `‖H‖` summary rather than averaged in; no fixed absolute threshold
+- [x] **CURV-05**: Decoder second derivatives verified non-zero and finite at held-out points, and independently cross-checked at PU scale against finite differences by `derivative_bridge.derivative_agreement`, reported and never gated on
+- [x] **CURV-06**: PU curvature compared against the same architecture and training protocol fitted to flat plane, sphere and saddle at matched `chart_dim` and ambient 768, with the statement, alongside the numbers, that this control cannot detect parameterization damage
+- [x] **CURV-07**: Whether the measured curvature is a property of the data manifold or an artifact of the fitted decoder, answered on CURV-06's evidence and explicitly conditioned on Phase 3's gate override, never presented as if the parameterization were independently validated
+- [x] **CURV-08**: Curvature evaluated only at each point's own chart coordinate as assigned by `model.chart_probs(z).argmax(dim=1)`, never at an extrapolated, interpolated or grid coordinate
 
 ### Region Partitioning (REGN)
 
@@ -208,9 +214,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-03 | Phase 3 | Complete |
 | CURV-04 | Phase 3 | Complete |
 | CURV-05 | Phase 3 | Complete |
-| CURV-06 | Phase 3 | Complete |
-| CURV-07 | Phase 3 | Pending |
-| CURV-08 | Phase 3 | Pending |
+| CURV-06 | Phase 3 | Complete (controls run; both curved fixtures failed at d=20) |
+| CURV-07 | Phase 3 | Answered (negative, conditioned on the override) |
+| CURV-08 | Phase 3 | Complete |
 | REGN-01 | Phase 4 | Pending |
 | REGN-02 | Phase 4 | Pending |
 | REGN-03 | Phase 4 | Pending |
@@ -233,6 +239,46 @@ Phase 02.1 (Geometry Representation Research): GEOM-01..05 (5 requirements)
 Phase 02.2 (Chart Autoencoder Validity Test): CAE-01..07 (7 requirements)
 Phase 3 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
 Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08 (13 requirements)
+
+---
+
+## Phase 3 Requirement Re-Mint (2026-08-13, executed 2026-08-17)
+
+DEC-01..05 and CURV-01..08 were written against two premises that are both dead:
+
+1. **"Isomap coordinates."** Phase 2's eigenspectrum gate FAILed (`GATE_VERDICT = FAIL`,
+   `m = 0.412071`), invalidating Isomap as the representation. Phase 02.1 selected a graph-native
+   replacement; Phase 3 decodes from a Chart Auto-Encoder's per-chart coordinates instead.
+2. **"A single global chart."** 02.2's `CAE_VERDICT = FAIL` on T1 (geodesic distortion) and T3
+   (held-out reconstruction margin) established that no single global coordinate patch is
+   available. Phase 3 works per-chart, with each point measured in the chart the model assigns it.
+
+**All 13 IDs are re-minted with rewritten text under the same `DEC-` / `CURV-` namespace. None was
+retired, dropped or re-pointed.** The 2026-07-31 `AMENDED` blockquote, which asked readers to
+mentally substitute the replacement representation, is superseded — the text now says what it means.
+
+| ID | What changed | Supporting artifact |
+|---|---|---|
+| DEC-01 | Isomap coordinates → each point's own chart coordinate; single decoder → `chart_decoders[i]` composed with the shared `embedding_decoder` | `notebooks/pu_manifold/cae.py`, `03-08-SUPPLEMENT-03.md` |
+| DEC-02 | One-time verification → a guard that raises | `chart_curvature.assert_c2_activation`, `decoder_curvature.assert_c2_decoder` |
+| DEC-03 | One fit → per-`n_charts` held-out reconstruction across the sweep | `03-08-SUMMARY.md` §Task 2 |
+| DEC-04 | Added "for every configuration" so the per-dimension distribution is not shown once | `03-08-SUMMARY.md` per-output-dimension table |
+| DEC-05 | Recorded seed → recorded seed **plus** a reported multi-seed spread (≥5 roll, 3 PU) | `03-02-SUMMARY.md`, `03-08-SUMMARY.md` |
+| CURV-01 | Named `g = J^T J`, `vmap` batching, and the reverse/forward mode toggle agreeing to float64 round-off | `chart_curvature.CURVATURE_MODES`, `03-05-SUMMARY.md` |
+| CURV-02 | Added the trace-first-then-project form and the prohibition on materializing a `(D, D)` projector or a full `II` | `chart_curvature.chart_mean_curvature` |
+| CURV-03 | Pinned `CURVATURE_CONVENTION = "trace"` so a unit `d`-sphere gives norm `d`, not 1 | `chart_curvature.py`, `synthetic_controls.py` (import-time agreement assert) |
+| CURV-04 | "Flagged" → flagged **and excluded from the reported summary**, by a within-config percentile, with no absolute threshold | `curvature_field_pu_run.COND_FLAG_PERCENTILE`, `03-09-SUMMARY.md` |
+| CURV-05 | Added the independent finite-difference cross-check at PU scale, reported and never gated on | `derivative_bridge.derivative_agreement`, `03-09-SUMMARY.md` §Task 2 |
+| CURV-06 | "Matched dimension and ambient size" → matched architecture **and training protocol**, plus the mandatory damage caveat beside the numbers | `synthetic_control_run.py`, `03-10-SUMMARY.md` |
+| CURV-07 | Added the explicit conditioning on Phase 3's gate override | `03-10-SUMMARY.md` §5 |
+| CURV-08 | "At or near the Isomap coordinates" → at each point's own `chart_probs(z).argmax(dim=1)` chart coordinate, never extrapolated, interpolated or gridded | `03-09-SUMMARY.md` §Task 1 |
+
+**Outcome recorded honestly:** twelve of the thirteen are Complete. **CURV-07 is Answered
+negatively** — the PU curvature field is *not validated*. The instrument is correct (validated
+against analytic curvature at `d=4`, `rho = 0.989`, `R² = 0.980`) and the field is not
+conditioning artifact (351× above the measured false-positive floor at PU's own `cond(g)`), but
+no curved control reached PU's conditioning, so nothing bounds the field's accuracy. See
+`03-FINDINGS.md` and `03-10-SUMMARY.md` §5.
 
 ---
 *Requirements defined: 2026-07-29*
