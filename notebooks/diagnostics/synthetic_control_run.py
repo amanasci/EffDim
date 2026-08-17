@@ -625,7 +625,10 @@ def run_controls(
     max_epochs: int,
     device: torch.device,
     epoch_block: int = CONTROL_EPOCH_BLOCK,
+    chart_dim: int = pu.PU_CHART_DIM,
+    embed_dim: Optional[int] = None,
 ) -> None:
+    embed_dim = embed_dim if embed_dim is not None else 2 * chart_dim
     completed = load_completed(record_path) if resume else {}
     records: List[Dict[str, Any]] = []
 
@@ -633,7 +636,7 @@ def run_controls(
     print(DAMAGE_CAVEAT)
 
     for name in fixtures:
-        config_id = f"control_{name}_nc{n_charts}_d{pu.PU_CHART_DIM}_ep{max_epochs}"
+        config_id = f"control_{name}_nc{n_charts}_d{chart_dim}_ep{max_epochs}"
         if resume and config_id in completed:
             print(f"  [skip, resumed] {config_id}")
             records.append(completed[config_id])
@@ -643,10 +646,10 @@ def run_controls(
         rec = run_one_control(
             name,
             n=CONTROL_N,
-            chart_dim=pu.PU_CHART_DIM,
+            chart_dim=chart_dim,
             ambient=pu.AMBIENT_DIM,
             n_charts=n_charts,
-            embed_dim=pu.PU_EMBED_DIM,
+            embed_dim=embed_dim,
             max_epochs=max_epochs,
             seed=CONTROL_FIXTURE_SEED,
             device=device,
@@ -716,6 +719,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "rule selected for PU). Matched means matched.",
     )
     parser.add_argument(
+        "--chart-dim",
+        type=int,
+        default=pu.PU_CHART_DIM,
+        help=f"Intrinsic dimension d (default: {pu.PU_CHART_DIM}, matched to PU). Lowering it "
+        "is a DIAGNOSTIC, not a matched control: at d=20 with n=10000 a curved d-manifold is "
+        "drastically under-sampled, so a low-d run tests whether the curvature pipeline works "
+        "at all when the manifold IS densely sampled. Such a run must never be quoted as a "
+        "control for the PU field.",
+    )
+    parser.add_argument(
+        "--embed-dim",
+        type=int,
+        default=None,
+        help="Embedding dimension (default: 2*chart_dim, the paper's Nash-Kuiper rationale, "
+        f"which reproduces PU's {pu.PU_EMBED_DIM} at d={pu.PU_CHART_DIM}).",
+    )
+    parser.add_argument(
         "--epoch-block",
         type=int,
         default=CONTROL_EPOCH_BLOCK,
@@ -752,8 +772,22 @@ def main() -> None:
         return
 
     fixtures = [args.fixture] if args.fixture else list(CONTROL_FIXTURES)
+    if args.chart_dim != pu.PU_CHART_DIM:
+        print(
+            f"\nDIAGNOSTIC MODE: chart_dim={args.chart_dim} != PU's {pu.PU_CHART_DIM}. This is "
+            "NOT a matched control for the PU field and must not be quoted as one. It tests "
+            "whether the curvature pipeline works when the manifold is densely sampled."
+        )
     run_controls(
-        record_path, args.resume, fixtures, args.n_charts, args.epochs, device, args.epoch_block
+        record_path,
+        args.resume,
+        fixtures,
+        args.n_charts,
+        args.epochs,
+        device,
+        args.epoch_block,
+        args.chart_dim,
+        args.embed_dim,
     )
 
 
