@@ -57,8 +57,9 @@ status: partial
 
 ## Status: PARTIAL
 
-Task 1 complete and verified. Task 2 executed with one gap: **the flat fixture at `d=20` was
-never recorded through the runner.** Its production fit is what discovered the divergence
+Task 1 complete and verified. All three fixtures are recorded at `d=4` and both curved fixtures
+at `d=20`. Task 2 has one gap: **the flat fixture at `d=20` was never recorded through the
+runner.** Its production fit is what discovered the divergence
 described in §1, and its numbers come instead from a diagnostic probe (§2). Every other cell
 is a full record in `notebooks/.cache/03_synthetic_controls.jsonl`.
 
@@ -118,9 +119,18 @@ actually occupies:
 
 | `cond(g)` band | n | `||H||` median | p95 | max |
 |---|---|---|---|---|
+| ≈ 1.4 (the `d=4` flat fit, §4) | 10,000 | **0.0073** | 0.0127 | 0.0181 |
 | ≤ 3.82e+07 (PU's full range) | 94 | **3.87** | 11.24 | 24.50 |
 | 3.82e+07 – 1e+09 | 1,183 | 35.02 | 294.6 | 2,929 |
 | > 1e+09 | 723 | 1,410 | 146,180 | 2.15e+06 |
+
+The first row is the `d=4` flat fit (`cond(g)` median 1.445, max 2.314, holdout
+`mse_per_dim` 1.13e-06, 1 of 4 charts): at sane conditioning the pipeline's false-positive
+curvature is **0.0073**, essentially exact. It anchors the clean end of the table rather than
+leaving it extrapolated. One caveat on reading all four rows as a single curve: each fixture
+rescales by its own `global_std`, so absolute `||H||` is not strictly comparable across `d`.
+The monotone trend within the three `d=20` bands is the rigorous part; the `d=4` row confirms
+the low end qualitatively.
 
 **Artifact curvature scales monotonically with `cond(g)` across three decades.** This is the
 first quantitative measurement in this milestone of a mechanism the phase had only argued
@@ -185,6 +195,7 @@ field.** The runner prints a `DIAGNOSTIC MODE` banner and keys the dimension int
 | calibration R² | **0.979850** | 0.000002 | undefined | undefined |
 | rank `rho` | **0.988709** | −0.015107 | undefined | undefined |
 | median rel. error | **0.1063** | 9954 | **0.005375** | 57.46 |
+| (flat `d=4`: noise floor 0.0073 at `cond(g)` median 1.445, 1 of 4 charts, holdout 1.13e-06) ||||
 | `cond(g)` median | **4.098** | 1.88e+08 | **2.076** | 1.53e+08 |
 | holdout `mse_per_dim` | **5.11e-07** | 1.62e-02 | **1.25e-06** | 2.13e-02 |
 | charts used | 1 of 4 | 4 of 4 | 1 of 4 | 3 of 4 |
@@ -208,9 +219,11 @@ of 0.935. It is dominated by the cancellation points themselves, where true `||H
 the per-point ratio blow up by construction. The calibration slope (0.927, R² 0.980) and the
 median relative error (10.6%) are the trustworthy magnitude reads.
 
-**Both `d=4` fits used 1 of 4 charts** -- a single chart covered the whole manifold, with no
-fragmentation and no seams. The `d=20` fits fragmented across 3-4 charts. That is a cheap
-alternative hypothesis worth one arm before assuming a regularizer is the only lever.
+**All three `d=4` fits used 1 of 4 charts** -- a single chart covered the whole manifold, with
+no fragmentation and no seams -- and all three reached `cond(g)` between 1.4 and 4.1. All three
+`d=20` fits fragmented across 3-4 charts and reached `~10^8`. The pattern holds across zero,
+constant and varying curvature alike, which makes chart count a cheap alternative hypothesis
+worth one arm before assuming a regularizer is the only lever.
 
 ## 5. CURV-07, answered
 
