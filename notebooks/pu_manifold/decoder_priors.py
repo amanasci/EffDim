@@ -30,7 +30,16 @@ because ``H = tr_g(II)`` is parameterization-invariant -- a property of the deco
 -- so constraining the parameterization cannot move it. If a second-order term is ever added to
 this file it must be the TANGENTIAL part ``P_T D^2 F`` only, which is pure Christoffel /
 parameterization content; it must never be the normal part ``P_N D^2 F = II``, which is the
-geometry itself. This module never differentiates the decoder twice.
+geometry itself.
+
+**That second-order term now exists** (mode ``"christoffel"``, added 2026-08-17 on the
+developer's instruction) and it obeys that rule exactly: :func:`christoffel_deviation` returns
+``Gamma^k_ij = (g^{-1} J^T D^2 F)^k_ij``, the tangential part alone, and the normal part is
+never formed. So the module DOES now differentiate the decoder twice, in exactly one place
+(:func:`chart_decoder_hessian`), whose output exactly one consumer may read. The invariance
+argument is unchanged: ``H = tr_g(II)`` is a property of the decoder's image, so constraining
+the parameterization -- at first order via ``g``, or at second order via ``Gamma`` -- cannot
+move it.
 
 Like ``cae.py`` and ``chart_curvature.py``, this module imports ``torch`` at module level, so it
 is deliberately NOT re-exported from ``pu_manifold/__init__.py`` (do not touch that file).
@@ -45,21 +54,52 @@ from torch.func import jacfwd, vmap
 from . import cae
 from . import chart_curvature
 
-PRIOR_MODES = ("isometry", "conformal")
-"""The two legal values of the ``mode`` keyword on :func:`metric_deviation`,
-:func:`isometry_penalty` and :func:`decoder_prior_active`. ``"isometry"`` penalizes
-``||g - I||_F^2`` directly. ``"conformal"`` penalizes only the DEVIATION FROM A UNIFORM SCALE,
-``||g - c I||_F^2`` with ``c = tr(g)/d``.
+PRIOR_MODES = ("isometry", "conformal", "christoffel")
+"""The legal values of the ``mode`` keyword on :func:`decoder_prior_active`.
 
-Both are pre-declared here, before any spike number exists. ``cae.ChartEncoder`` ends in a
-sigmoid, so chart coordinates live in the open unit cube ``(0,1)^d``: a decoder whose domain has
-extent 1 and whose image must span a manifold of extent ``L`` needs ``||J|| ~ L``, i.e.
-``g ~ L^2 I``, not ``g = I``. The strict isometry penalty therefore contains a SCALE term that
-fights reconstruction directly, while the measured pathology -- ``cond(g) = lambda_max /
-lambda_min`` -- is scale-invariant and is exactly what the conformal variant targets. If the
-isometry arm fails its mechanism check (``cond(g)`` does not fall as the weight rises), the
-conformal arm is the pre-declared branch, not a post-hoc axis switch.
-"""
+FIRST ORDER, on the pullback metric ``g = J^T J``:
+
+* ``"isometry"`` penalizes ``||g - I||_F^2`` directly.
+* ``"conformal"`` penalizes only the DEVIATION FROM A UNIFORM SCALE, ``||g - c I||_F^2`` with
+  ``c = tr(g)/d``.
+
+Both were pre-declared before any spike number existed. ``cae.ChartEncoder`` ends in a sigmoid,
+so chart coordinates live in the open unit cube ``(0,1)^d``: a decoder whose domain has extent 1
+and whose image must span a manifold of extent ``L`` needs ``||J|| ~ L``, i.e. ``g ~ L^2 I``, not
+``g = I``. The strict isometry penalty therefore contains a SCALE term that fights reconstruction
+directly, while the measured pathology -- ``cond(g) = lambda_max / lambda_min`` -- is
+scale-invariant and is exactly what the conformal variant targets. If the isometry arm fails its
+mechanism check (``cond(g)`` does not fall as the weight rises), the conformal arm is the
+pre-declared branch, not a post-hoc axis switch.
+
+SECOND ORDER, on the Christoffel symbols:
+
+* ``"christoffel"`` penalizes ``||Gamma||_F^2``, the TANGENTIAL part of ``D^2 F`` only. See
+  :func:`christoffel_deviation`; it is listed in :data:`SECOND_ORDER_MODES` and is the only
+  second-order quantity this module will ever admit.
+
+:func:`metric_deviation` accepts the first-order modes ONLY -- it is a function of ``g`` alone
+and structurally cannot compute a second-order quantity."""
+
+FIRST_ORDER_MODES = ("isometry", "conformal")
+"""Modes that are a function of ``g = J^T J`` alone, and so are computable by
+:func:`metric_deviation`."""
+
+SECOND_ORDER_MODES = ("christoffel",)
+"""Modes that differentiate the decoder TWICE. Listed separately because they cost
+``chart_dim`` times more than the first-order modes and because exactly one second-order
+quantity is ever admissible here -- see :func:`christoffel_deviation`."""
+
+CHRISTOFFEL_MAX_ROWS_PER_CHART = 8
+"""Rows per chart per batch on which the second-order penalty is evaluated.
+
+Not a tuning knob for the penalty's strength -- that is ``weight`` -- but a compute bound.
+``vmap(jacfwd(jacfwd(decode_one)))`` costs roughly ``chart_dim`` times a Jacobian, so at
+``chart_dim = 20`` the second-order term is ~20x the first-order prior, which itself roughly
+tripled per-epoch cost. Subsampling rows keeps the term affordable; the penalty is a batch
+mean either way, so a subsample estimates the same quantity with more variance rather than a
+different quantity. Rows are taken as the first ``n`` of each chart's assignment, which is
+already a shuffled minibatch order."""
 
 
 def metric_deviation(g: torch.Tensor, mode: str) -> torch.Tensor:
@@ -77,9 +117,16 @@ def metric_deviation(g: torch.Tensor, mode: str) -> torch.Tensor:
     Returns ``(batch,)``. Raises ``ValueError`` naming the offending string for any ``mode`` not
     in :data:`PRIOR_MODES` -- never a silent fall-through to a default.
     """
-    if mode not in PRIOR_MODES:
+    if mode in SECOND_ORDER_MODES:
         raise ValueError(
-            f"metric_deviation: unknown mode {mode!r}; must be one of {PRIOR_MODES}."
+            f"metric_deviation: mode {mode!r} is second-order and is a function of the "
+            "decoder's Hessian, not of g alone -- this function cannot compute it. Use "
+            "christoffel_deviation(J, Hess). Refusing rather than falling through to the "
+            "conformal branch, which would silently compute a different quantity."
+        )
+    if mode not in FIRST_ORDER_MODES:
+        raise ValueError(
+            f"metric_deviation: unknown mode {mode!r}; must be one of {FIRST_ORDER_MODES}."
         )
     d = g.shape[-1]
     eye = torch.eye(d, dtype=g.dtype, device=g.device)
@@ -117,6 +164,112 @@ def chart_decoder_jacobian(model: Any, z_chart: torch.Tensor, chart_idx: int) ->
     """
     decode_one = chart_curvature.chart_decoder_map(model, chart_idx)
     return vmap(jacfwd(decode_one))(z_chart)
+
+
+def chart_decoder_hessian(model: Any, z_chart: torch.Tensor, chart_idx: int) -> torch.Tensor:
+    """``(batch, out_dim, chart_dim, chart_dim)`` second derivative of chart ``chart_idx``'s
+    decoder map at ``z_chart``, DIFFERENTIABLE with respect to the model's parameters.
+
+    The training-time counterpart of the measurement path in ``chart_curvature``. It
+    deliberately does NOT call ``chart_curvature._jacobian_hessian``: that path is built for
+    measurement, runs ``_assert_float64`` (the model is float32 during training, and that guard
+    would correctly refuse) and detaches, which is fatal for a term that must carry a live
+    autograd graph back to ``chart_decoders`` and ``embedding_decoder``.
+
+    ``vmap(jacfwd(jacfwd(decode_one)))`` rather than ``hessian`` = ``jacfwd(jacrev(...))``:
+    forward-over-forward was already verified in this module to carry gradient back through
+    both decoder stages (see :func:`chart_decoder_jacobian`), and reverse mode under ``vmap``
+    inside a training loop is the path with more ways to go wrong.
+
+    **This is the only place in this module that differentiates the decoder twice, and its
+    output may only ever be consumed by :func:`christoffel_deviation`.** The module docstring's
+    single most important paragraph governs: the normal part of this tensor IS the second
+    fundamental form, and penalizing it would bias the estimand.
+    """
+    decode_one = chart_curvature.chart_decoder_map(model, chart_idx)
+    return vmap(jacfwd(jacfwd(decode_one)))(z_chart)
+
+
+def christoffel_deviation(J: torch.Tensor, Hess: torch.Tensor) -> torch.Tensor:
+    """Per-point squared Frobenius norm of the Christoffel symbols, ``(batch,)``.
+
+    ``J``: ``(batch, out_dim, chart_dim)``. ``Hess``: ``(batch, out_dim, chart_dim, chart_dim)``.
+
+    **The decomposition this rests on, stated because the whole safety argument is here.** The
+    decoder's second derivative splits orthogonally at each point into
+
+        ``D^2 F  =  P_T D^2 F  +  P_N D^2 F``
+
+    where ``P_T`` projects onto the tangent space spanned by ``J``'s columns and ``P_N`` onto its
+    orthogonal complement. The NORMAL part is exactly the second fundamental form ``II``, whose
+    ``g``-trace is the mean curvature this milestone measures. The TANGENTIAL part is exactly the
+    Christoffel symbols ``Gamma^k_ij`` of the induced connection in these coordinates -- pure
+    parameterization content, carrying no information about the decoder's image.
+
+    This function returns only the tangential part, in the coordinate form
+
+        ``Gamma^k_ij = (g^{-1} J^T D^2 F)^k_ij``,  ``g = J^T J``
+
+    so a penalty built on it constrains HOW the chart parameterizes the surface and provably
+    cannot move ``H = tr_g(II)``, which is invariant to reparameterization. A flat plane given
+    wildly non-uniform coordinates has large ``Gamma`` and zero curvature; a sphere in normal
+    coordinates at the origin has zero ``Gamma`` and large curvature. Both are exercised as
+    known answers in this module's tests.
+
+    ``torch.linalg.solve`` on ``g`` rather than an explicit inverse, matching
+    ``chart_curvature.chart_mean_curvature``'s own treatment of the same matrix.
+    """
+    if J.ndim != 3:
+        raise ValueError(f"christoffel_deviation: J must be (batch, out_dim, chart_dim); got {tuple(J.shape)}.")
+    if Hess.ndim != 4:
+        raise ValueError(
+            f"christoffel_deviation: Hess must be (batch, out_dim, chart_dim, chart_dim); "
+            f"got {tuple(Hess.shape)}."
+        )
+    batch, _, d = J.shape
+    g = torch.einsum("boi,boj->bij", J, J)
+    # J^T applied to the ambient index of the Hessian: (batch, d, d, d)
+    jt_hess = torch.einsum("bok,boij->bkij", J, Hess)
+    gamma = torch.linalg.solve(g, jt_hess.reshape(batch, d, d * d)).reshape(batch, d, d, d)
+    return gamma.pow(2).sum(dim=(1, 2, 3))
+
+
+def christoffel_penalty(
+    model: Any,
+    x: torch.Tensor,
+    weight: float,
+    max_rows_per_chart: int = CHRISTOFFEL_MAX_ROWS_PER_CHART,
+) -> torch.Tensor:
+    """Differentiable scalar: ``weight`` times the batch mean of :func:`christoffel_deviation`,
+    evaluated at the coordinate and chart the model itself assigns each row.
+
+    Structurally identical to :func:`isometry_penalty` -- same ``no_grad`` assignment step, same
+    per-chart loop, same gradient path into ``chart_decoders`` and ``embedding_decoder`` only --
+    and differs solely in computing a second-order quantity and in subsampling rows for cost
+    (see :data:`CHRISTOFFEL_MAX_ROWS_PER_CHART`).
+
+    This is the SECOND-ORDER prior. It is safe to use while measuring curvature precisely
+    because it penalizes the tangential part of ``D^2 F`` and nothing else; a penalty on
+    ``||D^2 F||`` or on ``||H||`` would bias the estimand and must never be substituted.
+    """
+    with torch.no_grad():
+        z = model.encode(x)
+        z_charts = model.chart_coords(z)
+        assignment = model.chart_probs(z).argmax(dim=1)
+
+    deviations = []
+    used = sorted(int(i) for i in torch.unique(assignment).tolist())
+    for chart_idx in used:
+        rows = torch.nonzero(assignment == chart_idx, as_tuple=False).squeeze(-1)
+        if max_rows_per_chart > 0:
+            rows = rows[:max_rows_per_chart]
+        coords = z_charts[rows, chart_idx, :]
+        J = chart_decoder_jacobian(model, coords, chart_idx)
+        Hess = chart_decoder_hessian(model, coords, chart_idx)
+        deviations.append(christoffel_deviation(J, Hess))
+
+    all_deviation = torch.cat(deviations, dim=0)
+    return weight * all_deviation.mean()
 
 
 def isometry_penalty(
@@ -188,6 +341,8 @@ def decoder_prior_active(model: Any, weight: float, mode: str = "isometry"):
     ``cae.chart_loss`` -- so the zero-weight arm is structurally, not merely numerically, the
     untouched code path.
     """
+    if mode not in PRIOR_MODES:
+        raise ValueError(f"decoder_prior_active: mode must be one of {PRIOR_MODES}; got {mode!r}.")
     if weight == 0.0:
         yield
         return
@@ -198,7 +353,11 @@ def decoder_prior_active(model: Any, weight: float, mode: str = "isometry"):
         x: torch.Tensor, y_charts: torch.Tensor, p: torch.Tensor
     ) -> Dict[str, torch.Tensor]:
         result = dict(original_chart_loss(x, y_charts, p))
-        result["total"] = result["total"] + isometry_penalty(model, x, weight, mode)
+        if mode in SECOND_ORDER_MODES:
+            penalty = christoffel_penalty(model, x, weight)
+        else:
+            penalty = isometry_penalty(model, x, weight, mode)
+        result["total"] = result["total"] + penalty
         return result
 
     cae.chart_loss = _patched_chart_loss

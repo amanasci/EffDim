@@ -214,3 +214,100 @@ def test_train_cae_zero_weight_is_bit_identical_to_unpatched():
     assert set(sd_shim.keys()) == set(sd_plain.keys())
     for k in sd_shim:
         assert torch.equal(sd_shim[k], sd_plain[k])
+
+
+# --- second-order (Christoffel) prior -------------------------------------------------------
+# The safety claim for the second-order mode is that it penalizes the TANGENTIAL part of D^2 F
+# and provably not the normal part (the second fundamental form). These are the known answers
+# that check it, using hand-built J/Hess rather than a trained model so the answers are exact.
+
+
+def _graph_jacobian_hessian(Q, z):
+    """J and Hess of the graph map F(z) = (z, 0.5 z^T Q z) at a point z, in R^(d+1)."""
+    d = z.shape[0]
+    J = torch.zeros(1, d + 1, d, dtype=torch.float64)
+    J[0, :d, :] = torch.eye(d, dtype=torch.float64)
+    J[0, d, :] = Q @ z
+    Hess = torch.zeros(1, d + 1, d, d, dtype=torch.float64)
+    Hess[0, d, :, :] = Q
+    return J, Hess
+
+
+def test_christoffel_deviation_is_zero_at_a_critical_point_despite_large_curvature():
+    """A graph over its own critical point is in normal coordinates there: Gamma = 0 while the
+    second fundamental form is exactly Q. This is THE test of the safety claim -- the penalty
+    must not see curvature."""
+    from pu_manifold import decoder_priors
+
+    d = 4
+    Q = torch.diag(torch.tensor([3.0, -2.0, 5.0, -7.0], dtype=torch.float64))
+    z = torch.zeros(d, dtype=torch.float64)  # grad f = Qz = 0 here
+    J, Hess = _graph_jacobian_hessian(Q, z)
+
+    assert Hess.abs().max() > 1.0, "fixture must have genuinely large second derivatives"
+    dev = decoder_priors.christoffel_deviation(J, Hess)
+    assert dev.shape == (1,)
+    assert float(dev[0]) < 1e-20, f"Gamma must vanish at a critical point; got {float(dev[0])}"
+
+
+def test_christoffel_deviation_is_nonzero_away_from_the_critical_point():
+    """Same surface, same curvature, different point: the coordinates are no longer normal, so
+    Gamma is non-zero. Curvature did not change; the parameterization content did."""
+    from pu_manifold import decoder_priors
+
+    d = 4
+    Q = torch.diag(torch.tensor([3.0, -2.0, 5.0, -7.0], dtype=torch.float64))
+    J0, Hess0 = _graph_jacobian_hessian(Q, torch.zeros(d, dtype=torch.float64))
+    J1, Hess1 = _graph_jacobian_hessian(Q, torch.full((d,), 0.4, dtype=torch.float64))
+
+    assert torch.equal(Hess0, Hess1), "the surface's second derivative is the same at both points"
+    assert float(decoder_priors.christoffel_deviation(J1, Hess1)[0]) > 1e-3
+
+
+def test_christoffel_deviation_penalizes_a_curved_reparameterization_of_a_flat_plane():
+    """Zero curvature, non-affine coordinates. The normal part of D^2 F is exactly zero, so a
+    Hessian-norm penalty would report nothing to fix; Gamma is large. This is the case the
+    second-order prior exists to catch."""
+    from pu_manifold import decoder_priors
+
+    # F(u) = (u_0 + u_0^2, u_1) -- image is the flat plane, coordinates are stretched.
+    u0 = 0.7
+    J = torch.tensor([[[1.0 + 2.0 * u0, 0.0], [0.0, 1.0]]], dtype=torch.float64)
+    Hess = torch.zeros(1, 2, 2, 2, dtype=torch.float64)
+    Hess[0, 0, 0, 0] = 2.0  # d^2 F_0 / du_0^2
+
+    # The surface is flat: the second derivative lies entirely IN the tangent plane.
+    dev = decoder_priors.christoffel_deviation(J, Hess)
+    assert float(dev[0]) > 1e-3, "a non-affine chart of a flat plane must have non-zero Gamma"
+
+
+def test_christoffel_deviation_is_invariant_to_the_normal_component_magnitude():
+    """Adding purely NORMAL second-derivative content -- i.e. more curvature -- must not change
+    Gamma at all. Directly asserts the estimand cannot be biased by this penalty."""
+    from pu_manifold import decoder_priors
+
+    d = 3
+    J = torch.zeros(1, d + 2, d, dtype=torch.float64)
+    J[0, :d, :] = torch.eye(d, dtype=torch.float64)  # tangent space = first d ambient axes
+    Hess = torch.zeros(1, d + 2, d, d, dtype=torch.float64)
+    Hess[0, 0, 0, 0] = 1.5  # a tangential component (ambient axis 0 is tangent)
+    base = float(decoder_priors.christoffel_deviation(J, Hess)[0])
+
+    for scale in (1.0, 10.0, 100.0):
+        H2 = Hess.clone()
+        H2[0, d, :, :] = scale * torch.eye(d, dtype=torch.float64)      # normal direction
+        H2[0, d + 1, :, :] = scale * torch.ones(d, d, dtype=torch.float64)  # normal direction
+        got = float(decoder_priors.christoffel_deviation(J, H2)[0])
+        assert abs(got - base) < 1e-18, (
+            f"normal (curvature) content at scale {scale} moved Gamma: {base} -> {got}"
+        )
+
+
+def test_metric_deviation_refuses_second_order_modes():
+    """A silent fall-through to the conformal branch would compute a different quantity under
+    the caller's chosen name."""
+    from pu_manifold import decoder_priors
+
+    g = torch.eye(3, dtype=torch.float64).unsqueeze(0)
+    with pytest.raises(ValueError, match="second-order"):
+        decoder_priors.metric_deviation(g, "christoffel")
