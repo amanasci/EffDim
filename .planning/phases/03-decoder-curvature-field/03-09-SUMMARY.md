@@ -40,29 +40,47 @@ key-decisions:
      same plan's acceptance criteria forbid"
   - "--bridge imports decode_closure from derivative_bridge_run rather than copying the
      two-hop chart decode, keeping one composition pinned to the sealed map instead of two"
-  - "ONE seed only: 03-09's three-seed spread is NOT delivered, by explicit developer scope"
+  - "The three-seed spread WAS delivered (2026-08-17/18) and does not support the field: 52x
+     range, two of three fields piecewise-constant on collapsed metrics"
+  - "cond(g) is scale-invariant and cannot detect a uniformly collapsed metric -- CURV-04 and
+     this plan's percentile flagging are both blind to it"
 
 requirements-completed: [CURV-03, CURV-04, CURV-05, CURV-08]
 
-duration: ~1h execution (bridge 106.4s, field 3129.5s) after ~1.9h of upstream training
-completed: 2026-08-16
-status: partial
+duration: ~1h execution (bridge 106.4s, field 3129.5s) after ~1.9h of upstream training;
+  seeds 20260814/20260815 converged and fielded 2026-08-17/18 (~7h more)
+completed: 2026-08-18
+status: complete
 ---
 
 # Phase 3 Plan 09: The PU Curvature Field Summary
 
-**The deliverable exists: a per-point mean-curvature vector-norm field over all 10,000 PU rows, median `||H|| = 1.3590e+03` with `cond(g)` median `9.93e+06` beside it, and an independent finite-difference bridge showing the derivative computation is sound (full Hessian agreeing to ~5e-08 relative) while the metric contraction amplifies that error roughly 750-fold -- delivered on ONE seed, not the three this plan requires.**
+**The deliverable was built and then failed its own seed spread: the derivative computation is sound (autodiff and an independent finite-difference stencil agree on the raw Hessian to ~5e-08 relative), but across three converged seeds the `||H||` median spans 52x -- 1.359e+03, 5.144e+04, 7.079e+04 -- and two of the three fields are piecewise-constant on uniformly collapsed metrics that `cond(g)` structurally cannot detect.**
 
-## Status: PARTIAL
+## Status: COMPLETE — and the completed spread invalidates this plan's headline
 
-Tasks 1 and 2 are complete and verified. **Task 3 is partially executed**: it requires
-`--field` across three seeds, and only seed `20260813` has a converged checkpoint. This is an
-explicit developer scope decision ("local CPU, one seed first"), not an oversight or a
-shortfall discovered late. The runner reports the other two seeds as missing by name, prints a
-probe notice, and deliberately prints **no spread table** for a single draw.
+Tasks 1, 2 and 3 are executed. This document was first written at `status: partial` with one
+seed of three, by an explicit developer scope decision ("local CPU, one seed first"). **The
+remaining two seeds were converged and fielded on 2026-08-17/18**, closing that gap.
 
-Converging the remaining two seeds costs roughly 3.8 h of CPU. Until that runs, every number
-below describes one draw and **no dispersion is claimed anywhere**.
+**The spread does not support the field reported below.** Across the three converged seeds:
+
+| seed | `‖H‖` median | filled hist bins | `cond(g)` median | max\|Hessian\| |
+|---|---|---|---|---|
+| 20260813 (this document) | 1,359.0 | **20 of 20** | 9.93e+06 | 6.70e-01 |
+| 20260814 | 51,437.9 | **4 of 20** | 7.20e+02 | 8.61e-06 |
+| 20260815 | 70,794.1 | **3 of 20** | 3.21e+03 | 1.32e-05 |
+
+A **52× range**, and seeds 14 and 15 produce **piecewise-constant** fields — one `‖H‖` value per
+chart — on metrics whose entire spectrum has collapsed to `~1e-07` (`det(g) ~ 1e-162`). Their
+good `cond(g)` is an artifact of the condition number being a *ratio*, which cannot see a
+uniformly collapsed metric.
+
+**Everything below describes seed 20260813 specifically.** It is the only one of the three whose
+metric has a healthy absolute scale (`λ_max = 3.35`) and the only one that produced a varying
+field — but it is **one draw of three, not the result**, and the 351× margin over the artifact
+floor quoted in §"What these numbers do and do not mean" is a property of this seed alone. See
+`03-FINDINGS.md` §5.
 
 ## Task 1 — `--field`
 

@@ -2,11 +2,12 @@
 
 **Date:** 2026-08-17. **Milestone:** v1.1 PU Manifold Curvature. **Phase:** 03-decoder-curvature-field.
 
-**One-line outcome.** The curvature instrument is validated and the PU curvature field is not: at
-`d = 4` the pipeline recovers analytic mean curvature on a varying, mixed-sign field at
-`rho = 0.989` and `R² = 0.980`, and at PU's own conditioning its false-positive floor is 3.87
-against a measured median of 1359 — but no curved control ever reached PU's conditioning, so
-nothing bounds the field's *accuracy*, and CURV-07 is answered **negatively**.
+**One-line outcome.** The curvature instrument is validated and the PU curvature field is not.
+At `d = 4` the pipeline recovers analytic mean curvature on a varying, mixed-sign field at
+`rho = 0.989` and `R² = 0.980`. But the PU field **does not survive its own seed spread**: across
+three converged seeds `‖H‖` medians are `1.359e+03`, `5.144e+04`, `7.079e+04` — a **52× range** —
+and **two of the three fields are piecewise-constant numerical garbage** produced by a uniformly
+collapsed metric that `cond(g)` structurally cannot detect. CURV-07 is answered **negatively**.
 
 ---
 
@@ -91,7 +92,8 @@ What that answer rests on, stated rather than left to be derived: the selected c
 is **five orders of magnitude** — the seed pulling its median down having collapsed onto a
 **single chart**, which is well-conditioned precisely because it is degenerate.
 
-**The field** (converged fit, seed 20260813, full 10,000-row cloud):
+**The field, seed 20260813** — reported first because it is the only one of the three that
+produced a spatially varying result; the other two are in the spread table below:
 
 | quantity | value |
 |---|---|
@@ -127,8 +129,46 @@ not**: `H_vec` relative disagreement reaches 6.21 and 23.7 while `H_norm` stays 
 the same points — so the quantity CURV-03 refuses to report is precisely the one shown to be
 unstable.
 
-**One seed.** The reported unit in this milestone is a three-seed spread. This is a **probe**;
-no dispersion is claimed. Converging the other two seeds costs ~3.8 h and was not authorised.
+### The three-seed spread — and why the field does not survive it
+
+All three seeds were converged under the identical continuous 300-epoch protocol and their
+fields computed over the full cloud.
+
+| seed | `‖H‖` median | min | max | filled hist bins | `cond(g)` median | charts | max\|Hessian\| |
+|---|---|---|---|---|---|---|---|
+| 20260813 | **1,359.0** | 681.3 | 4,283.9 | **20 of 20** | 9.93e+06 | 2 | 6.70e-01 |
+| 20260814 | **51,437.9** | 29,699 | 66,977 | **4 of 20** | 7.20e+02 | 4 | 8.61e-06 |
+| 20260815 | **70,794.1** | 51,695 | 75,253 | **3 of 20** | 3.21e+03 | 3 | 1.32e-05 |
+
+**Only seed 20260813 produced a spatially varying field.** Seeds 14 and 15 fill exactly as many
+histogram bins as they have charts — their `‖H‖` is **constant within each chart**, agreeing to
+twelve significant figures — with second derivatives **five orders of magnitude smaller** than
+seed 13's.
+
+**The mechanism, measured directly.** Absolute metric eigenvalues, sampled on a chart of each fit:
+
+| seed | `λ_min(g)` | `λ_max(g)` | `cond(g)` | `det(g)` | `‖J‖_F` |
+|---|---|---|---|---|---|
+| 20260813 | 1.017e-07 | **3.352e+00** | 3.30e+07 | 9.84e-73 | 2.81 |
+| 20260814 | 5.421e-10 | **5.453e-07** | 1.01e+03 | 2.64e-162 | 9.56e-04 |
+| 20260815 | 3.054e-10 | **5.360e-07** | 1.76e+03 | 2.24e-166 | 8.84e-04 |
+
+Seeds 14 and 15 have **collapsed metrics** — the entire spectrum, `λ_max` included, sits at
+`~1e-07` and below, with a decoder Jacobian of `~1e-03`. That is a near-non-immersion in *every*
+direction at once. Their reported `‖H‖ ~ 1e+04–1e+05` is `g^-1 (~1e+09)` times `II (~1e-05)`:
+arithmetic on a near-singular metric and a near-zero second derivative, which is exactly why it
+comes out constant per chart.
+
+**Seed 13 is the only fit whose metric has a healthy absolute scale** (`λ_max = 3.35`). It is
+anisotropic, not globally degenerate.
+
+**The declared reporting unit publishes the garbage.** The milestone reports the across-seed
+median. That median is **51,438** — seed 14's value, from a collapsed fit.
+
+**Consequence for 03-09's deliverable:** the single-seed field recorded there was not merely
+incomplete, it was **unrepresentative**, and the 351× margin over the artifact floor that made it
+look defensible is a property of seed 13 alone rather than of the method. **The PU curvature
+field is not reproducible across seeds.**
 
 ## 6. Step 4 — the synthetic control, and CURV-07
 
@@ -183,14 +223,19 @@ decoder?**
 override, as it must be: no PASS exists upstream, so this answer rests on §1's override and must
 never be read as if the parameterization had been independently validated.
 
-1. **It is not conditioning artifact** — 351× above the measured floor at PU's own `cond(g)`.
+1. **Seed 13's field is not conditioning artifact** — 351× above the measured floor at its own
+   `cond(g)`. That statement does **not** generalize: it holds for one draw of three.
 2. **The instrument is correct** — `d=4` recovers analytic curvature on a varying, mixed-sign
    field at `rho = 0.989`, `R² = 0.980`, and correctly detects trace cancellation (0.0200 against
    0.1235 overall). Any remaining failure is **upstream of the curvature computation**.
 3. **PU's own accuracy is untested.** Every fixture with known curvature that reached PU's
-   dimension failed to *train* to PU-comparable quality (`cond(g)` 15–19× worse, reconstruction
-   345–453× worse). **No curved control reached PU's conditioning**, so nothing bounds `‖H‖ =
-   1359` — neither its magnitude nor, after the saddle's `rho`, its ordering.
+   dimension failed to *train* to PU-comparable quality. **No curved control reached PU's
+   conditioning**, so nothing bounds `‖H‖` — neither magnitude nor, after the saddle's `rho`,
+   ordering.
+4. **And the field does not reproduce.** Across three converged seeds the `‖H‖` median spans
+   **52×**, and **two of three fields are numerically degenerate** (§5). This is the strongest
+   of the four points: it needs no control and no analytic truth to establish, only the phase's
+   own declared three-seed reporting unit applied honestly.
 
 Point 3 is a **structural** gap, not an oversight: closing it needs a CAE that fits a *curved*
 20-manifold as well as it fits PU, and no fit in this milestone has done that.
@@ -216,7 +261,15 @@ Point 3 is a **structural** gap, not an oversight: closing it needs a CAE that f
 
 1. **The gate override** (§1) and its parameterization-damage consequence.
 2. **The PU field is unvalidated for accuracy** (§6). It is descriptive, not a verdict.
-3. **One seed, not three**, for the field, the bridge and every `d=20` control.
+3. **The field does not survive its seed spread** (§5): 52× range, two of three fields
+   piecewise-constant on collapsed metrics. The **bridge and every `d=20` control remain
+   single-seed.**
+3a. **`cond(g)` is scale-invariant and therefore blind to a uniformly collapsed metric.** Both
+    degenerate seeds pass every conditioning check this phase has — CURV-04's distribution and
+    `--field`'s 99th-percentile flagging alike — because a ratio cannot see that `λ_max` is
+    `5e-07`. **No existing record can be re-audited for this**, since the runners store only the
+    condition number; detecting it requires `λ_min`, `λ_max` or `det(g)` recorded alongside, and
+    that is a defect in CURV-04 as re-minted, not merely in the implementation.
 4. **D-12's trigger fired on both legs** — the `d=20` CAE lost to a matched plain-AE control on
    held-out reconstruction (1.733e-04 vs 3.589e-05) and on PH agreement — and was then **retired**
    at plan 03-08's checkpoint as the wrong instrument for a C2 question
@@ -246,9 +299,13 @@ Point 3 is a **structural** gap, not an oversight: closing it needs a CAE that f
 
 ## 9. Handoff to Phase 4
 
-Phase 4 receives a **per-point `‖H‖` field over the full 10,000-row PU cloud** at
-`n_charts = 4`, `chart_dim = 20`, with `cond(g)` per point beside it and 100 near-singular points
-flagged, in `notebooks/.cache/03_curvature_field_pu.jsonl` (`kind: "field_cell"`).
+Phase 4 receives **three per-point `‖H‖` fields** over the full 10,000-row PU cloud at
+`n_charts = 4`, `chart_dim = 20`, one per seed, in
+`notebooks/.cache/03_curvature_field_pu.jsonl` (`kind: "field_cell"`).
+
+**It should treat that handoff as unusable as it stands.** Two of the three fields are
+piecewise-constant on collapsed metrics (§5); the across-seed `‖H‖` median spans 52×; and the
+declared reporting unit — the across-seed median — selects one of the degenerate fields.
 
 **Phase 4 consumes ORDERING**, not magnitude — it quantile-partitions the field into regions.
 That is why Spearman gated Step 1 and magnitude did not, and it is the reason limitation 2 matters
@@ -258,8 +315,13 @@ all, on the only fixture at PU's dimension where ordering could be checked again
 **Conditions on that handoff, all of which Phase 4 must carry forward:**
 
 - The field is **descriptive and unvalidated** (§6). It is not a verdict on PU's curvature.
-- It is **one seed**. Any Phase 4 partition derived from it inherits that.
-- Its **ordering is unvalidated at PU's dimension**, which is the specific property Phase 4 uses.
+- **It does not reproduce across seeds** (§5). A partition built on any one of the three inherits
+  a 52× ambiguity in the quantity being partitioned.
+- Its **ordering is unvalidated at PU's dimension**, which is the specific property Phase 4 uses,
+  and the `d=20` saddle measured `rho = -0.0151` on the only fixture where ordering could be
+  checked against truth.
+- **`cond(g)` cannot certify any of them** (§8.3a): it is scale-invariant, so the two degenerate
+  fields pass every conditioning check the phase has.
 - The **override** (§1) travels with every number derived from it.
 
 **The two levers if Phase 4 needs a better field**, both pointing at the parameterization rather
