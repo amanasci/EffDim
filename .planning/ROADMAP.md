@@ -678,6 +678,7 @@ value per chart — produced by metrics whose entire spectrum collapsed to `~1e-
    `chart_decoders` composed with `embedding_decoder`; the two sets share no parameter.
    Removing total-loss early stopping cut held-out reconstruction **62.2%** and left `cond(g)`
    **unmoved** — a C0 objective cannot bound a C2 quantity.
+
 2. **The conditioning diagnostic is blind to the failure.** `cond(g) = λ_max/λ_min` is
    scale-invariant, so a uniformly collapsed metric scores a *perfect* condition number. On the
    real fits it **ranked the two degenerate seeds ahead of the only healthy one** (1.0e+03 and
@@ -719,10 +720,24 @@ edited.
 architecture, so no two plans may be co-scheduled.
 
 Plans:
+**Wave 1**
+
 - [ ] 03.1-01-PLAN.md — CURV-04's absolute-scale instrumentation in `chart_curvature.py`, and the end-to-end tracer: one prior-active cell measured and recorded at smoke scale
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03.1-02-PLAN.md — nested `decoder_prior_active` composition proven by test (D-12), and the mandatory Swiss roll decoder-prior check notebook (D-14, one-way gated)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 03.1-03-PLAN.md — the exact-equality faithfulness anchor, the two-sided cost probe (training per mode, curvature evaluation per row), and a blocking ratification of the run sizing
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 03.1-04-PLAN.md — the D-08 two-tier read-out implemented and proven on a synthetic record, then the ladder: fresh `weight=0` baseline plus the `scale` and `christoffel` arms
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 03.1-05-PLAN.md — the post-hoc best-of-each combination cell, `03.1-FINDINGS.md`, and CURV-04's closure
 
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
