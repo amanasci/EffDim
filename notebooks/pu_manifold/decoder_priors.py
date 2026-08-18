@@ -54,7 +54,7 @@ from torch.func import jacfwd, vmap
 from . import cae
 from . import chart_curvature
 
-PRIOR_MODES = ("isometry", "conformal", "christoffel")
+PRIOR_MODES = ("isometry", "conformal", "scale", "christoffel")
 """The legal values of the ``mode`` keyword on :func:`decoder_prior_active`.
 
 FIRST ORDER, on the pullback metric ``g = J^T J``:
@@ -72,6 +72,31 @@ scale-invariant and is exactly what the conformal variant targets. If the isomet
 mechanism check (``cond(g)`` does not fall as the weight rises), the conformal arm is the
 pre-declared branch, not a post-hoc axis switch.
 
+* ``"scale"`` penalizes ``(log det g / d)^2`` -- the SQUARED MEAN LOG EIGENVALUE, zero exactly
+  when the metric's geometric-mean eigenvalue is 1, and divergent as ``g -> 0``.
+
+  **Added 2026-08-18 because every other mode in this file is blind to the failure Phase 3
+  actually measured.** Its three-seed spread found two fits whose entire metric spectrum had
+  collapsed to ``~1e-07`` (``det(g) ~ 1e-162``, ``|J|_F ~ 1e-03``) -- a near-non-immersion in
+  every direction at once, whose ``g^-1`` contraction destroys the curvature it is fed. Measured
+  behaviour of each candidate under a uniform rescaling ``J -> cJ``:
+
+  | c | ``christoffel`` | ``isometry`` | ``conformal`` | ``cond(g)`` |
+  |---|---|---|---|---|
+  | 1e+00 | 2.340194180813 | 4.996e+02 | 1.110e+02 | 4.8767 |
+  | 1e-06 | 2.340194180813 | 3.000e+00 | 1.110e-22 | 4.8767 |
+
+  ``christoffel`` and ``cond(g)`` are EXACTLY invariant -- they cannot see collapse at all.
+  ``conformal`` is *minimized* by it, so it would actively reward driving the metric to zero.
+  ``isometry`` resists but saturates at ``||I||_F^2 = d``, and since ``dg/dJ ~ J -> 0`` its
+  gradient with respect to the parameters vanishes as the metric collapses -- a nudge, not a
+  barrier. ``scale`` diverges, with gradient ``2 (log det g / d) (1/d) g^-1``, so it is a true
+  barrier in both directions (it penalizes unbounded expansion equally).
+
+  Note the decomposition this creates: ``conformal`` handles anisotropy scale-invariantly and
+  ``scale`` handles scale anisotropy-invariantly, which is why the strict ``isometry`` penalty
+  -- conflating both in one saturating term -- resists neither well.
+
 SECOND ORDER, on the Christoffel symbols:
 
 * ``"christoffel"`` penalizes ``||Gamma||_F^2``, the TANGENTIAL part of ``D^2 F`` only. See
@@ -81,7 +106,7 @@ SECOND ORDER, on the Christoffel symbols:
 :func:`metric_deviation` accepts the first-order modes ONLY -- it is a function of ``g`` alone
 and structurally cannot compute a second-order quantity."""
 
-FIRST_ORDER_MODES = ("isometry", "conformal")
+FIRST_ORDER_MODES = ("isometry", "conformal", "scale")
 """Modes that are a function of ``g = J^T J`` alone, and so are computable by
 :func:`metric_deviation`."""
 
@@ -114,6 +139,10 @@ def metric_deviation(g: torch.Tensor, mode: str) -> torch.Tensor:
     zero conformal deviation by construction -- that is the whole distinction between the two
     modes.
 
+    ``mode == "scale"``: ``(log det g / d)^2``, via ``torch.linalg.slogdet``. Zero exactly when
+    the geometric-mean eigenvalue is 1; divergent as ``g -> 0``. This is the ONLY mode in this
+    file that is sensitive to the metric's absolute scale -- see :data:`PRIOR_MODES`.
+
     Returns ``(batch,)``. Raises ``ValueError`` naming the offending string for any ``mode`` not
     in :data:`PRIOR_MODES` -- never a silent fall-through to a default.
     """
@@ -130,6 +159,12 @@ def metric_deviation(g: torch.Tensor, mode: str) -> torch.Tensor:
         )
     d = g.shape[-1]
     eye = torch.eye(d, dtype=g.dtype, device=g.device)
+    if mode == "scale":
+        # torch.linalg.slogdet rather than log(det(g)): det underflows to exactly 0 in float64
+        # at the scale this term exists to catch (det(g) ~ 1e-162 was measured on real fits),
+        # which would make the penalty inf/nan precisely where it is needed most.
+        logabsdet = torch.linalg.slogdet(g).logabsdet
+        return (logabsdet / d) ** 2
     if mode == "isometry":
         diff = g - eye
     else:  # "conformal"

@@ -35,6 +35,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans, then REPLANNED onto persistent-homology agreement (D-01) and completed 2026-08-11 at 15/15 replan plans — no substrate promoted, none eliminated, ranking axis carries two named confounds. See `02.6-FINDINGS.md`, `02.6-FINDINGS-02.md`.** **Its selection question is TABLED 2026-08-12 — the substrate was chosen by user decision (CAE), not by this screening.**
 - [ ] **Phase 02.7: Manifold-Template Inference Front End** (INSERTED) — A screening rule that infers a named manifold template from a point cloud, behind D-01/D-03's joint decision and D-16's in-library positive controls. **ON HOLD 2026-08-12 at 10/12 plans: `02.7-10` Tasks 2/3 (the ~17h benchmark grid) unrun, `02.7-11`/`02.7-12` unstarted, and `notebooks/02.7_swiss_roll_template_check.ipynb` prints 1 of 4 read-out lines true (GMST local-dispersion instability plus inflated banded β₀; both controls fail their labels). Does not block Phase 3.**
 - [ ] **Phase 3: Decoder & Curvature Field** — Per-point mean-curvature field via autodiff through a C2-smooth CAE chart decoder, Swiss roll first, synthetic control last. **ACTIVE from 2026-08-12 on a deliberate override of its own PASS precondition — see `02-NOTE-phase-2-stage-on-hold.md` §3.**
+- [ ] **Phase 03.1: Decoder Metric Regularization** (INSERTED) — Add scale-aware and second-order priors to the CAE training objective and measure whether they fix the metric pathologies Phase 3 diagnosed. **Phase 3's field failed its own three-seed spread (52× range, two of three fields piecewise-constant on uniformly collapsed metrics); the training objective constrains no decoder derivative at any order, and `cond(g)` is scale-invariant so it cannot even detect the collapse.**
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
 ## Phase Details
@@ -656,10 +657,68 @@ Plans:
 
 **History**: this entry was rewritten 2026-08-12 to drop four superseded amendment layers (Isomap decoding, the 02.2 PASS precondition, the 02.1 graph-native rewrite of DEC/CURV, the 02.4 wait) and the 2026-08-07 local re-scope note, all of which are now either resolved by the substrate decision or restated above. Prior text is in git history and `02-NOTE-phase-2-stage-on-hold.md`; no sealed verdict or measured number is changed by the rewrite.
 
+### Phase 03.1: Decoder Metric Regularization (INSERTED)
+
+**Goal**: Make the CAE produce a decoder parameterization whose pullback metric is usable for
+curvature — well-scaled and well-conditioned — and measure the effect on a fixture with known
+analytic curvature, so the answer is not another unfalsifiable field.
+
+**Depends on**: Phase 3 complete. Inherits its validated instrument (`chart_curvature.py`
+recovers analytic mean curvature at `d=4` to `rho = 0.989`, `R² = 0.980`) and its two diagnosed
+defects.
+
+**Why this phase exists.** Phase 3 delivered a curvature field that does not survive its own
+declared reporting unit: across three converged seeds the `‖H‖` median spans **52×**
+(1.36e+03, 5.14e+04, 7.08e+04), and **two of the three fields are piecewise-constant** — one
+value per chart — produced by metrics whose entire spectrum collapsed to `~1e-07`
+(`det(g) ~ 1e-162`, `‖J‖_F ~ 1e-03`). Two root causes, both measured:
+
+1. **Nothing in the objective constrains the decoder's derivatives at any order.**
+   `cae.lipschitz_penalty` regularizes `chart_encoders`; curvature is decoded through
+   `chart_decoders` composed with `embedding_decoder`; the two sets share no parameter.
+   Removing total-loss early stopping cut held-out reconstruction **62.2%** and left `cond(g)`
+   **unmoved** — a C0 objective cannot bound a C2 quantity.
+2. **The conditioning diagnostic is blind to the failure.** `cond(g) = λ_max/λ_min` is
+   scale-invariant, so a uniformly collapsed metric scores a *perfect* condition number. On the
+   real fits it **ranked the two degenerate seeds ahead of the only healthy one** (1.0e+03 and
+   1.8e+03 against 9.6e+06). CURV-04 is reopened for this.
+
+**Two arms, because the two failures are different and each candidate penalty is blind to one
+of them.** Measured under a uniform rescaling `J -> cJ`:
+
+| penalty | behaviour under collapse | targets |
+|---|---|---|
+| `christoffel` (C2, tangential `D²F`) | **exactly invariant** | anisotropy / fragmentation |
+| `conformal` | **minimized by collapse** — rewards it | anisotropy only |
+| `isometry` | saturates at `‖I‖²_F = d`, parameter gradient → 0 | both, weakly |
+| `scale` (`(log det g / d)²`) | **diverges**, gradient `∝ g⁻¹` | absolute scale |
+
+So the phase measures **`scale`** (against the collapse that killed seeds 14/15) and
+**`christoffel`** (against the anisotropy seed 13 exhibits, `λ_min = 1e-07` at `λ_max = 3.35`),
+separately and in combination — never collapsed into one weight.
+
+**Scope notes.** `decoder_priors.py` already implements both modes, opt-in and default-off, via
+a contextmanager that never edits `cae.py` (the sealed 02.2 architecture). The Christoffel term
+is proven by test not to bias the estimand — it penalizes only the tangential part of `D²F`,
+never the normal part, which is the curvature. So this phase is **measurement, not
+implementation**: a weight ladder, not new machinery.
+
+**The test bed is the `d=20` sphere or saddle, not PU.** Both have analytic `H` *and* currently
+fail, so "does the prior help?" is directly readable — cosine, magnitude ratio, `R²` and `rho`
+moving toward 1 as the metric improves — rather than another field nothing can check. PU comes
+after, if and only if a control clears.
+
+**Also in scope**: close CURV-04 by recording `λ_min` / `λ_max` / `det(g)` alongside `cond(g)`
+in the runners. No existing record can be re-audited for the collapse, because only the ratio
+was ever stored.
+
+**Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
+edited.
+
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 
 **Goal**: With all upstream hyperparameters (`n_neighbors`, `d`, decoder architecture, curvature quantile threshold) frozen from Phases 1-3's own diagnostics and the synthetic-control falsification test complete, points are pre-specified into density-checked high/low curvature regions and crossmodal MKNN alignment compared between them against region-specific permutation nulls and bootstrap CIs.
-**Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07) to have already completed)
+**Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07) to have already completed). **Now also gated on Phase 03.1**: Phase 3's own handoff records the curvature field as unusable as it stands — it does not reproduce across seeds, and the quantity Phase 4 consumes is *ordering*, which the `d=20` saddle measured at `rho = -0.0151`. See `03-FINDINGS.md` §9.
 **Requirements**: REGN-01..05, MKNN-01..08
 **Success Criteria**:
 

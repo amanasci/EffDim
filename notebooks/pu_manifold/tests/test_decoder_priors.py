@@ -9,6 +9,7 @@ run explicitly:
     python -m pytest notebooks/pu_manifold/tests/test_decoder_priors.py -q
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -311,3 +312,88 @@ def test_metric_deviation_refuses_second_order_modes():
     g = torch.eye(3, dtype=torch.float64).unsqueeze(0)
     with pytest.raises(ValueError, match="second-order"):
         decoder_priors.metric_deviation(g, "christoffel")
+
+
+# --- the scale barrier ------------------------------------------------------------------------
+# Phase 3's three-seed spread measured two fits whose ENTIRE metric spectrum had collapsed to
+# ~1e-07. cond(g), christoffel and conformal are all exactly blind to that; isometry saturates.
+# These pin the one mode that is not.
+
+
+def test_scale_deviation_is_zero_at_the_identity():
+    from pu_manifold import decoder_priors
+
+    for d in (2, 3, 20):
+        g = torch.eye(d, dtype=torch.float64).unsqueeze(0)
+        assert float(decoder_priors.metric_deviation(g, "scale")[0]) < 1e-24
+
+
+def test_scale_deviation_matches_the_closed_form_under_uniform_rescaling():
+    """g = c^2 I has log det g / d = 2 log c, so the penalty is exactly 4 log^2 c -- and is
+    independent of d, since it is the squared MEAN log eigenvalue."""
+    from pu_manifold import decoder_priors
+
+    for d in (3, 20):
+        for c in (1e-1, 1e-3, 1e-6):
+            g = (c**2) * torch.eye(d, dtype=torch.float64).unsqueeze(0)
+            got = float(decoder_priors.metric_deviation(g, "scale")[0])
+            assert abs(got - 4.0 * math.log(c) ** 2) < 1e-9
+
+
+def test_scale_deviation_diverges_on_collapse_where_every_other_mode_is_blind():
+    """The decisive property. Under J -> cJ the christoffel term is EXACTLY invariant, conformal
+    is driven to zero (it would reward collapse), and isometry saturates at ||I||_F^2 = d."""
+    from pu_manifold import decoder_priors
+
+    d = 4
+    torch.manual_seed(0)
+    J = torch.randn(2, 10, d, dtype=torch.float64)
+    H = torch.randn(2, 10, d, d, dtype=torch.float64)
+    H = 0.5 * (H + H.transpose(-1, -2))
+
+    scales, chris, conf, iso = [], [], [], []
+    for c in (1.0, 1e-3, 1e-6):
+        g = torch.einsum("boi,boj->bij", c * J, c * J)
+        scales.append(float(decoder_priors.metric_deviation(g, "scale").mean()))
+        conf.append(float(decoder_priors.metric_deviation(g, "conformal").mean()))
+        iso.append(float(decoder_priors.metric_deviation(g, "isometry").mean()))
+        chris.append(float(decoder_priors.christoffel_deviation(c * J, c * H).mean()))
+
+    assert scales[0] < scales[1] < scales[2], "scale must grow as the metric collapses"
+    assert abs(chris[0] - chris[2]) < 1e-9, "christoffel must be exactly scale-invariant"
+    assert conf[2] < conf[0] * 1e-6, "conformal is minimized by collapse -- it rewards it"
+    assert abs(iso[2] - d) < 1e-6, "isometry saturates at ||I||_F^2 = d"
+
+
+def test_scale_deviation_is_invariant_to_rotation_of_the_chart_frame():
+    """Scale is a property of the metric's determinant, so an orthogonal change of chart basis
+    must not move it -- otherwise the penalty would depend on an arbitrary coordinate choice."""
+    from pu_manifold import decoder_priors
+
+    d = 5
+    torch.manual_seed(3)
+    A = torch.randn(d, d, dtype=torch.float64)
+    g = (A @ A.T).unsqueeze(0) + d * torch.eye(d, dtype=torch.float64).unsqueeze(0)
+    Q, _ = torch.linalg.qr(torch.randn(d, d, dtype=torch.float64))
+    g_rot = (Q.T @ g[0] @ Q).unsqueeze(0)
+    a = float(decoder_priors.metric_deviation(g, "scale")[0])
+    b = float(decoder_priors.metric_deviation(g_rot, "scale")[0])
+    assert abs(a - b) < 1e-9
+
+
+def test_scale_deviation_survives_a_determinant_that_underflows_float64():
+    """At d=20 the measured collapse (det(g) ~ 1e-162) does NOT underflow float64, but it is
+    only two decades of eigenvalue away from doing so: at lambda ~ 1e-17 the determinant is
+    ~1e-340 and rounds to exactly zero, where log(det(g)) is -inf. slogdet keeps the penalty
+    finite there, which is the whole reason this mode does not compute log(det(...))."""
+    from pu_manifold import decoder_priors
+
+    d = 20
+    g_measured = (1e-8) * torch.eye(d, dtype=torch.float64).unsqueeze(0)
+    assert float(torch.linalg.det(g_measured[0])) > 0.0, "the measured scale does not underflow"
+    assert math.isfinite(float(decoder_priors.metric_deviation(g_measured, "scale")[0]))
+
+    g_underflow = (1e-17) * torch.eye(d, dtype=torch.float64).unsqueeze(0)
+    assert float(torch.linalg.det(g_underflow[0])) == 0.0, "fixture must actually underflow det"
+    got = float(decoder_priors.metric_deviation(g_underflow, "scale")[0])
+    assert math.isfinite(got) and got > 1000.0
