@@ -715,6 +715,16 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
+**Plans:** 5 plans, waves 1-5, strictly sequential — plans 3 and 4 measure wall clock at the real
+architecture, so no two plans may be co-scheduled.
+
+Plans:
+- [ ] 03.1-01-PLAN.md — CURV-04's absolute-scale instrumentation in `chart_curvature.py`, and the end-to-end tracer: one prior-active cell measured and recorded at smoke scale
+- [ ] 03.1-02-PLAN.md — nested `decoder_prior_active` composition proven by test (D-12), and the mandatory Swiss roll decoder-prior check notebook (D-14, one-way gated)
+- [ ] 03.1-03-PLAN.md — the exact-equality faithfulness anchor, the two-sided cost probe (training per mode, curvature evaluation per row), and a blocking ratification of the run sizing
+- [ ] 03.1-04-PLAN.md — the D-08 two-tier read-out implemented and proven on a synthetic record, then the ladder: fresh `weight=0` baseline plus the `scale` and `christoffel` arms
+- [ ] 03.1-05-PLAN.md — the post-hoc best-of-each combination cell, `03.1-FINDINGS.md`, and CURV-04's closure
+
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 
 **Goal**: With all upstream hyperparameters (`n_neighbors`, `d`, decoder architecture, curvature quantile threshold) frozen from Phases 1-3's own diagnostics and the synthetic-control falsification test complete, points are pre-specified into density-checked high/low curvature regions and crossmodal MKNN alignment compared between them against region-specific permutation nulls and bootstrap CIs.
