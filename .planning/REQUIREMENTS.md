@@ -93,7 +93,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 - [x] **CURV-01**: First fundamental form `g = J^T J` from the chart decoder's Jacobian via `torch.func`, batched with `vmap` rather than looped, under a selectable reverse or forward differentiation mode whose outputs agree to float64 round-off
 - [x] **CURV-02**: Second fundamental form as the normal-projected ambient Hessian, computed trace-first-then-project — the `g`-trace and the normal projection commute, so the trace is taken first and the projection applied by a `chart_dim` by `chart_dim` solve; no `(D, D)` projector and no full `II` tensor is ever materialized
 - [x] **CURV-03**: Mean curvature **vector** field and its norm shown, labelled a vector norm and never Gaussian or principal curvature, under the pinned `CURVATURE_CONVENTION = "trace"`, `H = tr_g(II)` — a unit `d`-sphere gives a norm of `d`, not 1
-- [x] **CURV-04**: Conditioning of the pullback metric shown as a distribution — histogram, median, 90th and 99th percentile, maximum — with points above a within-config percentile flagged and excluded from the reported `‖H‖` summary rather than averaged in; no fixed absolute threshold
+- [ ] **CURV-04**: Conditioning of the pullback metric shown as a distribution — histogram, median, 90th and 99th percentile, maximum — with points above a within-config percentile flagged and excluded from the reported `‖H‖` summary rather than averaged in; no fixed absolute threshold. **AND its absolute scale reported alongside the ratio** (`λ_min`, `λ_max` or `det(g)`), because `cond(g)` is scale-invariant and therefore cannot detect a uniformly collapsed metric — a near-non-immersion in every direction at once scores a *perfect* condition number while destroying the `g^-1` contraction
 - [x] **CURV-05**: Decoder second derivatives verified non-zero and finite at held-out points, and independently cross-checked at PU scale against finite differences by `derivative_bridge.derivative_agreement`, reported and never gated on
 - [x] **CURV-06**: PU curvature compared against the same architecture and training protocol fitted to flat plane, sphere and saddle at matched `chart_dim` and ambient 768, with the statement, alongside the numbers, that this control cannot detect parameterization damage
 - [x] **CURV-07**: Whether the measured curvature is a property of the data manifold or an artifact of the fitted decoder, answered on CURV-06's evidence and explicitly conditioned on Phase 3's gate override, never presented as if the parameterization were independently validated
@@ -212,7 +212,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-01 | Phase 3 | Complete |
 | CURV-02 | Phase 3 | Complete |
 | CURV-03 | Phase 3 | Complete |
-| CURV-04 | Phase 3 | Complete |
+| CURV-04 | Phase 3 | **Reopened 2026-08-18** — condition number alone is insufficient; absolute metric scale not recorded |
 | CURV-05 | Phase 3 | Complete |
 | CURV-06 | Phase 3 | Complete (controls run; both curved fixtures failed at d=20) |
 | CURV-07 | Phase 3 | Answered (negative, conditioned on the override) |
@@ -267,18 +267,24 @@ mentally substitute the replacement representation, is superseded — the text n
 | CURV-01 | Named `g = J^T J`, `vmap` batching, and the reverse/forward mode toggle agreeing to float64 round-off | `chart_curvature.CURVATURE_MODES`, `03-05-SUMMARY.md` |
 | CURV-02 | Added the trace-first-then-project form and the prohibition on materializing a `(D, D)` projector or a full `II` | `chart_curvature.chart_mean_curvature` |
 | CURV-03 | Pinned `CURVATURE_CONVENTION = "trace"` so a unit `d`-sphere gives norm `d`, not 1 | `chart_curvature.py`, `synthetic_controls.py` (import-time agreement assert) |
-| CURV-04 | "Flagged" → flagged **and excluded from the reported summary**, by a within-config percentile, with no absolute threshold | `curvature_field_pu_run.COND_FLAG_PERCENTILE`, `03-09-SUMMARY.md` |
+| CURV-04 | "Flagged" → flagged **and excluded from the reported summary**, by a within-config percentile, with no absolute threshold. **Amended 2026-08-18** to also require the metric's absolute scale — the ratio alone is blind to uniform collapse | `curvature_field_pu_run.COND_FLAG_PERCENTILE`, `03-09-SUMMARY.md`, `03-FINDINGS.md` §8.3a |
 | CURV-05 | Added the independent finite-difference cross-check at PU scale, reported and never gated on | `derivative_bridge.derivative_agreement`, `03-09-SUMMARY.md` §Task 2 |
 | CURV-06 | "Matched dimension and ambient size" → matched architecture **and training protocol**, plus the mandatory damage caveat beside the numbers | `synthetic_control_run.py`, `03-10-SUMMARY.md` |
 | CURV-07 | Added the explicit conditioning on Phase 3's gate override | `03-10-SUMMARY.md` §5 |
 | CURV-08 | "At or near the Isomap coordinates" → at each point's own `chart_probs(z).argmax(dim=1)` chart coordinate, never extrapolated, interpolated or gridded | `03-09-SUMMARY.md` §Task 1 |
 
-**Outcome recorded honestly:** twelve of the thirteen are Complete. **CURV-07 is Answered
+**Amendment, 2026-08-18.** CURV-04 is **reopened**. Its re-minted text specified conditioning as
+a *ratio* only. Phase 3's three-seed spread then measured two fits with excellent `cond(g)`
+(7.20e+02, 3.21e+03) whose entire metric spectrum had collapsed to `~1e-07` — a defect the
+requirement as written cannot detect, and which no recorded run can be re-audited for, since the
+runners store only the ratio. The requirement now also demands the absolute scale. This is a
+defect in the re-mint itself, found the day after it was written.
+
+**Outcome recorded honestly:** eleven of the thirteen are Complete. **CURV-04 is Reopened** (above). **CURV-07 is Answered
 negatively** — the PU curvature field is *not validated*. The instrument is correct (validated
-against analytic curvature at `d=4`, `rho = 0.989`, `R² = 0.980`) and the field is not
-conditioning artifact (351× above the measured false-positive floor at PU's own `cond(g)`), but
-no curved control reached PU's conditioning, so nothing bounds the field's accuracy. See
-`03-FINDINGS.md` and `03-10-SUMMARY.md` §5.
+against analytic curvature at `d=4`, `rho = 0.989`, `R² = 0.980`), but the field **does not
+reproduce across seeds**: a 52× range in `‖H‖` median with two of three fields piecewise-constant
+on collapsed metrics. See `03-FINDINGS.md` §5-§6 and `03-10-SUMMARY.md` §5.
 
 ---
 *Requirements defined: 2026-07-29*
