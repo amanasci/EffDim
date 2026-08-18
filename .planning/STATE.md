@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 03
 current_phase_name: decoder-curvature-field
 status: executing
-stopped_at: Completed 03-09 (--field and --bridge executed; PU curvature field delivered on one seed of three, status partial)
-last_updated: "2026-08-16T13:55:00.000Z"
-last_activity: 2026-08-16
-last_activity_desc: Closed out 03-08 (grid complete, n_charts=4 by the unchanged pre-declared rule); converged the CAE on PU with total-loss early stopping removed (holdout mse_per_dim -62.2%, cond(g) unmoved); delivered the 03-09 curvature field on one seed
+stopped_at: Phase 03.1 context gathered
+last_updated: "2026-08-18T20:48:37.518Z"
+last_activity: 2026-08-11
+last_activity_desc: Phase 02.7 execution started
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 6
   total_plans: 76
-  completed_plans: 68
+  completed_plans: 69
 ---
 
 # Project State
@@ -49,6 +49,7 @@ Two results carry forward:
    change. Every grid number in `03-08-SUMMARY.md` was measured under the truncating protocol.
    **The curve did not plateau** — best epoch is the last epoch, trailing 25-epoch improvement
    5.271e-02 against a 1.0e-03 tolerance. The budget ended training, not convergence.
+
 2. **`cond(g)` did not move** (median 9.758e+06 → 1.0033e+07). The disjoint-regularizer finding
    confirmed: `train_cae` regularizes `chart_encoders`, curvature is decoded through
    `chart_decoders` + `embedding_decoder`, and they share no parameter. Reconstruction
@@ -598,8 +599,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-14T17:00:39.947Z
-Stopped at: Completed 03-06-SUMMARY.md (Swiss roll sanity notebook for the chart-decoder curvature field, checkpoint approved)
+Last session: 2026-08-18T20:48:37.474Z
+Stopped at: Phase 03.1 context gathered
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
-Resume file: None
+Resume file: .planning/phases/03.1-decoder-metric-regularization-inserted/03.1-CONTEXT.md
 </content>
