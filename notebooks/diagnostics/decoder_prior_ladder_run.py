@@ -33,7 +33,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -116,6 +116,94 @@ def _banner(msg: str) -> None:
     print("\n" + "=" * 92)
     print(msg)
     print("=" * 92)
+
+
+# =============================================================================================
+# D-04 -- per-mode weight calibration: absolute weights derived from declared fractions of the
+# base reconstruction loss, measured once at initialization. No training run.
+# =============================================================================================
+
+
+def calibrate_weights(
+    model: Any,
+    x_batch: torch.Tensor,
+    fractions: Sequence[float],
+    christoffel_max_rows: int = CHRISTOFFEL_MAX_ROWS_PER_CHART,
+) -> Dict[Tuple[str, float], Dict[str, float]]:
+    """D-04: derive an absolute weight for every ``(mode, fraction)`` rung from
+    ``fraction * base_recon / base_penalty[mode]``, where ``base_recon`` and each mode's
+    ``base_penalty`` are measured by ONE forward pass on a freshly-initialized model --
+    never by training.
+
+    ``base_recon = cae.chart_loss(x_batch, out["y_charts"], out["p"])["recon"]``, the same
+    per-row-min reconstruction term ``chart_loss`` already computes. Each mode's raw
+    (``weight=1.0``, unweighted) penalty is measured by calling
+    ``decoder_priors.isometry_penalty(model, x_batch, weight=1.0, mode="scale")`` and
+    ``decoder_priors.christoffel_penalty(model, x_batch, weight=1.0,
+    max_rows_per_chart=christoffel_max_rows)`` -- both penalty functions already multiply by
+    ``weight`` internally, so ``weight=1.0`` returns the raw unweighted batch mean.
+
+    **Two hard rules, both load-bearing:**
+
+    1. **The calibration is computed ONCE**, on a freshly-constructed untrained model seeded
+       with ``torch.manual_seed(LADDER_SEEDS[0])`` at the full ladder architecture, using the
+       first ``pu.BATCH`` (64) rows of ``x_train32``, and the resulting absolute weights are
+       reused for every seed. If each seed calibrated its own weights, a "rung" would be a
+       different absolute weight per seed and would not be a rung at all -- this function does
+       not enforce that on its own (it takes ``model``/``x_batch`` as arguments), so the
+       caller is responsible for constructing them exactly this way and calling this function
+       exactly once per ladder run.
+    2. **Refuse a zero or non-finite base penalty**, by raising ``ValueError`` naming the mode
+       and the measured value, rather than dividing. D-04's ladder is meaningless if the
+       penalty is identically zero at init, and a silently computed ``inf`` weight would
+       present downstream as a diverged cell rather than as this calibration failure.
+
+    Returns a dict keyed by ``(mode, fraction)``, each value carrying ``weight``,
+    ``base_recon`` and ``base_penalty`` -- recorded verbatim on every cell as
+    ``weight_fraction``, ``base_recon_at_init`` and ``base_penalty_at_init`` so the
+    derivation is reconstructable from the JSONL alone.
+    """
+    with torch.no_grad():
+        out = model(x_batch)
+    base_recon = float(cae.chart_loss(x_batch, out["y_charts"], out["p"])["recon"])
+
+    # Deliberately NOT wrapped in torch.no_grad(): christoffel_penalty's Hessian goes through
+    # jacfwd(jacfwd(...)), and at least one PyTorch build's forward-over-forward decomposition
+    # for silu's second derivative itself needs an active (backward-mode) autograd graph to
+    # decompose against -- wrapping this call in no_grad reproducibly raises
+    # "Trying to use forward AD with aten::silu_backward that does not support it." No training
+    # happens here regardless: the values are read once via float(...detach()...) and the graph
+    # is discarded immediately, exactly as no_grad would have discarded it, without disabling
+    # the machinery the decomposition needs.
+    base_penalty: Dict[str, float] = {
+        "scale": float(
+            decoder_priors.isometry_penalty(model, x_batch, weight=1.0, mode="scale").detach()
+        ),
+        "christoffel": float(
+            decoder_priors.christoffel_penalty(
+                model, x_batch, weight=1.0, max_rows_per_chart=christoffel_max_rows
+            ).detach()
+        ),
+    }
+    for mode, penalty in base_penalty.items():
+        if penalty == 0.0 or not np.isfinite(penalty):
+            raise ValueError(
+                f"calibrate_weights: base_penalty[{mode!r}] = {penalty!r} at initialization. "
+                f"D-04's fraction-of-reconstruction weight derivation divides by this value "
+                f"and is meaningless at zero; a silently computed inf/nan weight would present "
+                f"downstream as a diverged cell rather than as this calibration failure."
+            )
+
+    calibrated: Dict[Tuple[str, float], Dict[str, float]] = {}
+    for mode in LADDER_MODES:
+        for fraction in fractions:
+            weight = float(fraction) * base_recon / base_penalty[mode]
+            calibrated[(mode, float(fraction))] = {
+                "weight": weight,
+                "base_recon": base_recon,
+                "base_penalty": base_penalty[mode],
+            }
+    return calibrated
 
 
 def _default_record_path() -> Path:
@@ -385,34 +473,261 @@ def run_smoke(record_path: Path, device: torch.device) -> None:
 
 
 # =============================================================================================
-# --dry-run: prints the §A/§B constants. Stub only -- the full sizing/relief/reading-rules
-# report is Task 3's job (READING_RULES_TEXT, print_dry_run_report's real body).
+# D-10 / D-16: the ladder sizing, the F1-F4 relief ladder and the D-08 Tier-1/Tier-2 reading
+# rules are declared in source, before any number exists, and printed by --dry-run -- the same
+# idiom as swiss_roll_isometry_prior_sweep_run.py's "the ladder is declared in source" block.
 # =============================================================================================
+
+SEALED_CURV_WALLCLOCK_S = 2993.912286339997
+"""control_saddle_nc4_d20_ep300: ONE full-cloud (n=10000) chart_curvature_field call at
+chart_dim=20 / ambient=768 / n_charts_used=4 -- mode- and weight-independent, because
+curvature evaluation runs after training."""
+
+SEALED_TRAIN_WALLCLOCK_S = 6253.836718825012
+"""control_saddle_nc4_d20_ep300 at max_epochs=300 -> ~20.85 s/epoch, corroborated by the
+Phase 3 nine-cell PU grid (nc4_seed20260813: epochs_run=30, train_wallclock_s=646.6931414349965
+-> ~21.56 s/epoch, same architecture)."""
+
+READING_RULES_TEXT = """\
+D-08 TIER 1 -- MECHANISM. The exact wording of "moves toward healthy".
+
+Read per mode over the rungs ordered by ascending weight, on the 3-seed MEDIAN of each
+per-cell distribution statistic, with the full 3-seed SPREAD always printed beside it (D-03).
+
+  lambda_min moves toward healthy = median lambda_min is non-decreasing across ascending
+    weight rungs AND is strictly greater at the top rung than at weight=0.
+  lambda_max moves toward healthy = median lambda_max does not fall toward the collapse
+    band. A lambda_max that DROPS while cond(g) improves is the collapse signature and is
+    read as the prior making the metric worse, never better.
+  det(g) moves toward healthy = median log10_det_g is non-decreasing across ascending
+    rungs and strictly greater at the top rung than at weight=0 -- i.e. the geometric-mean
+    metric eigenvalue moves toward 1, exactly the quantity scale's penalty (log det g / d)^2
+    minimizes.
+  cond(g) moves toward healthy = median cond(g) is non-increasing across ascending rungs
+    and strictly lower at the top rung than at weight=0. cond(g) ALONE IS NEVER SUFFICIENT.
+
+Per-mode verdict, printed as one of exactly three strings:
+  MECHANISM DEMONSTRATED -- the mode's own target field moved as above. scale's target
+    fields are log10_det_g and lambda_min; christoffel's target field is cond(g), with
+    lambda_max not falling.
+  COLLAPSE -- median cond(g) improved while median lambda_max fell by at least one decade
+    from the weight=0 cell. Scored as the prior making the metric worse.
+  MECHANISM NOT DEMONSTRATED -- neither of the above.
+
+Refusal rule: if a mode's Tier 1 is MECHANISM NOT DEMONSTRATED or COLLAPSE, its Tier 2 table
+is still printed in full (D-10 forbids hiding numbers) but is labelled "not read as evidence
+about the estimand" -- a prior that did not move its own target quantity was never actually
+tested.
+
+D-08 TIER 2 -- ESTIMAND. The exact wording of "moves toward 1".
+
+Four axes, scored separately, never collapsed into one score, and no arithmetic anywhere
+combines them. Per axis, over the rungs ordered by ascending weight, on the 3-seed median
+with the full spread printed. The weight=0 reference values on record for this fixture at
+the sealed 300-epoch protocol are cosine -0.000478, magnitude ratio 9955, R2 0.000002, rho
+-0.0151 -- quoted as context only; the actual comparison is against this phase's own
+re-fitted weight=0 cells at the same epoch budget (D-05).
+
+  direction  -- direction_median_cosine moves toward +1: |cosine - 1| strictly smaller at
+    the mode's best rung than at weight=0.
+  magnitude  -- magnitude_median_ratio moves toward 1: |log10(ratio)| strictly smaller at
+    the best rung than at weight=0. Log scale because the baseline sits four decades off; a
+    linear distance would be dominated by that one number.
+  calibration -- calibration_r2 moves toward 1: strictly larger than at weight=0, AND
+    calibration_slope moves toward 1. Both reported; neither alone.
+  rank       -- rank_spearman_rho moves toward +1: strictly larger than at weight=0.
+
+No bar, no verdict artifact (D-10). These are reading rules for a diagnostics table, not a
+gate. A null -- every axis unmoved within the 3-seed spread -- is a complete answer and is
+reported as plainly as a success (D-11).
+
+Seed consistency (D-03): three draws cannot separate a small real effect from seed noise.
+Any Tier-1 or Tier-2 movement whose direction is not consistent across all three seeds is
+labelled NOT SEED-CONSISTENT and is not claimed as an effect.
+
+Bias guard (D-09): held-out reconstruction.mse_per_dim is printed beside every cell. Stated
+rule: an improvement bought with materially worse reconstruction is not an improvement. No
+numeric threshold -- the last reconstruction threshold proposed in this milestone was
+deferred as circular and that objection is unchanged. The comparison is against this
+phase's own weight=0 cells at the same three seeds, reported as a ratio, and the reader
+makes the call. The bias guard is a reading rule, never a selector: no rule here selects on
+reconstruction.
+"""
 
 
 def print_dry_run_report() -> None:
     _banner("decoder_prior_ladder_run.py -- DRY RUN")
-    print(f"  fixture              = {LADDER_FIXTURE!r}")
-    print(f"  n                    = {LADDER_N}")
-    print(f"  chart_dim            = {LADDER_CHART_DIM}")
-    print(f"  ambient D            = {LADDER_AMBIENT}")
-    print(f"  embed_dim            = {LADDER_EMBED_DIM}")
-    print(f"  n_charts             = {LADDER_N_CHARTS}")
-    print(f"  fixture seed (fixed) = {LADDER_FIXTURE_SEED}")
-    print(f"  epoch_block          = {LADDER_EPOCH_BLOCK}")
-    print(f"  LADDER_SEEDS         = {LADDER_SEEDS}")
-    print(f"  LADDER_MODES         = {LADDER_MODES}")
-    print(f"  LADDER_FRACTIONS     = {LADDER_FRACTIONS}")
-    print(f"  LADDER_EVAL_N        = {LADDER_EVAL_N}")
-    print(f"  LADDER_EPOCH_CANDIDATES = {LADDER_EPOCH_CANDIDATES}")
-    print(f"  LADDER_BUDGET_S      = {LADDER_BUDGET_S}")
-    print(f"  ANCHOR_CONFIG_ID     = {ANCHOR_CONFIG_ID!r}")
-    print(f"  ANCHOR_RHO_SPEARMAN  = {ANCHOR_RHO_SPEARMAN!r}")
+
+    # --- Section A: architecture and fixture, inherited from synthetic_control_run.py -------
+    print("Section A -- architecture and fixture, inherited, not restated:")
+    print(f"  fixture              = {LADDER_FIXTURE!r}   (D-01)")
+    print(f"  n                    = {LADDER_N}   (synthetic_control_run.CONTROL_N)")
+    print(f"  chart_dim            = {LADDER_CHART_DIM}   (pu.PU_CHART_DIM)")
+    print(f"  ambient D            = {LADDER_AMBIENT}   (pu.AMBIENT_DIM)")
+    print(f"  embed_dim            = {LADDER_EMBED_DIM}   (pu.PU_EMBED_DIM)")
+    print(f"  n_charts             = {LADDER_N_CHARTS}   (pu.CONVERGE_N_CHARTS)")
+    print(f"  domain_radius        = {LADDER_DOMAIN_RADIUS}   (sc.SADDLE_DOMAIN_RADIUS)")
+    print(f"  LADDER_FIXTURE_SEED  = {LADDER_FIXTURE_SEED}")
+    print(f"  LADDER_EPOCH_BLOCK   = {LADDER_EPOCH_BLOCK}")
     print(
-        "\nThis is a STUB dry-run: the full sizing arithmetic, the F1-F4 relief ladder and the "
-        "D-08 Tier-1/Tier-2 reading rules are declared and printed by a later task in this same "
-        "plan (03.1-01 Task 3), not by this one."
+        "  The fixture seed is held FIXED at 20260816 for every cell and only the model/"
+        "training seed varies. The mandatory anchor cell is the one exception -- it calls "
+        "run_one_control unchanged with seed=CONTROL_FIXTURE_SEED, because it must reproduce "
+        "the sealed row bit for bit."
     )
+    print(
+        "  Early stopping is DISABLED for every cell, inherited via pu._converge_cfg, which "
+        "sets early_stop_patience = max_epochs + 1 and wallclock_ceiling_s = inf. 03-08 "
+        "measured that removing total-loss early stopping cut held-out mse_per_dim 62.2% and "
+        "left cond(g) unmoved, so the converged protocol is the better one, and the anchor "
+        "cell requires it -- epochs_run == max_epochs for every cell, directly checkable."
+    )
+
+    # --- Section B: ladder sizing, pre-declared, probe-selected -----------------------------
+    print("\nSection B -- ladder sizing, pre-declared, probe-selected:")
+    print(f"  LADDER_SEEDS            = {LADDER_SEEDS}   (D-03)")
+    print(f"  LADDER_MODES            = {LADDER_MODES}   (D-02; conformal/isometry deferred)")
+    print(f"  LADDER_FRACTIONS        = {LADDER_FRACTIONS}   (D-04; 3 rungs per mode)")
+    print(f"  LADDER_EVAL_N           = {LADDER_EVAL_N}   (D-16)")
+    print(f"  LADDER_EPOCH_CANDIDATES = {LADDER_EPOCH_CANDIDATES}")
+    print(f"  LADDER_BUDGET_S         = {LADDER_BUDGET_S}   (8.0 h, D-06's envelope less the anchor cell)")
+    print(f"  ANCHOR_CONFIG_ID        = {ANCHOR_CONFIG_ID!r}   (D-13)")
+    print(f"  ANCHOR_RHO_SPEARMAN     = {ANCHOR_RHO_SPEARMAN!r}   (D-13; matched with ==, never a tolerance)")
+    print(
+        "  Cell count: 3 baseline (weight=0, shared across modes by the cell_key 'any' "
+        "sentinel) + 3 fractions x 3 seeds x 2 modes (18) + 3 combination = 24 cells."
+    )
+    print(
+        f"\n  Sealed measurements this projection rests on (control_saddle_nc4_d20_ep300):"
+        f"\n    curv_wallclock_s  = {SEALED_CURV_WALLCLOCK_S!r}"
+        f"\n    train_wallclock_s = {SEALED_TRAIN_WALLCLOCK_S!r}"
+    )
+    eval_projection_s = SEALED_CURV_WALLCLOCK_S * LADDER_EVAL_N / LADDER_N
+    print(
+        f"  Evaluation projection at LADDER_EVAL_N={LADDER_EVAL_N}, ASSUMING evaluation cost is "
+        f"linear in row count: {SEALED_CURV_WALLCLOCK_S:.6f} * {LADDER_EVAL_N}/{LADDER_N} ~= "
+        f"{eval_projection_s:.1f} s/cell, 24 x {eval_projection_s:.1f} ~= "
+        f"{24 * eval_projection_s:.1f} s ~= {24 * eval_projection_s / 3600.0:.2f} h."
+    )
+    print(
+        "  That linearity is research assumption A2 and is UNVERIFIED -- plan 03.1-03's probe "
+        "measures evaluation cost at both n=10000 and n=2000 directly and the projection is "
+        "recomputed from the measurement, never from this number."
+    )
+    print(
+        "  D-16 consequence: ladder cells evaluate on the 2,000-row pu._split holdout rather "
+        "than the full 10,000-row cloud, so per-cell four-axis scores carry more sampling "
+        "noise than the sealed full-cloud rows, and ladder cells are not cell-for-cell "
+        "comparable to Phase 3's sealed d=20 row on evaluation-set size."
+    )
+    print(
+        "  Training projection is NOT CLOSED in this plan: the per-mode multiplier m at "
+        "chart_dim=20 is not known (research assumption A1) and is measured by the probe, "
+        "never extrapolated."
+    )
+
+    # --- Section C: pre-declared relief ladder -----------------------------------------------
+    print("\nSection C -- pre-declared relief ladder, F1-F3 in order, F4 only under override:")
+    print(
+        "  F1 -- rungs 3 -> 2, keeping the extremes (0.01, 1.0) and dropping the middle. "
+        "24 -> 18 cells. Cost: each mode's curve has 3 points instead of 4; monotone "
+        "movement is still readable, resolution is coarser."
+    )
+    print(
+        "  F2 -- LADDER_EVAL_N 2000 -> 1000. D-16's own permitted lever. Cost: more sampling "
+        "noise per cell; eval_sample_size recorded per cell so a re-evaluation is well "
+        "defined."
+    )
+    print(
+        "  F3 -- CHRISTOFFEL_MAX_ROWS_PER_CHART 8 -> 4. D-07's named valve. christoffel arm "
+        "ONLY -- isometry_penalty (which scale reuses) has no row subsampling, so this valve "
+        "does nothing for the scale arm. Cost: wider error bars on the christoffel arm "
+        "specifically; recorded per cell as christoffel_max_rows_per_chart."
+    )
+    print("\n  F4 — OVERRIDES D-07 (NOT AN ORDINARY FALLBACK)")
+    print(
+        "    D-07's own fence: \"Explicitly not the valve: cutting the fixture's sample "
+        "count ... or cutting epochs (under-training is a confound Phase 3 spent a whole "
+        "quick task on).\""
+    )
+    print(
+        "    D-07's own stated reason, measured not rhetorical: 03-08 found that training "
+        "to the full budget instead of stopping early cut held-out mse_per_dim 62.2% while "
+        "leaving cond(g) unmoved. Under-training costs reconstruction directly and buys "
+        "nothing on the metric this phase exists to move."
+    )
+    print(
+        "    Scope of the override, stated precisely: the INITIAL epoch-count choice (the "
+        "probe picking the largest LADDER_EPOCH_CANDIDATES that fits) is ORDINARY "
+        "DISCRETION and is NOT an override. F4 is a different act: it cuts epochs AS A "
+        "RESPONSE TO A BUDGET OVERRUN, which is precisely the use D-07 fenced off."
+    )
+    print(
+        "    F4 is scale-arm-only epoch reduction to the next candidate down. F4 is NEVER "
+        "APPLIED AUTOMATICALLY -- apply_relief_ladder walks F1-F3 only. If F1-F3 are "
+        "exhausted without fitting, the probe prints the F4-inclusive projection under this "
+        "same heading, prints BUDGET NOT MET, and exits 1 into 03.1-03 Task 3's blocking "
+        "checkpoint. F4 fires only when the runner is re-invoked with the explicit "
+        "--confirm-f4-override flag."
+    )
+    print(
+        "    Cost, both halves: the D-07 confound (the scale arm is under-trained relative "
+        "to the very fence D-07 raised) and a protocol asymmetry between arms. Recorded per "
+        "cell as max_epochs and as the literal string 'F4 (D-07 OVERRIDE: epoch cut)' inside "
+        "that cell's relief_applied list."
+    )
+    print(
+        "\n  If F1-F3 are exhausted and the projection still exceeds LADDER_BUDGET_S, the "
+        "runner prints the full projection table for every step, plus the F4-inclusive "
+        "projection under 'F4 AVAILABLE BUT NOT APPLIED -- OVERRIDES D-07', prints "
+        "BUDGET NOT MET, and exits 1 -- an explicit user decision (D-11), never a silent "
+        "scope cut."
+    )
+
+    # --- Sections D/E: the D-08 reading rules, declared verbatim -----------------------------
+    print("\nSections D/E -- D-08 Tier-1/Tier-2 reading rules, declared before any number exists:")
+    print(READING_RULES_TEXT)
+
+    # --- Section F: combination-arm weight selection ------------------------------------------
+    print("Section F -- combination-arm weight selection (D-02), declared before the ladder runs:")
+    print(
+        "  best_scale = the rung whose median log10_det_g is closest to 0.0 -- the quantity "
+        "scale's own penalty minimizes."
+    )
+    print(
+        "  best_christoffel = the rung with the lowest median cond(g) among rungs whose "
+        "median lambda_max did not fall by at least one decade from the weight=0 cell (the "
+        "same COLLAPSE guard as Tier 1)."
+    )
+    print(
+        "  If a mode's Tier 1 is MECHANISM NOT DEMONSTRATED at every rung, its best is the "
+        "largest weight rung and the combination cell carries the extra label "
+        "'no mechanism in the {mode} arm'."
+    )
+    print(
+        "  Every table carrying the combination cell labels it POST-HOC (weights selected "
+        "after seeing the ladders; not an independent measurement) -- D-02 requires this and "
+        "it is not a footnote."
+    )
+
+    # --- Section G: baseline-pathology precondition --------------------------------------------
+    print("\nSection G -- baseline-pathology precondition, declared before the ladder runs:")
+    print(
+        "  After the three weight=0 cells complete at the chosen epoch budget, the runner "
+        "prints BASELINE PATHOLOGY CHECK with median cond(g), lambda_min, lambda_max and "
+        "log10_det_g per seed, against the sealed reference bands in 03-FINDINGS.md Section 5:"
+    )
+    print("    healthy-metric seed 20260813:  lambda_max = 3.352,     cond = 3.30e+07")
+    print("    collapsed seeds:               lambda_max ~= 5.4e-07,  det(g) ~= 1e-162")
+    print("    healthy d=4 saddle control:     cond = 4.098")
+    print(
+        "  If all three baseline seeds land in the d=4-healthy band -- median cond(g) within "
+        "one decade of 4.098 and median lambda_max within one decade of 1 -- the runner "
+        "prints NO PATHOLOGY AT THIS EPOCH BUDGET and exits 2 without training a single "
+        "prior-active cell. That is itself a finding and escalation is an explicit user "
+        "decision per D-11."
+    )
+
     print("\n--dry-run: nothing executed, nothing written.")
 
 
@@ -446,6 +761,33 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=str,
         default="cpu",
         help="'cpu' (default), 'cuda', or 'cuda:N'.",
+    )
+    parser.add_argument(
+        "--eval-n",
+        type=int,
+        default=LADDER_EVAL_N,
+        help=f"Curvature evaluation sample size (default: LADDER_EVAL_N={LADDER_EVAL_N}, D-16).",
+    )
+    parser.add_argument(
+        "--max-epochs",
+        type=int,
+        default=None,
+        help="Override max_epochs for a cell (default: resolved from LADDER_EPOCH_CANDIDATES "
+        "by the probe in a later plan).",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default=None,
+        choices=list(LADDER_MODES),
+        help=f"Restrict to one prior mode (default: all of LADDER_MODES={LADDER_MODES}).",
+    )
+    parser.add_argument(
+        "--seeds",
+        type=int,
+        nargs="+",
+        default=list(LADDER_SEEDS),
+        help=f"Model seeds to run (default: LADDER_SEEDS={LADDER_SEEDS}).",
     )
     return parser
 
