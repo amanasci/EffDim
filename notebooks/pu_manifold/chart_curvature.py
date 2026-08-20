@@ -334,9 +334,20 @@ def chart_mean_curvature(
       ``"H_vec"``                    ``(batch, out_dim)``  mean curvature vectors, ``tr_g(II)``
       ``"H_norm"``                   ``(batch,)``          ``||H||``, the only reportable scalar
       ``"metric_condition_number"``  ``(batch,)``          ``cond(g)`` per point
+      ``"lambda_min"``               ``(batch,)``          smallest eigenvalue of ``g`` (D-15, CURV-04)
+      ``"lambda_max"``               ``(batch,)``          largest eigenvalue of ``g`` (D-15, CURV-04)
+      ``"det_g"``                    ``(batch,)``          ``det(g)`` (D-15, CURV-04)
+      ``"log10_det_g"``              ``(batch,)``          ``sum(log10(eig(g)))`` (D-15, CURV-04)
       ``"jacobian_shape"``           tuple                 as produced, for the shape assertion
       ``"hessian_shape"``            tuple                 as produced, for the shape assertion
       ``"chart_idx"``, ``"activation"``, ``"mode"``        provenance
+
+    D-15 (CURV-04, reopened): ``metric_condition_number`` alone is scale-invariant and was
+    measured ranking two uniformly-collapsed seeds (metric spectrum ``~1e-07`` everywhere)
+    *ahead of* the only fit whose metric had a real absolute scale. The four fields above are
+    derived from ONE extra ``torch.linalg.eigvalsh(g)`` decomposition per chunk, alongside the
+    pre-existing metric-conditioning call below, which is retained byte-for-byte unchanged so
+    the reverse path stays bit-identical (D-15's bit-identity requirement).
 
     Mathematics, under this module's ``H = tr_g(II)`` trace convention:
 
@@ -404,6 +415,10 @@ def chart_mean_curvature(
 
     H_parts = []
     cond_parts = []
+    lambda_min_parts = []
+    lambda_max_parts = []
+    det_g_parts = []
+    log10_det_g_parts = []
     for start in range(0, batch, VMAP_CHUNK):
         real = z_chart[start : start + VMAP_CHUNK]
         n_real = real.shape[0]
@@ -447,13 +462,31 @@ def chart_mean_curvature(
         H_parts.append((raw - torch.einsum("boi,bi->bo", J, alpha))[:n_real].detach())
         cond_parts.append(torch.linalg.cond(g)[:n_real].detach())
 
+        # D-15 / CURV-04: ONE extra eigendecomposition, reused for lambda_min, lambda_max,
+        # det_g and log10_det_g -- never a second eigendecomposition beside this one, and
+        # the cond_parts line immediately above is untouched (D-15's bit-identity
+        # requirement: H_vec, H_norm and metric_condition_number must not move).
+        eigs = torch.linalg.eigvalsh(g)  # (chunk, chart_dim), ascending; g is symmetric PSD
+        lambda_min_parts.append(eigs[..., 0][:n_real].detach())
+        lambda_max_parts.append(eigs[..., -1][:n_real].detach())
+        det_g_parts.append(torch.linalg.det(g)[:n_real].detach())
+        log10_det_g_parts.append(eigs.log10().sum(dim=-1)[:n_real].detach())
+
     H_vec = torch.cat(H_parts, dim=0)
     metric_cond = torch.cat(cond_parts, dim=0)
+    lambda_min = torch.cat(lambda_min_parts, dim=0)
+    lambda_max = torch.cat(lambda_max_parts, dim=0)
+    det_g = torch.cat(det_g_parts, dim=0)
+    log10_det_g = torch.cat(log10_det_g_parts, dim=0)
 
     return {
         "H_vec": H_vec,
         "H_norm": chart_mean_curvature_norm(H_vec),
         "metric_condition_number": metric_cond,
+        "lambda_min": lambda_min,
+        "lambda_max": lambda_max,
+        "det_g": det_g,
+        "log10_det_g": log10_det_g,
         "jacobian_shape": (batch, out_dim, chart_dim),
         "hessian_shape": (batch, out_dim, chart_dim, chart_dim),
         "chart_idx": int(chart_idx),
@@ -493,8 +526,11 @@ def chart_curvature_field(
     stays the default.
 
     Returns ``{"H_vec": (n, out_dim), "H_norm": (n,), "chart_assignment": (n,),
-    "metric_condition_number": (n,), "n_charts_used": int, "batch_size": int,
-    "curvature_convention": str}``.
+    "metric_condition_number": (n,), "lambda_min": (n,), "lambda_max": (n,), "det_g": (n,),
+    "log10_det_g": (n,), "n_charts_used": int, "batch_size": int,
+    "curvature_convention": str}``. The four fields after ``metric_condition_number`` are
+    D-15 / CURV-04's absolute-scale diagnostics -- see :func:`chart_mean_curvature`'s
+    docstring for what they are and why ``metric_condition_number`` alone is insufficient.
 
     ``batch_size`` is the Python-loop granularity: how many rows are handed to
     :func:`chart_mean_curvature` per call. It is **numerically inert**. Peak memory is set by
@@ -528,6 +564,10 @@ def chart_curvature_field(
     H_vec: Optional[torch.Tensor] = None
     H_norm = torch.empty(n, dtype=torch.float64, device=x.device)
     metric_cond = torch.empty(n, dtype=torch.float64, device=x.device)
+    lambda_min = torch.empty(n, dtype=torch.float64, device=x.device)
+    lambda_max = torch.empty(n, dtype=torch.float64, device=x.device)
+    det_g = torch.empty(n, dtype=torch.float64, device=x.device)
+    log10_det_g = torch.empty(n, dtype=torch.float64, device=x.device)
 
     used = sorted(int(i) for i in torch.unique(assignment).tolist())
     for chart_idx in used:
@@ -542,6 +582,10 @@ def chart_curvature_field(
             H_vec[target] = out["H_vec"]
             H_norm[target] = out["H_norm"]
             metric_cond[target] = out["metric_condition_number"]
+            lambda_min[target] = out["lambda_min"]
+            lambda_max[target] = out["lambda_max"]
+            det_g[target] = out["det_g"]
+            log10_det_g[target] = out["log10_det_g"]
 
     if H_vec is None:
         raise ValueError("chart_curvature_field: no rows to measure; x is empty.")
@@ -551,6 +595,10 @@ def chart_curvature_field(
         "H_norm": H_norm,
         "chart_assignment": assignment,
         "metric_condition_number": metric_cond,
+        "lambda_min": lambda_min,
+        "lambda_max": lambda_max,
+        "det_g": det_g,
+        "log10_det_g": log10_det_g,
         "n_charts_used": len(used),
         "batch_size": int(batch_size),
         "curvature_convention": CURVATURE_CONVENTION,
