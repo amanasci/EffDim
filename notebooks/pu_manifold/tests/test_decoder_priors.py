@@ -179,6 +179,55 @@ def test_decoder_prior_active_wrapper_adds_penalty_to_total_only():
     torch.testing.assert_close(patched["total"], unpatched["total"] + expected_penalty)
 
 
+def test_decoder_prior_active_nesting_composes_and_restores_exact():
+    """D-12's combination arm is two nested ``with decoder_prior_active(...)`` blocks and
+    nothing else. If nesting replaced rather than composed, the combination cell would silently
+    be a single-mode cell -- this is the test that rules that out."""
+    model = _tiny_cae()
+    x = _tiny_batch()
+    out = model(x)
+    original = cae.chart_loss
+    unpatched = original(x, out["y_charts"], out["p"])
+
+    with dp.decoder_prior_active(model, weight=1e-2, mode="scale"):
+        after_outer = cae.chart_loss
+        assert after_outer is not original
+
+        with dp.decoder_prior_active(model, weight=1e-2, mode="christoffel"):
+            assert cae.chart_loss is not after_outer
+
+            patched = cae.chart_loss(x, out["y_charts"], out["p"])
+            expected_scale = dp.isometry_penalty(model, x, 1e-2, mode="scale")
+            expected_christoffel = dp.christoffel_penalty(model, x, 1e-2)
+
+            torch.testing.assert_close(patched["recon"], unpatched["recon"])
+            torch.testing.assert_close(patched["xent"], unpatched["xent"])
+            torch.testing.assert_close(
+                patched["total"],
+                unpatched["total"] + expected_scale + expected_christoffel,
+            )
+
+        assert cae.chart_loss is after_outer
+
+    assert cae.chart_loss is original
+
+
+def test_decoder_prior_active_nesting_restores_on_exit_by_exception():
+    """Mirrors ``test_decoder_prior_active_restores_on_exit_by_exception`` but raises from the
+    INNER block -- proving both ``finally`` blocks unwind in order under an exception, not just
+    the inner one."""
+    model = _tiny_cae()
+    original = cae.chart_loss
+    with pytest.raises(RuntimeError, match="boom"):
+        with dp.decoder_prior_active(model, weight=1e-2, mode="scale"):
+            after_outer = cae.chart_loss
+            assert after_outer is not original
+            with dp.decoder_prior_active(model, weight=1e-2, mode="christoffel"):
+                assert cae.chart_loss is not after_outer
+                raise RuntimeError("boom")
+    assert cae.chart_loss is original
+
+
 def _tiny_train_cfg(seed: int) -> dict:
     return dict(seed=seed, lr=3e-3, weight_decay=1e-4, batch=16, max_epochs=3)
 
