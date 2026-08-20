@@ -716,13 +716,13 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
-**Plans:** 5 plans, waves 1-5, strictly sequential — plans 3 and 4 measure wall clock at the real
+**Plans:** 1/5 plans executed
 architecture, so no two plans may be co-scheduled.
 
 Plans:
 **Wave 1**
 
-- [ ] 03.1-01-PLAN.md — CURV-04's absolute-scale instrumentation in `chart_curvature.py`, and the end-to-end tracer: one prior-active cell measured and recorded at smoke scale
+- [x] 03.1-01-PLAN.md — CURV-04's absolute-scale instrumentation in `chart_curvature.py`, and the end-to-end tracer: one prior-active cell measured and recorded at smoke scale
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
