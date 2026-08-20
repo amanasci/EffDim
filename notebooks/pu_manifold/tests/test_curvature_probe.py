@@ -1615,6 +1615,136 @@ def test_chart_curvature_reverse_mode_is_bit_identical_to_sealed_baseline():
     assert torch.equal(H_vec, golden)
 
 
+def test_chart_mean_curvature_reports_lambda_min_max_and_det_g():
+    """D-15 / CURV-04: pins the four new absolute-scale fields against an independent
+    recomputation of ``g`` inside the test, mirroring
+    ``test_chart_curvature_dxd_solve_matches_explicit_projector``'s independent-reference
+    structure. ``lambda_max / lambda_min`` is also checked against the returned
+    ``metric_condition_number`` -- the two are the same ratio computed two different ways
+    (``torch.linalg.cond`` versus an eigendecomposition), and D-15 requires the former to stay
+    byte-for-byte untouched while the latter is new.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=3)
+    chart_idx = 1
+    z_chart = torch.rand(6, model.chart_dim, dtype=torch.float64)
+
+    decode_one = cc.chart_decoder_map(model, chart_idx)
+    J = torch.func.vmap(torch.func.jacrev(decode_one))(z_chart)
+    g = torch.einsum("boi,boj->bij", J, J)
+    eigs = torch.linalg.eigvalsh(g)
+    lambda_min_ref = eigs[..., 0]
+    lambda_max_ref = eigs[..., -1]
+    det_g_ref = torch.linalg.det(g)
+    log10_det_g_ref = eigs.log10().sum(dim=-1)
+
+    out = cc.chart_mean_curvature(model, z_chart, chart_idx)
+
+    torch.testing.assert_close(out["lambda_min"], lambda_min_ref, rtol=1e-9, atol=1e-12)
+    torch.testing.assert_close(out["lambda_max"], lambda_max_ref, rtol=1e-9, atol=1e-12)
+    torch.testing.assert_close(out["det_g"], det_g_ref, rtol=1e-9, atol=1e-12)
+    torch.testing.assert_close(out["log10_det_g"], log10_det_g_ref, rtol=1e-9, atol=1e-12)
+
+    torch.testing.assert_close(
+        out["lambda_max"] / out["lambda_min"],
+        out["metric_condition_number"],
+        rtol=1e-9,
+        atol=1e-12,
+    )
+
+
+def test_chart_curvature_field_reports_lambda_min_max_and_det_g():
+    """Field-level counterpart of the per-chart test above, mirroring
+    ``test_chart_curvature_field_reassembles_in_row_order``'s structure: each row's field
+    value must equal the per-chart ``chart_mean_curvature`` value for that row's assigned
+    chart, reassembled in original row order."""
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=2)
+    rng = np.random.default_rng(7)
+    x = torch.tensor(rng.standard_normal((24, 12)), dtype=torch.float64)
+
+    field = cc.chart_curvature_field(model, x, batch_size=8)
+
+    for key in ("lambda_min", "lambda_max", "det_g", "log10_det_g"):
+        assert field[key].shape == (24,)
+        assert field[key].dtype == torch.float64
+
+    with torch.no_grad():
+        z = model.encode(x)
+        z_charts = model.chart_coords(z)
+        assignment = model.chart_probs(z).argmax(dim=1)
+
+    for chart_idx in sorted(int(i) for i in torch.unique(assignment).tolist()):
+        rows = torch.nonzero(assignment == chart_idx, as_tuple=False).squeeze(-1)
+        coords = z_charts[rows, chart_idx, :]
+        expected = cc.chart_mean_curvature(model, coords, chart_idx)
+        for key in ("lambda_min", "lambda_max", "det_g", "log10_det_g"):
+            torch.testing.assert_close(field[key][rows], expected[key], rtol=1e-9, atol=1e-12)
+
+
+def test_cond_is_blind_to_uniform_metric_collapse_but_det_g_is_not():
+    """Encodes the promotion recorded in this plan's ``<assumption_delta_decision>``:
+    ``cond(g)`` is exactly invariant under a uniform rescaling of the decoder, so it cannot
+    detect a uniformly collapsed metric -- the failure Phase 3 measured on seeds 20260814 and
+    20260815, where the entire metric spectrum sat at ``~1e-07`` everywhere and ``cond(g)``
+    nevertheless read BETTER than the one healthy fit (CURV-04, ``03-FINDINGS.md`` Section 5).
+
+    Because ``EmbeddingDecoder`` is built with ``out_activation=None``, its final layer is a
+    plain ``nn.Linear``, so scaling that layer's weight and bias by a scalar ``c`` scales the
+    decoder's output exactly: ``J -> cJ`` and ``g = J^T J -> c**2 g``. ``cond(g) = lambda_max /
+    lambda_min`` is therefore exactly unchanged, while ``lambda_min`` and ``lambda_max`` each
+    scale by ``c**2`` and ``det(g)`` (the product of ``chart_dim`` eigenvalues) scales by
+    ``c**(2 * chart_dim)``.
+    """
+    import torch
+
+    from pu_manifold import chart_curvature as cc
+
+    model = _small_cae("silu", seed=3)
+    chart_idx = 1
+    z_chart = torch.rand(6, model.chart_dim, dtype=torch.float64)
+
+    baseline = cc.chart_mean_curvature(model, z_chart, chart_idx)
+
+    final_linear = None
+    for module in model.embedding_decoder.net:
+        if hasattr(module, "weight"):
+            final_linear = module
+    assert final_linear is not None, "embedding_decoder.net has no nn.Linear layer"
+
+    c = 1e-3
+    with torch.no_grad():
+        final_linear.weight.mul_(c)
+        final_linear.bias.mul_(c)
+
+    scaled = cc.chart_mean_curvature(model, z_chart, chart_idx)
+
+    torch.testing.assert_close(
+        scaled["metric_condition_number"],
+        baseline["metric_condition_number"],
+        rtol=1e-9,
+        atol=1e-12,
+    )
+    torch.testing.assert_close(
+        scaled["lambda_min"], baseline["lambda_min"] * (c**2), rtol=1e-9, atol=1e-12
+    )
+    torch.testing.assert_close(
+        scaled["lambda_max"], baseline["lambda_max"] * (c**2), rtol=1e-9, atol=1e-12
+    )
+    torch.testing.assert_close(
+        scaled["det_g"],
+        baseline["det_g"] * (c ** (2 * model.chart_dim)),
+        rtol=1e-9,
+        atol=1e-12,
+    )
+
+
 def test_chart_curvature_forward_mode_matches_reverse_to_float64_round_off():
     """D-09's equivalence proof, mirroring ``test_chart_curvature_dxd_solve_matches_explicit_projector``'s
     structure exactly but comparing ``mode="forward"`` against ``mode="reverse"`` instead of
