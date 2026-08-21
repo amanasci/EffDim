@@ -29,6 +29,8 @@ Invoke:
 """
 
 import argparse
+import contextlib
+import io
 import json
 import math
 import statistics
@@ -165,6 +167,14 @@ RELIEF_LADDER: Tuple[Dict[str, str], ...] = (
 `apply_relief_ladder`. F4 is declared separately below `anchor_check` -- it is an override of
 D-07, not a fourth entry in this tuple, and `apply_relief_ladder` never walks into it without
 `confirm_f4_override=True`."""
+
+COMBINATION_POST_HOC_LABEL = (
+    "POST-HOC (weights selected after seeing the ladders; not an independent measurement)"
+)
+"""D-02: the combination cell's weights are chosen by `select_best_rung` AFTER the ladder's own
+Tier-1 numbers exist, so it is a confirmation, not an independent third arm. This exact string
+is printed on every table carrying a combination row -- `03.1-05-PLAN.md` calls this "not a
+footnote" -- and `print_summary`'s post-render audit greps for it verbatim."""
 
 # Smoke sizes -- deliberately tiny, to prove the wiring, never a real measurement.
 SMOKE_N = 400
@@ -344,10 +354,27 @@ def run_cell(
     base_recon_at_init: Optional[float] = None,
     base_penalty_at_init: Optional[float] = None,
     relief_applied: Optional[List[str]] = None,
+    second_mode: Optional[str] = None,
+    second_weight: Optional[float] = None,
+    second_weight_fraction: Optional[float] = None,
+    selection_rule: Optional[str] = None,
 ) -> Dict[str, Any]:
     """One `(mode, weight, model_seed)` measurement, at the given `max_epochs`/`n`/`chart_dim`/
     `ambient`/`n_charts`/`embed_dim`/`eval_n` -- callers pass the real §A/§B constants for a
-    ladder cell, or the SMOKE_* constants for `run_smoke`."""
+    ladder cell, or the SMOKE_* constants for `run_smoke`.
+
+    D-12's combination arm (`03.1-05`): when `second_mode`/`second_weight` are given, training
+    enters TWO nested `decoder_priors.decoder_prior_active` blocks around the same
+    `sc.train_blocked` call -- the primary `(mode, weight)` pair OUTER, the `(second_mode,
+    second_weight)` pair INNER, matching D-12 and the entry order
+    `test_decoder_prior_active_nesting_composes_and_restores_exact` asserts (`scale` outer,
+    `christoffel` inner). Zero new machinery: no `decoder_prior_active` signature change, no
+    joined `PRIOR_MODES` entry -- just two `with` statements around one training call.
+    `selection_rule`, when given, is recorded verbatim on the resulting cell so the weight
+    choice is reconstructable from the JSONL alone. `mode`/`second_mode` are expected to be the
+    two distinct values of `LADDER_MODES` (`"scale"` and `"christoffel"`, in either order) --
+    the combination-specific `scale_weight`/`christoffel_weight` fields below are derived from
+    whichever of the two matches each name."""
     fx = sc.build_fixture(LADDER_FIXTURE, n=n, d=chart_dim, D=ambient, seed=LADDER_FIXTURE_SEED)
     X = np.asarray(fx["X"], dtype=np.float64)
     H_true = np.asarray(fx["H_vec"], dtype=np.float64)
@@ -369,8 +396,15 @@ def run_cell(
     model = sc.build_matched_cae(n_charts, chart_dim, embed_dim, ambient, device)
 
     t0 = time.monotonic()
-    with decoder_priors.decoder_prior_active(model, weight, mode):
-        fit = sc.train_blocked(model, x_train32, model_seed, n_charts, max_epochs, epoch_block)
+    if second_mode is not None:
+        with decoder_priors.decoder_prior_active(model, weight, mode):
+            with decoder_priors.decoder_prior_active(model, second_weight, second_mode):
+                fit = sc.train_blocked(
+                    model, x_train32, model_seed, n_charts, max_epochs, epoch_block
+                )
+    else:
+        with decoder_priors.decoder_prior_active(model, weight, mode):
+            fit = sc.train_blocked(model, x_train32, model_seed, n_charts, max_epochs, epoch_block)
     train_wallclock_s = time.monotonic() - t0
 
     model.eval().double()
@@ -406,8 +440,17 @@ def run_cell(
     flag_threshold = float(np.percentile(cond, pu.COND_FLAG_PERCENTILE))
     flagged_mask = cond > flag_threshold
 
-    mode_segment = "any" if float(weight) == 0.0 else mode
-    config_id = f"ladder_{mode_segment}_w{weight:.6e}_s{model_seed}_e{max_epochs}_n{eval_n}"
+    combination = second_mode is not None
+    if combination:
+        weights_by_mode = {mode: float(weight), second_mode: float(second_weight)}
+        fractions_by_mode = {mode: weight_fraction, second_mode: second_weight_fraction}
+        config_id = (
+            f"ladder_combination_scale{weights_by_mode['scale']:.6e}_"
+            f"christoffel{weights_by_mode['christoffel']:.6e}_s{model_seed}_e{max_epochs}_n{eval_n}"
+        )
+    else:
+        mode_segment = "any" if float(weight) == 0.0 else mode
+        config_id = f"ladder_{mode_segment}_w{weight:.6e}_s{model_seed}_e{max_epochs}_n{eval_n}"
 
     rec: Dict[str, Any] = {
         "kind": "ladder_cell",
@@ -443,7 +486,13 @@ def run_cell(
         "device": str(device),
         "torch_version": torch.__version__,
         # --- this phase's new fields ---
-        "mode": mode,
+        # Combination cells record mode='combination' rather than the outer mode string --
+        # cell_key(rec['mode'], rec['weight'], rec['model_seed']) would otherwise collide with
+        # the ordinary single-arm cell that happens to share the outer weight (best_scale is
+        # always one of the ladder's own rungs), corrupting load_completed's bookkeeping. The
+        # outer/inner modes and weights are fully recoverable from scale_weight/
+        # christoffel_weight/second_mode below regardless.
+        "mode": "combination" if combination else mode,
         "weight": float(weight),
         "weight_fraction": weight_fraction,
         "base_recon_at_init": base_recon_at_init,
@@ -458,7 +507,22 @@ def run_cell(
         "log10_det_g": pu._dist_summary(log10_det_g, pu.FIELD_HIST_BINS),
         "nonfinite_guard": nonfinite_guard,
         "relief_applied": list(relief_applied) if relief_applied else [],
-        "arm_label": "baseline" if float(weight) == 0.0 else mode,
+        "arm_label": (
+            COMBINATION_POST_HOC_LABEL
+            if combination
+            else ("baseline" if float(weight) == 0.0 else mode)
+        ),
+        # --- D-12 combination arm (03.1-05) ---
+        "combination": combination,
+        "combination_post_hoc": combination,
+        "scale_weight": weights_by_mode.get("scale") if combination else None,
+        "christoffel_weight": weights_by_mode.get("christoffel") if combination else None,
+        "scale_weight_fraction": fractions_by_mode.get("scale") if combination else None,
+        "christoffel_weight_fraction": fractions_by_mode.get("christoffel") if combination else None,
+        "selection_rule": selection_rule if combination else None,
+        "second_mode": second_mode,
+        "second_weight": float(second_weight) if second_weight is not None else None,
+        "second_weight_fraction": second_weight_fraction,
     }
     return rec
 
@@ -1798,22 +1862,151 @@ def print_summary(record_path: Path) -> None:
             "still prints whatever Tier-1/Tier-2 tables the record on disk supports.)"
         )
 
-    modes_present = sorted({c["mode"] for c in non_diverged if float(c["weight"]) != 0.0})
+    # Combination cells (D-12) are excluded from the single-arm rows below -- a combination
+    # cell shares its scale-arm weight with that arm's own top rung, and folding it in would
+    # silently inflate that rung's seed count and corrupt its median. Combination cells get
+    # their own labelled read-out further down.
+    arm_cells = [c for c in non_diverged if not c.get("combination")]
+    combination_cells = [c for c in non_diverged if c.get("combination")]
+
+    modes_present = sorted({c["mode"] for c in arm_cells if float(c["weight"]) != 0.0})
     for mode in modes_present:
-        rows = rows_for_mode(non_diverged, mode)
+        rows = rows_for_mode(arm_cells, mode)
         tier1_verdict = tier1_readout(rows, mode)
         tier2_readout(rows, mode, tier1_verdict)
 
+    combination_config_ids = [c["config_id"] for c in combination_cells]
+    rendered_tables: List[str] = []
+    if combination_cells:
+        rendered_tables.append(_render_and_capture(print_combination_tier1, combination_cells))
+        rendered_tables.append(_render_and_capture(print_combination_tier2, combination_cells))
+
+    rendered_tables.append(_render_and_capture(print_full_cell_table, cells))
+
+    if combination_cells:
+        n = sum(1 for t in rendered_tables if any(cid in t for cid in combination_config_ids))
+        m = sum(
+            1
+            for t in rendered_tables
+            if any(cid in t for cid in combination_config_ids) and COMBINATION_POST_HOC_LABEL in t
+        )
+        if n > 0:
+            if m == n:
+                print(
+                    f"\nPOST-HOC LABEL RENDERED ON EVERY TABLE CONTAINING THE COMBINATION CELL "
+                    f"({m}/{n})"
+                )
+            else:
+                print(
+                    f"\nPOST-HOC LABEL MISSING FROM {n - m} OF {n} TABLES CONTAINING THE "
+                    f"COMBINATION CELL"
+                )
+
+
+def _render_and_capture(fn, *args: Any, **kwargs: Any) -> str:
+    """Runs `fn(*args, **kwargs)` with stdout captured, writes the captured text through to the
+    REAL stdout unchanged (so `--summary | tee log` still sees it), and returns the captured
+    text so `print_summary`'s post-render audit can grep it independently of everything else
+    printed before or after. Never used to suppress output -- only to let two audiences (the
+    terminal/log and the audit) read the identical bytes."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        fn(*args, **kwargs)
+    text = buf.getvalue()
+    sys.stdout.write(text)
+    return text
+
+
+def print_combination_tier1(cells: Sequence[Dict[str, Any]]) -> None:
+    """The combination cell's own Tier-1-shaped block -- median + full spread of `lambda_min`,
+    `lambda_max`, `log10_det_g` and `cond`, across whatever seeds are on record. Always carries
+    `COMBINATION_POST_HOC_LABEL` (D-02) -- there is no un-labelled combination table."""
+    print(f"\n--- TIER 1 (combination) -- {COMBINATION_POST_HOC_LABEL} ---")
+    if not cells:
+        print("  no combination cells on record.")
+        return
+    config_ids = [c["config_id"] for c in cells]
+    print(f"  cells: {config_ids}")
+    print(
+        f"  scale_weight={float(cells[0]['scale_weight']):.6e}  "
+        f"christoffel_weight={float(cells[0]['christoffel_weight']):.6e}"
+    )
+    print(f"  selection_rule: {cells[0]['selection_rule']}")
+    for f in ("lambda_min", "lambda_max", "log10_det_g", "cond"):
+        vals = [_cell_field_median(c, f) for c in cells]
+        med, spread = median_and_spread(vals)
+        spread_str = ", ".join(f"{v:.6e}" for v in spread)
+        print(f"    {f:<12s} median={med:.6e}  spread=[{spread_str}]")
+    print(f"  {COMBINATION_POST_HOC_LABEL}")
+
+
+def print_combination_tier2(cells: Sequence[Dict[str, Any]]) -> None:
+    """The combination cell's own Tier-2-shaped block -- four axes, never collapsed, plus the
+    D-09 bias guard. Always carries `COMBINATION_POST_HOC_LABEL` (D-02)."""
+    print(f"\n--- TIER 2 (combination) -- {COMBINATION_POST_HOC_LABEL} ---")
+    if not cells:
+        print("  no combination cells on record.")
+        return
+    config_ids = [c["config_id"] for c in cells]
+    print(f"  cells: {config_ids}")
+    for axis_name, key in (
+        ("direction", "direction_median_cosine"),
+        ("magnitude", "magnitude_median_ratio"),
+        ("rank", "rank_spearman_rho"),
+    ):
+        vals = [
+            float(c["fidelity"][key])
+            for c in cells
+            if c.get("fidelity", {}).get("applicable", True) and c["fidelity"].get(key) is not None
+        ]
+        if vals:
+            med, spread = median_and_spread(vals)
+            spread_str = ", ".join(f"{v:.6f}" for v in spread)
+            print(f"    {axis_name:<12s} median={med:.6f}  spread=[{spread_str}]")
+        else:
+            print(f"    {axis_name:<12s} UNDEFINED")
+    cal_pairs = [
+        (float(c["fidelity"]["calibration_r2"]), float(c["fidelity"]["calibration_slope"]))
+        for c in cells
+        if c.get("fidelity", {}).get("applicable", True)
+        and c["fidelity"].get("rank_calibration_applicable", True)
+    ]
+    if cal_pairs:
+        r2_med, r2_spread = median_and_spread([v[0] for v in cal_pairs])
+        slope_med, slope_spread = median_and_spread([v[1] for v in cal_pairs])
+        r2_spread_str = ", ".join(f"{v:.6f}" for v in r2_spread)
+        slope_spread_str = ", ".join(f"{v:.6f}" for v in slope_spread)
+        print(
+            f"    calibration  r2 median={r2_med:.6f}  spread=[{r2_spread_str}]  "
+            f"slope median={slope_med:.6f}  spread=[{slope_spread_str}]"
+        )
+    else:
+        print("    calibration  UNDEFINED")
+    mse_vals = [float(c["reconstruction"]["mse_per_dim"]) for c in cells]
+    mse_med, mse_spread = median_and_spread(mse_vals)
+    mse_spread_str = ", ".join(f"{v:.6e}" for v in mse_spread)
+    print(
+        f"\n  bias guard (D-09): held-out mse_per_dim median={mse_med:.6e}  "
+        f"spread=[{mse_spread_str}]"
+    )
+    print(f"  {COMBINATION_POST_HOC_LABEL}")
+
+
+def print_full_cell_table(cells: Sequence[Dict[str, Any]]) -> None:
+    """The full per-cell table -- every cell on record, one line each, combination cells tagged
+    with `COMBINATION_POST_HOC_LABEL` inline so the label survives even a reader who only scans
+    this one table."""
     print("\n--- full per-cell table ---")
     for c in sorted(
         cells, key=lambda r: (r.get("mode", ""), float(r.get("weight", 0.0)), int(r.get("model_seed", 0)))
     ):
         diverged_tag = " DIVERGED" if c.get("nonfinite_guard", {}).get("tripped") else ""
+        combo_tag = f"  {COMBINATION_POST_HOC_LABEL}" if c.get("combination") else ""
         print(
             f"  {c.get('config_id')}{diverged_tag}  mode={c.get('mode')}  "
             f"weight={float(c.get('weight', 0.0)):.6e}  seed={c.get('model_seed')}  "
             f"epochs_run={c.get('epochs_run')}/{c.get('max_epochs')}  "
-            f"relief_applied={c.get('relief_applied')}"
+            f"relief_applied={c.get('relief_applied')}{combo_tag}"
         )
 
 
@@ -2013,6 +2206,219 @@ def run_ladder(
                 _run_and_record(mode, weight, float(fraction), seed)
 
     print("\n--- run_ladder complete; printing --summary against the real record ---")
+    print_summary(record_path)
+
+
+# =============================================================================================
+# 03.1-05 Task 1: the post-hoc combination cell -- D-02's best-of-each selection rule, D-12's
+# two-nested-contextmanagers mechanism, zero new machinery.
+# =============================================================================================
+
+
+def select_best_rung(
+    rows: Sequence[Tuple[float, List[Dict[str, Any]]]],
+    mode: str,
+    tier1_verdict: str,
+) -> Tuple[float, Optional[float], str]:
+    """D-02's best-of-each selection rule, declared in `03.1-01-PLAN.md` §F before the ladder
+    ran -- not one word of it changes now that the ladder's numbers exist. `rows`:
+    `rows_for_mode`'s output for this mode, weight ascending, `DIVERGED` cells already excluded
+    by the caller. `tier1_verdict`: this mode's own `tier1_readout` verdict -- used only to
+    attach the "no mechanism in {mode} arm" label; it never substitutes for the metric-based
+    rule below, and does not change which weight is returned when the rule below has an answer.
+
+    **Nothing in this function reads `reconstruction.mse_per_dim`** -- D-09's bias guard is a
+    reading rule for the human, never a selector, and a selector on reconstruction would
+    silently reintroduce the circular threshold this milestone already deferred.
+
+    Returns `(weight, weight_fraction, reason)`.
+    """
+    nonzero_rows = [(w, cells) for w, cells in rows if w > 0.0]
+    if not nonzero_rows:
+        raise ValueError(f"select_best_rung: no prior-active rung on record for mode={mode!r}.")
+    weight_fraction_by_weight = {
+        float(w): cells[0].get("weight_fraction") for w, cells in nonzero_rows
+    }
+
+    if mode == "scale":
+
+        def _abs_log10_det_g(item: Tuple[float, List[Dict[str, Any]]]) -> float:
+            _, cells = item
+            med, _ = median_and_spread([_cell_field_median(c, "log10_det_g") for c in cells])
+            return abs(med)
+
+        best_w, _ = min(nonzero_rows, key=_abs_log10_det_g)
+        reason = (
+            "best_scale = the rung whose median log10_det_g is closest to 0.0 -- the quantity "
+            "scale's own penalty (log det g / d)^2 minimizes."
+        )
+    elif mode == "christoffel":
+        w0_cells = next((cells for w, cells in rows if w == 0.0), None)
+        if not w0_cells:
+            raise ValueError("select_best_rung: no weight=0.0 baseline cell on record.")
+        lambda_max_w0, _ = median_and_spread(
+            [_cell_field_median(c, "lambda_max") for c in w0_cells]
+        )
+
+        eligible: List[Tuple[float, List[Dict[str, Any]]]] = []
+        for w, cells in nonzero_rows:
+            lambda_max_med, _ = median_and_spread(
+                [_cell_field_median(c, "lambda_max") for c in cells]
+            )
+            fell_a_decade = (
+                lambda_max_w0 > 0
+                and lambda_max_med > 0
+                and (lambda_max_med / lambda_max_w0) <= 0.1
+            )
+            if not fell_a_decade:
+                eligible.append((w, cells))
+
+        if not eligible:
+            best_w, _ = max(nonzero_rows, key=lambda item: item[0])
+            reason = (
+                "best_christoffel: every prior-active rung's median lambda_max fell by at "
+                "least one decade from weight=0 (the same COLLAPSE guard as Tier 1) -- no rung "
+                "passes the guard, so the largest weight rung is used per the declared fallback."
+            )
+        else:
+
+            def _cond_med(item: Tuple[float, List[Dict[str, Any]]]) -> float:
+                _, cells = item
+                med, _ = median_and_spread([_cell_field_median(c, "cond") for c in cells])
+                return med
+
+            best_w, _ = min(eligible, key=_cond_med)
+            reason = (
+                "best_christoffel = the rung with the lowest median cond(g) among rungs whose "
+                "median lambda_max did not fall by at least one decade from the weight=0 cell "
+                "-- the same COLLAPSE guard as Tier 1."
+            )
+    else:
+        raise ValueError(f"select_best_rung: mode must be 'scale' or 'christoffel'; got {mode!r}.")
+
+    if tier1_verdict == "MECHANISM NOT DEMONSTRATED":
+        reason += (
+            f"  Tier 1 for {mode} is MECHANISM NOT DEMONSTRATED -- D-02's rule above still "
+            f"applies (D-08 ruled this mode's Tier 2 'not read as evidence about the "
+            f"estimand', so the pick can only come from Tier 1), and this weight contributes "
+            f"to the combination cell on Tier-1 evidence alone: no mechanism in the {mode} arm."
+        )
+
+    return float(best_w), weight_fraction_by_weight.get(float(best_w)), reason
+
+
+def run_combination(
+    record_path: Path,
+    device: torch.device,
+    seeds: Sequence[int] = LADDER_SEEDS,
+) -> None:
+    """D-02's post-hoc combination arm: two nested `decoder_prior_active` blocks -- `scale`
+    OUTER, `christoffel` INNER (D-12) -- at the weights `select_best_rung` derives from the
+    ladder's own Tier-1 read-out. The sizing (max_epochs, eval_n, christoffel_max_rows,
+    relief_applied) is REUSED from the most recent ratified `--probe` summary record on disk,
+    never re-derived locally -- the combination cell shares the ladder's own protocol.
+
+    Weights were chosen after seeing the ladder's numbers, so this cell is a confirmation, not
+    an independent measurement -- `COMBINATION_POST_HOC_LABEL` is stamped on every combination
+    record by `run_cell` itself."""
+    _banner(
+        "--combination: the post-hoc combination cell (D-02) -- scale outer, christoffel "
+        "inner (D-12)"
+    )
+    if not record_path.exists():
+        raise RuntimeError("--combination: no record file on disk -- run --run-ladder first.")
+
+    records: List[Dict[str, Any]] = []
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            records.append(json.loads(line))
+
+    ladder_cells = [r for r in records if r.get("kind") == "ladder_cell"]
+    non_diverged = [c for c in ladder_cells if not c.get("nonfinite_guard", {}).get("tripped")]
+    arm_cells = [c for c in non_diverged if not c.get("combination")]
+
+    probe_summary = _read_latest_probe_summary(record_path)
+    if probe_summary is None:
+        raise RuntimeError(
+            "--combination: no ratified kind=='probe', probe_type=='summary' record with a "
+            "non-null chosen_max_epochs on disk -- run --probe and --run-ladder first. The "
+            "combination cell reuses the ladder's own ratified sizing, never a locally "
+            "re-derived one."
+        )
+    resolved_max_epochs = int(probe_summary["chosen_max_epochs"])
+    resolved_eval_n = int(probe_summary["final_eval_n"])
+    resolved_christoffel_max_rows = int(probe_summary["final_christoffel_max_rows"])
+    relief_applied: List[str] = list(probe_summary["relief_applied"])
+
+    print(
+        f"combination sizing (reused from the ratified ladder configuration): "
+        f"max_epochs={resolved_max_epochs}  eval_n={resolved_eval_n}  "
+        f"christoffel_max_rows={resolved_christoffel_max_rows}  relief_applied={relief_applied}"
+    )
+
+    selections: Dict[str, Tuple[float, Optional[float], str]] = {}
+    for mode in LADDER_MODES:
+        rows = rows_for_mode(arm_cells, mode)
+        tier1_verdict = tier1_readout(rows, mode)
+        weight, weight_fraction, reason = select_best_rung(rows, mode, tier1_verdict)
+        selections[mode] = (weight, weight_fraction, reason)
+        print(
+            f"\nselect_best_rung({mode!r}) -> weight={weight:.6e}  "
+            f"weight_fraction={weight_fraction}  tier1_verdict={tier1_verdict!r}"
+        )
+        print(f"  reason: {reason}")
+
+    scale_weight, scale_fraction, scale_reason = selections["scale"]
+    christoffel_weight, christoffel_fraction, christoffel_reason = selections["christoffel"]
+    selection_rule = f"scale: {scale_reason} | christoffel: {christoffel_reason}"
+
+    print(
+        f"\ncombination weights: scale={scale_weight:.6e} (fraction={scale_fraction})  "
+        f"christoffel={christoffel_weight:.6e} (fraction={christoffel_fraction})"
+    )
+    print(COMBINATION_POST_HOC_LABEL)
+
+    completed = load_completed(record_path)
+    t_start = time.monotonic()
+    for seed in seeds:
+        key = cell_key("combination", scale_weight, seed)
+        if key in completed:
+            print(f"  skipping already-completed combination cell seed={seed}")
+            continue
+        rec = run_cell(
+            mode="scale",
+            weight=scale_weight,
+            weight_fraction=scale_fraction,
+            model_seed=seed,
+            max_epochs=resolved_max_epochs,
+            n=LADDER_N,
+            chart_dim=LADDER_CHART_DIM,
+            ambient=LADDER_AMBIENT,
+            n_charts=LADDER_N_CHARTS,
+            embed_dim=LADDER_EMBED_DIM,
+            eval_n=resolved_eval_n,
+            epoch_block=LADDER_EPOCH_BLOCK,
+            device=device,
+            christoffel_max_rows=resolved_christoffel_max_rows,
+            relief_applied=relief_applied,
+            second_mode="christoffel",
+            second_weight=christoffel_weight,
+            second_weight_fraction=christoffel_fraction,
+            selection_rule=selection_rule,
+        )
+        # rec['mode'] == 'combination' (run_cell's own bookkeeping fix, see its docstring), so
+        # this matches exactly what a future load_completed() will derive from the appended
+        # record -- a re-invocation with the same seeds is idempotent.
+        completed[key] = rec
+        append_record(record_path, rec)
+        print_cell_row(rec)
+        elapsed = time.monotonic() - t_start
+        print(f"    elapsed={elapsed:.1f}s")
+
+    print("\n--combination complete; printing --summary against the full record")
     print_summary(record_path)
 
 
@@ -2325,6 +2731,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="With --run-ladder: restrict to one arm (default: both LADDER_MODES). The three "
         "baseline cells always run regardless.",
     )
+    parser.add_argument(
+        "--combination",
+        action="store_true",
+        help="Run the post-hoc combination cell (D-02): two nested decoder_prior_active "
+        "blocks, scale outer / christoffel inner (D-12), at the best-of-each weights "
+        "select_best_rung derives from the ladder's own Tier-1 read-out on disk. Reuses the "
+        "ratified --probe sizing. One cell per --seeds seed (default: LADDER_SEEDS). Idempotent "
+        "-- a repeat invocation skips any (mode='combination', weight, seed) already recorded.",
+    )
     return parser
 
 
@@ -2384,10 +2799,15 @@ def main() -> None:
         )
         return
 
+    if args.combination:
+        run_combination(record_path=record_path, device=device, seeds=args.seeds)
+        return
+
     print(
-        "Nothing to do: pass --dry-run, --smoke, --anchor-check, --probe, --run-ladder or "
-        "--summary. --run-ladder trains the real ladder cells, gated behind this file's "
-        "dry-run sizing report and this plan's ratified probe configuration on disk."
+        "Nothing to do: pass --dry-run, --smoke, --anchor-check, --probe, --run-ladder, "
+        "--combination or --summary. --run-ladder trains the real ladder cells, gated behind "
+        "this file's dry-run sizing report and this plan's ratified probe configuration on "
+        "disk. --combination runs the post-hoc combination cell after the ladder completes."
     )
 
 
