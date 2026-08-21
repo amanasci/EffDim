@@ -117,6 +117,53 @@ not the dry-run projection's."""
 ANCHOR_CURV_WALLCLOCK_S = 2993.912286339997
 """D-13: `control_saddle_nc4_d20_ep300`'s sealed `curv_wallclock_s` -- ditto."""
 
+PROBE_EPOCHS = 3
+"""Half A's per-mode training-cost probe trains for this many epochs, at the real ladder
+architecture, and reports `train_wallclock_s / epochs_run`. Deliberately tiny -- the probe
+exists to be far cheaper than the anchor, never to train a real cell."""
+
+PROBE_EVAL_SIZES: Tuple[int, ...] = (500, 1000, 2000)
+"""Half B's curvature-evaluation-cost probe times `chart_curvature.chart_curvature_field` at
+each of these three row counts, on ONE model, so `n_charts_used` is held constant across the
+three measurements and the only thing varying is row count -- the direct test of research
+assumption A2 (evaluation cost is linear in row count).
+
+All three sizes must fit inside the `pu._split` holdout (`n=10000, PU_HOLDOUT_FRACTION=0.2` ->
+2000 rows) -- `probe()` raises rather than silently truncating if a requested size exceeds it.
+A first probe run declared `(1000, 2000, 4000)`; `4000` silently truncated to the 2000-row
+holdout, producing an identical-cost measurement at what looked like two different sizes and a
+false `EVAL COST IS NOT LINEAR IN ROW COUNT` verdict. Corrected to three sizes that all fit."""
+
+F4_OVERRIDE_LABEL = "F4 (D-07 OVERRIDE: epoch cut)"
+"""The literal string `apply_relief_ladder` appends to `relief_applied` when F4 fires under
+`--confirm-f4-override` -- the single field that carries the override into `03.1-04`'s per-cell
+records and `03.1-05`'s write-up, per `03.1-01-PLAN.md` §C item 4."""
+
+RELIEF_LADDER: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "F1",
+        "description": "rungs 3 -> 2, keeping the extremes (0.01, 1.0) and dropping the middle",
+        "consequence": "each mode's curve has 3 points (weight=0 plus 2 rungs) instead of 4; "
+        "monotone movement is still readable, resolution is coarser.",
+    },
+    {
+        "id": "F2",
+        "description": "LADDER_EVAL_N 2000 -> 1000",
+        "consequence": "more sampling noise per cell; eval_sample_size recorded per cell so a "
+        "re-evaluation is well defined.",
+    },
+    {
+        "id": "F3",
+        "description": "CHRISTOFFEL_MAX_ROWS_PER_CHART 8 -> 4, christoffel arm ONLY",
+        "consequence": "wider error bars on the christoffel arm specifically; does nothing for "
+        "the scale arm because isometry_penalty has no row subsampling.",
+    },
+)
+"""D-07's own fence stops here. F1-F3 are applied automatically, in this order, by
+`apply_relief_ladder`. F4 is declared separately below `anchor_check` -- it is an override of
+D-07, not a fourth entry in this tuple, and `apply_relief_ladder` never walks into it without
+`confirm_f4_override=True`."""
+
 # Smoke sizes -- deliberately tiny, to prove the wiring, never a real measurement.
 SMOKE_N = 400
 SMOKE_D = 4
@@ -641,6 +688,563 @@ def anchor_check(device: torch.device, record_path: Path) -> None:
 
 
 # =============================================================================================
+# --probe (03.1-03 Task 2): the two-sided cost probe -- training per mode, curvature evaluation
+# per row -- and the pre-declared relief ladder (F1-F3 automatic, F4 an override of D-07 that
+# fires only under --confirm-f4-override).
+# =============================================================================================
+
+
+def _read_anchor_curv_wallclock_s(record_path: Path) -> Optional[float]:
+    """The anchor cell's own fresh full-cloud `curv_wallclock_s`, read back from the JSONL
+    `kind == 'anchor_cell'` record (Task 1). `None` if no anchor record is on file -- the probe
+    still runs; only the cross-check against the fresh anchor number is skipped."""
+    if not record_path.exists():
+        return None
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if rec.get("kind") == "anchor_cell":
+                return float(rec["curv_wallclock_s"])
+    return None
+
+
+def _read_anchor_n_charts_used(record_path: Path) -> Optional[int]:
+    """The anchor cell's own `n_charts_used`, read back from the JSONL `kind == 'anchor_cell'`
+    record (Task 1) -- the full 300-epoch protocol's chart count, for the Half B chart-count
+    caveat below. `None` if no anchor record is on file."""
+    if not record_path.exists():
+        return None
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if rec.get("kind") == "anchor_cell":
+                return int(rec["n_charts_used"])
+    return None
+
+
+def _read_probe_train_s_per_epoch(record_path: Path, probe_mode: str) -> Optional[float]:
+    """The most recent `kind == 'probe', probe_type == 'train'` record's `s_per_epoch` for the
+    given `probe_mode` label (`'scale'` or `'christoffel'`), read back from the JSONL --
+    `--probe-skip-train`'s reuse path, so the costly Half A training cells are not re-run just to
+    fix a Half B measurement defect."""
+    if not record_path.exists():
+        return None
+    found: Optional[float] = None
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if (
+                rec.get("kind") == "probe"
+                and rec.get("probe_type") == "train"
+                and rec.get("probe_mode") == probe_mode
+            ):
+                found = float(rec["s_per_epoch"])
+    return found
+
+
+def project_total_s(
+    max_epochs: int,
+    fractions: Sequence[float],
+    eval_n: int,
+    s_per_epoch_by_mode: Dict[str, float],
+    curv_s_per_row: float,
+    christoffel_max_rows: int,
+    scale_epochs: Optional[int] = None,
+) -> Tuple[float, int]:
+    """Projected total wall clock (s) for the full cell set, built from measured numbers only.
+
+    3 baseline cells at the `weight=0` rate, `len(fractions) x 3` cells per mode at that mode's
+    rate, 3 combination cells at `s_scale + s_christoffel - s_baseline` (the two penalties are
+    computed additively inside one patched `chart_loss`, so their costs add and the shared base
+    is counted once), plus `n_cells * eval_n * curv_s_per_row` for evaluation.
+
+    `christoffel_max_rows` rescales the MEASURED christoffel rate (taken at
+    `CHRISTOFFEL_MAX_ROWS_PER_CHART == 8`, the probe's own measurement) by holding the shared
+    baseline-forward-pass cost fixed and scaling only the second-order surcharge linearly with
+    `christoffel_max_rows / CHRISTOFFEL_MAX_ROWS_PER_CHART` -- `christoffel_penalty`'s cost is
+    bounded by `n_charts_used x max_rows_per_chart` (D-07's own accounting), so a row-count
+    change moves the surcharge proportionally. F3 (christoffel arm only) is expressed through
+    this argument; F1/F2 are expressed through `fractions`/`eval_n`.
+
+    `scale_epochs`, when given, decouples the `scale` arm's epoch count from every other arm's
+    `max_epochs` -- the one knob F4 turns. `None` (the default) means every arm trains at
+    `max_epochs`, which is every call site except F4's own projection.
+
+    Returns `(projected_total_s, n_cells)`.
+    """
+    if scale_epochs is None:
+        scale_epochs = max_epochs
+
+    t0 = s_per_epoch_by_mode["weight0"]
+    t_scale = s_per_epoch_by_mode["scale"]
+    t_christoffel_measured = s_per_epoch_by_mode["christoffel"]
+    row_ratio = float(christoffel_max_rows) / float(CHRISTOFFEL_MAX_ROWS_PER_CHART)
+    t_christoffel = t0 + (t_christoffel_measured - t0) * row_ratio
+
+    n_baseline = 3
+    n_per_mode = len(fractions) * 3
+    n_combo = 3
+    n_cells = n_baseline + 2 * n_per_mode + n_combo
+
+    train_s = (
+        n_baseline * max_epochs * t0
+        + n_per_mode * scale_epochs * t_scale
+        + n_per_mode * max_epochs * t_christoffel
+        + n_combo * max_epochs * (t_scale + t_christoffel - t0)
+    )
+    eval_s = n_cells * eval_n * curv_s_per_row
+    return train_s + eval_s, n_cells
+
+
+def print_projection_table(rows: Sequence[Tuple[int, float, int]]) -> None:
+    """`rows`: `(max_epochs, projected_total_s, n_cells)` triples, one per candidate."""
+    for max_e, total_s, n_cells in rows:
+        print(
+            f"  max_epochs={max_e:<4d}  n_cells={n_cells:<3d}  "
+            f"projected_total_s={total_s:.1f}  ({total_s / 3600.0:.2f}h)"
+        )
+
+
+def apply_relief_ladder(
+    max_epochs_candidates: Sequence[int],
+    budget_s: float,
+    fractions: Sequence[float],
+    eval_n: int,
+    s_per_epoch_by_mode: Dict[str, float],
+    curv_s_per_row: float,
+    christoffel_max_rows: int,
+    confirm_f4_override: bool = False,
+) -> Tuple[Optional[int], List[str], Dict[str, Any], Optional[float]]:
+    """Walks `RELIEF_LADDER` (F1 -> F2 -> F3) in order, re-projecting across
+    `max_epochs_candidates` after every step, and stops at the first configuration whose
+    projection is at or under `budget_s`. Never calls `sys.exit` -- the caller decides what to do
+    with a `None` `chosen_max_epochs` (F1-F3, and F4 if confirmed, all failed to fit).
+
+    F4 is NOT a fourth entry walked automatically. If F1-F3 are exhausted without fitting, this
+    function computes the F4 configuration -- the largest `scale`-arm epoch count that fits the
+    budget at the smallest declared `max_epochs_candidates` value, holding every other arm at
+    that same smallest candidate -- and prints it under `F4 AVAILABLE BUT NOT APPLIED -- OVERRIDES
+    D-07` together with both halves of its cost. It only APPLIES that configuration (and appends
+    `F4_OVERRIDE_LABEL` to `relief_applied`) when `confirm_f4_override=True`.
+
+    Returns `(chosen_max_epochs, relief_applied, final_state, chosen_total_s)`.
+    """
+    state: Dict[str, Any] = {
+        "fractions": tuple(fractions),
+        "eval_n": eval_n,
+        "christoffel_max_rows": christoffel_max_rows,
+    }
+    relief_applied: List[str] = []
+
+    def _project_all(s: Dict[str, Any]) -> List[Tuple[int, float, int]]:
+        rows = []
+        for max_e in max_epochs_candidates:
+            total_s, n_cells = project_total_s(
+                max_e,
+                s["fractions"],
+                s["eval_n"],
+                s_per_epoch_by_mode,
+                curv_s_per_row,
+                s["christoffel_max_rows"],
+            )
+            rows.append((max_e, total_s, n_cells))
+        return rows
+
+    def _pick(rows: List[Tuple[int, float, int]]) -> Tuple[Optional[int], Optional[float]]:
+        chosen, chosen_total = None, None
+        for max_e, total_s, n_cells in rows:
+            if total_s <= budget_s and (chosen is None or max_e > chosen):
+                chosen, chosen_total = max_e, total_s
+        return chosen, chosen_total
+
+    print("\nProjection at declared sizing (no relief valve applied):")
+    rows = _project_all(state)
+    print_projection_table(rows)
+    chosen, chosen_total = _pick(rows)
+    if chosen is not None:
+        return chosen, relief_applied, state, chosen_total
+
+    for valve in RELIEF_LADDER:
+        if valve["id"] == "F1":
+            state["fractions"] = (fractions[0], fractions[-1])
+        elif valve["id"] == "F2":
+            state["eval_n"] = 1000
+        elif valve["id"] == "F3":
+            state["christoffel_max_rows"] = 4
+        relief_applied.append(valve["id"])
+        print(f"\n{valve['id']} applied: {valve['description']}")
+        print(f"  consequence: {valve['consequence']}")
+        rows = _project_all(state)
+        print_projection_table(rows)
+        chosen, chosen_total = _pick(rows)
+        if chosen is not None:
+            return chosen, relief_applied, state, chosen_total
+
+    # F1-F3 exhausted without fitting. Compute the F4 configuration anyway, print it, and apply
+    # it ONLY under the explicit override -- never automatically (D-07, D-11).
+    f4_base_epochs = min(max_epochs_candidates)
+    floor_total, _ = project_total_s(
+        f4_base_epochs,
+        state["fractions"],
+        state["eval_n"],
+        s_per_epoch_by_mode,
+        curv_s_per_row,
+        state["christoffel_max_rows"],
+        scale_epochs=0,
+    )
+    t_scale = s_per_epoch_by_mode["scale"]
+    n_per_mode = len(state["fractions"]) * 3
+    remaining_budget = budget_s - floor_total
+    if remaining_budget <= 0 or t_scale <= 0 or n_per_mode == 0:
+        f4_scale_epochs = 0
+    else:
+        f4_scale_epochs = int(remaining_budget // (n_per_mode * t_scale))
+    f4_scale_epochs = max(0, min(f4_scale_epochs, f4_base_epochs))
+    f4_total, _ = project_total_s(
+        f4_base_epochs,
+        state["fractions"],
+        state["eval_n"],
+        s_per_epoch_by_mode,
+        curv_s_per_row,
+        state["christoffel_max_rows"],
+        scale_epochs=f4_scale_epochs,
+    )
+
+    print("\nF4 AVAILABLE BUT NOT APPLIED -- OVERRIDES D-07")
+    print(
+        f"  F4 would cut the scale arm's epoch count to {f4_scale_epochs} (from "
+        f"{f4_base_epochs}), holding the christoffel arm, baseline and combination cells at "
+        f"{f4_base_epochs} epochs. projected_total_s={f4_total:.1f} "
+        f"({f4_total / 3600.0:.2f}h) against LADDER_BUDGET_S={budget_s} "
+        f"({budget_s / 3600.0:.2f}h)."
+    )
+    print(
+        "  Cost, both halves: (1) the D-07 under-training confound -- 03-08 found training to "
+        "the full budget instead of stopping early cut held-out mse_per_dim 62.2% while leaving "
+        "cond(g) unmoved, so this cut costs reconstruction (the axis D-09's bias guard reads) "
+        "and buys nothing on the metric this phase exists to move; (2) arm-to-arm epoch "
+        "incomparability -- the scale and christoffel arms would no longer share a training "
+        "protocol."
+    )
+
+    if not confirm_f4_override:
+        return None, relief_applied, state, None
+
+    relief_applied.append(F4_OVERRIDE_LABEL)
+    state["scale_epochs_f4"] = f4_scale_epochs
+    if f4_total <= budget_s:
+        return f4_base_epochs, relief_applied, state, f4_total
+    return None, relief_applied, state, None
+
+
+def probe(
+    device: torch.device,
+    record_path: Path,
+    confirm_f4_override: bool = False,
+    probe_epochs: int = PROBE_EPOCHS,
+    probe_eval_sizes: Sequence[int] = PROBE_EVAL_SIZES,
+    probe_skip_train: bool = False,
+) -> None:
+    """The two-sided cost probe (03.1-03 Task 2). Both halves are measured at the real ladder
+    architecture (`n=10000, chart_dim=20, ambient=768, n_charts=4, embed_dim=40`) -- never on the
+    Swiss roll, and never on the halted spike's own `chart_dim=2` per-epoch figures.
+
+    `probe_skip_train`, when true, does not retrain Half A's costly `scale` and `christoffel`
+    cells; it reuses their `s_per_epoch` from the most recent prior `--probe` run's JSONL record
+    (raising if none exists). The `weight=0` cell is always trained fresh regardless -- its model
+    is what Half B evaluates on. This is the defect-fix re-run path: Half B's original
+    measurement silently truncated `eval_size=4000` to the 2000-row `pu._split` holdout, and
+    fixing that requires only Half B to re-run, not the far costlier Half A."""
+    _banner(
+        f"--probe: two-sided cost probe at the real architecture "
+        f"(n={LADDER_N}, chart_dim={LADDER_CHART_DIM}, ambient={LADDER_AMBIENT}, "
+        f"n_charts={LADDER_N_CHARTS}, embed_dim={LADDER_EMBED_DIM})"
+    )
+
+    fx = sc.build_fixture(
+        LADDER_FIXTURE, n=LADDER_N, d=LADDER_CHART_DIM, D=LADDER_AMBIENT, seed=LADDER_FIXTURE_SEED
+    )
+    X = np.asarray(fx["X"], dtype=np.float64)
+    x32 = torch.tensor(X, dtype=torch.float32).to(device)
+    x64 = torch.tensor(X, dtype=torch.float64).to(device)
+    train_idx, holdout_idx = pu._split(X.shape[0], pu.PU_SPLIT_SEED, pu.PU_HOLDOUT_FRACTION)
+    x_train32 = x32[torch.as_tensor(train_idx, dtype=torch.long, device=device)]
+
+    probe_seed = LADDER_SEEDS[0]
+
+    # --- Half A: training cost per mode, at the largest declared fraction (the worst case) -----
+    torch.manual_seed(probe_seed)
+    calib_model = sc.build_matched_cae(
+        LADDER_N_CHARTS, LADDER_CHART_DIM, LADDER_EMBED_DIM, LADDER_AMBIENT, device
+    )
+    calibrated = calibrate_weights(calib_model, x_train32[: pu.BATCH], fractions=[1.0])
+
+    print(
+        f"\nHalf A -- training cost per mode, PROBE_EPOCHS={probe_epochs}, model_seed={probe_seed}"
+        f"{'  (probe_skip_train=True -- scale/christoffel REUSED, not retrained)' if probe_skip_train else ''}:"
+    )
+    probe_cells = (
+        ("weight=0", "weight0", 0.0, "scale"),
+        ("scale", "scale", calibrated[("scale", 1.0)]["weight"], "scale"),
+        ("christoffel", "christoffel", calibrated[("christoffel", 1.0)]["weight"], "christoffel"),
+    )
+    s_per_epoch_by_mode: Dict[str, float] = {}
+    weight0_model = None
+    for print_label, dict_key, weight, mode in probe_cells:
+        if probe_skip_train and print_label != "weight=0":
+            reused_s_per_epoch = _read_probe_train_s_per_epoch(record_path, print_label)
+            if reused_s_per_epoch is None:
+                raise RuntimeError(
+                    f"--probe-skip-train requested reuse of Half A's {print_label!r} s_per_epoch "
+                    f"from {record_path}, but no prior kind=='probe', probe_type=='train', "
+                    f"probe_mode=={print_label!r} record exists on disk. Run --probe once "
+                    "without --probe-skip-train first, or omit --probe-skip-train."
+                )
+            s_per_epoch_by_mode[dict_key] = reused_s_per_epoch
+            print(
+                f"  {print_label:<12s} weight={weight:.6e}  REUSED s_per_epoch="
+                f"{reused_s_per_epoch:.4f}  (not retrained -- see probe_skip_train docstring)"
+            )
+            append_record(
+                record_path,
+                {
+                    "kind": "probe",
+                    "probe_type": "train",
+                    "probe_mode": print_label,
+                    "probe_max_epochs": probe_epochs,
+                    "weight": float(weight),
+                    "model_seed": int(probe_seed),
+                    "s_per_epoch": reused_s_per_epoch,
+                    "reused": True,
+                    "reused_from": "prior --probe run's JSONL record",
+                },
+            )
+            continue
+
+        torch.manual_seed(probe_seed)
+        model = sc.build_matched_cae(
+            LADDER_N_CHARTS, LADDER_CHART_DIM, LADDER_EMBED_DIM, LADDER_AMBIENT, device
+        )
+        t0 = time.monotonic()
+        with decoder_priors.decoder_prior_active(model, weight, mode):
+            fit = sc.train_blocked(
+                model, x_train32, probe_seed, LADDER_N_CHARTS, probe_epochs, LADDER_EPOCH_BLOCK
+            )
+        train_wallclock_s = time.monotonic() - t0
+        s_per_epoch = train_wallclock_s / fit["epochs_run"]
+        s_per_epoch_by_mode[dict_key] = s_per_epoch
+        print(
+            f"  {print_label:<12s} weight={weight:.6e}  epochs_run={fit['epochs_run']}  "
+            f"train_wallclock_s={train_wallclock_s:.3f}  s_per_epoch={s_per_epoch:.4f}"
+        )
+        append_record(
+            record_path,
+            {
+                "kind": "probe",
+                "probe_type": "train",
+                "probe_mode": print_label,
+                "probe_max_epochs": probe_epochs,
+                "weight": float(weight),
+                "model_seed": int(probe_seed),
+                "epochs_run": fit["epochs_run"],
+                "train_wallclock_s": train_wallclock_s,
+                "s_per_epoch": s_per_epoch,
+            },
+        )
+        if dict_key == "weight0":
+            weight0_model = model
+
+    mult_scale = s_per_epoch_by_mode["scale"] / s_per_epoch_by_mode["weight0"]
+    mult_christoffel = s_per_epoch_by_mode["christoffel"] / s_per_epoch_by_mode["weight0"]
+    print(
+        f"  per-mode multiplier vs weight=0: scale={mult_scale:.4f}x  "
+        f"christoffel={mult_christoffel:.4f}x"
+    )
+
+    # --- Half B: curvature evaluation cost per row, on the weight=0 probe model only -----------
+    print("\nHalf B -- curvature evaluation cost per row, on the weight=0 probe model:")
+    assert weight0_model is not None
+    weight0_model.eval().double()
+    x_eval_base64 = x64[torch.as_tensor(holdout_idx, dtype=torch.long, device=device)]
+    holdout_n = int(x_eval_base64.shape[0])
+    print(
+        f"  pu._split holdout size = {holdout_n} rows "
+        f"(PU_HOLDOUT_FRACTION={pu.PU_HOLDOUT_FRACTION!r}, n={LADDER_N})"
+    )
+
+    curv_s_per_row_list: List[float] = []
+    n_charts_used_probe: Optional[int] = None
+    for eval_size in probe_eval_sizes:
+        if eval_size > holdout_n:
+            raise ValueError(
+                f"probe_eval_sizes requested eval_size={eval_size} rows but the pu._split "
+                f"holdout has only {holdout_n} rows (PU_HOLDOUT_FRACTION="
+                f"{pu.PU_HOLDOUT_FRACTION!r} on n={LADDER_N}) -- refusing to silently truncate "
+                f"x_eval_base64[:{eval_size}] into a shorter, duplicate measurement. Choose "
+                f"PROBE_EVAL_SIZES values <= {holdout_n}."
+            )
+        x_eval64 = x_eval_base64[:eval_size]
+        t1 = time.monotonic()
+        field = chart_curvature.chart_curvature_field(weight0_model, x_eval64, mode="reverse")
+        curv_s_at_eval_size = time.monotonic() - t1
+        curv_s_per_row = curv_s_at_eval_size / eval_size
+        curv_s_per_row_list.append(curv_s_per_row)
+        n_charts_used_probe = int(field["n_charts_used"])
+        print(
+            f"  eval_size={eval_size:<5d}  curv_s_at_eval_size={curv_s_at_eval_size:.3f}  "
+            f"curv_s_per_row={curv_s_per_row:.6f}  n_charts_used={n_charts_used_probe}"
+        )
+        append_record(
+            record_path,
+            {
+                "kind": "probe",
+                "probe_type": "eval",
+                "eval_size": int(eval_size),
+                "curv_s_at_eval_size": curv_s_at_eval_size,
+                "curv_s_per_row": curv_s_per_row,
+                "n_charts_used": n_charts_used_probe,
+            },
+        )
+
+    # research assumption A2 -- is evaluation cost linear in row count? Report the true spread,
+    # then ALWAYS project from the largest measured per-row cost (conservative direction),
+    # regardless of the verdict.
+    curv_s_per_row_max = max(curv_s_per_row_list)
+    curv_s_per_row_min = min(curv_s_per_row_list)
+    ratio_span = curv_s_per_row_max / curv_s_per_row_min
+    curv_s_per_row_for_projection = curv_s_per_row_max
+    if ratio_span > 2.0:
+        print(
+            f"\nEVAL COST IS NOT LINEAR IN ROW COUNT -- curv_s_per_row varies {ratio_span:.2f}x "
+            f"across {list(probe_eval_sizes)}: {curv_s_per_row_list}"
+        )
+    else:
+        print(
+            f"\nEVAL COST IS APPROXIMATELY LINEAR IN ROW COUNT (A2 CONFIRMED) -- curv_s_per_row "
+            f"varies only {ratio_span:.2f}x across {list(probe_eval_sizes)}: {curv_s_per_row_list}"
+        )
+    print(
+        f"  projecting from the largest measured per-row cost, the conservative direction: "
+        f"{curv_s_per_row_for_projection:.6f}"
+    )
+
+    extrapolated_n10000 = curv_s_per_row_for_projection * LADDER_N
+    anchor_curv_s = _read_anchor_curv_wallclock_s(record_path)
+    print(
+        f"\n  extrapolated n={LADDER_N} (from the largest measured curv_s_per_row): "
+        f"{extrapolated_n10000:.1f}s"
+    )
+    print(f"  sealed full-cloud curv_wallclock_s = {SEALED_CURV_WALLCLOCK_S!r}")
+    rel_vs_sealed = abs(extrapolated_n10000 - SEALED_CURV_WALLCLOCK_S) / SEALED_CURV_WALLCLOCK_S
+    print(f"  relative disagreement vs sealed = {rel_vs_sealed:.4f}")
+    if anchor_curv_s is not None:
+        print(f"  anchor cell's fresh full-cloud curv_wallclock_s = {anchor_curv_s!r}")
+        rel_vs_anchor = abs(extrapolated_n10000 - anchor_curv_s) / anchor_curv_s
+        print(f"  relative disagreement vs anchor = {rel_vs_anchor:.4f}")
+    else:
+        rel_vs_anchor = None
+        print(
+            "  no anchor_cell record found on disk -- run --anchor-check first for the full "
+            "cross-check."
+        )
+
+    # n_charts_used caveat: every probe eval trains a 3-epoch model, which populates fewer charts
+    # than the anchor's full 300-epoch fit. Stated explicitly, never folded silently into the
+    # projection.
+    anchor_n_charts = _read_anchor_n_charts_used(record_path)
+    chart_count_ratio: Optional[float] = None
+    if anchor_n_charts is not None and n_charts_used_probe:
+        chart_count_ratio = anchor_n_charts / n_charts_used_probe
+        print(
+            f"\n  CAVEAT -- n_charts_used: every probe eval populated n_charts_used="
+            f"{n_charts_used_probe} chart(s) (the {probe_epochs}-epoch probe model), vs the "
+            f"anchor cell's full 300-epoch n_charts_used={anchor_n_charts}. If curvature cost "
+            f"tracks chart count, real ladder cells cost roughly {chart_count_ratio:.4f}x more "
+            f"per row than this probe measured. NOT folded into the projection below -- stated "
+            f"as an explicit caveat, carried into the JSONL summary record and the SUMMARY."
+        )
+    else:
+        print(
+            "\n  CAVEAT -- n_charts_used: no anchor_cell record found on disk to compare "
+            "against; the chart-count ratio cannot be computed."
+        )
+
+    # --- The projection and the relief ladder ---------------------------------------------------
+    print("\nProjection and relief ladder:")
+    chosen, relief_applied, final_state, chosen_total = apply_relief_ladder(
+        LADDER_EPOCH_CANDIDATES,
+        LADDER_BUDGET_S,
+        LADDER_FRACTIONS,
+        LADDER_EVAL_N,
+        s_per_epoch_by_mode,
+        curv_s_per_row_for_projection,
+        CHRISTOFFEL_MAX_ROWS_PER_CHART,
+        confirm_f4_override=confirm_f4_override,
+    )
+
+    caveat_total_s: Optional[float] = None
+    if chosen is not None and chart_count_ratio is not None:
+        caveat_curv_s_per_row = curv_s_per_row_for_projection * chart_count_ratio
+        caveat_total_s, _ = project_total_s(
+            chosen,
+            final_state["fractions"],
+            final_state["eval_n"],
+            s_per_epoch_by_mode,
+            caveat_curv_s_per_row,
+            final_state["christoffel_max_rows"],
+        )
+        print(
+            f"\n  CAVEAT-ADJUSTED projected_total_s at chosen_max_epochs={chosen}, with the "
+            f"n_charts_used {chart_count_ratio:.4f}x factor applied to curvature-evaluation cost "
+            f"only: {caveat_total_s:.1f}s ({caveat_total_s / 3600.0:.2f}h) against "
+            f"LADDER_BUDGET_S={LADDER_BUDGET_S} ({LADDER_BUDGET_S / 3600.0:.2f}h)."
+        )
+
+    summary_record: Dict[str, Any] = {
+        "kind": "probe",
+        "probe_type": "summary",
+        "probe_skip_train": probe_skip_train,
+        "s_per_epoch_by_mode": dict(s_per_epoch_by_mode),
+        "curv_s_per_row": curv_s_per_row_for_projection,
+        "curv_s_per_row_by_eval_size": dict(zip(probe_eval_sizes, curv_s_per_row_list)),
+        "curv_s_per_row_ratio_span": ratio_span,
+        "eval_cost_linear": ratio_span <= 2.0,
+        "rel_vs_sealed": rel_vs_sealed,
+        "rel_vs_anchor": rel_vs_anchor,
+        "n_charts_used": n_charts_used_probe,
+        "n_charts_used_probe": n_charts_used_probe,
+        "n_charts_used_anchor": anchor_n_charts,
+        "chart_count_ratio": chart_count_ratio,
+        "caveat_adjusted_projected_total_s": caveat_total_s,
+        "relief_applied": list(relief_applied),
+        "final_fractions": list(final_state["fractions"]),
+        "final_eval_n": final_state["eval_n"],
+        "final_christoffel_max_rows": final_state["christoffel_max_rows"],
+        "projected_total_s": chosen_total,
+        "chosen_max_epochs": chosen,
+    }
+    append_record(record_path, summary_record)
+
+    if chosen is None:
+        print("\nBUDGET NOT MET.")
+        sys.exit(1)
+
+    print(
+        f"\nchosen_max_epochs = {chosen}  relief_applied={relief_applied}  "
+        f"projected_total_s={chosen_total:.1f}"
+    )
+
+
+# =============================================================================================
 # D-10 / D-16: the ladder sizing, the F1-F4 relief ladder and the D-08 Tier-1/Tier-2 reading
 # rules are declared in source, before any number exists, and printed by --dry-run -- the same
 # idiom as swiss_roll_isometry_prior_sweep_run.py's "the ladder is declared in source" block.
@@ -964,6 +1568,44 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "rank_spearman_rho reproduces the sealed control_saddle_nc4_d20_ep300 row exactly "
         "(D-13). Costs roughly 2.6h -- the one full-cloud evaluation this phase runs.",
     )
+    parser.add_argument(
+        "--probe",
+        action="store_true",
+        help="Two-sided cost probe: training s/epoch per mode at the real architecture, "
+        "curvature-evaluation s/row at three sample sizes, the 24-cell projection from measured "
+        "numbers only, and the pre-declared F1-F3 relief ladder. Exits 1 with BUDGET NOT MET if "
+        "no configuration fits LADDER_BUDGET_S.",
+    )
+    parser.add_argument(
+        "--probe-epochs",
+        type=int,
+        default=PROBE_EPOCHS,
+        help=f"Override PROBE_EPOCHS (default: {PROBE_EPOCHS}) for Half A's training-cost probe.",
+    )
+    parser.add_argument(
+        "--probe-eval-sizes",
+        type=str,
+        default=None,
+        help=f"Comma-separated override of PROBE_EVAL_SIZES (default: {PROBE_EVAL_SIZES}) for "
+        "Half B's curvature-evaluation-cost probe.",
+    )
+    parser.add_argument(
+        "--probe-skip-train",
+        action="store_true",
+        help="Skip re-training Half A's costly 'scale' and 'christoffel' cells; reuse their "
+        "s_per_epoch from a prior --probe run's JSONL record (raises if none exists). The "
+        "'weight=0' cell is always trained fresh -- its model is what Half B evaluates on. The "
+        "defect-fix re-run path: fixing Half B's truncation bug does not require re-running "
+        "Half A.",
+    )
+    parser.add_argument(
+        "--confirm-f4-override",
+        action="store_true",
+        help="Apply F4 -- the scale-arm-only epoch cut that overrides D-07's fence against "
+        "cutting epochs -- if F1-F3 do not fit LADDER_BUDGET_S. Never inferred from any other "
+        "flag; defaults to False. Fires only when this flag is passed explicitly, ratified at "
+        "03.1-03 Task 3's blocking checkpoint.",
+    )
     return parser
 
 
@@ -989,9 +1631,26 @@ def main() -> None:
         anchor_check(device, record_path)
         return
 
+    if args.probe:
+        probe_eval_sizes = (
+            tuple(int(v) for v in args.probe_eval_sizes.split(","))
+            if args.probe_eval_sizes
+            else PROBE_EVAL_SIZES
+        )
+        probe(
+            device,
+            record_path,
+            confirm_f4_override=args.confirm_f4_override,
+            probe_epochs=args.probe_epochs,
+            probe_eval_sizes=probe_eval_sizes,
+            probe_skip_train=args.probe_skip_train,
+        )
+        return
+
     print(
-        "Nothing to do: pass --dry-run, --smoke or --anchor-check. The real 24-cell ladder "
-        "loop and its probe are a later plan, gated behind this file's dry-run sizing report."
+        "Nothing to do: pass --dry-run, --smoke, --anchor-check or --probe. The real 24-cell "
+        "ladder loop is a later plan, gated behind this file's dry-run sizing report and this "
+        "plan's ratified probe configuration."
     )
 
 
