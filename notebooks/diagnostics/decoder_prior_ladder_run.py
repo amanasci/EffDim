@@ -30,6 +30,8 @@ Invoke:
 
 import argparse
 import json
+import math
+import statistics
 import sys
 import time
 from pathlib import Path
@@ -287,8 +289,15 @@ def cell_key(mode: str, weight: float, seed: int) -> Tuple[str, float, int]:
 
 
 def load_completed(record_path: Path) -> Dict[Tuple[str, float, int], Dict[str, Any]]:
-    """Every JSON-lines record on disk, keyed by :func:`cell_key`. Missing file -> empty dict
-    (a fresh run, not an error)."""
+    """Every `kind in ('ladder_cell', 'smoke_ladder_cell')` record on disk, keyed by
+    :func:`cell_key`. Missing file -> empty dict (a fresh run, not an error).
+
+    The shared JSONL record file also carries `kind == 'anchor_cell'` (03.1-03 Task 1) and
+    `kind == 'probe'` (03.1-03 Task 2) records, neither of which has a `mode`/`weight`/
+    `model_seed` triple to key on -- both are appended to the SAME file this runner's `--run-
+    ladder` resumes from. Filtering to the two ladder-cell kinds here, rather than assuming
+    every line is a cell, is what makes `--resume` safe against a record file the anchor/probe
+    have already written into (as every real 03.1-03 run leaves behind)."""
     completed: Dict[Tuple[str, float, int], Dict[str, Any]] = {}
     if not record_path.exists():
         return completed
@@ -298,6 +307,8 @@ def load_completed(record_path: Path) -> Dict[Tuple[str, float, int], Dict[str, 
             if not line:
                 continue
             rec = json.loads(line)
+            if rec.get("kind") not in ("ladder_cell", "smoke_ladder_cell"):
+                continue
             key = cell_key(rec["mode"], rec["weight"], rec["model_seed"])
             completed[key] = rec
     return completed
@@ -1327,6 +1338,684 @@ reconstruction.
 """
 
 
+# =============================================================================================
+# 03.1-04 Task 1: the D-08 two-tier read-out -- Tier 1 (mechanism) then Tier 2 (estimand),
+# proven against a synthetic record before any real ladder cell runs.
+# =============================================================================================
+
+HEALTHY_D4_COND = 4.098
+"""03-FINDINGS.md §5: the healthy `d=4` saddle diagnostic's median `cond(g)` -- the reference
+band the baseline-pathology precondition (`03.1-01-PLAN.md` §G) compares against."""
+
+HEALTHY_LAMBDA_MAX = 3.352
+"""03-FINDINGS.md §5: seed 20260813's median `lambda_max` -- the one PU fit whose metric had a
+real, non-collapsed absolute scale."""
+
+SEALED_HEALTHY_SEED_COND = 3.30e07
+"""03-FINDINGS.md §5: seed 20260813's median `cond(g)`, recorded beside `HEALTHY_LAMBDA_MAX` so
+the baseline-pathology check's reference numbers live in one place."""
+
+COLLAPSE_LAMBDA_MAX = 5.4e-07
+"""03-FINDINGS.md §5: seeds 20260814/20260815's median `lambda_max` -- the collapsed-seed
+reference band."""
+
+TIER1_VERDICTS: Tuple[str, str, str] = (
+    "MECHANISM DEMONSTRATED",
+    "COLLAPSE",
+    "MECHANISM NOT DEMONSTRATED",
+)
+"""D-08 Tier 1's exactly-one-of-three verdict strings, spelled verbatim as `READING_RULES_TEXT`
+declares them."""
+
+
+def median_and_spread(values: Sequence[float]) -> Tuple[float, List[float]]:
+    """D-03: every print shows both the 3-seed median AND the full sorted spread, never the
+    median alone."""
+    vals = sorted(float(v) for v in values)
+    return float(statistics.median(vals)), vals
+
+
+def seed_consistent(per_seed_deltas: Sequence[float]) -> bool:
+    """D-03: True iff every non-zero delta shares the same sign. A delta of exactly zero
+    contradicts no direction, so it never breaks consistency on its own; an empty input is
+    vacuously consistent (nothing to disagree)."""
+    signs = {(1 if d > 0 else -1 if d < 0 else 0) for d in per_seed_deltas}
+    return len(signs - {0}) <= 1
+
+
+def rows_for_mode(
+    records: Sequence[Dict[str, Any]], mode: str
+) -> List[Tuple[float, List[Dict[str, Any]]]]:
+    """This mode's own cells plus the shared `weight=0.0` baseline cells (matched by
+    `cell_key`'s `"any"` sentinel -- the weight check below, not the `mode` field, is what
+    selects them, since a baseline cell's stored `mode` field is whatever literal mode string
+    ran it first), grouped by weight and sorted ascending. Cells are expected pre-filtered to
+    exclude `DIVERGED` cells by the caller."""
+    mode_cells = [r for r in records if float(r["weight"]) == 0.0 or r["mode"] == mode]
+    by_weight: Dict[float, List[Dict[str, Any]]] = {}
+    for r in mode_cells:
+        by_weight.setdefault(float(r["weight"]), []).append(r)
+    return [
+        (w, sorted(by_weight[w], key=lambda r: int(r["model_seed"]))) for w in sorted(by_weight)
+    ]
+
+
+def baseline_pathology_check(baseline_rows: Sequence[Dict[str, Any]]) -> bool:
+    """`03.1-01-PLAN.md` §G, implemented exactly. Prints `BASELINE PATHOLOGY CHECK` with the
+    four medians per seed against the three sealed reference bands, and returns `True` iff the
+    ladder should proceed (pathology IS present in at least one baseline seed). When it returns
+    `False`, the caller prints `NO PATHOLOGY AT THIS EPOCH BUDGET` and exits 2 before training
+    any prior-active cell -- the pathology being absent at this epoch budget is itself the
+    finding, and escalation is an explicit user decision (D-11)."""
+    print("\nBASELINE PATHOLOGY CHECK")
+    print(
+        f"  reference bands (03-FINDINGS.md §5): healthy-metric seed 20260813 "
+        f"lambda_max={HEALTHY_LAMBDA_MAX:.3f} cond={SEALED_HEALTHY_SEED_COND:.2e}; "
+        f"collapsed seeds lambda_max~={COLLAPSE_LAMBDA_MAX:.1e}; "
+        f"healthy d=4 saddle control cond={HEALTHY_D4_COND:.3f}"
+    )
+    if not baseline_rows:
+        print("  no weight=0.0 baseline cell on record -- cannot evaluate; treating as pathological (proceed).")
+        return True
+
+    all_healthy = True
+    for rec in sorted(baseline_rows, key=lambda r: int(r["model_seed"])):
+        cond_med = float(rec["cond"]["median"])
+        lmin_med = float(rec["lambda_min"]["median"])
+        lmax_med = float(rec["lambda_max"]["median"])
+        logdet_med = float(rec["log10_det_g"]["median"])
+        cond_within_decade = abs(math.log10(max(cond_med, 1e-300)) - math.log10(HEALTHY_D4_COND)) <= 1.0
+        lmax_within_decade = abs(math.log10(max(lmax_med, 1e-300))) <= 1.0  # within a decade of 1
+        seed_healthy = cond_within_decade and lmax_within_decade
+        all_healthy = all_healthy and seed_healthy
+        print(
+            f"  seed={rec['model_seed']}  cond_median={cond_med:.6e}  lambda_min_median={lmin_med:.6e}  "
+            f"lambda_max_median={lmax_med:.6e}  log10_det_g_median={logdet_med:.6f}  "
+            f"{'d=4-HEALTHY BAND' if seed_healthy else 'pathological (or ambiguous)'}"
+        )
+
+    if all_healthy:
+        print("NO PATHOLOGY AT THIS EPOCH BUDGET")
+        return False
+    print("  pathology confirmed in at least one baseline seed at this epoch budget -- proceeding.")
+    return True
+
+
+def _cell_field_median(cell: Dict[str, Any], field: str) -> float:
+    return float(cell[field]["median"])
+
+
+def _per_seed_map(cells: Sequence[Dict[str, Any]], field: str) -> Dict[int, float]:
+    return {int(c["model_seed"]): _cell_field_median(c, field) for c in cells}
+
+
+def tier1_readout(rows: Sequence[Tuple[float, List[Dict[str, Any]]]], mode: str) -> str:
+    """D-08 Tier 1 -- mechanism. `rows`: `rows_for_mode`'s output, weight ascending, `DIVERGED`
+    cells already excluded by the caller. Prints the per-rung medians and full 3-seed spreads,
+    the per-field toward-healthy judgement with `NOT SEED-CONSISTENT` labelling, and returns
+    exactly one of `TIER1_VERDICTS`."""
+    print(f"\n--- TIER 1 (mechanism) -- mode={mode} ---")
+    fields = ("lambda_min", "lambda_max", "log10_det_g", "cond")
+    weights = [w for w, _ in rows]
+    per_field_medians: Dict[str, List[float]] = {f: [] for f in fields}
+    per_field_seed_maps: Dict[str, List[Dict[int, float]]] = {f: [] for f in fields}
+    for w, cells in rows:
+        print(f"  weight={w:.6e}  n_cells={len(cells)}")
+        for f in fields:
+            vals = [_cell_field_median(c, f) for c in cells]
+            med, spread = median_and_spread(vals)
+            per_field_medians[f].append(med)
+            per_field_seed_maps[f].append(_per_seed_map(cells, f))
+            spread_str = ", ".join(f"{v:.6e}" for v in spread)
+            print(f"    {f:<12s} median={med:.6e}  spread=[{spread_str}]")
+
+    if len(weights) < 2:
+        print("  fewer than two rungs on record -- verdict withheld until weight=0 and at "
+              "least one prior-active rung both exist.")
+        return "MECHANISM NOT DEMONSTRATED"
+
+    w0_idx, top_idx = 0, len(weights) - 1
+
+    def _monotone(vals: List[float], non_decreasing: bool) -> bool:
+        if non_decreasing:
+            return all(vals[i] <= vals[i + 1] for i in range(len(vals) - 1))
+        return all(vals[i] >= vals[i + 1] for i in range(len(vals) - 1))
+
+    def _seed_consistent_for(field: str) -> bool:
+        seed_map_w0 = per_field_seed_maps[field][w0_idx]
+        seed_map_top = per_field_seed_maps[field][top_idx]
+        common = sorted(set(seed_map_w0) & set(seed_map_top))
+        if not common:
+            return True
+        deltas = [seed_map_top[s] - seed_map_w0[s] for s in common]
+        return seed_consistent(deltas)
+
+    lambda_min_toward = (
+        _monotone(per_field_medians["lambda_min"], non_decreasing=True)
+        and per_field_medians["lambda_min"][top_idx] > per_field_medians["lambda_min"][w0_idx]
+    )
+    logdet_toward = (
+        _monotone(per_field_medians["log10_det_g"], non_decreasing=True)
+        and per_field_medians["log10_det_g"][top_idx] > per_field_medians["log10_det_g"][w0_idx]
+    )
+    cond_toward = (
+        _monotone(per_field_medians["cond"], non_decreasing=False)
+        and per_field_medians["cond"][top_idx] < per_field_medians["cond"][w0_idx]
+    )
+    lambda_max_w0 = per_field_medians["lambda_max"][w0_idx]
+    lambda_max_top = per_field_medians["lambda_max"][top_idx]
+    lambda_max_fell_a_decade = (
+        lambda_max_w0 > 0 and lambda_max_top > 0 and (lambda_max_top / lambda_max_w0) <= 0.1
+    )
+    lambda_max_not_falling = not lambda_max_fell_a_decade
+    cond_improved = per_field_medians["cond"][top_idx] < per_field_medians["cond"][w0_idx]
+
+    for field, toward in (
+        ("lambda_min", lambda_min_toward),
+        ("log10_det_g", logdet_toward),
+        ("cond(g)", cond_toward),
+        ("lambda_max", lambda_max_not_falling),
+    ):
+        consistent = _seed_consistent_for(field if field != "cond(g)" else "cond")
+        tag = "" if consistent else "  NOT SEED-CONSISTENT"
+        print(f"    {field} moves toward healthy = {toward}{tag}")
+
+    collapse = cond_improved and lambda_max_fell_a_decade
+    if collapse:
+        verdict = "COLLAPSE"
+    elif mode == "scale" and lambda_min_toward and logdet_toward:
+        verdict = "MECHANISM DEMONSTRATED"
+    elif mode == "christoffel" and cond_toward and lambda_max_not_falling:
+        verdict = "MECHANISM DEMONSTRATED"
+    else:
+        verdict = "MECHANISM NOT DEMONSTRATED"
+    assert verdict in TIER1_VERDICTS
+
+    print(f"  TIER 1 VERDICT ({mode}): {verdict}")
+    if verdict != "MECHANISM DEMONSTRATED":
+        print(
+            "    the penalty did not demonstrably move its own target quantity -- no Tier-2 "
+            "column below is read as evidence about the estimand for this mode."
+        )
+    return verdict
+
+
+def _fidelity_extractor(key: str):
+    def _extract(cell: Dict[str, Any]) -> Optional[float]:
+        fid = cell.get("fidelity", {})
+        if not fid.get("applicable", True):
+            return None
+        if key in ("calibration_r2", "calibration_slope", "rank_spearman_rho") and not fid.get(
+            "rank_calibration_applicable", True
+        ):
+            return None
+        val = fid.get(key)
+        return None if val is None else float(val)
+
+    return _extract
+
+
+def _rung_field_values(
+    cells: Sequence[Dict[str, Any]], extractor
+) -> Tuple[List[float], Dict[int, float]]:
+    values: List[float] = []
+    seed_map: Dict[int, float] = {}
+    for c in cells:
+        v = extractor(c)
+        if v is not None:
+            values.append(v)
+            seed_map[int(c["model_seed"])] = v
+    return values, seed_map
+
+
+def tier2_axis_readout(
+    rows: Sequence[Tuple[float, List[Dict[str, Any]]]],
+    axis_name: str,
+    extractors: Dict[str, Any],
+    target_label: str,
+    distance_fn: Dict[str, Any],
+    and_semantics: bool = False,
+) -> str:
+    """One Tier-2 axis block -- `direction`/`magnitude`/`rank` pass one `extractors` entry;
+    `calibration` passes two (`slope`, `r2`), both required (`and_semantics=True`) since D-08
+    reports both and neither alone. Prints median + full 3-seed spread per rung for every
+    sub-metric, the D-03 seed-consistency label on the weight=0 -> best-rung delta, and one
+    toward-target verdict for the whole axis. `distance_fn[sub](value) -> float`, smaller is
+    closer to the axis's declared target -- never a combination across axes (D-08's own no-
+    arithmetic-combines-them rule stays inside one axis's own sub-metrics only)."""
+    print(f"\n  {axis_name}:")
+    weights = [w for w, _ in rows]
+    w0_idx = 0
+    per_sub_series: Dict[str, List[Tuple[float, Optional[float], List[float], Dict[int, float]]]] = {}
+    for sub, extractor in extractors.items():
+        series: List[Tuple[float, Optional[float], List[float], Dict[int, float]]] = []
+        for w, cells in rows:
+            values, seed_map = _rung_field_values(cells, extractor)
+            if values:
+                med, spread = median_and_spread(values)
+            else:
+                med, spread = None, []
+            series.append((w, med, spread, seed_map))
+        per_sub_series[sub] = series
+        print(f"    {sub}:")
+        for w, med, spread, _ in series:
+            if med is None:
+                print(f"      weight={w:.6e}  UNDEFINED")
+            else:
+                spread_str = ", ".join(f"{v:.6f}" for v in spread)
+                print(f"      weight={w:.6e}  median={med:.6f}  spread=[{spread_str}]")
+
+    w0_vals = {sub: per_sub_series[sub][w0_idx][1] for sub in extractors}
+    if any(v is None for v in w0_vals.values()):
+        print(f"    {axis_name} verdict: UNDEFINED (weight=0 baseline undefined for at least one sub-metric)")
+        return "UNDEFINED"
+
+    best_idx: Optional[int] = None
+    best_score: Optional[float] = None
+    for idx in range(1, len(weights)):
+        vals = {sub: per_sub_series[sub][idx][1] for sub in extractors}
+        if any(v is None for v in vals.values()):
+            continue
+        score = max(distance_fn[sub](vals[sub]) for sub in extractors)
+        if best_score is None or score < best_score:
+            best_score, best_idx = score, idx
+
+    if best_idx is None:
+        print(f"    {axis_name} verdict: UNDEFINED (no rung has every required sub-metric defined)")
+        return "UNDEFINED"
+
+    moved_flags = []
+    consistency_flags = []
+    for sub in extractors:
+        w0_d = distance_fn[sub](w0_vals[sub])
+        best_val = per_sub_series[sub][best_idx][1]
+        assert best_val is not None
+        best_d = distance_fn[sub](best_val)
+        moved_flags.append(best_d < w0_d)
+        seed_map_w0 = per_sub_series[sub][w0_idx][3]
+        seed_map_best = per_sub_series[sub][best_idx][3]
+        common = sorted(set(seed_map_w0) & set(seed_map_best))
+        if common:
+            deltas = [
+                distance_fn[sub](seed_map_w0[s]) - distance_fn[sub](seed_map_best[s]) for s in common
+            ]
+            consistency_flags.append(seed_consistent(deltas))
+        else:
+            consistency_flags.append(True)
+
+    moved = all(moved_flags) if and_semantics else any(moved_flags)
+    consistent = all(consistency_flags)
+    tag = "" if consistent else "  NOT SEED-CONSISTENT"
+    verdict_word = f"MOVES TOWARD {target_label}" if moved else f"DOES NOT MOVE toward {target_label}"
+    verdict = f"{verdict_word} at weight={weights[best_idx]:.6e}{tag}"
+    print(f"    {axis_name} verdict: {verdict}")
+    return verdict
+
+
+def tier2_readout(
+    rows: Sequence[Tuple[float, List[Dict[str, Any]]]], mode: str, tier1_verdict: str
+) -> None:
+    """D-08 Tier 2 -- estimand. Four axes, printed as four separately labelled blocks, never
+    collapsed into one score. `direction`/`magnitude`/`rank` each carry one sub-metric;
+    `calibration` carries two (`slope` and `r2`), both required. Ends with the D-09 bias guard
+    printed beside every rung -- a reading rule, never a selector."""
+    print(f"\n--- TIER 2 (estimand) -- mode={mode} ---")
+    if tier1_verdict != "MECHANISM DEMONSTRATED":
+        print(
+            "  not read as evidence about the estimand -- Tier 1 did not demonstrate the "
+            "mechanism for this mode."
+        )
+
+    tier2_axis_readout(
+        rows,
+        "direction",
+        {"cosine": _fidelity_extractor("direction_median_cosine")},
+        "+1",
+        {"cosine": lambda v: abs(v - 1.0)},
+    )
+    tier2_axis_readout(
+        rows,
+        "magnitude",
+        {"ratio": _fidelity_extractor("magnitude_median_ratio")},
+        "1",
+        {"ratio": lambda v: abs(math.log10(max(v, 1e-300)))},
+    )
+    tier2_axis_readout(
+        rows,
+        "calibration",
+        {
+            "r2": _fidelity_extractor("calibration_r2"),
+            "slope": _fidelity_extractor("calibration_slope"),
+        },
+        "1",
+        {"r2": lambda v: 1.0 - v, "slope": lambda v: abs(v - 1.0)},
+        and_semantics=True,
+    )
+    tier2_axis_readout(
+        rows,
+        "rank",
+        {"rho": _fidelity_extractor("rank_spearman_rho")},
+        "+1",
+        {"rho": lambda v: 1.0 - v},
+    )
+
+    print(
+        "\n  bias guard (D-09): held-out mse_per_dim beside every rung; an improvement bought "
+        "with materially worse reconstruction is not an improvement. Reading rule only -- "
+        "never a selector."
+    )
+    mse_w0: Optional[float] = None
+    for w, cells in rows:
+        vals = [float(c["reconstruction"]["mse_per_dim"]) for c in cells]
+        med, spread = median_and_spread(vals)
+        if mse_w0 is None:
+            mse_w0 = med
+        ratio_str = f"{med / mse_w0:.4f}" if mse_w0 else "n/a"
+        spread_str = ", ".join(f"{v:.6e}" for v in spread)
+        print(
+            f"    weight={w:.6e}  mse_per_dim median={med:.6e}  spread=[{spread_str}]  "
+            f"ratio_vs_weight0={ratio_str}"
+        )
+
+
+def print_summary(record_path: Path) -> None:
+    """`--summary`: read the record back and print `READING_RULES_TEXT`, the epochs-uniformity
+    guard, any `DIVERGED` cells, the D-07 relief banner, `BASELINE PATHOLOGY CHECK`, then
+    Tier 1 and Tier 2 per mode, then the full per-cell table. Runs no new cells."""
+    _banner("--summary: 03.1 decoder-prior ladder read-out")
+    print(READING_RULES_TEXT)
+
+    if not record_path.exists():
+        print("No record file found at", record_path, "-- nothing to summarize.")
+        return
+
+    records: List[Dict[str, Any]] = []
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            records.append(json.loads(line))
+
+    cells = [r for r in records if r.get("kind") in ("ladder_cell", "smoke_ladder_cell")]
+    if not cells:
+        print("No ladder cells on record yet -- nothing to summarize.")
+        return
+
+    non_diverged = [c for c in cells if not c.get("nonfinite_guard", {}).get("tripped")]
+    diverged = [c for c in cells if c.get("nonfinite_guard", {}).get("tripped")]
+
+    bad = [
+        c
+        for c in non_diverged
+        if int(c.get("epochs_run", -1)) != int(c.get("max_epochs", -2))
+        or bool(c.get("early_stopped", True))
+    ]
+    if bad:
+        print(
+            "\nTRAINING-LENGTH CONFOUND -- the following non-diverged cells did not run for the "
+            "full declared max_epochs, or early-stopped:"
+        )
+        for c in bad:
+            print(
+                f"  {c.get('config_id')}  epochs_run={c.get('epochs_run')}  "
+                f"max_epochs={c.get('max_epochs')}  early_stopped={c.get('early_stopped')}"
+            )
+        print("refusing to print the read-outs below.")
+        return
+    print(
+        "\nepochs_run uniformity: OK -- every non-diverged cell has epochs_run == max_epochs "
+        "and early_stopped == False."
+    )
+
+    print(f"\nDIVERGED cells (excluded from every median and spread): {len(diverged)}")
+    for c in diverged:
+        print(
+            f"  DIVERGED -- not read as evidence: {c.get('config_id')}  "
+            f"where={c.get('nonfinite_guard', {}).get('where')}"
+        )
+
+    f4_cells = [c for c in non_diverged if F4_OVERRIDE_LABEL in c.get("relief_applied", [])]
+    if f4_cells:
+        print("\nD-07 OVERRIDE FIRED")
+        print(f"  affected config_ids: {[c['config_id'] for c in f4_cells]}")
+        print(
+            "  These cells were trained on a cut epoch budget as a CONFIRMED OVERRIDE of D-07's "
+            "fence against cutting epochs. Under-training is the confound D-07 fenced against "
+            "(03-08: training to the full budget instead of stopping early cut held-out "
+            "mse_per_dim 62.2% and left cond(g) unmoved). No reading of these cells may omit "
+            "this override."
+        )
+    else:
+        print("\nD-07's fence held: no cell in this record carries the F4 override.")
+
+    baseline_rows = [c for c in non_diverged if float(c["weight"]) == 0.0]
+    proceed = baseline_pathology_check(baseline_rows)
+    if not proceed:
+        print(
+            "\n(NO PATHOLOGY AT THIS EPOCH BUDGET printed for the record; a fresh run_ladder "
+            "invocation would have exited 2 before training any prior-active cell. --summary "
+            "still prints whatever Tier-1/Tier-2 tables the record on disk supports.)"
+        )
+
+    modes_present = sorted({c["mode"] for c in non_diverged if float(c["weight"]) != 0.0})
+    for mode in modes_present:
+        rows = rows_for_mode(non_diverged, mode)
+        tier1_verdict = tier1_readout(rows, mode)
+        tier2_readout(rows, mode, tier1_verdict)
+
+    print("\n--- full per-cell table ---")
+    for c in sorted(
+        cells, key=lambda r: (r.get("mode", ""), float(r.get("weight", 0.0)), int(r.get("model_seed", 0)))
+    ):
+        diverged_tag = " DIVERGED" if c.get("nonfinite_guard", {}).get("tripped") else ""
+        print(
+            f"  {c.get('config_id')}{diverged_tag}  mode={c.get('mode')}  "
+            f"weight={float(c.get('weight', 0.0)):.6e}  seed={c.get('model_seed')}  "
+            f"epochs_run={c.get('epochs_run')}/{c.get('max_epochs')}  "
+            f"relief_applied={c.get('relief_applied')}"
+        )
+
+
+# =============================================================================================
+# 03.1-04 Task 2: run_ladder -- baseline, scale arm, christoffel arm, at the sizing ratified by
+# the most recent kind=='probe', probe_type=='summary' record on disk (03.1-03 Task 3).
+# =============================================================================================
+
+
+def _read_latest_probe_summary(record_path: Path) -> Optional[Dict[str, Any]]:
+    """The most recent ratified `kind == 'probe', probe_type == 'summary'` record carrying a
+    non-null `chosen_max_epochs` -- the sizing `run_ladder` stamps onto every cell. `None` if no
+    such record exists on disk."""
+    if not record_path.exists():
+        return None
+    found: Optional[Dict[str, Any]] = None
+    with record_path.open("r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if (
+                rec.get("kind") == "probe"
+                and rec.get("probe_type") == "summary"
+                and rec.get("chosen_max_epochs") is not None
+            ):
+                found = rec
+    return found
+
+
+def run_ladder(
+    record_path: Path,
+    resume: bool,
+    arm: Optional[str],
+    max_epochs: Optional[int],
+    fractions: Optional[Sequence[float]],
+    eval_n: Optional[int],
+    christoffel_max_rows: Optional[int],
+    seeds: Sequence[int],
+    device: torch.device,
+) -> None:
+    """The overnight run: calibrate once, fit the three `weight=0` baseline cells (D-05), run
+    the baseline-pathology precondition (§G), then both single-mode arms, at the sizing ratified
+    at `03.1-03` Task 3 -- read from the most recent probe summary record on disk, never
+    synthesized locally. `--resume` skips any `cell_key` already present."""
+    probe_summary = _read_latest_probe_summary(record_path)
+    if probe_summary is None:
+        raise RuntimeError(
+            "run_ladder: no kind=='probe', probe_type=='summary' record with a non-null "
+            "chosen_max_epochs found on disk. Run --probe (and, if F1-F3 do not fit, "
+            "--confirm-f4-override once ratified) before --run-ladder -- the ratified sizing "
+            "must exist on the record before the overnight run can stamp it onto every cell."
+        )
+    relief_applied: List[str] = list(probe_summary["relief_applied"])
+    resolved_max_epochs = int(max_epochs if max_epochs is not None else probe_summary["chosen_max_epochs"])
+    resolved_fractions: Tuple[float, ...] = tuple(
+        fractions if fractions is not None else probe_summary["final_fractions"]
+    )
+    resolved_eval_n = int(eval_n if eval_n is not None else probe_summary["final_eval_n"])
+    resolved_christoffel_max_rows = int(
+        christoffel_max_rows
+        if christoffel_max_rows is not None
+        else probe_summary["final_christoffel_max_rows"]
+    )
+
+    _banner(
+        f"--run-ladder: max_epochs={resolved_max_epochs}  fractions={resolved_fractions}  "
+        f"eval_n={resolved_eval_n}  christoffel_max_rows={resolved_christoffel_max_rows}  "
+        f"relief_applied={relief_applied}  seeds={list(seeds)}  resume={resume}  arm={arm!r}"
+    )
+    if F4_OVERRIDE_LABEL in relief_applied:
+        print(
+            "D-07 OVERRIDE FIRED -- this run's ratified relief_applied carries the F4 epoch-cut "
+            "override; every cell below is stamped with it."
+        )
+
+    completed = load_completed(record_path)
+    t_start = time.monotonic()
+    projected_total_s = probe_summary.get("caveat_adjusted_projected_total_s") or probe_summary.get(
+        "projected_total_s"
+    )
+
+    def _elapsed_report() -> None:
+        elapsed = time.monotonic() - t_start
+        if projected_total_s:
+            pct = 100.0 * elapsed / projected_total_s
+            print(f"    elapsed={elapsed:.1f}s  ratified_projection={projected_total_s:.1f}s  ({pct:.1f}%)")
+        else:
+            print(f"    elapsed={elapsed:.1f}s")
+
+    # --- 1. Calibrate once -----------------------------------------------------------------
+    fx = sc.build_fixture(
+        LADDER_FIXTURE, n=LADDER_N, d=LADDER_CHART_DIM, D=LADDER_AMBIENT, seed=LADDER_FIXTURE_SEED
+    )
+    X = np.asarray(fx["X"], dtype=np.float64)
+    x32 = torch.tensor(X, dtype=torch.float32).to(device)
+    train_idx, _holdout_idx = pu._split(X.shape[0], pu.PU_SPLIT_SEED, pu.PU_HOLDOUT_FRACTION)
+    x_train32 = x32[torch.as_tensor(train_idx, dtype=torch.long, device=device)]
+
+    torch.manual_seed(LADDER_SEEDS[0])
+    calib_model = sc.build_matched_cae(
+        LADDER_N_CHARTS, LADDER_CHART_DIM, LADDER_EMBED_DIM, LADDER_AMBIENT, device
+    )
+    calibrated = calibrate_weights(
+        calib_model,
+        x_train32[: pu.BATCH],
+        fractions=resolved_fractions,
+        christoffel_max_rows=resolved_christoffel_max_rows,
+    )
+    print("\nCalibrated weights (computed once, reused for every seed):")
+    for (mode, frac), info in calibrated.items():
+        print(
+            f"  mode={mode}  fraction={frac}  weight={info['weight']:.6e}  "
+            f"base_recon={info['base_recon']:.6e}  base_penalty={info['base_penalty']:.6e}"
+        )
+
+    def _run_and_record(mode: str, weight: float, weight_fraction: Optional[float], seed: int) -> None:
+        key = cell_key(mode, weight, seed)
+        if resume and key in completed:
+            print(f"  --resume: skipping already-completed cell mode={mode} weight={weight:.6e} seed={seed}")
+            return
+        try:
+            rec = run_cell(
+                mode=mode,
+                weight=weight,
+                weight_fraction=weight_fraction,
+                model_seed=seed,
+                max_epochs=resolved_max_epochs,
+                n=LADDER_N,
+                chart_dim=LADDER_CHART_DIM,
+                ambient=LADDER_AMBIENT,
+                n_charts=LADDER_N_CHARTS,
+                embed_dim=LADDER_EMBED_DIM,
+                eval_n=resolved_eval_n,
+                epoch_block=LADDER_EPOCH_BLOCK,
+                device=device,
+                christoffel_max_rows=resolved_christoffel_max_rows,
+                base_recon_at_init=calibrated.get((mode, weight_fraction), {}).get("base_recon"),
+                base_penalty_at_init=calibrated.get((mode, weight_fraction), {}).get("base_penalty"),
+                relief_applied=relief_applied,
+            )
+        except Exception as exc:  # noqa: BLE001 -- an unattended overnight run must not die on one cell
+            print(
+                f"  DIVERGED -- not read as evidence (exception during cell): mode={mode} "
+                f"weight={weight:.6e} seed={seed}: {exc!r}"
+            )
+            mode_segment = "any" if float(weight) == 0.0 else mode
+            rec = {
+                "kind": "ladder_cell",
+                "config_id": f"ladder_{mode_segment}_w{weight:.6e}_s{seed}_e{resolved_max_epochs}_n{resolved_eval_n}",
+                "fixture": LADDER_FIXTURE,
+                "fixture_seed": LADDER_FIXTURE_SEED,
+                "mode": mode,
+                "weight": float(weight),
+                "weight_fraction": weight_fraction,
+                "model_seed": int(seed),
+                "max_epochs": resolved_max_epochs,
+                "eval_sample_size": int(resolved_eval_n),
+                "christoffel_max_rows_per_chart": int(resolved_christoffel_max_rows),
+                "nonfinite_guard": {"tripped": True, "where": [f"exception: {exc!r}"]},
+                "relief_applied": list(relief_applied),
+                "arm_label": "baseline" if float(weight) == 0.0 else mode,
+            }
+            completed[key] = rec
+            append_record(record_path, rec)
+            _elapsed_report()
+            return
+        completed[key] = rec
+        append_record(record_path, rec)
+        print_cell_row(rec)
+        _elapsed_report()
+
+    # --- 2. The three weight=0 baseline cells (D-05) ----------------------------------------
+    print("\n--- baseline cells (weight=0, shared across arms via cell_key's 'any' sentinel) ---")
+    for seed in seeds:
+        _run_and_record(LADDER_MODES[0], 0.0, 0.0, seed)
+
+    baseline_rows = [
+        completed[cell_key("any", 0.0, seed)] for seed in seeds if cell_key("any", 0.0, seed) in completed
+    ]
+
+    # --- 3. Baseline-pathology precondition (03.1-01-PLAN.md §G) ----------------------------
+    proceed = baseline_pathology_check(baseline_rows)
+    if not proceed:
+        print("\nNO PATHOLOGY AT THIS EPOCH BUDGET -- exiting before any prior-active cell.")
+        sys.exit(2)
+
+    arms = [m for m in LADDER_MODES if arm is None or m == arm]
+
+    # --- 4/5. scale and christoffel arms ------------------------------------------------------
+    for mode in arms:
+        print(f"\n--- {mode} arm ---")
+        for fraction in resolved_fractions:
+            weight = calibrated[(mode, float(fraction))]["weight"]
+            for seed in seeds:
+                _run_and_record(mode, weight, float(fraction), seed)
+
+    print("\n--- run_ladder complete; printing --summary against the real record ---")
+    print_summary(record_path)
+
+
 def print_dry_run_report() -> None:
     _banner("decoder_prior_ladder_run.py -- DRY RUN")
 
@@ -1537,8 +2226,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--eval-n",
         type=int,
-        default=LADDER_EVAL_N,
-        help=f"Curvature evaluation sample size (default: LADDER_EVAL_N={LADDER_EVAL_N}, D-16).",
+        default=None,
+        help=f"Override curvature evaluation sample size for --run-ladder (default: None, "
+        f"meaning the most recent probe summary's final_eval_n is used -- D-16/F2).",
     )
     parser.add_argument(
         "--max-epochs",
@@ -1606,6 +2296,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "flag; defaults to False. Fires only when this flag is passed explicitly, ratified at "
         "03.1-03 Task 3's blocking checkpoint.",
     )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Read the record back and print READING_RULES_TEXT, the epochs-uniformity guard, "
+        "any DIVERGED cells, the D-07 relief banner, BASELINE PATHOLOGY CHECK, then Tier 1 and "
+        "Tier 2 per mode, then the full per-cell table. Runs no new cells.",
+    )
+    parser.add_argument(
+        "--run-ladder",
+        action="store_true",
+        help="Run the ladder: calibrate once, fit the three weight=0 baseline cells (D-05), run "
+        "the baseline-pathology precondition (03.1-01-PLAN.md §G), then both single-mode arms, "
+        "at the sizing ratified by the most recent --probe summary record on disk. Overnight "
+        "run, up to the ratified projection. --resume to continue an interrupted run.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="With --run-ladder: skip any (mode, weight, seed) cell already present in the "
+        "record file. weight=0.0 cells are mode-independent (cell_key's 'any' sentinel).",
+    )
+    parser.add_argument(
+        "--arm",
+        type=str,
+        default=None,
+        choices=list(LADDER_MODES),
+        help="With --run-ladder: restrict to one arm (default: both LADDER_MODES). The three "
+        "baseline cells always run regardless.",
+    )
     return parser
 
 
@@ -1647,10 +2366,28 @@ def main() -> None:
         )
         return
 
+    if args.summary:
+        print_summary(record_path)
+        return
+
+    if args.run_ladder:
+        run_ladder(
+            record_path=record_path,
+            resume=args.resume,
+            arm=args.arm,
+            max_epochs=args.max_epochs,
+            fractions=None,
+            eval_n=args.eval_n,
+            christoffel_max_rows=None,
+            seeds=args.seeds,
+            device=device,
+        )
+        return
+
     print(
-        "Nothing to do: pass --dry-run, --smoke, --anchor-check or --probe. The real 24-cell "
-        "ladder loop is a later plan, gated behind this file's dry-run sizing report and this "
-        "plan's ratified probe configuration."
+        "Nothing to do: pass --dry-run, --smoke, --anchor-check, --probe, --run-ladder or "
+        "--summary. --run-ladder trains the real ladder cells, gated behind this file's "
+        "dry-run sizing report and this plan's ratified probe configuration on disk."
     )
 
 
