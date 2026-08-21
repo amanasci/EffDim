@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 03.1
 current_phase_name: decoder-metric-regularization-inserted
 status: executing
-stopped_at: Completed 03.1-01-PLAN.md
-last_updated: "2026-08-20T23:01:22.685Z"
+stopped_at: Completed 03.1-02-PLAN.md
+last_updated: "2026-08-21T01:07:03.341Z"
 last_activity: 2026-08-20
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 81
-  completed_plans: 70
+  completed_plans: 71
 last_activity_desc: Phase 03.1 planned - 5 plans in 5 sequential waves
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03.1 (decoder-metric-regularization-inserted) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 86% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -399,6 +399,7 @@ Progress: [█████████░] 86% of planned plans (17/17; Phases 1
 | Phase 03 P07 | ~90min | 3 tasks | 1 files |
 | Phase 03 P06 | ~25min active | 2 tasks | 1 files |
 | Phase 03.1 P01 | ~35min | 3 tasks | 3 files |
+| Phase 03.1 P02 | ~50min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -556,6 +557,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 03-06: Swiss roll sanity notebook for the chart-decoder curvature field committed and approved -- forward-mode toggle (plan 03-05) now proven equal to reverse on a real fit, not only a synthetic fixture; rho_chart=0.7817 at n_charts=2,seed=0,n=3000 independently reproduces the sweep runner's own value for that cell
 - [Phase ?]: D-15/CURV-04: promoted lambda_min/lambda_max/log10_det_g to the primary metric-health diagnostic; cond(g) is retained but demoted -- a cond(g) improvement paired with a falling lambda_max is scored COLLAPSE
 - [Phase ?]: calibrate_weights keeps christoffel_penalty's Hessian measurement outside torch.no_grad(): wrapping it broke jacfwd(jacfwd(...))'s forward-over-forward decomposition for silu on this torch build
+- [Phase ?]: D-14 resolved full-scope: Swiss roll notebook covers scale, christoffel, and the nested combination against both baselines
+- [Phase ?]: Prior weights calibrated from a measured fraction (0.5) of base chart_loss at init rather than reused from decoder_priors.py's docstring example; batch raised to 240 to cap christoffel's per-epoch cost within the 180s budget
 
 ### Pending Todos
 
@@ -602,8 +605,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-20T23:01:22.638Z
-Stopped at: Completed 03.1-01-PLAN.md
+Last session: 2026-08-21T01:07:03.296Z
+Stopped at: Completed 03.1-02-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>

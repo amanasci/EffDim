@@ -716,7 +716,7 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 architecture, so no two plans may be co-scheduled.
 
 Plans:
@@ -726,7 +726,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03.1-02-PLAN.md — nested `decoder_prior_active` composition proven by test (D-12), and the mandatory Swiss roll decoder-prior check notebook (D-14, one-way gated)
+- [x] 03.1-02-PLAN.md — nested `decoder_prior_active` composition proven by test (D-12), and the mandatory Swiss roll decoder-prior check notebook (D-14, one-way gated)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
