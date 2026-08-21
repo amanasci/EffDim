@@ -103,6 +103,20 @@ CHRISTOFFEL_MAX_ROWS_PER_CHART = decoder_priors.CHRISTOFFEL_MAX_ROWS_PER_CHART
 threaded into `decoder_priors.christoffel_penalty` by this plan; only Section C's relief
 ladder (a later plan) actually varies it."""
 
+# =============================================================================================
+# Section B (continued) -- 03.1-03: the anchor's sealed reference wall clocks, and the probe's
+# own sizing. Declared here, before any probe number exists.
+# =============================================================================================
+
+ANCHOR_TRAIN_WALLCLOCK_S = 6253.836718825012
+"""D-13: `control_saddle_nc4_d20_ep300`'s sealed `train_wallclock_s` -- the anchor's own
+machine-speed correction denominator. Same sealed measurement as `SEALED_TRAIN_WALLCLOCK_S`
+below, named separately because this constant is `--anchor-check`'s own record-keeping value,
+not the dry-run projection's."""
+
+ANCHOR_CURV_WALLCLOCK_S = 2993.912286339997
+"""D-13: `control_saddle_nc4_d20_ep300`'s sealed `curv_wallclock_s` -- ditto."""
+
 # Smoke sizes -- deliberately tiny, to prove the wiring, never a real measurement.
 SMOKE_N = 400
 SMOKE_D = 4
@@ -473,6 +487,160 @@ def run_smoke(record_path: Path, device: torch.device) -> None:
 
 
 # =============================================================================================
+# --anchor-check (03.1-03 Task 1): the faithfulness gate. == , never a numeric near-miss (D-13).
+# =============================================================================================
+
+
+def anchor_check(device: torch.device, record_path: Path) -> None:
+    """Calls `synthetic_control_run.run_one_control` UNCHANGED -- not this runner's own
+    `run_cell` -- because the point is to prove that this runner's IMPORTS of
+    `synthetic_control_run`'s fixture, matched-architecture builder, blocked trainer and metric
+    call sequence resolve to exactly the same computation the sealed row
+    `control_saddle_nc4_d20_ep300` was produced by. `run_cell` deliberately is NOT the sealed
+    code path -- it splits the fixture seed from the model seed and evaluates on a reduced
+    sample, both deviations D-16 sanctions for the ladder but not for this proof.
+
+    Not wrapped in `decoder_priors.decoder_prior_active` -- `run_one_control` builds its own
+    model internally, so there is no model to wrap the training call of from here. The
+    `weight == 0.0` no-op guarantee documented in `decoder_priors`'s module docstring is why the
+    ladder's own `weight=0` cells are structurally the untouched `cae.train_cae` path (D-05),
+    even though this anchor never exercises the wrapper itself.
+
+    `run_one_control`'s own record does not carry the CURV-04 absolute-scale fields --
+    `synthetic_control_run.py` is sealed and was written before D-15 existed, so it only reads
+    `H_vec`/`H_norm`/`metric_condition_number` off the field dict it gets back. This is the one
+    full-cloud (n=10000) evaluation this phase runs, and the sealed fit's absolute metric scale
+    has to be on record for the first time (D-15), so this function temporarily wraps
+    `chart_curvature.chart_curvature_field` -- the SAME module-level function object
+    `synthetic_control_run.py` calls, since both modules import the same `pu_manifold`
+    submodule -- to OBSERVE its return dict without changing what it computes or returns. The
+    wrapper forwards every call through to the original function unchanged and is restored in a
+    `finally` block, the same restore-on-exit shape `decoder_priors.decoder_prior_active` uses
+    for `cae.chart_loss`. This never re-runs the curvature field a second time and never touches
+    `synthetic_control_run.py`'s source.
+
+    Costs roughly 2.6h (`03.1-03-PLAN.md`'s own compute note) -- the one full-cloud evaluation
+    this phase runs.
+    """
+    print(
+        "--anchor-check: sc.run_one_control('saddle', n=10000, chart_dim=20, ambient=768, "
+        "n_charts=4, embed_dim=40, max_epochs=300, seed=CONTROL_FIXTURE_SEED, epoch_block=25) "
+        "-- the sealed protocol, called through this runner's own imports, unchanged."
+    )
+
+    captured_field: Dict[str, Any] = {}
+    original_chart_curvature_field = chart_curvature.chart_curvature_field
+
+    def _capturing_chart_curvature_field(*args: Any, **kwargs: Any) -> Any:
+        field = original_chart_curvature_field(*args, **kwargs)
+        captured_field.update(field)
+        return field
+
+    chart_curvature.chart_curvature_field = _capturing_chart_curvature_field
+    t0 = time.monotonic()
+    try:
+        rec = sc.run_one_control(
+            "saddle",
+            n=sc.CONTROL_N,
+            chart_dim=pu.PU_CHART_DIM,
+            ambient=pu.AMBIENT_DIM,
+            n_charts=pu.CONVERGE_N_CHARTS,
+            embed_dim=pu.PU_EMBED_DIM,
+            max_epochs=300,
+            seed=sc.CONTROL_FIXTURE_SEED,
+            device=device,
+            epoch_block=sc.CONTROL_EPOCH_BLOCK,
+        )
+    finally:
+        chart_curvature.chart_curvature_field = original_chart_curvature_field
+    wall_s = time.monotonic() - t0
+    print(f"anchor_check total wall clock: {wall_s:.1f}s")
+
+    measured_rho = rec["fidelity"]["rank_spearman_rho"]
+    print(f"measured rank_spearman_rho = {measured_rho!r}")
+    if measured_rho != ANCHOR_RHO_SPEARMAN:
+        raise ValueError(
+            f"--anchor-check: measured rank_spearman_rho={measured_rho!r} != expected "
+            f"{ANCHOR_RHO_SPEARMAN!r}. This is a FAITHFULNESS FAILURE -- this runner's "
+            "fixture, protocol or metric call sequence has drifted from "
+            "synthetic_control_run.py, not a question of numeric rounding."
+        )
+    print(f"ANCHOR OK: rank_spearman_rho == {ANCHOR_RHO_SPEARMAN!r} exactly.")
+
+    if rec["config_id"] != ANCHOR_CONFIG_ID:
+        raise ValueError(
+            f"--anchor-check: measured config_id={rec['config_id']!r} != expected "
+            f"{ANCHOR_CONFIG_ID!r} -- rho matched but the row identity did not, so this is not "
+            "the sealed row."
+        )
+    if rec["epochs_run"] != 300:
+        raise ValueError(
+            f"--anchor-check: measured epochs_run={rec['epochs_run']!r} != expected 300 -- rho "
+            "matched but the training length did not, so this is not the sealed row."
+        )
+    if rec["n_charts_used"] != 4:
+        raise ValueError(
+            f"--anchor-check: measured n_charts_used={rec['n_charts_used']!r} != expected 4 -- "
+            "rho matched but the chart count did not, so this is not the sealed row."
+        )
+    if rec["n"] != 10000:
+        raise ValueError(
+            f"--anchor-check: measured n={rec['n']!r} != expected 10000 -- rho matched but the "
+            "row count did not, so this is not the sealed row."
+        )
+    print(
+        f"config_id={rec['config_id']!r}  epochs_run={rec['epochs_run']}  "
+        f"n_charts_used={rec['n_charts_used']}  n={rec['n']}  -- all match the sealed row."
+    )
+
+    train_ratio = rec["train_wallclock_s"] / ANCHOR_TRAIN_WALLCLOCK_S
+    curv_ratio = rec["curv_wallclock_s"] / ANCHOR_CURV_WALLCLOCK_S
+    print(
+        f"machine-speed correction (train): measured train_wallclock_s="
+        f"{rec['train_wallclock_s']!r} / sealed {ANCHOR_TRAIN_WALLCLOCK_S!r} = "
+        f"{train_ratio:.6f}"
+    )
+    print(
+        f"machine-speed correction (curvature): measured curv_wallclock_s="
+        f"{rec['curv_wallclock_s']!r} / sealed {ANCHOR_CURV_WALLCLOCK_S!r} = {curv_ratio:.6f}"
+    )
+
+    if not captured_field:
+        raise ValueError(
+            "--anchor-check: the chart_curvature_field capture wrapper never observed a call -- "
+            "run_one_control's internal call sequence has changed shape."
+        )
+    lambda_min_arr = captured_field["lambda_min"].detach().cpu().numpy().astype(np.float64)
+    lambda_max_arr = captured_field["lambda_max"].detach().cpu().numpy().astype(np.float64)
+    det_g_arr = captured_field["det_g"].detach().cpu().numpy().astype(np.float64)
+    log10_det_g_arr = captured_field["log10_det_g"].detach().cpu().numpy().astype(np.float64)
+    lambda_min_dist = pu._dist_summary(lambda_min_arr, pu.FIELD_HIST_BINS)
+    lambda_max_dist = pu._dist_summary(lambda_max_arr, pu.FIELD_HIST_BINS)
+    det_g_dist = pu._dist_summary(det_g_arr, pu.FIELD_HIST_BINS)
+    log10_det_g_dist = pu._dist_summary(log10_det_g_arr, pu.FIELD_HIST_BINS)
+    print(
+        f"CURV-04 absolute scale, the sealed d=20 saddle fit, on record for the first time: "
+        f"lambda_min median={lambda_min_dist['median']:.6e}  "
+        f"lambda_max median={lambda_max_dist['median']:.6e}  "
+        f"det_g median={det_g_dist['median']:.6e}  "
+        f"log10_det_g median={log10_det_g_dist['median']:.6f}"
+    )
+
+    anchor_rec = dict(rec)
+    anchor_rec["kind"] = "anchor_cell"
+    anchor_rec["lambda_min"] = lambda_min_dist
+    anchor_rec["lambda_max"] = lambda_max_dist
+    anchor_rec["det_g"] = det_g_dist
+    anchor_rec["log10_det_g"] = log10_det_g_dist
+    anchor_rec["anchor_train_wallclock_s_sealed"] = ANCHOR_TRAIN_WALLCLOCK_S
+    anchor_rec["anchor_curv_wallclock_s_sealed"] = ANCHOR_CURV_WALLCLOCK_S
+    anchor_rec["anchor_train_wallclock_ratio"] = train_ratio
+    anchor_rec["anchor_curv_wallclock_ratio"] = curv_ratio
+    append_record(record_path, anchor_rec)
+    print(f"anchor record appended to {record_path} with kind='anchor_cell'.")
+
+
+# =============================================================================================
 # D-10 / D-16: the ladder sizing, the F1-F4 relief ladder and the D-08 Tier-1/Tier-2 reading
 # rules are declared in source, before any number exists, and printed by --dry-run -- the same
 # idiom as swiss_roll_isometry_prior_sweep_run.py's "the ladder is declared in source" block.
@@ -789,6 +957,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=list(LADDER_SEEDS),
         help=f"Model seeds to run (default: LADDER_SEEDS={LADDER_SEEDS}).",
     )
+    parser.add_argument(
+        "--anchor-check",
+        action="store_true",
+        help="Call synthetic_control_run.run_one_control unchanged and prove its "
+        "rank_spearman_rho reproduces the sealed control_saddle_nc4_d20_ep300 row exactly "
+        "(D-13). Costs roughly 2.6h -- the one full-cloud evaluation this phase runs.",
+    )
     return parser
 
 
@@ -810,9 +985,13 @@ def main() -> None:
         run_smoke(record_path, device)
         return
 
+    if args.anchor_check:
+        anchor_check(device, record_path)
+        return
+
     print(
-        "Nothing to do: pass --dry-run or --smoke. The real 24-cell ladder loop is a later "
-        "plan, gated behind this file's probe and dry-run sizing report."
+        "Nothing to do: pass --dry-run, --smoke or --anchor-check. The real 24-cell ladder "
+        "loop and its probe are a later plan, gated behind this file's dry-run sizing report."
     )
 
 
