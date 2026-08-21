@@ -716,7 +716,7 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 architecture, so no two plans may be co-scheduled.
 
 Plans:
@@ -734,7 +734,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03.1-04-PLAN.md — the D-08 two-tier read-out implemented and proven on a synthetic record, then the ladder: fresh `weight=0` baseline plus the `scale` and `christoffel` arms
+- [x] 03.1-04-PLAN.md — the D-08 two-tier read-out implemented and proven on a synthetic record, then the ladder: fresh `weight=0` baseline plus the `scale` and `christoffel` arms
 
 **Wave 5** *(blocked on Wave 4 completion)*
 

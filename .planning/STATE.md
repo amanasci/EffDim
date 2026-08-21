@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 03.1
 current_phase_name: decoder-metric-regularization-inserted
 status: executing
-stopped_at: Completed 03.1-03-PLAN.md
-last_updated: "2026-08-21T13:45:01.258Z"
+stopped_at: Completed 03.1-04-PLAN.md; combination arm (03.1-05 Task 1) implemented and launched in background
+last_updated: "2026-08-21T20:37:38.740Z"
 last_activity: 2026-08-21
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 81
-  completed_plans: 72
+  completed_plans: 73
 last_activity_desc: Phase 03.1 planned - 5 plans in 5 sequential waves
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03.1 (decoder-metric-regularization-inserted) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -401,6 +401,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 03.1 P01 | ~35min | 3 tasks | 3 files |
 | Phase 03.1 P02 | ~50min | 3 tasks | 2 files |
 | Phase 03.1 P03 | 2.7h | 3 tasks | 1 files |
+| Phase 03.1 P04 | 5h24m | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -561,6 +562,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: D-14 resolved full-scope: Swiss roll notebook covers scale, christoffel, and the nested combination against both baselines
 - [Phase ?]: Prior weights calibrated from a measured fraction (0.5) of base chart_loss at init rather than reused from decoder_priors.py's docstring example; batch raised to 240 to cap christoffel's per-epoch cost within the 180s budget
 - [Phase ?]: 03.1-03: anchor reproduces sealed rho exactly; probe defect (eval-size truncation) found and fixed, A2 confirmed not refuted; ratified sizing chosen_max_epochs=20, relief_applied=[F1,F2], F4 never reached
+- [Phase ?]: 03.1-04: scale's Tier-1 verdict MECHANISM DEMONSTRATED (both target fields moved monotonically, top rung strictly better); christoffel's is MECHANISM NOT DEMONSTRATED (cond(g) non-monotone under F1's 2-rung relief) -- checkpoint satisfied by user review, phase directed to the combination cell and findings doc.
 
 ### Pending Todos
 
@@ -607,8 +609,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-21T13:45:01.211Z
-Stopped at: Completed 03.1-03-PLAN.md
+Last session: 2026-08-21T20:37:38.692Z
+Stopped at: Completed 03.1-04-PLAN.md; combination arm (03.1-05 Task 1) implemented and launched in background
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
