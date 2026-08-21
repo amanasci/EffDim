@@ -716,7 +716,7 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 architecture, so no two plans may be co-scheduled.
 
 Plans:
@@ -730,7 +730,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03.1-03-PLAN.md — the exact-equality faithfulness anchor, the two-sided cost probe (training per mode, curvature evaluation per row), and a blocking ratification of the run sizing
+- [x] 03.1-03-PLAN.md — the exact-equality faithfulness anchor, the two-sided cost probe (training per mode, curvature evaluation per row), and a blocking ratification of the run sizing
 
 **Wave 4** *(blocked on Wave 3 completion)*
 

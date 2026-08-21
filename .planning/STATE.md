@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 03.1
 current_phase_name: decoder-metric-regularization-inserted
 status: executing
-stopped_at: Completed 03.1-02-PLAN.md
-last_updated: "2026-08-21T01:07:03.341Z"
-last_activity: 2026-08-20
+stopped_at: Completed 03.1-03-PLAN.md
+last_updated: "2026-08-21T13:45:01.258Z"
+last_activity: 2026-08-21
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 81
-  completed_plans: 71
+  completed_plans: 72
 last_activity_desc: Phase 03.1 planned - 5 plans in 5 sequential waves
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 03.1 (decoder-metric-regularization-inserted) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -269,7 +269,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-20
+Last activity: 2026-08-21
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -400,6 +400,7 @@ Progress: [█████████░] 88% of planned plans (17/17; Phases 1
 | Phase 03 P06 | ~25min active | 2 tasks | 1 files |
 | Phase 03.1 P01 | ~35min | 3 tasks | 3 files |
 | Phase 03.1 P02 | ~50min | 3 tasks | 2 files |
+| Phase 03.1 P03 | 2.7h | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -559,6 +560,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: calibrate_weights keeps christoffel_penalty's Hessian measurement outside torch.no_grad(): wrapping it broke jacfwd(jacfwd(...))'s forward-over-forward decomposition for silu on this torch build
 - [Phase ?]: D-14 resolved full-scope: Swiss roll notebook covers scale, christoffel, and the nested combination against both baselines
 - [Phase ?]: Prior weights calibrated from a measured fraction (0.5) of base chart_loss at init rather than reused from decoder_priors.py's docstring example; batch raised to 240 to cap christoffel's per-epoch cost within the 180s budget
+- [Phase ?]: 03.1-03: anchor reproduces sealed rho exactly; probe defect (eval-size truncation) found and fixed, A2 confirmed not refuted; ratified sizing chosen_max_epochs=20, relief_applied=[F1,F2], F4 never reached
 
 ### Pending Todos
 
@@ -605,8 +607,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-21T01:07:03.296Z
-Stopped at: Completed 03.1-02-PLAN.md
+Last session: 2026-08-21T13:45:01.211Z
+Stopped at: Completed 03.1-03-PLAN.md
 REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
 Resume file: None
 </content>
