@@ -212,7 +212,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-01 | Phase 3 | Complete |
 | CURV-02 | Phase 3 | Complete |
 | CURV-03 | Phase 3 | Complete |
-| CURV-04 | Phase 3 | **Reopened 2026-08-18** — condition number alone is insufficient; absolute metric scale not recorded |
+| CURV-04 | Phase 03.1 | **Closed 2026-08-21** — `chart_curvature.chart_mean_curvature` and `chart_curvature_field` now return `lambda_min`, `lambda_max`, `det_g` and `log10_det_g` alongside `metric_condition_number`, from one reused `torch.linalg.eigvalsh(g)`; pinned by `test_chart_mean_curvature_reports_lambda_min_max_and_det_g`, `test_chart_curvature_field_reports_lambda_min_max_and_det_g` and `test_cond_is_blind_to_uniform_metric_collapse_but_det_g_is_not`. Standing limitation: Phase 3's recorded grids were not re-run, so no existing pre-03.1 record can be re-audited for uniform collapse |
 | CURV-05 | Phase 3 | Complete |
 | CURV-06 | Phase 3 | Complete (controls run; both curved fixtures failed at d=20) |
 | CURV-07 | Phase 3 | Answered (negative, conditioned on the override) |
@@ -269,6 +269,7 @@ mentally substitute the replacement representation, is superseded — the text n
 | CURV-02 | Added the trace-first-then-project form and the prohibition on materializing a `(D, D)` projector or a full `II` | `chart_curvature.chart_mean_curvature` |
 | CURV-03 | Pinned `CURVATURE_CONVENTION = "trace"` so a unit `d`-sphere gives norm `d`, not 1 | `chart_curvature.py`, `synthetic_controls.py` (import-time agreement assert) |
 | CURV-04 | "Flagged" → flagged **and excluded from the reported summary**, by a within-config percentile, with no absolute threshold. **Amended 2026-08-18** to also require the metric's absolute scale — the ratio alone is blind to uniform collapse | `curvature_field_pu_run.COND_FLAG_PERCENTILE`, `03-09-SUMMARY.md`, `03-FINDINGS.md` §8.3a |
+| CURV-04 (closed 2026-08-21) | The absolute-scale fields (`λ_min`, `λ_max`, `log10 det(g)`) are promoted to the **primary** metric-health diagnostic; `cond(g)` is retained as one reported detail rather than relied on alone — `cond(g)` ranked Phase 3's two uniformly-collapsed seeds ahead of the only healthy one. The promotion is recorded in `03.1-01-PLAN.md`'s `<assumption_delta_decision>` | `03.1-FINDINGS.md` §8 |
 | CURV-05 | Added the independent finite-difference cross-check at PU scale, reported and never gated on | `derivative_bridge.derivative_agreement`, `03-09-SUMMARY.md` §Task 2 |
 | CURV-06 | "Matched dimension and ambient size" → matched architecture **and training protocol**, plus the mandatory damage caveat beside the numbers | `synthetic_control_run.py`, `03-10-SUMMARY.md` |
 | CURV-07 | Added the explicit conditioning on Phase 3's gate override | `03-10-SUMMARY.md` §5 |
@@ -286,6 +287,16 @@ negatively** — the PU curvature field is *not validated*. The instrument is co
 against analytic curvature at `d=4`, `rho = 0.989`, `R² = 0.980`), but the field **does not
 reproduce across seeds**: a 52× range in `‖H‖` median with two of three fields piecewise-constant
 on collapsed metrics. See `03-FINDINGS.md` §5-§6 and `03-10-SUMMARY.md` §5.
+
+**Closure, 2026-08-21 (Phase 03.1).** CURV-04 is **closed**. `03.1-01` shipped `λ_min`, `λ_max`,
+`det(g)` and `log10 det(g)` in `chart_curvature.py`; `03.1-03` recorded them on one full-cloud row
+at the sealed protocol (the sealed `d=20` saddle fit reads `λ_min` median `9.448030e-07`, `λ_max`
+median `1.744437e+02`, `log10 det(g)` median `-22.781268` — anisotropic, not uniform, collapse);
+`03.1-04` recorded them on every ladder cell. Twelve of the thirteen re-minted DEC/CURV
+requirements are now Complete; **CURV-07 remains Answered negatively** (above) — closing CURV-04
+does not reopen or revisit CURV-07's answer. **Standing limitation, not work this phase bought:
+Phase 3's recorded grids were not re-run with the new instrumentation, so no existing pre-03.1
+record can be retroactively audited for uniform collapse.** See `03.1-FINDINGS.md` §8.
 
 ---
 *Requirements defined: 2026-07-29*

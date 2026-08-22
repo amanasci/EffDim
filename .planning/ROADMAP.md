@@ -35,7 +35,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [x] **Phase 02.6: Decoder Substrate Screening** (INSERTED) — Screen candidate decoder substrates against the Swiss roll admission gate (known analytic `H`) and promote at most ONE to a full pre-registered validity gate; blocks Phase 02.5 stage 2, whose plan 02.5-10 is the last point the substrate can change before its thresholds seal. **HALTED 2026-08-10 at 3/6 plans, then REPLANNED onto persistent-homology agreement (D-01) and completed 2026-08-11 at 15/15 replan plans — no substrate promoted, none eliminated, ranking axis carries two named confounds. See `02.6-FINDINGS.md`, `02.6-FINDINGS-02.md`.** **Its selection question is TABLED 2026-08-12 — the substrate was chosen by user decision (CAE), not by this screening.**
 - [ ] **Phase 02.7: Manifold-Template Inference Front End** (INSERTED) — A screening rule that infers a named manifold template from a point cloud, behind D-01/D-03's joint decision and D-16's in-library positive controls. **ON HOLD 2026-08-12 at 10/12 plans: `02.7-10` Tasks 2/3 (the ~17h benchmark grid) unrun, `02.7-11`/`02.7-12` unstarted, and `notebooks/02.7_swiss_roll_template_check.ipynb` prints 1 of 4 read-out lines true (GMST local-dispersion instability plus inflated banded β₀; both controls fail their labels). Does not block Phase 3.**
 - [ ] **Phase 3: Decoder & Curvature Field** — Per-point mean-curvature field via autodiff through a C2-smooth CAE chart decoder, Swiss roll first, synthetic control last. **ACTIVE from 2026-08-12 on a deliberate override of its own PASS precondition — see `02-NOTE-phase-2-stage-on-hold.md` §3.**
-- [ ] **Phase 03.1: Decoder Metric Regularization** (INSERTED) — Add scale-aware and second-order priors to the CAE training objective and measure whether they fix the metric pathologies Phase 3 diagnosed. **Phase 3's field failed its own three-seed spread (52× range, two of three fields piecewise-constant on uniformly collapsed metrics); the training objective constrains no decoder derivative at any order, and `cond(g)` is scale-invariant so it cannot even detect the collapse.**
+- [x] **Phase 03.1: Decoder Metric Regularization** (INSERTED) — Add scale-aware and second-order priors to the CAE training objective and measure whether they fix the metric pathologies Phase 3 diagnosed. **Phase 3's field failed its own three-seed spread (52× range, two of three fields piecewise-constant on uniformly collapsed metrics); the training objective constrains no decoder derivative at any order, and `cond(g)` is scale-invariant so it cannot even detect the collapse.** **Sealed 2026-08-21: `scale` fully repairs the metric (`log10_det_g` -83.9 → +0.037, negative reconstruction cost) but only partially and non-seed-consistently moves ordering (`rho` -0.122 → +0.116); `christoffel` alone does not demonstrate its own mechanism under this ladder. Necessary but not sufficient — CURV-04 is closed, Phase 4 stays blocked. See Phase Details and `03.1-FINDINGS.md`.**
 - [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
 
 ## Phase Details
@@ -716,8 +716,19 @@ was ever stored.
 **Not in scope**: reopening any sealed verdict; the phase-2 stage stays on hold; `cae.py` is not
 edited.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 architecture, so no two plans may be co-scheduled.
+
+**Outcome (sealed 2026-08-21).** `scale`'s Tier-1 verdict is **MECHANISM DEMONSTRATED** — it
+repairs the pullback metric completely (`log10_det_g -83.9 → +0.037`, `cond(g) 1.7e8 → 5.7e2`) at
+*negative* reconstruction cost. `christoffel`'s Tier-1 verdict is **MECHANISM NOT DEMONSTRATED**
+under this ladder's rung resolution (F1's relief cut removed the resolution needed to locate its
+`cond(g)` minimum), though it halves `cond(g)` again in the post-hoc combination. Tier 2 (the
+estimand) moved only partially and not seed-consistently: rank `rho` from `-0.122` to at most
+`+0.116`, far short of the `rho = 0.989` this same fixture yields at `d=4`. **Regularizing the
+decoder's parameterization is necessary but not sufficient — it does not recover curvature
+ordering at `d=20`.** CURV-04 is closed (`03.1-FINDINGS.md` §8). Full record:
+`03.1-FINDINGS.md`.
 
 Plans:
 **Wave 1**
@@ -738,12 +749,12 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 03.1-05-PLAN.md — the post-hoc best-of-each combination cell, `03.1-FINDINGS.md`, and CURV-04's closure
+- [x] 03.1-05-PLAN.md — the post-hoc best-of-each combination cell, `03.1-FINDINGS.md`, and CURV-04's closure
 
 ### Phase 4: Region Partitioning & Regional Alignment (MKNN)
 
 **Goal**: With all upstream hyperparameters (`n_neighbors`, `d`, decoder architecture, curvature quantile threshold) frozen from Phases 1-3's own diagnostics and the synthetic-control falsification test complete, points are pre-specified into density-checked high/low curvature regions and crossmodal MKNN alignment compared between them against region-specific permutation nulls and bootstrap CIs.
-**Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07) to have already completed). **Now also gated on Phase 03.1**: Phase 3's own handoff records the curvature field as unusable as it stands — it does not reproduce across seeds, and the quantity Phase 4 consumes is *ordering*, which the `d=20` saddle measured at `rho = -0.0151`. See `03-FINDINGS.md` §9.
+**Depends on**: Phase 3 (requires the synthetic-control falsification test (CURV-06, CURV-07) to have already completed). **Still gated on Phase 03.1's outcome (sealed 2026-08-21, not resolved in Phase 4's favor)**: Phase 03.1 measured whether decoder-parameterization regularization fixes the ordering defect Phase 3's handoff flagged, and it does not, at the dimension tested — `scale` repairs the metric completely but moves rank `rho` only to `+0.116` (combination `+0.013`) against the `-0.0151` Phase 3 measured, far short of the `rho = 0.989` the same fixture yields at `d=4`. **Phase 4 stays blocked, with no proposed route out (D-11).** The developer-directed next step is a local-polynomial geometry-teacher spike scoring `(P̂, ÎI)` against the same four axes on the `d=20` saddle, to test feasibility before any architecture change — not yet run, and not itself a Phase 4 precondition change. See `03.1-FINDINGS.md` §10 and `03-FINDINGS.md` §9.
 **Requirements**: REGN-01..05, MKNN-01..08
 **Success Criteria**:
 
