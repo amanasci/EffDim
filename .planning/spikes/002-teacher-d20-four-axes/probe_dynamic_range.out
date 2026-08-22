@@ -1,0 +1,30 @@
+========================================================================================
+PROBE 3 -- does the bump fixture's rho survive a saddle-like dynamic range?
+d=20  n=10000  k=30  D=28
+========================================================================================
+
+  SADDLE (globally quadratic, full spread 33x)
+              window      n   spread p95/p05     rank rho
+                full  10000            33.26    -0.028123
+         q0.00-q0.50   5000            20.19    -0.005811
+         q0.25-q0.75   5000             3.12    +0.005261
+         q0.50-q1.00   5000             3.27    -0.030734
+         q0.35-q0.65   3000             1.93    +0.000865
+         q0.40-q0.60   2000             1.54    +0.005632
+
+  BUMPS (not quadratic, full spread 1095x)
+              window      n   spread p95/p05     rank rho
+                full  10000          1095.34    +0.593417
+         q0.00-q0.50   5000             5.72    +0.280313
+         q0.25-q0.75   5000            16.44    +0.340013
+         q0.50-q1.00   5000           669.62    +0.470471
+         q0.35-q0.65   3000             4.74    +0.210752
+         q0.40-q0.60   2000             2.45    +0.149544
+
+========================================================================================
+READ-OUT
+========================================================================================
+  Compare rows of comparable SPREAD across the two fixtures, not rows of the same name.
+  If the bumps' rho falls toward the saddle's once its dynamic range is cut to match,
+  then d=20 feasibility is a statement about the curvature field being ranked, not
+  about the teacher -- and it does not transfer to a manifold whose spread is unknown.

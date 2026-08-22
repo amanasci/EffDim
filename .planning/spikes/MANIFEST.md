@@ -46,4 +46,21 @@ Design decisions that emerged during spiking. Non-negotiable for anything downst
 | # | Name | Type | Validates | Verdict | Tags |
 |---|------|------|-----------|---------|------|
 | 001 | teacher-low-d-anchor | standard | Given the saddle control at `d ∈ {2, 4}` and the Swiss roll, when the unmodified teacher is scored by the unmodified four-axis scorer, then all four axes clear — making a later `d=20` FAIL attributable to dimension rather than to wiring | ✓ VALIDATED | curvature, anchor, swiss-roll, low-d |
-| 002 | teacher-d20-four-axes | standard | Given the sealed `d=20` saddle (`n=10000`, `seed=20260816`), when the teacher fits `(P̂, ÎI)` across `k` spanning the underdetermined and determined regimes, then the four axes say whether it beats the sealed decoder's `rho = -0.0151` | PENDING | curvature, d20, kill-test |
+| 002 | teacher-d20-four-axes | standard | Given the sealed `d=20` saddle (`n=10000`, `seed=20260816`), when the teacher fits `(P̂, ÎI)` across `k` spanning the underdetermined and determined regimes, then the four axes say whether it beats the sealed decoder's `rho = -0.0151` | ⚠ PARTIAL | curvature, d20, kill-test |
+
+## Requirements added by spike 002
+
+- **`D = 28` is a licensed substitute for `D = 768` for this estimator, and only under Part A's
+  check.** Measured worst disagreement `1.288e-14` across all four axes at a 204× speedup. The
+  licence exists because `_quadric_tangent_basis` uses `svd(..., full_matrices=True)`, making
+  `D=768, k=231, n=10000` a ~6-hour cell. Re-measure it before relying on it for a different
+  estimator.
+- **Never report a rank statistic from this teacher without the direction axis beside it.** 52–75%
+  of points carry an anti-aligned `H` at `d=20` on every fixture and every `k` tested, including
+  cells whose `rho` looks usable.
+- **Compare fixtures spread-for-spread, not name-for-name.** Rank correlation depends on the
+  curvature field's dynamic range relative to estimator error; `||H_true||` spans 1095× on the
+  bump fixture and 33× on the saddle, which alone moves `rho` from `+0.593` to `+0.150`.
+- **A `k` large enough to make the quadratic fit determined is not a neighbourhood at `d=20`.**
+  `r/R = 1.0331` at `k=231` and `1.0992` at `k=500`. Determined and local are mutually exclusive
+  here; any future estimator claiming both must show its `r/R`.

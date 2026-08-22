@@ -1,0 +1,28 @@
+============================================================================================
+PROBE 2 -- is the teacher ordering curvature, or ordering local sampling scale?
+============================================================================================
+
+  SADDLE (globally quadratic)  (d=20, n=10000, k=30)
+    rho(||H_est||, ||H_true||)            = -0.028123   <- the headline
+    rho(||H_est||, r_knn)                 = +0.052408   <- estimate vs local scale
+    rho(||H_true||, r_knn)                = +0.139921   <- truth vs local scale
+    partial rho(est, true | r_knn)        = -0.035858   <- headline, scale removed
+    fraction of the headline retained     = 1.2750
+    local scale r_knn: p05=3.5468 p50=3.9334 p95=4.4253  spread=1.25
+
+  BUMPS  (not globally quadratic)  (d=20, n=10000, k=30)
+    rho(||H_est||, ||H_true||)            = +0.593417   <- the headline
+    rho(||H_est||, r_knn)                 = +0.012026   <- estimate vs local scale
+    rho(||H_true||, r_knn)                = -0.135193   <- truth vs local scale
+    partial rho(est, true | r_knn)        = +0.600600   <- headline, scale removed
+    fraction of the headline retained     = 1.0121
+    local scale r_knn: p05=4.1648 p50=4.4034 p95=4.5326  spread=1.09
+
+============================================================================================
+READ-OUT
+============================================================================================
+  bumps headline rho              = +0.593417
+  bumps partial rho (scale out)   = +0.600600
+
+  SURVIVES SCALE. The ordering is not merely the local sampling scale, so the
+  teacher is ranking something genuinely second-order on this fixture.

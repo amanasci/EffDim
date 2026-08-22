@@ -1,0 +1,47 @@
+====================================================================================================
+SPIKE 002 -- local-polynomial geometry teacher at d=20, four axes
+teacher : curvature_probe.quadric_mean_curvature   (unmodified, min-norm lstsq)
+scorer  : synthetic_control_run._fidelity_axes     (unmodified)
+fixture : make_saddle_control(d=20, seed=20260816) -- the sealed control
+====================================================================================================
+
+====================================================================================================
+PART A -- ambient-dimension licence: is D=28 the same measurement as D=768?
+====================================================================================================
+  D=768 (sealed)           k=30   n=600    D=768  r/R=1.0968 deficit=180  rho=-0.024084 cos=+0.0191 ratio=1.4741 CV=1.452 R2=0.0024 MRE=0.8461 [374.4s]
+  D=28 (cheap)             k=30   n=600    D=28   r/R=1.0968 deficit=180  rho=-0.024084 cos=+0.0191 ratio=1.4741 CV=1.452 R2=0.0024 MRE=0.8461 [1.8s]
+
+  worst absolute disagreement across all axes: 1.288e-14
+  speedup from D=768 -> D=28: 204.3x
+  [PASS] axes are D-invariant to < 1e-6 -- the grid may run at D=28
+
+====================================================================================================
+PART B -- the k ladder at d=20, n=10000, D=28
+          fit is DETERMINED at k >= 231; 210 quadratic coefficients
+====================================================================================================
+  k=30                     k=30   n=10000  D=28   r/R=0.8915 deficit=180  rho=-0.028123 cos=-0.0261 ratio=1.4475 CV=1.313 R2=0.0010 MRE=0.8494 [23.1s]
+  k=100                    k=100  n=10000  D=28   r/R=0.9701 deficit=110  rho=+0.022756 cos=-0.1510 ratio=6.6845 CV=1.286 R2=0.0003 MRE=5.6845 [110.1s]
+  k=231                    k=231  n=10000  D=28   r/R=1.0331 deficit=0    rho=+0.083639 cos=-0.0302 ratio=223.9880 CV=21.745 R2=0.0000 MRE=222.9880 [276.6s]
+  k=500                    k=500  n=10000  D=28   r/R=1.0992 deficit=0    rho=+0.392984 cos=-0.3895 ratio=17.3161 CV=1.074 R2=0.1457 MRE=16.3161 [895.1s]
+
+====================================================================================================
+PART C -- the n lever at the determined k=231: does more data rescue d=20?
+          spike 001 measured n 3000->30000 moving d=4 from rho 0.738 to 0.903
+====================================================================================================
+  n=10000                  k=231  n=10000  D=28   r/R=1.0331 deficit=0    rho=+0.083639 cos=-0.0302 ratio=223.9880 CV=21.745 R2=0.0000 MRE=222.9880 [135.1s]
+  n=30000                  k=231  n=30000  D=28   r/R=0.9523 deficit=0    rho=+0.093845 cos=-0.0788 ratio=150.2439 CV=9.959 R2=0.0005 MRE=149.2439 [396.7s]
+
+====================================================================================================
+VERDICT
+====================================================================================================
+  best teacher rho over all cells    = +0.392984   (k=500, n=10000, r/R=1.0992)
+  sealed decoder rho (d=20 saddle)   = -0.015107
+  phase 03.1 best rho (scale prior)  = +0.116000
+  same fixture at d=4 (reference)    = +0.989000
+
+  [PASS] teacher beats the sealed decoder
+  [PASS] teacher beats phase 03.1's best prior
+  [FAIL] teacher is usable as supervision (rho >= 0.90)
+
+PARTIAL: the teacher carries more ordering than any decoder-side remedy tried so
+far, but not enough to supervise with. It is a better signal, not a usable one.
