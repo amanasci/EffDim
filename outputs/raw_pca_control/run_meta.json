@@ -1,0 +1,16 @@
+{
+  "pca_basis": "single pooled PCA on stacked [X_Legacy_train; X_HSC_train]",
+  "pairing_used_for_pca": false,
+  "pca_centering": "sklearn PCA default (mean-center)",
+  "pca_whitening": false,
+  "standard_scaler_before_pca": false,
+  "post_projection": "l2-normalize inside knn_cos (same as raw Dense)",
+  "dense_raw_note": "raw Dense also uses knn_cos row-wise l2-normalization; no StandardScaler",
+  "seed": 0,
+  "test_size": 0.2,
+  "k": 10,
+  "gallery": "test-only",
+  "direction": "Legacy\u2192HSC (col2 source / col1 target for naming; raw PCA is symmetric cosine)",
+  "pca_ridge_source": "/home/angus/platonic-universe/outputs/final_pca_rank_sweep/pca_rank_scores.csv",
+  "timestamp": "2026-08-22T02:53:43"
+}

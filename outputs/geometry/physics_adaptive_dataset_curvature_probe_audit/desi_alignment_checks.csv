@@ -1,0 +1,12 @@
+check,pass,detail
+embedding_exists,True,/home/angus/platonic-universe/data_hf/desi/desi_vit_base.parquet
+embedding_n,True,20465
+embedding_has_object_id,False,"columns=['vit_base_hsc', 'vit_base_desi']; id_like=[]"
+equal_row_count_is_not_proof,False,catalog n == embedding n is recorded but is not an alignment proof
+label_cache_exists,True,/home/angus/platonic-universe/outputs/geometry/physics_adaptive_dataset_curvature_probe/cache/desi_smith42_labels.npz
+label_n,True,20465
+catalog_has_desi_object_id,True,present in label cache only
+shared_identifier_in_both_artifacts,False,embedding parquet has only vit_base_hsc and vit_base_desi; no object id to join
+embedding_generation_manifest_proves_catalog_order,False,UniverseTBD/desi_hsc_embeddings export is a different official pair table; no proven Smith42 catalog row order
+reproducible_reconstruction_from_catalog,False,no stable source-row identifier in the embedding parquet
+did_not_search_for_correlation_maximizing_permutation,True,forbidden by protocol

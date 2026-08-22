@@ -1,0 +1,2 @@
+dataset_id,k,d_70,d_75,d_80,d_825,d_85,d_875,d_90,d_95,dL_plat,dL_plat_lo,dL_plat_hi,dQ_plat,dQ_plat_lo,dQ_plat_hi,quadratic_source,r2_at_max_d_vs_tau_0.7,r2_at_max_d_vs_tau_0.75,r2_at_max_d_vs_tau_0.8,r2_at_max_d_vs_tau_0.825,r2_at_max_d_vs_tau_0.85,r2_at_max_d_vs_tau_0.875,r2_at_max_d_vs_tau_0.9,r2_at_max_d_vs_tau_0.95
+physics_vit_base,2048,6,8,12,15,20,28,41,117,115,115,115,20,20,20,reused_physics_qpd_closest_point,0.9533758988697505,0.9533758988697505,0.9533758988697505,0.9533758988697505,0.9533758988697505,0.9533758988697505,0.9533758988697505,0.9533758988697505

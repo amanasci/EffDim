@@ -1,0 +1,53 @@
+{
+  "label": "claim_supported_but_scale_dependent",
+  "reasons": [
+    "scale_direction_or_magnitude_varies"
+  ],
+  "parity_ok": true,
+  "primary_survives_fwer": true,
+  "direct_error_ok": true,
+  "error_hits": [
+    {
+      "target": "mag_r_desi_oof_sse",
+      "rho16": 0.2270478922763529,
+      "p_fwer": 0.0
+    },
+    {
+      "target": "mag_r_desi_oof_mae",
+      "rho16": 0.250721159348142,
+      "p_fwer": 0.0
+    },
+    {
+      "target": "mag_r_desi_oof_mse",
+      "rho16": 0.2270478922763529,
+      "p_fwer": 0.0
+    },
+    {
+      "target": "mag_r_desi_oof_nmse",
+      "rho16": 0.2404841119636992,
+      "p_fwer": NaN
+    },
+    {
+      "target": "mag_r_desi_normalized_mse",
+      "rho16": 0.2270478922763529,
+      "p_fwer": NaN
+    }
+  ],
+  "denom_rhos_d16": {
+    "mag_r_desi_local_sst": -0.0245571844475716,
+    "mag_r_desi_local_target_var": -0.0245571844475716
+  },
+  "error_rhos_d16": {
+    "mag_r_desi_oof_sse": 0.2270478922763529,
+    "mag_r_desi_oof_mae": 0.250721159348142,
+    "mag_r_desi_oof_mse": 0.2270478922763529,
+    "mag_r_desi_oof_nmse": 0.2404841119636992,
+    "mag_r_desi_normalized_mse": 0.2270478922763529
+  },
+  "shuffle_ok": true,
+  "scale_sign_frac_mid_upper": 1.0,
+  "scale_recurrent": true,
+  "scale_magnitude_varies": true,
+  "n_pending_scale": 0,
+  "leakage_ok": true
+}

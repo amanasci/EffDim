@@ -1,0 +1,6 @@
+check,observed,expected,ok
+n_train,13107,13107,True
+n_test,3277,3277,True
+shared_best_cosine_vit_dino,0.21129081476960634,0.20363137015563013,True
+transport_W_shape,2048x2048,2048x2048,True
+transport_stable_rank,3.8966322114091954,high,True

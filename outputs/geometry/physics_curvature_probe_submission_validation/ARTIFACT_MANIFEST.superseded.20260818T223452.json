@@ -1,0 +1,12 @@
+{
+  "output_dir": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation",
+  "parity": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation/parity_report.json",
+  "decision": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation/decision.json",
+  "figures": [
+    "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation/figures/figure1_dimension.pdf",
+    "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation/figures/figure2_curvature_probe.pdf"
+  ],
+  "hashes": {
+    "rank_curve": "badeac8ce6197b3f8e7a8f68f3d05b64e8d965d3d146120f09d04c9f7e1c0f4a"
+  }
+}

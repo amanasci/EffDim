@@ -1,0 +1,104 @@
+{
+  "protocol": "adaptive_dataset_curvature_probe_v1",
+  "unit_of_analysis": "dataset",
+  "primary_encoder_family": "vit_base",
+  "discovery": {
+    "dataset_id": "physics_vit_base",
+    "label": "mag_r_desi"
+  },
+  "k_rule": "largest k in [256, 512, 768, 1024, 1536, 2048] with k <= 0.125 * n_obs",
+  "min_valid_anchors": 64,
+  "target_anchors": 512,
+  "included_datasets": [
+    "physics_vit_base",
+    "desi_vit_base_hsc"
+  ],
+  "excluded": [
+    {
+      "dataset_id": "physics_dinov3_vitb16",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_clip_base",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_convnext_base",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_vit_large",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "jwst_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "catalog n=1667 != embedding n=1496; also underpowered for k=2048 (n*0.125<256)"
+    },
+    {
+      "dataset_id": "legacy_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "Smith42 catalog not loadable from the processed HF cache in this run; embeddings have no joined labels"
+    },
+    {
+      "dataset_id": "sdss_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "no local ViT-B embeddings in data_hf"
+    },
+    {
+      "dataset_id": "cosmosweb_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "not a Smith42 catalog; labels not locally aligned"
+    }
+  ],
+  "confirmatory_family": [
+    {
+      "dataset_id": "physics_vit_base",
+      "canonical_label": "smooth_fraction"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "canonical_label": "photo_z"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "canonical_label": "stellar_mass"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "canonical_label": "sfr"
+    },
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "canonical_label": "spec_z"
+    },
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "canonical_label": "mag_r"
+    }
+  ],
+  "same_object_groups": {
+    "physics_vit_base": [
+      "mag_r",
+      "smooth_fraction",
+      "photo_z",
+      "stellar_mass",
+      "sfr"
+    ],
+    "desi_vit_base_hsc": [
+      "spec_z",
+      "mag_r"
+    ]
+  },
+  "do_not_reverse_orientation_from_results": true,
+  "no_association_yet": true,
+  "desi_label_cache": {
+    "path": "/home/angus/platonic-universe/outputs/geometry/physics_adaptive_dataset_curvature_probe/cache/desi_smith42_labels.npz",
+    "n": 20465,
+    "reused": true
+  }
+}

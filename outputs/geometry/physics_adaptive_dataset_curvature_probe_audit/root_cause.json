@@ -1,0 +1,17 @@
+{
+  "causes": [
+    "probe_label_alignment_failure",
+    "control_specification_change",
+    "inference_or_summary_bug",
+    "desi_alignment_unproven",
+    "multiple_testing_calibration_problem"
+  ],
+  "audit_label": "probe_label_alignment_failure",
+  "first_divergence": "probe_quantity: local_r2 vs catalog mag_r_desi",
+  "kh_identical_at_12_16_20": true,
+  "anchor_set_equal": true,
+  "desi": "desi_label_alignment_unresolved",
+  "repair": "reuse per-anchor K_H; restore discovery curve with local_r2; exclude DESI labels from scientific conclusions; no geometry refit",
+  "sixteen_anchor_curvature_test": "not required; K_H already identical",
+  "scale": "deferred"
+}

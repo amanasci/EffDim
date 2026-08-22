@@ -1,0 +1,9 @@
+{
+  "oof_predictions": "global_probes/oof_predictions/vit_base_mag_r_desi.npz",
+  "construction": "5-fold ridge; test fold never in training fold",
+  "r2_matches_cached_geography": true,
+  "self_may_appear_in_knn": true,
+  "self_prediction_still_oof": true,
+  "shuffle_d16_controlled": 0.1764705882352941,
+  "disjoint_neighbour_slice": "outer_half uses neighbours [k/2, k) for probe metrics; K_H unchanged"
+}

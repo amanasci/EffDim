@@ -1,0 +1,33 @@
+{
+  "phase": "analyze",
+  "families": [
+    "convnext",
+    "astropt",
+    "dinov2",
+    "vit",
+    "ijepa"
+  ],
+  "sae_cache": "outputs/universetbd_shared_basis_mknn_ks/size_scaling",
+  "bsf_cache": "outputs/universetbd_shared_basis_mknn_ks/size_scaling_bsf",
+  "comparison_mode": "paper_same_size_cross_survey",
+  "method_map": {
+    "dense": [
+      "dense_cosine",
+      "paper_full_catalog"
+    ],
+    "sae": [
+      "shared_best_basis_idf",
+      "heldout_query_full_gallery"
+    ],
+    "bsf": [
+      "shared_best_basis_cosine",
+      "heldout_query_full_gallery"
+    ]
+  },
+  "cache_ks": [
+    10,
+    20,
+    50
+  ],
+  "note": "Primary k=10; cache has k\u2208{10,20,50}. k=5/100 require recompute."
+}

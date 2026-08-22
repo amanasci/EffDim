@@ -1,0 +1,157 @@
+{
+  "gate_pass": false,
+  "gate": {
+    "heldout_cka_high": false,
+    "train_test_cka_close": false,
+    "beats_indep_perm_null": false,
+    "beats_shared_perm_null": false,
+    "distance_residual_positive": false,
+    "sparse_beats_lowrank": true
+  },
+  "n_models": 4,
+  "variables": [
+    "photo_z",
+    "mag_r_desi",
+    "smooth_fraction"
+  ],
+  "representations": [
+    "dense",
+    "sae",
+    "sae_sqrt_idf"
+  ],
+  "highlights": {
+    "mean_train_cross_model_cka": 0.9358843942292192,
+    "mean_test_cross_model_cka": 0.6410169178838919,
+    "test_minus_train_cka": -0.2948674763453273,
+    "mean_distance_residual_pearson": 0.15670557215572997,
+    "mean_sparse_minus_lowrank_k16": 0.2653905923024886,
+    "mean_abs_test_pearson": 0.06130973147060548,
+    "mean_adjacent_similarity_test": -0.0776612390707461,
+    "smoke_reported_W_stable_rank": 3.8966322114091954,
+    "audited_smoke_object_stable_rank": 3.9071135165763278,
+    "full_sae_prestd_W_stable_rank": 3.907113490273913,
+    "probe_pca_W_stable_rank": 36.557768335233945,
+    "mean_field_restricted_W_stable_rank": 3.317432746416531,
+    "gate": {
+      "heldout_cka_high": false,
+      "train_test_cka_close": false,
+      "beats_indep_perm_null": false,
+      "beats_shared_perm_null": false,
+      "distance_residual_positive": false,
+      "sparse_beats_lowrank": true
+    },
+    "gate_pass": false
+  },
+  "interpretation": "Held-out field agreement is weak relative to the smoke claim; treat prior cross-model CKA with caution. Sparse top-k transport preserves held-out probe pullback better than parameter-matched low-rank transport. Audited full SAE Ridge map (\u03b1=1.0) has low stable rank (3.91); the smoke value \u22483.90 traced to W_sae_full_raw_with_internal_scaler \u2014 not a high-rank unregularized map.",
+  "elapsed_s": 7435.851280450821,
+  "physics_info": [
+    {
+      "model": "vit_base",
+      "representation": "sae",
+      "physical_variable": "photo_z",
+      "mean_abs_test_pearson": 0.06040318294064856,
+      "median_abs_test_pearson": 0.04258952346996499,
+      "frac_pearson_gt0": 0.7058823529411765,
+      "mean_local_pearson": 0.019490430905959227
+    },
+    {
+      "model": "vit_base",
+      "representation": "sae",
+      "physical_variable": "mag_r_desi",
+      "mean_abs_test_pearson": 0.07556119187471826,
+      "median_abs_test_pearson": 0.05198480839578219,
+      "frac_pearson_gt0": 0.6470588235294118,
+      "mean_local_pearson": 0.04787841873601445
+    },
+    {
+      "model": "vit_base",
+      "representation": "sae",
+      "physical_variable": "smooth_fraction",
+      "mean_abs_test_pearson": 0.05652669331419359,
+      "median_abs_test_pearson": 0.0389143500022252,
+      "frac_pearson_gt0": 0.7058823529411765,
+      "mean_local_pearson": 0.013533983586304846
+    },
+    {
+      "model": "dinov3",
+      "representation": "sae",
+      "physical_variable": "photo_z",
+      "mean_abs_test_pearson": 0.05650935169264876,
+      "median_abs_test_pearson": 0.03415126008474948,
+      "frac_pearson_gt0": 0.7647058823529411,
+      "mean_local_pearson": 0.04798760409579834
+    },
+    {
+      "model": "dinov3",
+      "representation": "sae",
+      "physical_variable": "mag_r_desi",
+      "mean_abs_test_pearson": 0.06978253446969339,
+      "median_abs_test_pearson": 0.06138371261464742,
+      "frac_pearson_gt0": 0.7058823529411765,
+      "mean_local_pearson": 0.03624739895967955
+    },
+    {
+      "model": "dinov3",
+      "representation": "sae",
+      "physical_variable": "smooth_fraction",
+      "mean_abs_test_pearson": 0.06893868891118748,
+      "median_abs_test_pearson": 0.05546804206703402,
+      "frac_pearson_gt0": 0.6470588235294118,
+      "mean_local_pearson": 0.030223224152050573
+    },
+    {
+      "model": "vit_large",
+      "representation": "sae",
+      "physical_variable": "photo_z",
+      "mean_abs_test_pearson": 0.04824160727044016,
+      "median_abs_test_pearson": 0.05262869013314849,
+      "frac_pearson_gt0": 0.6470588235294118,
+      "mean_local_pearson": 0.02390939491035749
+    },
+    {
+      "model": "vit_large",
+      "representation": "sae",
+      "physical_variable": "mag_r_desi",
+      "mean_abs_test_pearson": 0.055706215999102505,
+      "median_abs_test_pearson": 0.036357836684346403,
+      "frac_pearson_gt0": 0.5294117647058824,
+      "mean_local_pearson": 0.012789692528091132
+    },
+    {
+      "model": "vit_large",
+      "representation": "sae",
+      "physical_variable": "smooth_fraction",
+      "mean_abs_test_pearson": 0.05148869295580698,
+      "median_abs_test_pearson": 0.023965478545701385,
+      "frac_pearson_gt0": 0.47058823529411764,
+      "mean_local_pearson": 0.007875501920596415
+    },
+    {
+      "model": "clip_base",
+      "representation": "sae",
+      "physical_variable": "photo_z",
+      "mean_abs_test_pearson": 0.06024467525372144,
+      "median_abs_test_pearson": 0.06368038351654769,
+      "frac_pearson_gt0": 0.6470588235294118,
+      "mean_local_pearson": 0.028756525241827306
+    },
+    {
+      "model": "clip_base",
+      "representation": "sae",
+      "physical_variable": "mag_r_desi",
+      "mean_abs_test_pearson": 0.06893489513162544,
+      "median_abs_test_pearson": 0.06358698849439347,
+      "frac_pearson_gt0": 0.5882352941176471,
+      "mean_local_pearson": 0.03346648849481227
+    },
+    {
+      "model": "clip_base",
+      "representation": "sae",
+      "physical_variable": "smooth_fraction",
+      "mean_abs_test_pearson": 0.06337904783347914,
+      "median_abs_test_pearson": 0.042168193341257716,
+      "frac_pearson_gt0": 0.5882352941176471,
+      "mean_local_pearson": 0.03562122693805544
+    }
+  ]
+}

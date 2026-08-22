@@ -17,3 +17,17 @@ Cargo.lock
 notebooks/.cache/
 .planning/research/.cache/
 .ipynb_checkpoints/
+
+# Curvature experiment caches (regenerate on science host)
+__pycache__/
+*.py[cod]
+*.parquet
+*.npz
+*.pt
+*.pkl
+experiments/**/artifacts/
+outputs/**/*.parquet
+outputs/**/*.npz
+outputs/**/checkpoints/
+sae-shared-basis.zip
+pu_grid.log

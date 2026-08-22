@@ -1,0 +1,36 @@
+{
+  "n_perm": 10000,
+  "t_obs_ctl_max": 0.45375494071146244,
+  "p_global_ctl": 0.05069493050694931,
+  "family": [
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "smooth_fraction"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "photo_z"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "stellar_mass"
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "sfr"
+    },
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "label": "spec_z"
+    },
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "label": "mag_r"
+    }
+  ],
+  "discovery_excluded": {
+    "dataset_id": "physics_vit_base",
+    "label": "mag_r_desi"
+  },
+  "dependence": "same-object groups share one object permutation; independent datasets contribute separately to the joint max"
+}

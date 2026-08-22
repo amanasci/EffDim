@@ -1,0 +1,50 @@
+{
+  "track": "NeurReps 2026 Extended Abstract (double-blind)",
+  "page_limit": "4 pages, excluding references and appendices (official neurreps.org; Findings is the unlimited track)",
+  "decision_label": "claim_supported_but_scale_dependent",
+  "template": "official https://neurreps.org/files/NeurReps_2026_Template.zip",
+  "documentclass": "\\documentclass[mlabstract]{jmlr}",
+  "compiled_pdf": "submissions/neurreps_2026/main.pdf",
+  "flattened_tex": "submissions/neurreps_2026/main_submission.tex",
+  "flattened_pdf": "submissions/neurreps_2026/main_submission.pdf",
+  "main_tex": "submissions/neurreps_2026/main.tex",
+  "appendix_tex": "submissions/neurreps_2026/appendix.tex",
+  "bib": "submissions/neurreps_2026/references.bib",
+  "editorial_audit": "submissions/neurreps_2026/FINAL_EDITORIAL_AUDIT.md",
+  "figures": [
+    "submissions/neurreps_2026/figures/figure1_dimension.pdf",
+    "submissions/neurreps_2026/figures/figure2_curvature_probe.pdf"
+  ],
+  "figure_sources": {
+    "figure1": [
+      "outputs/geometry/physics_quadratic_predictive_dimension/aggregate_risk_curves.csv",
+      "outputs/geometry/physics_curvature_probe_rank_sweep/variance_explained.csv"
+    ],
+    "figure2": [
+      "outputs/geometry/physics_curvature_probe_submission_validation/metric_associations.csv",
+      "outputs/geometry/physics_curvature_probe_submission_validation/metric_bootstrap.csv",
+      "outputs/geometry/physics_curvature_probe_submission_validation/scale_sensitivity.csv",
+      "outputs/geometry/physics_curvature_probe_submission_validation/probe_metrics_full.csv",
+      "outputs/geometry/physics_curvature_probe_rank_sweep/per_anchor_rank_curve.parquet"
+    ]
+  },
+  "validation_dir": "outputs/geometry/physics_curvature_probe_submission_validation/",
+  "validation_report": "outputs/geometry/physics_curvature_probe_submission_validation/VALIDATION_REPORT.md",
+  "decision": "outputs/geometry/physics_curvature_probe_submission_validation/decision.json",
+  "methods": "submissions/neurreps_2026/METHODS_FOR_PAPER.md",
+  "claims": "submissions/neurreps_2026/CLAIMS.md",
+  "reproducibility": "submissions/neurreps_2026/REPRODUCIBILITY.md",
+  "tests": "experiments/geometry/physics_curvature_probe_submission_validation/test_submission_validation.py",
+  "n_unit_tests": 7,
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "seed": 0,
+  "full_runtime_seconds": 1252.9,
+  "compile": "latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex",
+  "page_count": {
+    "total": 7,
+    "main_text": 4,
+    "references": 1,
+    "appendix": 2
+  }
+}

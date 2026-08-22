@@ -1,0 +1,53 @@
+{
+  "protocol": "adaptive_dataset_curvature_probe_v1",
+  "k_rule": "largest k in [256, 512, 768, 1024, 1536, 2048] with k <= 0.125 * n",
+  "min_valid_anchors": 64,
+  "discovery": {
+    "dataset": "physics_vit_base",
+    "label": "mag_r_desi"
+  },
+  "preserved": [
+    "outputs/geometry/physics_nested_dimension_curvature",
+    "outputs/geometry/physics_stable_tangent_dimension",
+    "outputs/geometry/physics_order_stratified_geometry",
+    "outputs/geometry/physics_implicit_normal_inverse",
+    "outputs/geometry/physics_quadratic_predictive_dimension",
+    "outputs/geometry/physics_curvature_probe_rank_sweep",
+    "outputs/geometry/physics_multimodel_graph_prior_quadratic",
+    "outputs/geometry/physics_effdim_curvature_metrics",
+    "outputs/geometry/physics_cross_model_probe_curvature_coverage"
+  ],
+  "thresholds": {
+    "alpha": 0.05,
+    "min_valid_anchors": 64,
+    "target_anchors": 512,
+    "k_frac": 0.125,
+    "tau_grid": [
+      0.7,
+      0.75,
+      0.8,
+      0.825,
+      0.85,
+      0.875,
+      0.9,
+      0.95
+    ],
+    "plateau_rel_tol": 0.02,
+    "delta_practical": 0.004,
+    "n_lookahead": 3,
+    "df_collapse": 0.12,
+    "noise_tail_ranks": 4,
+    "r_h_fail": 0.2,
+    "valid_frac_fail": 0.85,
+    "n_perm": 10000,
+    "n_boot": 2000,
+    "ridge_n_grid": 11,
+    "u_bound_q": 0.99,
+    "gn_max_iter": 8,
+    "gn_damp": 0.0001,
+    "n_inner_cp": 96
+  },
+  "smoke": false,
+  "hash_select": "sha256(adcp:{seed}:{sample_id}) lexicographic prefix",
+  "expected_freeze_hash_upstream": "d9e8616bcc9fe790"
+}

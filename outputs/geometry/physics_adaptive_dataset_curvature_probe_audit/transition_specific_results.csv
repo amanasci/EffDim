@@ -1,0 +1,5 @@
+hypothesis,curve,dataset_id,label,d_80,d_85,rho_80,rho_85,delta_85_80,predicted_sign,sign_match,n_independent_replications,note
+magnitude_transition_replication,frozen_discovery_local_r2_controlled,physics_vit_base,mag_r_desi,12,20,0.14299,-0.233325,-0.376315,negative,True,0,discovery reference; not a replication. DESI excluded (alignment unproven).
+magnitude_transition_replication,harmonized_catalog_controlled,physics_vit_base,catalog_mag_r_desi,12,20,0.043896663748412126,0.18242470474130532,0.13852804099289318,negative,False,0,not discovery parity; different y (catalog mag). No independent mag replication.
+any_association,confirmatory_physics_catalog_labels,physics_vit_base,family,,,,,,not_assumed,,,see global_minp_results / global_studentized_maxT_results; not a common-transition test
+exploratory_redshift,photo_z_vs_spec_z_post_hoc,both,redshift,,,-0.1883325051817521,-0.1581609023986908,,not_preregistered,,0,post hoc; DESI spec_z not a scientific result (alignment unresolved). No signed meta-analysis.

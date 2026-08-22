@@ -1,0 +1,19 @@
+{
+  "anchor_set_equal": true,
+  "anchor_order_equal": false,
+  "adaptive_is_adcp_hash_of_discovery": true,
+  "probe_column_discovery": "local_r2",
+  "probe_column_adaptive": "catalog_mag_r_desi",
+  "probe_quantity_equal": false,
+  "hash_prefix_discovery_primary": null,
+  "hash_prefix_adaptive": "adcp",
+  "controls_names_equal": true,
+  "control_source_discovery": "local_probe_fields.parquet (probe-field neighbourhood summaries)",
+  "control_source_adaptive": "recomputed local_confounders from catalog y and kNN",
+  "curvature_source_d8_20": "reused nested_curvature_metrics.parquet",
+  "normalization": "unit L2 via multimodel prepare/models/vit_base.npz",
+  "spherical_log": "nested_pca_frame / sphere_log_map (reused for d=8..20)",
+  "ridge": "unchanged nested _fit_rank grid for reused ranks",
+  "metric_whitening": "per-dim RMS of fit-split tangent coords (reused)",
+  "first_divergence": "probe / label quantity: local_r2 vs catalog mag_r_desi"
+}

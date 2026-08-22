@@ -1,0 +1,8 @@
+dataset_id,label,canonical_label,is_discovery,mag_like,d_80,d_85,delta_85_80_raw,delta_85_80_ctl,predicted_sign,sign_consistent_raw
+physics_vit_base,mag_r_desi,mag_r,True,True,12,20,0.028345917151475948,0.10651512843181012,negative,False
+physics_vit_base,smooth_fraction,smooth_fraction,False,False,12,20,-0.2447456219029308,0.04654857391767089,not_assumed,
+physics_vit_base,photo_z,photo_z,False,False,12,20,0.3046973111499277,0.3299087219951531,not_assumed,
+physics_vit_base,stellar_mass,stellar_mass,False,False,12,20,0.2674496494105381,0.12620296579406343,not_assumed,
+physics_vit_base,sfr,sfr,False,False,12,20,0.6306982872200262,0.5931488801054017,not_assumed,
+desi_vit_base_hsc,spec_z,spec_z,False,False,11,17,-0.10338292220276718,-0.08491316046966733,not_assumed,
+desi_vit_base_hsc,mag_r,mag_r,False,True,11,17,-0.04259256875064374,-0.0205646643721175,negative,True

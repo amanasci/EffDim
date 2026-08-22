@@ -1,0 +1,3 @@
+dataset_id,d_70,d_75,d_80,d_825,d_85,d_875,d_90,d_95,dL_plat,dQ_plat,dL_plat_lo,dL_plat_hi,dQ_plat_lo,dQ_plat_hi,quadratic_source
+physics_vit_base,6,8,12,15,20,28,41,117,115,20,115,115,20,20,reused_physics_qpd_closest_point
+desi_vit_base_hsc,5,7,11,13,17,23,34,93,87,35,87,87,35,35,coarse_fixed_then_fine_closest

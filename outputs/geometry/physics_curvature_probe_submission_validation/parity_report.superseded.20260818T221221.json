@@ -1,0 +1,25 @@
+{
+  "n_anchors": 16,
+  "k": 2048,
+  "target_id": "mag_r_desi_local_oof_r2",
+  "catalog_field": "mag_r_desi_catalog_value",
+  "not_catalog": true,
+  "delta_20_12": -0.2852941176470588,
+  "delta_20_12_frozen": -0.376315,
+  "delta_match": false,
+  "all_raw_match": false,
+  "all_ctl_match": false,
+  "exact_parity": false,
+  "hashes": {
+    "per_anchor_rank_curve": "badeac8ce6197b3f8e7a8f68f3d05b64e8d965d3d146120f09d04c9f7e1c0f4a",
+    "local_probe_fields": "8deccdeba7401d73555132e9817b3a3c1f423c30f2759ad2c7c4934b1eb05df6",
+    "vit_base_npz": "7635df38659bce31a3fd7bdff59c4d8f107dc674b33a43abd54e5fe4d9d7235a",
+    "knn2048": "f0a6a730ba909b5869c0c624228620edac65cf6fd53d2d0590670aa63f4f5962"
+  },
+  "controls": [
+    "log_knn_radius",
+    "local_label_variance",
+    "local_evaluation_count"
+  ],
+  "neighbourhood": "vit_base_kmax2048.npz k=2048, aligned by sample_id"
+}

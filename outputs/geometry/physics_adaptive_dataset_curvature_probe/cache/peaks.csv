@@ -1,0 +1,8 @@
+dataset_id,label,is_discovery,peak_raw_d,peak_raw,peak_ctl_d,peak_ctl,any_fwer_ctl
+desi_vit_base_hsc,mag_r,False,16,-0.1925493671393094,36,0.1733417268914295,True
+desi_vit_base_hsc,spec_z,False,16,-0.1985968774676417,16,-0.2427622995845779,True
+physics_vit_base,mag_r_desi,True,8,0.1556695712345033,7,0.2210987299870681,True
+physics_vit_base,photo_z,False,12,-0.2284717629058412,12,-0.1883325051817521,True
+physics_vit_base,sfr,False,34,0.4961791831357048,34,0.4537549407114624,True
+physics_vit_base,smooth_fraction,False,35,-0.3625013053467,43,0.2377711366029228,True
+physics_vit_base,stellar_mass,False,10,-0.2498453610843185,20,0.1070311739392877,False

@@ -1,0 +1,192 @@
+{
+  "primary_label": "dataset_specific_curvature_probe_associations",
+  "included": [
+    "physics_vit_base",
+    "desi_vit_base_hsc"
+  ],
+  "excluded": [
+    {
+      "dataset_id": "physics_dinov3_vitb16",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_clip_base",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_convnext_base",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "physics_vit_large",
+      "inclusion_status": "inventory_only_other_encoder",
+      "exclusion_reason": "additional encoder; primary replication is the frozen ViT-B family"
+    },
+    {
+      "dataset_id": "jwst_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "catalog n=1667 != embedding n=1496; also underpowered for k=2048 (n*0.125<256)"
+    },
+    {
+      "dataset_id": "legacy_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "Smith42 catalog not loadable from the processed HF cache in this run; embeddings have no joined labels"
+    },
+    {
+      "dataset_id": "sdss_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "no local ViT-B embeddings in data_hf"
+    },
+    {
+      "dataset_id": "cosmosweb_vit_base_hsc",
+      "inclusion_status": "excluded",
+      "exclusion_reason": "not a Smith42 catalog; labels not locally aligned"
+    }
+  ],
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "p_global_ctl": 0.0506949305069493,
+  "n_confirmatory_fwer": 1,
+  "mag_deltas_ctl": [
+    -0.0205646643721175
+  ],
+  "peaks": [
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "label": "mag_r",
+      "is_discovery": false,
+      "peak_raw_d": 16,
+      "peak_raw": -0.1925493671393094,
+      "peak_ctl_d": 36,
+      "peak_ctl": 0.1733417268914295,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "desi_vit_base_hsc",
+      "label": "spec_z",
+      "is_discovery": false,
+      "peak_raw_d": 16,
+      "peak_raw": -0.1985968774676417,
+      "peak_ctl_d": 16,
+      "peak_ctl": -0.2427622995845779,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "mag_r_desi",
+      "is_discovery": true,
+      "peak_raw_d": 8,
+      "peak_raw": 0.1556695712345033,
+      "peak_ctl_d": 7,
+      "peak_ctl": 0.2210987299870681,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "photo_z",
+      "is_discovery": false,
+      "peak_raw_d": 12,
+      "peak_raw": -0.2284717629058412,
+      "peak_ctl_d": 12,
+      "peak_ctl": -0.1883325051817521,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "sfr",
+      "is_discovery": false,
+      "peak_raw_d": 34,
+      "peak_raw": 0.4961791831357048,
+      "peak_ctl_d": 34,
+      "peak_ctl": 0.4537549407114624,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "smooth_fraction",
+      "is_discovery": false,
+      "peak_raw_d": 35,
+      "peak_raw": -0.3625013053467,
+      "peak_ctl_d": 43,
+      "peak_ctl": 0.2377711366029228,
+      "any_fwer_ctl": true
+    },
+    {
+      "dataset_id": "physics_vit_base",
+      "label": "stellar_mass",
+      "is_discovery": false,
+      "peak_raw_d": 10,
+      "peak_raw": -0.2498453610843185,
+      "peak_ctl_d": 20,
+      "peak_ctl": 0.1070311739392877,
+      "any_fwer_ctl": false
+    }
+  ],
+  "ranges": [
+    {
+      "d_low": 6,
+      "d_high": 44,
+      "d_low_primary": 6,
+      "d_high_primary": 44,
+      "right_truncated": false,
+      "narrow_reason": NaN,
+      "dataset_id": "physics_vit_base",
+      "k": 2048,
+      "n_obs": 16384,
+      "n_anchors": 512,
+      "d_spec_max": 128,
+      "d_curv_max": 44,
+      "curvature_range_right_truncated": false,
+      "d_70": 6,
+      "d_75": 8,
+      "d_80": 12,
+      "d_825": 15,
+      "d_85": 20,
+      "d_875": 28,
+      "d_90": 41,
+      "d_95": 117,
+      "dL_plat": 115,
+      "dL_plat_lo": 115,
+      "dL_plat_hi": 115,
+      "dQ_plat": 20,
+      "dQ_plat_lo": 20,
+      "dQ_plat_hi": 20,
+      "quadratic_source": "reused_physics_qpd_closest_point"
+    },
+    {
+      "d_low": 5,
+      "d_high": 44,
+      "d_low_primary": 5,
+      "d_high_primary": 37,
+      "right_truncated": false,
+      "narrow_reason": "d_95 sits past linear plateau + frozen noise-tail ranks; primary interval uses plateau+2; linear plateau lies past d_90 + frozen noise-tail ranks",
+      "dataset_id": "desi_vit_base_hsc",
+      "k": 2048,
+      "n_obs": 20465,
+      "n_anchors": 512,
+      "d_spec_max": 96,
+      "d_curv_max": 44,
+      "curvature_range_right_truncated": false,
+      "d_70": 5,
+      "d_75": 7,
+      "d_80": 11,
+      "d_825": 13,
+      "d_85": 17,
+      "d_875": 23,
+      "d_90": 34,
+      "d_95": 93,
+      "dL_plat": 87,
+      "dL_plat_lo": 87,
+      "dL_plat_hi": 87,
+      "dQ_plat": 35,
+      "dQ_plat_lo": 35,
+      "dQ_plat_hi": 35,
+      "quadratic_source": "coarse_fixed_then_fine_closest"
+    }
+  ],
+  "runtime_s": 44055.95094895363,
+  "test_note": "see test_adaptive_dataset_curvature_probe.py"
+}

@@ -1,0 +1,17 @@
+{
+  "physics_KH": "/home/angus/platonic-universe/outputs/geometry/physics_nested_dimension_curvature/nested_curvature_metrics.parquet",
+  "physics_qpd": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_predictive_dimension/aggregate_risk_curves.csv",
+  "physics_knn": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/model_neighbourhoods/vit_base_kmax2048.npz",
+  "desi_labels": "/home/angus/platonic-universe/outputs/geometry/physics_adaptive_dataset_curvature_probe/cache/desi_smith42_labels.npz",
+  "not_written": [
+    "outputs/geometry/physics_nested_dimension_curvature",
+    "outputs/geometry/physics_stable_tangent_dimension",
+    "outputs/geometry/physics_order_stratified_geometry",
+    "outputs/geometry/physics_implicit_normal_inverse",
+    "outputs/geometry/physics_quadratic_predictive_dimension",
+    "outputs/geometry/physics_curvature_probe_rank_sweep",
+    "outputs/geometry/physics_multimodel_graph_prior_quadratic",
+    "outputs/geometry/physics_effdim_curvature_metrics",
+    "outputs/geometry/physics_cross_model_probe_curvature_coverage"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "seed": 0,
+  "test_size": 0.2,
+  "ridge_alpha": 1.0,
+  "K_grid": [
+    4,
+    8,
+    16,
+    32
+  ],
+  "kmeans": "MiniBatchKMeans on Legacy train only",
+  "patch_correction": "mean train residual per patch; apply to test by nearest centroid",
+  "local_linear": "source PCA->32 then Ridge(alpha=1.0) on train residuals",
+  "b_null": 200,
+  "leakage": "test residuals never used to estimate c_p or B_p",
+  "timestamp": "2026-08-22T04:24:47"
+}

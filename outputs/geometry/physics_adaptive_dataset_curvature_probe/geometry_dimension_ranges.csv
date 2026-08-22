@@ -1,0 +1,3 @@
+d_low,d_high,d_low_primary,d_high_primary,right_truncated,narrow_reason,dataset_id,k,n_obs,n_anchors,d_spec_max,d_curv_max,curvature_range_right_truncated,d_70,d_75,d_80,d_825,d_85,d_875,d_90,d_95,dL_plat,dL_plat_lo,dL_plat_hi,dQ_plat,dQ_plat_lo,dQ_plat_hi,quadratic_source
+6,44,6,44,False,,physics_vit_base,2048,16384,512,128,44,False,6,8,12,15,20,28,41,117,115,115,115,20,20,20,reused_physics_qpd_closest_point
+5,44,5,37,False,d_95 sits past linear plateau + frozen noise-tail ranks; primary interval uses plateau+2; linear plateau lies past d_90 + frozen noise-tail ranks,desi_vit_base_hsc,2048,20465,512,96,44,False,5,7,11,13,17,23,34,93,87,87,87,35,35,35,coarse_fixed_then_fine_closest

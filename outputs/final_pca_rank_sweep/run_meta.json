@@ -1,0 +1,25 @@
+{
+  "seed": 0,
+  "test_size": 0.2,
+  "k": 10,
+  "ridge_alpha": 1.0,
+  "rank_ladder": [
+    8,
+    16,
+    32,
+    64,
+    128,
+    256,
+    512,
+    "full"
+  ],
+  "pca_fitting_set": "inner_tr = 80% of train_idx (train_test_split seed=0)",
+  "pca_centering": "sklearn PCA default (mean-center)",
+  "pca_whitening": false,
+  "legacy_hsc_pca": "independent (separate PCA on X_leg and X_hsc)",
+  "standard_scaler": "after PCA, inside Ridge fit (StandardScaler on Z_x and Z_y)",
+  "direction": "Legacy\u2192HSC (col2\u2192col1)",
+  "gallery": "test-only",
+  "reproduces": "paper_alignment_controls pca_ridge_scores.csv rank=256",
+  "timestamp": "2026-08-22T01:36:13"
+}

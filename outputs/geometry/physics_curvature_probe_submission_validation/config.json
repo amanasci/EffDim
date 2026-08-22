@@ -1,0 +1,22 @@
+{
+  "output_dir": "outputs/geometry/physics_curvature_probe_submission_validation",
+  "cprs_dir": "outputs/geometry/physics_curvature_probe_rank_sweep",
+  "qpd_dir": "outputs/geometry/physics_quadratic_predictive_dimension",
+  "mm_dir": "outputs/geometry/physics_multimodel_graph_prior_quadratic",
+  "audit_dir": "outputs/geometry/physics_adaptive_dataset_curvature_probe_audit",
+  "ndc_dir": "outputs/geometry/physics_nested_dimension_curvature",
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "seed": 0,
+  "force": true,
+  "smoke": false,
+  "stage": "all",
+  "versions": {
+    "python": "3.12.3",
+    "platform": "Linux-6.14.0-24-generic-x86_64-with-glibc2.39",
+    "numpy": "2.3.2",
+    "scipy": "1.16.1",
+    "pandas": "2.3.1",
+    "torch": "2.8.0+cu128"
+  }
+}

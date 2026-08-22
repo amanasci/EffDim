@@ -1,0 +1,44 @@
+{
+  "gate_pass": 1,
+  "gate": {
+    "local_beats_global_regions": 0,
+    "smooth_adjacent": 0,
+    "field_rank_lt_centres": 1,
+    "bootstrap_stable": 1,
+    "cka_beats_centre_null": 1,
+    "cka_beats_label_null": 1,
+    "cka_above_distance": 1,
+    "positive_vars_ge2": 1,
+    "sparse_beats_lowrank": 1,
+    "field_rank_ll_W": 0
+  },
+  "n_models": 4,
+  "variables": [
+    "photo_z",
+    "mag_r_desi",
+    "smooth_fraction"
+  ],
+  "representations": [
+    "dense",
+    "sae",
+    "sae_sqrt_idf"
+  ],
+  "highlights": {
+    "mean_local_pearson": 0.02814832420579558,
+    "mean_local_minus_global": -0.02138969323464116,
+    "mean_frac_local_better": 0.37745098039215685,
+    "mean_field_stable_rank": 4.2900743219275865,
+    "mean_adjacent_similarity": -0.062373157018274845,
+    "mean_bootstrap_stability": 0.8952969443793161,
+    "mean_cross_model_cka": 0.8906167477284436,
+    "mean_normalized_cka": 0.9941425312301013,
+    "mean_dual_minus_primal": -0.10595076576375484,
+    "pullback_topk16": 0.28331907530583256,
+    "pullback_lowrank_match16": 0.004380320940028818,
+    "global_W_stable_rank_vit_dino": 3.8966322114091954,
+    "mean_field_vs_W_rank_ratio": 1.1009697834366834,
+    "gate_pass": 1
+  },
+  "interpretation": "Global probes perform similarly to local probes \u2014 field curvature may be weak for these variables. Sparse high-rank W preserves readout-field geometry better than parameter-matched low-rank maps.",
+  "elapsed_s": 6624.753484964371
+}

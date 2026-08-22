@@ -1,0 +1,8 @@
+dataset_id,raw_column,canonical_label,is_discovery,semantic_group,meaning,orientation,mag_like,valid_full,valid_geometry_subset,sentinel_treated_missing,underpowered,include_in_association,same_objects_as
+physics_vit_base,mag_r_desi,mag_r,True,photometry,r-band apparent magnitude; larger = fainter,fainter_positive,True,86471,16384,,False,True,physics_vit_base
+physics_vit_base,smooth_fraction,smooth_fraction,False,morphology,Galaxy Zoo smooth-or-featured smooth vote fraction,smoother_positive,False,86471,16384,,False,True,physics_vit_base
+physics_vit_base,photo_z,photo_z,False,redshift,photometric redshift,redshift_positive,False,80035,15125,,False,True,physics_vit_base
+physics_vit_base,stellar_mass,stellar_mass,False,physical,log stellar mass (photo-z / NSA-style),more_massive_positive,False,79490,15006,-99.0,False,True,physics_vit_base
+physics_vit_base,sfr,sfr,False,star_formation,star-formation rate (log),higher_sfr_positive,False,7306,1340,,False,True,physics_vit_base
+desi_vit_base_hsc,Z,spec_z,False,redshift,spectroscopic redshift,redshift_positive,False,20465,20465,,False,True,desi_vit_base_hsc
+desi_vit_base_hsc,mag_r,mag_r,False,photometry,r-band apparent magnitude; larger = fainter,fainter_positive,True,20465,20465,,False,True,desi_vit_base_hsc

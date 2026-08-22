@@ -1,0 +1,12 @@
+{
+  "labels_npz": "/home/angus/platonic-universe/data_hf/physics/vit_base_test_labels.npz",
+  "labels_sha256": "2cbc263dfac8b557d1523807578e6d55deb12d7850512db79790b768d2f749f6",
+  "join_rule_documented": "sample_id = galaxies test-table row index; labels.npz is row-aligned to vit_base_test.parquet",
+  "multimodel_prepare": "y_full[t][sample_ids] with sample_ids = selection.npz selected",
+  "adaptive_y_anc": "y_full[sample_id] for each curvature anchor",
+  "order_provably_identical_to_embedding_subset": true,
+  "equal_row_count_is_not_the_proof": "selection.npz + documented sample_id convention is the proof for physics",
+  "frozen_discovery_y": "local_r2 of the OOF ridge probe with target=mag_r_desi, not the catalog magnitude",
+  "adaptive_y": "catalog mag_r_desi",
+  "spearman_local_r2_vs_catalog": -0.21498121854161883
+}

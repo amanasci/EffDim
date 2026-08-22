@@ -1,0 +1,17 @@
+{
+  "rule": "geometry-only held-out variance/risk family; not correlation-maximised",
+  "positions": {
+    "lower": 12,
+    "middle": 16,
+    "upper": 20
+  },
+  "tau_80": 12,
+  "tau_85": 20,
+  "middle": "midpoint of the \u03c4\u2208[0.80,0.85] family",
+  "k": [
+    512,
+    1024,
+    1536,
+    2048
+  ]
+}
