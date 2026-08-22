@@ -1,0 +1,67 @@
+==============================================================================
+SPIKE 001 -- local-polynomial geometry teacher, low-d anchor
+teacher : curvature_probe.quadric_mean_curvature   (unmodified)
+scorer  : synthetic_control_run._fidelity_axes     (unmodified)
+n=10000  k=30  seed=20260816
+==============================================================================
+
+--- SWISS ROLL -- the CLAUDE.md anchor  (n=10000, d=2, D=3, k=30)
+  locality    r_knn=0.1685  R=1.4552  r/R = 0.1158
+  quadratic coefficients = 3   deficit = 0   underdetermined = False
+  direction   median cosine        = 0.999898
+  magnitude   median ratio         = 1.004048
+              CV raw = 0.003388   CV above q0.10 of ||H_true|| = 0.003504  (n=9000)
+  calibration slope=1.006240 intercept=-1.508624e-03 R2=0.999762
+  rank        spearman rho         = 0.999975
+  median relative error            = 0.004107
+  points scored = 10000   excluded (||H_true|| ~ 0) = 0
+  convention = trace
+
+--- SADDLE d=2 -- mixed-sign, genuinely local  (n=10000, d=2, D=8, k=30)
+  locality    r_knn=0.1571  R=1.6763  r/R = 0.0937
+  quadratic coefficients = 3   deficit = 0   underdetermined = False
+  direction   median cosine        = 0.999976
+  magnitude   median ratio         = 0.998802
+              CV raw = 1.310300   CV above q0.10 of ||H_true|| = 0.078911  (n=9000)
+  calibration slope=0.997215 intercept=2.873630e-04 R2=0.995765
+  rank        spearman rho         = 0.997538
+  median relative error            = 0.027034
+  points scored = 10000   excluded (||H_true|| ~ 0) = 0
+  convention = trace
+
+------------------------------------------------------------------------------
+TRANSITION ROW -- reported, not gated. This is where locality starts to go.
+------------------------------------------------------------------------------
+
+--- SADDLE d=4  (n=10000, d=4, D=12, k=30)
+  locality    r_knn=0.7024  R=2.1907  r/R = 0.3206
+  quadratic coefficients = 10   deficit = 0   underdetermined = False
+  direction   median cosine        = 0.997745
+  magnitude   median ratio         = 1.015920
+              CV raw = 11.920091   CV above q0.10 of ||H_true|| = 0.624413  (n=9000)
+  calibration slope=0.900678 intercept=2.014922e-02 R2=0.749912
+  rank        spearman rho         = 0.845256
+  median relative error            = 0.280492
+  points scored = 10000   excluded (||H_true|| ~ 0) = 0
+  convention = trace
+
+==============================================================================
+VERDICT -- gated on the genuinely-local fixtures only
+==============================================================================
+
+  swiss roll  (d=2, D=3):
+    [PASS] rank rho >= 0.90                 got 0.999975
+    [PASS] median cosine >= 0.90            got 0.999898
+    [PASS] median ratio in [0.70, 1.30]     got 1.004048
+    [PASS] floored ratio CV <= 0.50         got 0.003504
+
+  saddle d=2:
+    [PASS] rank rho >= 0.90                 got 0.997538
+    [PASS] median cosine >= 0.90            got 0.999976
+    [PASS] median ratio in [0.70, 1.30]     got 0.998802
+    [PASS] floored ratio CV <= 0.50         got 0.078911
+
+ANCHOR HELD. The teacher recovers known curvature on all four axes wherever the
+quadratic fit is determined AND the neighbourhood is genuinely local. Fixture,
+convention, ambient frame and scorer are therefore wired correctly, and a FAIL
+at d=20 is a statement about d -- not about this pipeline.

@@ -67,3 +67,24 @@ when a diagnostics runner is needed (those self-bootstrap `pu_manifold` onto the
 `CURVATURE_CONVENTION = "trace"`, `H = tr_g(II)` unnormalized — a unit `d`-sphere gives
 `||H|| = d`. The averaged convention differs by a factor of `d`, and this codebase has already
 shipped and fixed one factor-of-`d` bug.
+
+## The confound trio
+
+A positive result at high `d` is not believed until three probes clear, each one file, each named
+for what it isolates, each printing a decision rule fixed in its source before the run:
+
+1. **Fixture structure** — does the result depend on the fixture's own functional form? Rerun on a
+   fixture from a different family, everything else held.
+2. **Local scale** — is the ordering curvature, or local sampling density? Spearman partial
+   correlation against the local kNN radius.
+3. **Dynamic range** — compare fixtures spread-for-spread by restricting to quantile windows of
+   `||H_true||` and reporting each window's realized `p95/p05` beside its `rho`.
+
+In spike 002 all three were necessary and each changed the conclusion; two refuted the hypothesis
+that motivated writing them.
+
+## Wrapped findings
+
+Packaged as `Skill("spike-findings-effdim")` — requirements, the validation protocol, measured dead
+ends, and the open saddle-fixture question. Load it before proposing any curvature estimator,
+prior, or control fixture.
