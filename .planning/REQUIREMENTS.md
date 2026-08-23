@@ -101,11 +101,17 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 ### Region Partitioning (REGN)
 
-- [ ] **REGN-01**: Local sample-density measure per point in Isomap coordinate space shown
+> **RE-MINTED 2026-08-23 by `## Phase 4 Requirement Re-Mint` (D4-11).** REGN-01, REGN-03 and
+> REGN-04 were written for the superseded `|H|`-quantile + decoder route. IDs are preserved and the
+> discipline they encode is preserved; only the quantity changes. REGN-06 is new. See the dated
+> re-mint section at the bottom of this file.
+
+- [ ] **REGN-01**: Local sample-density measure per point **in the ambient embedding space the curvature field is estimated in** — the 768-d normalized embeddings, not Isomap coordinates — shown
 - [ ] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
-- [ ] **REGN-03**: Points partitioned into high- and low-curvature regions by quantile, never by a fixed absolute threshold
-- [ ] **REGN-04**: Quantile threshold specified before regional alignment is computed, and that ordering visible in the notebook
+- [ ] **REGN-03**: Points partitioned by a **data-derived direction criterion**, never by a fixed absolute threshold
+- [ ] **REGN-04**: The partition rule specified and frozen **before** regional alignment is computed, and that ordering visible in the notebook
 - [ ] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
+- [ ] **REGN-06**: The direction eigenvector `v` and the resulting sign split **recorded and frozen as artifacts** before any MKNN number is computed, so the split is auditable after the fact
 
 ### Regional Alignment (MKNN)
 
@@ -222,6 +228,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REGN-03 | Phase 4 | Pending |
 | REGN-04 | Phase 4 | Pending |
 | REGN-05 | Phase 4 | Pending |
+| REGN-06 | Phase 4 | Pending |
 | MKNN-01 | Phase 4 | Pending |
 | MKNN-02 | Phase 4 | Pending |
 | MKNN-03 | Phase 4 | Pending |
@@ -231,14 +238,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MKNN-07 | Phase 4 | Pending |
 | MKNN-08 | Phase 4 | Pending |
 
-**Coverage:** v1.1 requirements: 55 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 5 + MKNN 8). Mapped to phases: 55/55 ✓ · Unmapped: 0 ✓
+**Coverage:** v1.1 requirements: 56 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 6 + MKNN 8). Mapped to phases: 56/56 ✓ · Unmapped: 0 ✓
 
 Phase 1 (Data Loading & Manifold Reconstruction): DATA-01..05, ISO-01..05 (10 requirements)
 Phase 2 (Eigenspectrum Audit & Validity Gate): SPEC-01..07 (7 requirements)
 Phase 02.1 (Geometry Representation Research): GEOM-01..05 (5 requirements)
 Phase 02.2 (Chart Autoencoder Validity Test): CAE-01..07 (7 requirements)
 Phase 3 (Decoder & Curvature Field): DEC-01..05, CURV-01..08 (13 requirements)
-Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..05, MKNN-01..08 (13 requirements)
+Phase 4 (Region Partitioning & Regional Alignment / MKNN): REGN-01..06, MKNN-01..08 (14 requirements)
 
 ---
 
@@ -302,3 +309,44 @@ record can be retroactively audited for uniform collapse.** See `03.1-FINDINGS.m
 *Requirements defined: 2026-07-29*
 *Last updated: 2026-08-03 — added CAE-01..07 for Phase 02.2 (INSERTED) and corrected coverage arithmetic, which had omitted the five GEOM requirements added for Phase 02.1 (55/55 requirements mapped)*
 </content>
+
+---
+
+## Phase 4 Requirement Re-Mint (2026-08-23, executed at plan time)
+
+REGN-01, REGN-03 and REGN-04 were written against a premise that is dead, for the same reason the
+Phase 3 re-mint above was needed:
+
+1. **"Isomap coordinate space."** Phase 2's eigenspectrum gate FAILed and Phase 02.1 selected a
+   graph-native replacement. Phase 4's curvature field is estimated by
+   `curvature_probe.centroid_mean_curvature` applied **directly to the normalized 768-d embeddings**
+   (D4-02 Amendment 02, D4-13), so the density that could masquerade as curvature is 768-d density,
+   not Isomap density.
+
+2. **"By quantile of `|H|`."** D4-01 (2026-08-23) partitions on curvature **DIRECTION** `H/‖H‖`,
+   not `|H|` quantiles: at `d = 20` spike 003 measured direction surviving (cosine 0.77–1.000) while
+   magnitude is ~50× attenuated and its ordering saturates at `rho ~ 0.5–0.65`. ROADMAP success
+   criterion 2 was already marked SUPERSEDED for this reason.
+
+**Three IDs are re-minted with rewritten text under the same `REGN-` namespace and one is added.
+None was retired, dropped or re-pointed.** The *discipline* the original text encoded — a
+data-derived criterion, never a fixed absolute threshold, specified and frozen before any regional
+alignment number exists — is preserved verbatim. Only the quantity being partitioned changes.
+
+| ID | What changed | Supporting artifact |
+|---|---|---|
+| REGN-01 | "Isomap coordinate space" → the ambient 768-d embedding space the curvature field is estimated in | D4-13; `curvature_probe.local_density_weights` on `subsample_*.npz`'s `legacysurvey` column |
+| REGN-03 | "by quantile" of `\|H\|` → a **data-derived direction criterion**; the never-a-fixed-absolute-threshold prohibition is unchanged | D4-01, D4-09; the diametrical sign split on `Cov(H_i/‖H_i‖)`'s leading eigenvector |
+| REGN-04 | "Quantile threshold" → "the partition rule"; the before-and-visible-in-the-notebook ordering discipline is unchanged | D4-11; `04-PREREGISTRATION.md` and `region_partition.py`'s frozen constants |
+| REGN-06 (new) | The eigenvector `v` and the resulting sign split recorded and frozen as artifacts before any MKNN number exists, so the split is auditable after the fact | D4-11; `cache.npz_cache` at stem `04_region_partition` |
+
+**REGN-02, REGN-05 and MKNN-01..08 are unchanged.** REGN-02's text predates D4-01's pivot and is
+left as written, but note the consequence recorded in `04-RESEARCH.md` § Common Pitfalls 1: reporting
+only `Spearman(density, ‖H‖)` answers the superseded magnitude question, so Phase 4 reports that
+correlation **and** `Spearman(density, <H_i/‖H_i‖, v>)`, the axis it actually splits on.
+
+**Standing limitation carried by the re-mint, not created by it.** D4-10 declines any known-answer
+fixture validation before the PU split is frozen, and D4-01 was adopted on partial evidence with the
+codimension gap named: every fixture the direction decision rests on is a codimension-1 graph, while
+PU's codimension is ~748. REGN-03's re-minted text describes what Phase 4 does; it does not assert
+that the criterion was validated.
