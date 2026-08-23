@@ -5,11 +5,11 @@ milestone_name: PU Manifold Curvature
 current_phase: 3
 current_phase_name: decoder-curvature-field
 status: complete
-stopped_at: Phase 3 CLOSED 2026-08-23 -- 03-11 recorded, field NOT validated, Phase 4 remains blocked (D-11)
-last_updated: "2026-08-23T00:00:00.000Z"
-last_activity: 2026-08-23
+stopped_at: Phase 4 context gathered
+last_updated: "2026-08-23T10:49:38.211Z"
+last_activity: 2026-08-21
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 8
   total_plans: 81
   completed_plans: 75
@@ -612,12 +612,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-23
-Stopped at: **Phase 3 CLOSED.** `03-11-SUMMARY.md` recorded (the plan's work had been executed
+Last session: 2026-08-23T10:49:38.164Z
+Stopped at: Phase 4 context gathered
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: None
+Resume file: .planning/phases/04-region-partitioning-regional-alignment-mknn/04-CONTEXT.md
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them
@@ -639,6 +639,7 @@ a silent green light, on the same standard `03-FINDINGS.md` §1 was held to for 
   recovery, not resolution within a normal space. PU's codimension is ~748.
   `varying_ii_controls.make_multinormal_ridge_control` exists and is tested if anyone wants to
   narrow that gap (tops out ~m=8).
+
 - **D4-02** — **RESOLVED 2026-08-23 to the point-cloud estimator** (Amendment 02). Three cells,
   both arms on identical data at `d=20`: cloud `rho` +0.41..+0.61 with cosine +0.77..+0.92 in 2s;
   decoder `rho` +0.002..+0.018 with cosine ~0 (twice negative) in ~358s. Decoder magnitude
@@ -650,6 +651,7 @@ a silent green light, on the same standard `03-FINDINGS.md` §1 was held to for 
   Phase 3's non-reproducing field stops being on the critical path. `k` becomes Phase 4's main
   free parameter (needs the hundreds at `d=20`; `k=231` is 2.3% of PU's cloud, locality
   unmeasured).
+
 - **D4-03** — PU split-half reliability (`R_H = 0.589` at `k=231`) accepted as sufficient.
   **Deliberately accepted blind spot**, recommendation declined: split-half reliability cannot
   detect a bias both halves share (measured `R_H = 0.990` with `rho = 0.469` on the Swiss roll),
@@ -657,6 +659,7 @@ a silent green light, on the same standard `03-FINDINGS.md` §1 was held to for 
   Phase 4's record must say so in its own words, on the standard `03-FINDINGS.md` §1 was held to.
   Nearly-free mitigation available any time: D4-02 produces both estimators, so running both on
   PU and reporting rank agreement costs one cell.
+
 - **D4-04** — two commits: spike 003, then the Phase 3 closure.
 
 **Next step:** Phase 4 planning may proceed. D4-01 and D4-02 are settled (D4-01 on partial
