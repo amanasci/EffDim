@@ -97,3 +97,108 @@ revertable.
 planned.** D4-03 changes no scope; it records an accepted risk. None of the four has been executed.
 Phase 4 remains **BLOCKED** — D-11 stands, and these decisions define the route out rather than
 constituting it.
+
+---
+
+## Amendment 01 (2026-08-23) — D4-01's validation scoped out, and a caveat on the evidence it rests on
+
+### The validation was built, then deliberately not run
+
+`notebooks/diagnostics/direction_partition_run.py` and
+`varying_ii_controls.make_multinormal_ridge_control` were built to validate D4-01 by measuring
+partition fidelity — `ARI(partition from estimated field, partition from true field)` — for the
+direction and magnitude schemes side by side.
+
+**Developer decision: the question is too narrow to be worth the compute, and the run was
+killed.** The reasoning, which is sound and is recorded rather than paraphrased: both schemes
+read the *same* estimated field at the *same* points, so any error in **where** the decoder
+places a point cancels out of the comparison. The test could therefore only answer "given
+whatever field we end up with, which functional partitions more stably" — not "is the field
+trustworthy", which is the question that actually gates Phase 4 and which the location check
+(`reconstruction_truth`) answers more cheaply and more fundamentally.
+
+**D4-01 stands**, accepted on spike 003's direct measurements: at `d=20`, direction survives
+(cosine 0.77–1.000) while magnitude is ~50x attenuated and its ordering saturates at
+`rho ~ 0.5–0.65`.
+
+Preliminary evidence from the smoke cell before it was stopped, recorded for whoever revisits
+this: direction ARI **0.351** against magnitude ARI **0.016** at `d=6`, `n=800`, `k=30`. That is
+a 22x gap and it points the same way as D4-01, but it is a SMOKE-SCALE number at a dimension
+well below PU's and must not be quoted as a result.
+
+### The caveat that must not be lost: codimension
+
+Building the validation surfaced a real limit on the evidence D4-01 rests on.
+
+**On a codimension-1 graph, `H = H_scalar · n̂` — so "curvature direction" IS the surface
+normal.** Clustering it clusters tangent-plane orientation, not curvature structure. Measured on
+`ridge` at `d=8`: the unit-`H` covariance has rank **2**, not the full space.
+
+Every fixture in spike 003 — `saddle`, `bowl`, `aniso`, `cubic`, `sine`, `ridge` — is a
+codimension-1 graph. So **spike 003's cosine 1.000 establishes that the estimator recovers the
+NORMAL ORIENTATION**, which is a tangent-space problem known to converge well. It does **not**
+establish that the estimator resolves `H`'s direction *within* a high-dimensional normal space.
+
+PU is `d ~ 20` inside `D = 768` — codimension **~748** — and that is precisely the regime where
+the distinction matters. **D4-01 therefore rests on evidence from a regime one codimension wide,
+applied to a problem 748 wide.** That gap is unmeasured and is not closed by anything in this
+milestone.
+
+`make_multinormal_ridge_control` (`f: R^d -> R^m`, `m` orthonormal ridge directions, `H` rotating
+within an `m`-dimensional normal space; verified at `d=20, m=4` to give unit-`H` covariance rank
+8 with eigenvalues 0.25 x 4) exists and is tested, should anyone want to close it later. It tops
+out around `m=8` against PU's ~748, so it would narrow the gap rather than close it.
+
+### Status
+
+D4-01 is **adopted on partial evidence, with the codimension gap named**. Phase 4's record must
+state this in its own words rather than by reference, on the same standard `03-FINDINGS.md` §1
+was held to for the gate override — the same requirement D4-03 already carries.
+
+---
+
+## Amendment 02 (2026-08-23) — D4-02 RESOLVED: the point-cloud estimator
+
+`estimator_headtohead_run.py`, three cells, both arms on **identical data** at `d=20`, `D=28`,
+`n=5000`, `k=231`, on fixtures with a varying second fundamental form (so both instruments have
+something to find):
+
+| cell | cloud `rho` | cloud cosine | decoder `rho` | decoder cosine | cloud cost | decoder cost |
+|---|---|---|---|---|---|---|
+| `cubic`, 200 ep | **+0.6115** | +0.7700 | +0.0019 | −0.0319 | 2s | 358s |
+| `cubic`, 400 ep | **+0.6115** | +0.7700 | +0.0072 | +0.0299 | 2s | 354s |
+| `ridge`, 400 ep | **+0.4119** | +0.9173 | +0.0184 | −0.0378 | 2s | 358s |
+
+**D4-02 resolves to `curvature_probe.centroid_mean_curvature` on the point cloud.** It wins on
+rank and on direction in every cell, at ~179x less compute. The decoder's cosine is ~0 and twice
+NEGATIVE — its `H` direction is no better than random — and its magnitude ratio of 12,000–42,000x
+is mechanistically consistent with the measured `cond(g)` of `4e11`–`1.6e12` destroying the
+`g^-1` contraction inside `H = sum_jk g^jk II_jk`. That is the same pathology Phase 03.1
+attacked, where `scale` fully repaired the metric and moved rank `rho` only `-0.122 -> +0.116`.
+
+### The caveat, stated rather than buried
+
+**The decoder arm is UNDERTRAINED relative to Phase 3's sealed fits.** It reconstructs at
+`mse_per_dim = 0.23–0.32` against the sealed `d=20` cell's `1.6e-02` — roughly 15x worse. The
+sealed cells ran 300 epochs at `n=10000`, `D=768`, in 25-epoch blocks, and cost ~2.6h each;
+this comparison ran at reduced `D`, `n` and epochs so it was affordable. **So this is not a
+clean disqualification of a well-trained decoder**, and must not be quoted as one.
+
+What makes it decisive anyway: doubling the budget from 200 to 400 epochs moved the decoder's
+`rho` from `+0.0019` to `+0.0072` and its reconstruction from `0.32` to `0.23`. **Flat.** There
+is no trajectory toward competitiveness, while the point-cloud arm reaches `+0.61` in two
+seconds with no training, no pullback metric to condition, and no seed sensitivity.
+
+### Consequences
+
+1. **Phase 03.1's metric regularization is OPTIONAL, not blocking, for Phase 4.** The
+   point-cloud route forms no pullback metric and cannot suffer the `cond(g)` pathology at all.
+   03.1's sealed findings are unaffected; they simply stop gating.
+2. **Phase 3's non-reproducing field (52x `||H||` median spread across seeds) stops being on the
+   critical path.** Phase 4 does not have to inherit it.
+3. **`k` becomes Phase 4's main free parameter.** At `d=20` the centroid estimator needs `k` in
+   the hundreds (cubic: `+0.035` at `k=30`, `+0.648` at `k=231`). On PU's 10,000 rows `k=231`
+   is 2.3% of the cloud per neighbourhood; whether that is still local on PU is unmeasured.
+4. **A cheap re-run is now available for D4-03's declined mitigation.** Both instruments exist
+   and run on PU; reporting their rank agreement costs one cell and would convert D4-03's
+   accepted blind spot into a measured number. Still not required.

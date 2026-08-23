@@ -318,6 +318,91 @@ def make_ridge_graph_control(
     )
 
 
+def make_multinormal_ridge_control(
+    n: int,
+    d: int,
+    D: int,
+    seed: int,
+    n_normal: int = 2,
+    amplitude: float = 1.0,
+    frequency: float = 0.5,
+    domain_radius: float = 3.0,
+) -> Dict[str, Any]:
+    """HIGHER-CODIMENSION ridge bundle: ``f: R^d -> R^m``, component ``j`` a ridge along its own
+    direction ``w_j``. The only fixture here whose mean-curvature VECTOR genuinely rotates.
+
+    **Why codimension 1 is not enough, and why every other fixture in this module is.** For a
+    graph ``M = {(x, f(x))}`` with scalar ``f``, the normal space is ONE-dimensional, so
+    ``H = H_scalar * n_hat`` and the direction of ``H`` is just the surface normal -- the Gauss
+    map. Clustering those directions clusters TANGENT-PLANE ORIENTATION, not curvature
+    structure. Measured on ``ridge`` at ``d=8``: the unit-``H`` covariance has rank 2 (the
+    normal tilts in the plane spanned by ``w`` and the graph axis) rather than filling any
+    larger space.
+
+    That matters because the PU manifold is ``d ~ 20`` inside ``D = 768`` -- codimension ~748 --
+    where ``H`` lives in a high-dimensional normal space and its direction carries real
+    information about WHICH normal direction the manifold bends in. A direction result measured
+    on a codimension-1 fixture does not transfer to that question.
+
+    Here, with ``m = n_normal`` output components,
+
+        ``f_j(x)      =  A sin(freq * w_j . x)``
+        ``grad[:,j,:] =  A freq cos(s_j) w_j``
+        ``hess[:,j]   = -A freq^2 sin(s_j) w_j w_j^T``     (rank one, per normal)
+
+    the ``j``-th normal component of ``H`` scales with ``sin(s_j)``, so as ``x`` moves the
+    curvature vector ROTATES within the ``m``-dimensional normal space rather than merely
+    flipping sign along one axis. Which component dominates is a known, analytic region label --
+    returned as ``dominant_normal`` -- which is exactly the ground truth a direction-based
+    partition (D4-01) needs in order to be validated before it is trusted on PU.
+
+    The ``w_j`` are drawn from ``default_rng(seed)`` and orthonormalised by QR, so the normals
+    are genuinely distinct and the fixture is reproducible from ``(d, seed, n_normal)``.
+    ``frequency`` defaults to 0.5 so ``|grad|^2 <= m A^2 freq^2`` stays modest and the metric
+    tilt cannot dominate as ``d`` grows.
+    """
+    if n_normal < 2:
+        raise ValueError(
+            f"n_normal must be at least 2 -- with one normal this is a codimension-1 graph and "
+            f"H's direction is just the Gauss map. Got {n_normal}."
+        )
+    if n_normal > d:
+        raise ValueError(f"n_normal={n_normal} cannot exceed d={d}.")
+
+    rng = np.random.default_rng(seed)
+    W, _ = np.linalg.qr(rng.standard_normal((d, n_normal)))  # (d, m), orthonormal columns
+    A, freq = float(amplitude), float(frequency)
+
+    x = rng.uniform(-domain_radius, domain_radius, size=(n, d))
+    S = freq * (x @ W)  # (n, m)
+
+    grad = (A * freq * np.cos(S))[:, :, None] * W.T[None, :, :]           # (n, m, d)
+    outer = np.einsum("aj,bj->jab", W, W)                                  # (m, d, d)
+    hess = (-A * freq**2 * np.sin(S))[:, :, None, None] * outer[None, :, :, :]
+    f_x = A * np.sin(S)                                                    # (n, m)
+
+    H_local = curvature_probe.graph_mean_curvature(grad, hess)             # (n, d + m)
+    X_local = np.concatenate([x, f_x], axis=1)
+    X, H_vec, global_std = synthetic_controls.rotate_and_pad(X_local, H_local, D, seed)
+
+    return {
+        "X": X,
+        "x_param": x,
+        "H_vec": H_vec,
+        "H_norm": np.linalg.norm(H_vec, axis=-1),
+        "global_std": global_std,
+        "ii_variation": second_fundamental_form_variation(hess),
+        "curvature_convention": CURVATURE_CONVENTION,
+        "W": W,
+        "n_normal": int(n_normal),
+        "dominant_normal": np.argmax(np.abs(np.sin(S)), axis=1),
+        "amplitude": A,
+        "frequency": freq,
+        "domain_radius": domain_radius,
+        "family": "multinormal_ridge",
+    }
+
+
 FAMILIES = {
     "quadratic_saddle": lambda n, d, D, seed: make_quadratic_graph_control(n, d, D, seed),
     "quadratic_bowl": lambda n, d, D, seed: make_quadratic_graph_control(
@@ -329,6 +414,7 @@ FAMILIES = {
     "cubic": lambda n, d, D, seed: make_cubic_graph_control(n, d, D, seed),
     "sine": lambda n, d, D, seed: make_sine_graph_control(n, d, D, seed),
     "ridge": lambda n, d, D, seed: make_ridge_graph_control(n, d, D, seed),
+    "multinormal_ridge": lambda n, d, D, seed: make_multinormal_ridge_control(n, d, D, seed),
 }
 """The comparison set, ordered so each entry changes exactly one thing from the last.
 

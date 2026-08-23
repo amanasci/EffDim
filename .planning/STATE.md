@@ -624,13 +624,26 @@ taken 2026-08-23 that DEFINE the route out rather than constitute it -- none is 
 record: `phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`.
 
 - **D4-01** — Phase 4 partitions on curvature **DIRECTION** (`H/||H||` clustering), not `|H|`
-  quantiles. ROADMAP success criterion 2 is superseded. Validate against
-  `varying_ii_controls.make_ridge_graph_control` first, whose single bending direction `w` is an
-  exact known answer.
-- **D4-02** — the estimator is decided by a **head-to-head on `cubic` at `d=20`**
-  (`centroid_mean_curvature` vs the CAE decoder). The `+0.65` vs `-0.015` pair currently quoted
-  is NOT a comparison: the `-0.015` was measured on the saddle, which cannot rank at all. If the
-  point-cloud route wins, 03.1's metric work becomes optional rather than blocking.
+  quantiles. ROADMAP success criterion 2 is superseded. **Adopted on PARTIAL evidence**
+  (Amendment 01, 2026-08-23): the partition-fidelity validation was built and then deliberately
+  scoped out as too narrow — both schemes read the same field at the same points, so location
+  error cancels and the test could not speak to whether the field is trustworthy. **Codimension
+  caveat, unclosed:** every spike 003 fixture is a codimension-1 graph, where `H = H_scalar *
+  n_hat` and "direction" IS the surface normal, so the cosine 1.000 result shows normal-ORIENTATION
+  recovery, not resolution within a normal space. PU's codimension is ~748.
+  `varying_ii_controls.make_multinormal_ridge_control` exists and is tested if anyone wants to
+  narrow that gap (tops out ~m=8).
+- **D4-02** — **RESOLVED 2026-08-23 to the point-cloud estimator** (Amendment 02). Three cells,
+  both arms on identical data at `d=20`: cloud `rho` +0.41..+0.61 with cosine +0.77..+0.92 in 2s;
+  decoder `rho` +0.002..+0.018 with cosine ~0 (twice negative) in ~358s. Decoder magnitude
+  inflated 12,000-42,000x, consistent with its measured `cond(g)` of 4e11-1.6e12.
+  **Caveat: the decoder arm is undertrained vs Phase 3's sealed fits** (mse_per_dim 0.23-0.32
+  against the sealed 1.6e-02), so this is not a clean disqualification of a well-trained decoder
+  — but 200->400 epochs moved its `rho` only +0.0019 -> +0.0072, i.e. flat.
+  **Consequence: 03.1's metric regularization is optional, not blocking, for Phase 4**, and
+  Phase 3's non-reproducing field stops being on the critical path. `k` becomes Phase 4's main
+  free parameter (needs the hundreds at `d=20`; `k=231` is 2.3% of PU's cloud, locality
+  unmeasured).
 - **D4-03** — PU split-half reliability (`R_H = 0.589` at `k=231`) accepted as sufficient.
   **Deliberately accepted blind spot**, recommendation declined: split-half reliability cannot
   detect a bias both halves share (measured `R_H = 0.990` with `rho = 0.469` on the Swiss roll),
@@ -640,6 +653,8 @@ record: `phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`.
   PU and reporting rank agreement costs one cell.
 - **D4-04** — two commits: spike 003, then the Phase 3 closure.
 
-**Next step:** the D4-02 head-to-head and the D4-01 direction-clustering validation, both on
-fixtures with known answers, before Phase 4 is planned.
+**Next step:** Phase 4 planning may proceed. D4-01 and D4-02 are settled (D4-01 on partial
+evidence with the codimension gap named; D4-02 on measurement with the undertrained-decoder
+caveat named). Phase 4's record must state BOTH caveats in its own words, plus D4-03's accepted
+blind spot, on the standard `03-FINDINGS.md` §1 was held to for the gate override.
 </content>
