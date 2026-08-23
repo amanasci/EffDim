@@ -780,11 +780,25 @@ Plans:
 **Plans**: 6 plans across 5 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 04-01-PLAN.md — TRACER: fill `mknn.py`'s three stubs on a shared k-NN-membership-matrix architecture and produce the global crossmodal MKNN end to end (MKNN-01, MKNN-02, MKNN-05, MKNN-08)
 - [ ] 04-02-PLAN.md — Density-corrected `R_H` sweep past k=231 and the D4-07 `k` freeze, rule declared before the first corrected number (REGN-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 04-03-PLAN.md — The diametrical sign-split helper with a known-answer test, then the blocking pre-registration checkpoint and freeze (REGN-03, REGN-04, MKNN-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 04-04-PLAN.md — PU field at the frozen `k`, the sign split frozen as an artifact, and the density confound reported (REGN-01, REGN-02, REGN-05, REGN-06)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 04-05-PLAN.md — The eight-cell regional MKNN grid with region-scoped nulls, bootstrap CIs, hubness, and the pre-registered verdict (MKNN-03..08)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 04-06-PLAN.md — The phase record: three accepted gaps in the phase's own words, the Swiss-roll reasoning, and honest requirement outcomes (REGN-02, MKNN-07, MKNN-08)
 
 **Research**: Completed 2026-08-23 — `phases/04-region-partitioning-regional-alignment-mknn/04-RESEARCH.md`. The density-confound battery is **descoped to the REGN-02 correlation only** by D4-14 (no centroid-distance check, no partial regression, no density-matched stratification or null), so the original-synthesis risk this line flagged no longer applies; the accepted consequence — a regional MKNN difference cannot be separated from a regional density difference by anything in this phase — is carried in the phase record instead.
