@@ -615,7 +615,16 @@ Plans:
 
 **Research**: needed at plan time for the high-codimension mean-curvature math — first/second fundamental form, `‖H‖`, batched `vmap` Jacobian/Hessian — easy to get subtly wrong on shapes and index conventions.
 
-**Plans**: 7/11 plans executed
+**Status**: **SEALED 2026-08-23. 11/11 plans. The curvature field is NOT validated** — that is
+the phase's outcome, not a failure to work around. `CURV-07` answers "neither established": the
+instrument is correct at `d=4` (`rho = 0.989`) but the field does not reproduce across seeds
+(`||H||` median spans **52x** over three converged draws; two of the three are numerically
+degenerate). The phase's most transferable result is the `cond(g)` -> artifact-curvature band
+table, monotone across four decades. Record: `03-FINDINGS.md`, `03-11-SUMMARY.md`, and
+`03-FINDINGS-SUPPLEMENT-01.md` (which withdraws one supporting clause in §6 point 3 after spike
+003 showed the `d=20` saddle control is unrankable by construction; the conclusion is unchanged).
+
+**Plans**: 11/11 plans executed
 
 Plans:
 **Wave 1**
@@ -764,7 +773,7 @@ Plans:
   4. Per-region MKNN score for high/low-curvature regions, each with its own permutation null computed within that region's index set (never reused from a global null) and bootstrap CIs (MKNN-03..05)
   5. Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown, with an explicit verdict on whether the regional difference is distinguishable from noise ("no detectable difference" is a valid outcome), hubness caveat for k-NN-based alignment metrics stated alongside results (MKNN-06..08)
 
-**Decisions taken 2026-08-23** (`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`): **D4-01** partition on curvature direction, not `|H|` quantiles. **D4-02** the estimator (point-cloud `centroid_mean_curvature` vs the CAE decoder) is decided by a head-to-head on `cubic` at `d=20` before Phase 4 commits — the two have never been compared on a fixture able to separate them. **D4-03** PU split-half reliability (`R_H = 0.589` at `k=231`) is accepted as sufficient; cross-estimator agreement on PU is NOT required. That is a **deliberately accepted blind spot** — split-half reliability cannot detect a bias both halves share (measured: `R_H = 0.990` with `rho = 0.469` on the Swiss roll) — and any Phase 4 result inherits an unvalidated field, which Phase 4's record must state in its own words.
+**Decisions taken 2026-08-23** (`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`): **D4-01** partition on curvature direction, not `|H|` quantiles — **adopted on PARTIAL evidence**: the partition-fidelity validation was built then deliberately scoped out (both schemes read the same field at the same points, so location error cancels). **Unclosed codimension gap:** every spike 003 fixture is a codimension-1 graph where `H = H_scalar * n_hat`, so "direction" IS the surface normal and the cosine 1.000 result shows normal-ORIENTATION recovery, not resolution within a normal space; PU's codimension is ~748. **D4-02 RESOLVED 2026-08-23 to the point-cloud `centroid_mean_curvature`** — three cells, both arms on identical data at `d=20`: cloud `rho` +0.41..+0.61 with cosine +0.77..+0.92 in **2s**, decoder `rho` +0.002..+0.018 with cosine ~0 (twice negative) in ~358s, its magnitude inflated 12,000-42,000x consistent with `cond(g)` 4e11-1.6e12. *Caveat: the decoder arm is undertrained vs Phase 3's sealed fits (mse_per_dim 0.23-0.32 against 1.6e-02), so this is not a clean disqualification of a well-trained decoder — but 200->400 epochs moved its `rho` only +0.0019 -> +0.0072.* **Consequence: Phase 03.1's metric regularization is OPTIONAL, not blocking**, and Phase 3's non-reproducing field is off the critical path. `k` becomes the main free parameter (hundreds at `d=20`). **D4-03** PU split-half reliability (`R_H = 0.589` at `k=231`) is accepted as sufficient; cross-estimator agreement on PU is NOT required. That is a **deliberately accepted blind spot** — split-half reliability cannot detect a bias both halves share (measured: `R_H = 0.990` with `rho = 0.469` on the Swiss roll) — and any Phase 4 result inherits an unvalidated field, which Phase 4's record must state in its own words.
 
 **Plans**: TBD
 **Research**: Needs a research pass during planning — SUMMARY.md flags the density-confound control methodology (correlation check, centroid-distance check, partial regression, density-matched stratification/null) as original synthesis, not a documented off-the-shelf recipe.

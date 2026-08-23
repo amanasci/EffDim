@@ -619,9 +619,15 @@ Stopped at: **Phase 3 CLOSED.** `03-11-SUMMARY.md` recorded (the plan's work had
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
 Resume file: None
 
-**Phase 4 is BLOCKED and this closure does not unblock it.** D-11 stands. Four decisions were
-taken 2026-08-23 that DEFINE the route out rather than constitute it -- none is executed. Full
-record: `phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`.
+**Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
+out proposed") is **discharged**: four decisions now define the route out, and two of them
+(D4-01, D4-02) are settled on measurement. Full record:
+`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`.
+
+**What is unblocked is PLANNING, not claiming.** The curvature field Phase 4 will consume is
+still not validated -- Phase 3 sealed with `CURV-07` answering "neither established" -- and each
+of the three caveats below must be restated in Phase 4's own artifacts rather than inherited as
+a silent green light, on the same standard `03-FINDINGS.md` §1 was held to for the gate override.
 
 - **D4-01** — Phase 4 partitions on curvature **DIRECTION** (`H/||H||` clustering), not `|H|`
   quantiles. ROADMAP success criterion 2 is superseded. **Adopted on PARTIAL evidence**
