@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 03.1
-current_phase_name: decoder-metric-regularization-inserted
-status: verifying
-stopped_at: Completed 03.1-05-PLAN.md -- phase 03.1 sealed, CURV-04 closed, Phase 4 remains blocked
-last_updated: "2026-08-22T00:33:11.445Z"
-last_activity: 2026-08-21
+current_phase: 3
+current_phase_name: decoder-curvature-field
+status: complete
+stopped_at: Phase 3 CLOSED 2026-08-23 -- 03-11 recorded, field NOT validated, Phase 4 remains blocked (D-11)
+last_updated: "2026-08-23T00:00:00.000Z"
+last_activity: 2026-08-23
 progress:
   total_phases: 10
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 81
-  completed_plans: 74
-last_activity_desc: Phase 03.1 planned - 5 plans in 5 sequential waves
+  completed_plans: 75
+last_activity_desc: Phase 3 closed - 03-11 summary and findings supplement recorded
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 03.1 (decoder-metric-regularization-inserted) — EXECUTING
-Plan: 5 of 5
+Phase: 3 (decoder-curvature-field) — CLOSED 2026-08-23
+Plan: 11 of 11
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -612,8 +612,34 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-22T00:33:11.398Z
-Stopped at: Completed 03.1-05-PLAN.md -- phase 03.1 sealed, CURV-04 closed, Phase 4 remains blocked
-REQUIREMENTS.md traceability renumbered; awaiting phase planning for Phase 1
+Last session: 2026-08-23
+Stopped at: **Phase 3 CLOSED.** `03-11-SUMMARY.md` recorded (the plan's work had been executed
+2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
+`must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
+withdraws one supporting clause in §6 point 3 without changing its conclusion.
 Resume file: None
+
+**Phase 4 is BLOCKED and this closure does not unblock it.** D-11 stands. Four decisions were
+taken 2026-08-23 that DEFINE the route out rather than constitute it -- none is executed. Full
+record: `phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`.
+
+- **D4-01** — Phase 4 partitions on curvature **DIRECTION** (`H/||H||` clustering), not `|H|`
+  quantiles. ROADMAP success criterion 2 is superseded. Validate against
+  `varying_ii_controls.make_ridge_graph_control` first, whose single bending direction `w` is an
+  exact known answer.
+- **D4-02** — the estimator is decided by a **head-to-head on `cubic` at `d=20`**
+  (`centroid_mean_curvature` vs the CAE decoder). The `+0.65` vs `-0.015` pair currently quoted
+  is NOT a comparison: the `-0.015` was measured on the saddle, which cannot rank at all. If the
+  point-cloud route wins, 03.1's metric work becomes optional rather than blocking.
+- **D4-03** — PU split-half reliability (`R_H = 0.589` at `k=231`) accepted as sufficient.
+  **Deliberately accepted blind spot**, recommendation declined: split-half reliability cannot
+  detect a bias both halves share (measured `R_H = 0.990` with `rho = 0.469` on the Swiss roll),
+  and there is no ground truth on PU. **Any Phase 4 result inherits an unvalidated field** and
+  Phase 4's record must say so in its own words, on the standard `03-FINDINGS.md` §1 was held to.
+  Nearly-free mitigation available any time: D4-02 produces both estimators, so running both on
+  PU and reporting rank agreement costs one cell.
+- **D4-04** — two commits: spike 003, then the Phase 3 closure.
+
+**Next step:** the D4-02 head-to-head and the D4-01 direction-clustering validation, both on
+fixtures with known answers, before Phase 4 is planned.
 </content>

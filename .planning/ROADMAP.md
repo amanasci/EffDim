@@ -759,10 +759,12 @@ Plans:
 **Success Criteria**:
 
   1. Local sample-density measure per point in Isomap coordinate space and its correlation with curvature shown explicitly, before any region split is trusted (REGN-01, REGN-02)
-  2. Points partitioned into high/low-curvature regions by a pre-specified quantile threshold (never a fixed absolute value), fixed before regional alignment is computed, each region's point count shown (REGN-03..05)
+  2. **SUPERSEDED 2026-08-23 by D4-01** (`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`). Points partitioned by clustering curvature **DIRECTION** `H/||H||`, not by `|H|` quantiles — at `d=20` direction is recoverable (cosine 0.77–1.000) while magnitude is ~50x attenuated and its ordering saturates at `rho ~ 0.5–0.65` (spike 003). The partition is still **pre-specified and frozen** before any regional MKNN number is computed; only the quantity being partitioned changes. Direction-clustering must first be validated against `varying_ii_controls.make_ridge_graph_control`, whose single bending direction `w` is an exact known answer. Original criterion, for the record: *points partitioned into high/low-curvature regions by a pre-specified quantile threshold, each region's point count shown* (REGN-03..05)
   3. MKNN score between two row-aligned embeddings computed as k-normalized k-NN intersection size, matching the origin paper; global crossmodal HSC-vs-Legacy-Survey MKNN number reproduced and compared against the origin paper's published range (MKNN-01, MKNN-02)
   4. Per-region MKNN score for high/low-curvature regions, each with its own permutation null computed within that region's index set (never reused from a global null) and bootstrap CIs (MKNN-03..05)
   5. Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown, with an explicit verdict on whether the regional difference is distinguishable from noise ("no detectable difference" is a valid outcome), hubness caveat for k-NN-based alignment metrics stated alongside results (MKNN-06..08)
+
+**Decisions taken 2026-08-23** (`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`): **D4-01** partition on curvature direction, not `|H|` quantiles. **D4-02** the estimator (point-cloud `centroid_mean_curvature` vs the CAE decoder) is decided by a head-to-head on `cubic` at `d=20` before Phase 4 commits — the two have never been compared on a fixture able to separate them. **D4-03** PU split-half reliability (`R_H = 0.589` at `k=231`) is accepted as sufficient; cross-estimator agreement on PU is NOT required. That is a **deliberately accepted blind spot** — split-half reliability cannot detect a bias both halves share (measured: `R_H = 0.990` with `rho = 0.469` on the Swiss roll) — and any Phase 4 result inherits an unvalidated field, which Phase 4's record must state in its own words.
 
 **Plans**: TBD
 **Research**: Needs a research pass during planning — SUMMARY.md flags the density-confound control methodology (correlation check, centroid-distance check, partial regression, density-matched stratification/null) as original synthesis, not a documented off-the-shelf recipe.
@@ -803,7 +805,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 ## Progress
 
-**Execution Order:** Phases 1 -> 2 -> 02.1 -> 02.2 -> 02.4 ran and are closed. The phase-2 stage (02.3, 02.5, 02.6, 02.7) is **ON HOLD from 2026-08-12** — architecture selection tabled, nothing further scheduled there. Remaining order is **3 -> 4**, with Phase 3 running on a CAE substrate under a deliberate override of its PASS precondition.
+**Execution Order:** Phases 1 -> 2 -> 02.1 -> 02.2 -> 02.4 ran and are closed. The phase-2 stage (02.3, 02.5, 02.6, 02.7) is **ON HOLD from 2026-08-12** — architecture selection tabled, nothing further scheduled there. Phase 3 ran on a CAE substrate under a deliberate override of its PASS precondition and **closed 2026-08-23 with the field NOT validated**; Phase 03.1 repaired the pullback metric without moving rank correlation and closed 2026-08-22. **Phase 4 remains BLOCKED** (D-11: no route out proposed by Phase 3 itself). Spike 003 (2026-08-22) proposes candidate routes; none is ratified.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -816,6 +818,7 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.5. Local Curvature Feasibility & CAE Re-Gate (INSERTED) | v1.1 | 9/13 | On hold 2026-08-12 | - |
 | 02.6. Decoder Substrate Screening (INSERTED) | v1.1 | 15/15 | Complete (no substrate promoted) | 2026-08-11 |
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
-| 3. Decoder & Curvature Field | v1.1 | 7/11 | In Progress|  |
+| 3. Decoder & Curvature Field | v1.1 | 11/11 | Complete (field NOT validated) | 2026-08-23 |
+| 03.1. Decoder Metric Regularization (INSERTED) | v1.1 | 5/5 | Complete (metric repaired, ordering unmoved) | 2026-08-22 |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 0/TBD | Not started | - |
 </content>
