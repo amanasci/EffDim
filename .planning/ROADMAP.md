@@ -856,3 +856,14 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 03.1. Decoder Metric Regularization (INSERTED) | v1.1 | 5/5 | Complete (metric repaired, ordering unmoved) | 2026-08-22 |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 6/6 | Complete    | 2026-08-24 |
 </content>
+
+### Phase 5: Curvature-Conditioned Linear Decodability
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 5 to break down)

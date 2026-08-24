@@ -618,6 +618,7 @@ From `TODO.md`:
 - Phase 02.1 planned: 4 plans across 3 waves; plan-checker VERIFICATION PASSED first iteration; GEOM-01..05 coverage complete
 - Phase 02.2 inserted after Phase 02.1: Chart Autoencoder Validity Test — empirically tests arXiv:1912.10094 on the PU data behind a PASS/FAIL gate; PASS unblocks Phase 3 to decode from the CAE representation, FAIL documents the finding and leaves the milestone at the phase-2 stage. Doc-only insertion; the phase itself is unplanned
 - Phase 02.5 inserted after Phase 2: Local curvature feasibility probe, then a locally-scoped CAE re-gate — resolves Phase 3's blocking dependency on a global-scoped PASS no method has produced (URGENT)
+- Phase 5 added: Curvature-Conditioned Linear Decodability — does a linear probe mapping `hsc -> legacysurvey` on frozen embeddings degrade in high-||H|| regions? Decoder-side curvature via the CAE chart decoder across all 3 cached seeds (seed spread a required check, inheriting 02.2's CAE_VERDICT=FAIL and 03.1's partial metric repair); split on ||H|| magnitude, not Phase 4's direction sign
 
 ## Deferred Items
 
