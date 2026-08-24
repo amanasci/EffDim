@@ -387,6 +387,51 @@ def _load_bucket_artifact(seed: int, bucket_stem_prefix: str) -> Dict[str, Any]:
     }
 
 
+def _conditioning_diagnostics(
+    X_train: np.ndarray, alpha_grid: Any, selected_alpha: float
+) -> Dict[str, Any]:
+    """RESEARCH A2's stated reason for ridge -- that the 768-d design matrix is effectively
+    rank-deficient at the manifold's established 18-to-25 intrinsic dimension -- CHECKED here
+    against the training split's own measured singular spectrum, per A2's own instruction that
+    the reason should be verified before being asserted as fact. Computes no statistic that
+    feeds any verdict and calls no fit: it reads `selected_alpha` (an OUTPUT of the frozen
+    RidgeCV selection rule, computed once at the one `_fit_and_evaluate` call site) rather than
+    refitting. There is one training split and one fit, so this is called exactly once, never
+    per seed.
+    """
+    X_train = np.asarray(X_train, dtype=np.float64)
+    centered = X_train - X_train.mean(axis=0)
+    singular_values = np.linalg.svd(centered, compute_uv=False)
+    condition_number = float(singular_values[0] / singular_values[-1])
+    largest = float(singular_values[0])
+
+    def _effective_rank(threshold_fraction: float) -> int:
+        return int(np.sum(singular_values > threshold_fraction * largest))
+
+    variance = singular_values**2
+    total_variance = float(variance.sum())
+    cumvar = np.cumsum(variance) / total_variance
+
+    alpha_grid_floats = tuple(float(v) for v in alpha_grid)
+    alpha_at_grid_boundary = bool(
+        selected_alpha == min(alpha_grid_floats) or selected_alpha == max(alpha_grid_floats)
+    )
+
+    return {
+        "kind": "probe_conditioning",
+        "singular_values_head": [float(v) for v in singular_values[:40]],
+        "condition_number": condition_number,
+        "effective_rank_1pct": _effective_rank(0.01),
+        "effective_rank_0p1pct": _effective_rank(0.001),
+        "effective_rank_0p01pct": _effective_rank(0.0001),
+        "cumvar_first_20": float(cumvar[19]),
+        "cumvar_first_25": float(cumvar[24]),
+        "selected_alpha": float(selected_alpha),
+        "alpha_grid": list(alpha_grid_floats),
+        "alpha_at_grid_boundary": alpha_at_grid_boundary,
+    }
+
+
 def run_bucketed_mode(a: argparse.Namespace) -> None:
     """`--mode bucketed` -- the phase's headline computation. The D5-10 guard --
     `assert_preregistered()` then the three-artifact existence check -- runs first and is
@@ -654,6 +699,12 @@ def run_bucketed_mode(a: argparse.Namespace) -> None:
             **provenance,
         }
         fh.write(json.dumps(overall_row, default=float) + "\n")
+        fh.flush()
+
+        conditioning_row = _conditioning_diagnostics(
+            X_hsc_use[train_idx], RIDGE_ALPHA_GRID, selected_alpha
+        )
+        fh.write(json.dumps(conditioning_row, default=float) + "\n")
         fh.flush()
 
     print(f"wrote {record_path}")
