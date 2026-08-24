@@ -45,6 +45,97 @@ from typing import Any, Dict
 import numpy as np
 
 
+# --- Pre-registration (D4-11, ratified at this plan's blocking checkpoint) -----------------
+#
+# PRE-REGISTERED under the ROADMAP's Ordering constraint: every constant below, and
+# VERDICT_RULE's full text, were ratified at this plan's Task 2 blocking decision checkpoint
+# BEFORE any regional MKNN number existed. Amending any of MIN_NORM_PERCENTILE, MIN_REGION_N,
+# HEADLINE_K, MKNN_K_GRID, NULL_QUANTILE, CONFIDENCE_LEVEL, or VERDICT_RULE after a regional
+# MKNN number has been computed invalidates the phase -- a rule chosen after seeing the
+# numbers is a rationalization, not a pre-registration. See
+# `.planning/phases/04-region-partitioning-regional-alignment-mknn/04-PREREGISTRATION.md`
+# for the full committed record, including the checkpoint's ratification note.
+
+MIN_NORM_PERCENTILE = 5.0  # within-config percentile of the field's own ||H||, never absolute
+MIN_REGION_N = 500  # = 10 * k_max at k_max = 50 (RESEARCH A4's number; no literature precedent)
+MKNN_K_GRID = (5, 10, 20, 50)
+HEADLINE_K = 20
+NULL_QUANTILE = 0.99
+CONFIDENCE_LEVEL = 0.95
+N_PERMUTATIONS = 1000  # D4-17
+N_BOOTSTRAP = 1000  # D4-17
+FIELD_D = 20  # D-07: explicit call-site value, never re-derived
+K_DENSITY = 30  # D4-15
+SEED = 20260822  # existing runner's seed, kept for continuity
+COVARIANCE_FORM = "mean_centered"  # np.cov's own form; see module docstring's caveat
+
+# Copied verbatim from notebooks/.cache/04_k_freeze.json (plan 04-02's output). rule_fired is
+# False: D4-07's freeze rule never fired anywhere across k in {30, 60, 120, 231, 350, 500) --
+# median_R_H reached only 0.3436 against its 0.5 floor, and the per-step increment never
+# collapsed toward the 0.03 ceiling (it ROSE at the last step, 0.0516 -> 0.0583). K_FROZEN=500
+# is therefore the pre-registered fallback -- "the largest k actually run", a compute-budget
+# ceiling -- NOT a detected reliability plateau. Never described as converged or settled.
+K_FROZEN = 500
+K_FREEZE_RULE = (
+    "D4-07: freeze the curvature-field k at the smallest k in the ordered sweep grid whose "
+    "median_R_H gain over the immediately preceding sweep point is strictly less than 0.03 "
+    "AND whose median_R_H is greater than or equal to 0.5. The rule is evaluated from the "
+    "SECOND sweep point onward, because the gain at the first point is undefined. If no k in "
+    "the grid satisfies both conditions, the frozen k is the largest k actually run and the "
+    "outcome is recorded as not-fired -- never adjusted post hoc."
+)
+
+VERDICT_RULE = """MKNN-07 verdict rule -- ratified at this plan's Task 2 blocking checkpoint,
+before any regional MKNN number existed.
+
+The high-vs-low regional MKNN result HOLDS at a given k if and only if BOTH:
+  (a) the two regions' CONFIDENCE_LEVEL (0.95) percentile bootstrap CIs at that k are
+      disjoint, AND
+  (b) the higher-scoring region's observed MKNN strictly exceeds the NULL_QUANTILE (0.99)
+      percentile of its OWN region-scoped permutation null.
+
+The headline call is made at HEADLINE_K = 20 alone. The remaining grid values, k in
+MKNN_K_GRID = (5, 10, 50), are reported as sensitivity only: they cannot overturn or escalate
+the headline verdict, and take no separate multiplicity correction. No multiplicity correction
+is applied across the 2x4 grid, because the four k values are a nested sensitivity sweep on
+the same two regions and the same embeddings, not independent trials.
+
+"NO DETECTABLE DIFFERENCE" at the headline k is a complete, valid outcome. It is never treated
+as a phase failure and it is never escalated by a majority vote across the sensitivity k --
+that alternative verdict shape was considered and rejected at the Task 2 checkpoint.
+
+D4-14 CAVEAT, carried in this rule's own text rather than only alongside it: the
+density-confound battery run in this phase is the REGN-02 correlation only -- no
+density-matched null. MKNN is itself a k-NN statistic and therefore directly
+density-sensitive. A detected regional MKNN difference under this rule CANNOT be attributed
+to curvature rather than to regional density by anything in this phase.
+"""
+
+MIN_REGION_N_UNDEFINED_REASON = "n_region < MIN_REGION_N"
+
+
+def assert_preregistered() -> None:
+    """Raise ``RuntimeError`` unless the pre-registration is intact: ``VERDICT_RULE`` is a
+    non-empty string naming ``HEADLINE_K``, ``K_FROZEN`` is a positive int, and
+    ``MIN_REGION_N`` is a positive int. Called at the top of the runner's ``--mode regional``
+    branch so the regional path fails loudly rather than computing anything when the
+    pre-registration is absent or malformed."""
+    if not isinstance(VERDICT_RULE, str) or not VERDICT_RULE.strip():
+        raise RuntimeError("assert_preregistered: VERDICT_RULE is empty or not a string.")
+    if "HEADLINE_K" not in VERDICT_RULE:
+        raise RuntimeError("assert_preregistered: VERDICT_RULE does not name HEADLINE_K.")
+    if not isinstance(K_FROZEN, int) or isinstance(K_FROZEN, bool) or K_FROZEN <= 0:
+        raise RuntimeError(f"assert_preregistered: K_FROZEN={K_FROZEN!r} is not a positive int.")
+    if (
+        not isinstance(MIN_REGION_N, int)
+        or isinstance(MIN_REGION_N, bool)
+        or MIN_REGION_N <= 0
+    ):
+        raise RuntimeError(
+            f"assert_preregistered: MIN_REGION_N={MIN_REGION_N!r} is not a positive int."
+        )
+
+
 def canonical_eigvec_sign(v: np.ndarray) -> np.ndarray:
     """Return ``v`` scaled so its largest-magnitude component is positive. Without this,
     ``numpy.linalg.eigh``'s arbitrary eigenvector sign would flip region labels between

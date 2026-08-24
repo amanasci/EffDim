@@ -1,7 +1,10 @@
-"""Phase 4 region-partitioning MKNN runner. `--mode global` (this plan) computes the
+"""Phase 4 region-partitioning MKNN runner. `--mode global` (plan 04-01) computes the
 region-blind, partition-blind crossmodal HSC-vs-Legacy-Survey MKNN across the frozen
-`--mknn-k` grid. `--mode partition`/`--mode regional` are pre-registered by later plans
-in this phase (04-03 onward) and are not implemented here.
+`--mknn-k` grid. `--mode partition` is implemented by a later plan in this phase
+(04-04 onward). `--mode regional` (this plan, 04-03) guards its own computation behind
+`region_partition.assert_preregistered()` plus an existence check on the frozen partition
+artifact -- both must pass before it will even attempt a regional MKNN cell, and the cell
+computation itself is still implemented by a later plan (04-04 onward).
 
     python notebooks/diagnostics/region_partition_mknn_run.py --selfcheck
     python notebooks/diagnostics/region_partition_mknn_run.py --mode global --smoke
@@ -22,7 +25,9 @@ if str(NOTEBOOK_ROOT) not in sys.path:
 
 import numpy as np
 
+from pu_manifold import cache
 from pu_manifold import mknn
+from pu_manifold import region_partition
 
 DEFAULT_RECORD = NOTEBOOK_ROOT / ".cache" / "04_region_partition_mknn.jsonl"
 
@@ -261,6 +266,25 @@ def main() -> None:
     if a.selfcheck:
         ok = selfcheck()
         sys.exit(0 if ok else 1)
+
+    if a.mode == "regional":
+        # D4-11/REGN-04/T-04-07: fail loudly rather than compute anything when the
+        # pre-registration or the frozen partition artifact is absent. This guard must run
+        # BEFORE any regional cell is computed -- it is what makes the pre-registration
+        # commit's ordering enforceable, not merely documented.
+        region_partition.assert_preregistered()
+        partition_artifact = cache.cache_path("04_region_partition", "npz")
+        if not partition_artifact.exists():
+            raise FileNotFoundError(
+                f"--mode regional requires the frozen partition artifact at "
+                f"{partition_artifact}, which does not exist. Run --mode partition first "
+                "to produce it (a later plan in this phase implements --mode partition)."
+            )
+        raise NotImplementedError(
+            "--mode regional's cell computation is implemented in a later plan in this "
+            "phase (04-04 onward); this plan only adds the pre-registration/artifact guard "
+            "above, which must exist before that computation is written."
+        )
 
     if a.mode != "global":
         raise NotImplementedError(
