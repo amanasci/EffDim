@@ -224,18 +224,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-07 | Phase 3 | Answered (negative, conditioned on the override) |
 | CURV-08 | Phase 3 | Complete |
 | REGN-01 | Phase 4 | Complete |
-| REGN-02 | Phase 4 | Complete |
-| REGN-03 | Phase 4 | Complete |
+| REGN-02 | Phase 4 | Complete (reported, not controlled — density confound rho=+0.82 on the split axis; see `04-FINDINGS.md` §1 Gap 3) |
+| REGN-03 | Phase 4 | Complete (validated only against a codimension-1 known answer, applied to a codimension-~748 problem; no PU-scale fixture validation run — see `04-FINDINGS.md` §1 Gap 2) |
 | REGN-04 | Phase 4 | Complete |
 | REGN-05 | Phase 4 | Complete |
 | REGN-06 | Phase 4 | Complete |
 | MKNN-01 | Phase 4 | Complete |
-| MKNN-02 | Phase 4 | Complete |
+| MKNN-02 | Phase 4 | Complete (raw scores fall outside the origin paper's range at an order-of-magnitude smaller n; ratio-over-chance carries the comparison — see `04-FINDINGS.md` §5) |
 | MKNN-03 | Phase 4 | Complete |
 | MKNN-04 | Phase 4 | Complete |
 | MKNN-05 | Phase 4 | Complete |
 | MKNN-06 | Phase 4 | Complete |
-| MKNN-07 | Phase 4 | Complete |
+| MKNN-07 | Phase 4 | Complete (HOLDS at every k including headline k=20, applied mechanically; qualified by a region-size artifact accounting for most of the raw-score gap and by the unresolved density confound — see `04-FINDINGS.md` §5) |
 | MKNN-08 | Phase 4 | Complete |
 
 **Coverage:** v1.1 requirements: 56 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 6 + MKNN 8). Mapped to phases: 56/56 ✓ · Unmapped: 0 ✓
