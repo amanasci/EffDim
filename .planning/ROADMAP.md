@@ -869,10 +869,26 @@ thirteen locked decisions are the de-facto requirement set, following Phase 02.5
 **Plans:** 6 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 05-01-PLAN.md — Tracer: the whole machine wired end to end on planted data, constants unset so the bucketed path is provably dead
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 05-02-PLAN.md — Extract three seeds' decoder-side curvature fields (~2.6 h, per-seed cached) and measure inter-seed agreement with its direction axis
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 05-03-PLAN.md — Ratify the one-way seed-pooling rule, build the pooled field and bucket labels, re-measure the density confound
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 05-04-PLAN.md — The pre-registration freeze: every constant and the full VERDICT_RULE in committed source plus 05-PREREGISTRATION.md
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 05-05-PLAN.md — The bucketed probe run: the phase's headline numbers, verdict applied mechanically from the committed rule
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md, and the mechanical git-ancestry proof of the ordering guarantee

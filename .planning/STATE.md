@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.3
 current_phase_name: INSERTED, proposed — not yet planned
-status: planning
+status: executing
 stopped_at: Completed 04-06-PLAN.md -- Phase 4 closed
-last_updated: "2026-08-24T13:51:02.538Z"
+last_updated: "2026-08-24T15:33:51.316Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 9
-  total_plans: 87
+  total_plans: 93
   completed_plans: 81
 ---
 
@@ -268,7 +268,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-24 — Phase 04 complete, transitioned to Phase 02.3
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
@@ -619,6 +619,12 @@ From `TODO.md`:
 - Phase 02.2 inserted after Phase 02.1: Chart Autoencoder Validity Test — empirically tests arXiv:1912.10094 on the PU data behind a PASS/FAIL gate; PASS unblocks Phase 3 to decode from the CAE representation, FAIL documents the finding and leaves the milestone at the phase-2 stage. Doc-only insertion; the phase itself is unplanned
 - Phase 02.5 inserted after Phase 2: Local curvature feasibility probe, then a locally-scoped CAE re-gate — resolves Phase 3's blocking dependency on a global-scoped PASS no method has produced (URGENT)
 - Phase 5 added: Curvature-Conditioned Linear Decodability — does a linear probe mapping `hsc -> legacysurvey` on frozen embeddings degrade in high-||H|| regions? Decoder-side curvature via the CAE chart decoder across all 3 cached seeds (seed spread a required check, inheriting 02.2's CAE_VERDICT=FAIL and 03.1's partial metric repair); split on ||H|| magnitude, not Phase 4's direction sign
+
+## Gate Overrides
+
+| Phase | Gate | Verdict | Basis for override | Recorded |
+|-------|------|---------|--------------------|----------|
+| 05 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap.** The handler extracts `- **D-NN:**` bullets; `05-CONTEXT.md` names its decisions `D5-01`..`D5-13`, so it parsed 0 of 13. Coverage verified two independent ways: (a) gsd-plan-checker's own decision table, (b) direct grep — the union of the six plans' `requirements` frontmatter is exactly D5-01..D5-13, and every decision resolves to at least one implementing task. User approved proceeding 2026-08-24. **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 5.** | 2026-08-24 |
 
 ## Deferred Items
 
