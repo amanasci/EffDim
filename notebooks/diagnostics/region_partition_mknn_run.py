@@ -257,6 +257,10 @@ def run_partition(
                 "excluded_idx": excluded_idx,
                 "h_norm": h_norm_full,
                 "signed_projection": proj,
+                # Extra key beyond REGN-06's required six: the full unit-H covariance
+                # spectrum, so the notebook's Section 5 can render the top-five eigenvalues
+                # (04-RESEARCH.md's codimension caveat) without recomputing the heavy field.
+                "eigval_spectrum": eigval_spectrum,
             },
         )
         print(f"REGN-06: frozen partition artifact written to {cache.cache_path('04_region_partition', 'npz')}")
@@ -324,6 +328,7 @@ def run_partition(
         "rho_p95_over_p05": rho_ratio,
         "mean_unit_norm": float(result["mean_unit_norm"]),
         "eigval_top": float(result["eigval_top"]),
+        "eigval_spectrum_top5": [float(e) for e in eigval_top5],
         "h_spread": h_spread,
         "floor": float(floor),
         "min_norm_percentile": float(min_norm_percentile),
