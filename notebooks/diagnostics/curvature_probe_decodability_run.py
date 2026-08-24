@@ -1228,11 +1228,18 @@ def selfcheck() -> bool:
     )
     check("apply_verdict_rule returns HOLDS on the planted ordering", verdict_result["verdict"] == "HOLDS")
 
+    # D5-10: as of the 05-04 freeze, `linear_probe` ships FROZEN, not unset -- this check must
+    # prove the freeze is intact (assert_preregistered does NOT raise), not that it is absent.
+    # Inverted here to mirror the identical fix already applied to
+    # test_linear_probe.py::test_assert_preregistered_raises_when_absent at 05-04 (see that
+    # plan's SUMMARY.md deviations section); this assertion was pre-freeze and had not yet been
+    # updated for the frozen module, so it failed for real (exit 1) until this fix.
     try:
         linear_probe.assert_preregistered()
-        check("assert_preregistered raises RuntimeError while constants are unset", False)
-    except RuntimeError:
-        check("assert_preregistered raises RuntimeError while constants are unset", True)
+        check("assert_preregistered passes now that the pre-registration is frozen (05-04)", True)
+    except RuntimeError as exc:
+        check("assert_preregistered passes now that the pre-registration is frozen (05-04)", False)
+        print(f"    (assert_preregistered raised: {exc})")
 
     row = {
         "kind": "selfcheck",
