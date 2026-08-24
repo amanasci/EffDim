@@ -109,7 +109,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 - [ ] **REGN-01**: Local sample-density measure per point **in the ambient embedding space the curvature field is estimated in** — the 768-d normalized embeddings, not Isomap coordinates — shown
 - [ ] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
 - [ ] **REGN-03**: Points partitioned by a **data-derived direction criterion**, never by a fixed absolute threshold
-- [ ] **REGN-04**: The partition rule specified and frozen **before** regional alignment is computed, and that ordering visible in the notebook
+- [x] **REGN-04**: The partition rule specified and frozen **before** regional alignment is computed, and that ordering visible in the notebook
 - [ ] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
 - [ ] **REGN-06**: The direction eigenvector `v` and the resulting sign split **recorded and frozen as artifacts** before any MKNN number is computed, so the split is auditable after the fact
 
@@ -226,7 +226,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REGN-01 | Phase 4 | Pending |
 | REGN-02 | Phase 4 | Pending |
 | REGN-03 | Phase 4 | Pending |
-| REGN-04 | Phase 4 | Pending |
+| REGN-04 | Phase 4 | Complete |
 | REGN-05 | Phase 4 | Pending |
 | REGN-06 | Phase 4 | Pending |
 | MKNN-01 | Phase 4 | Complete |
