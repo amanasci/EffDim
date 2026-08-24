@@ -2,19 +2,22 @@
 
 `--mode field` extracts the decoder-side `||H||` field for each seed in `--seeds`, via
 `chart_curvature.chart_curvature_field` against a genuine sealed CAE checkpoint, caching each
-seed's field through `cache.npz_cache`. `--mode pool` is pre-registered but not implemented
-until plan 05-03. `--mode bucketed` requires both `linear_probe.assert_preregistered()` and the
-frozen pooled curvature field artifact to exist before it will even attempt anything -- the
-D5-10 guard -- and its body is not implemented until plan 05-05. `--selfcheck` is this plan's
-own automated implementation check: it runs the complete probe-to-verdict path on a synthetic,
-dimensionally PU-shaped fixture with a planted linear map and a planted curvature-to-residual
-ordering, and writes exactly one JSONL row tagged `data_source = "synthetic_planted"`. No PU
-probe number is computed by any command below.
+seed's field through `cache.npz_cache`. `--mode pool` REFUSES BY NAME (05-03-DECISION.md
+ratified, one-way, NOT to pool the three seeds -- superseding 05-CONTEXT.md D5-04); use
+`--mode perseed` instead, which bucketizes each seed's own field independently and writes three
+per-seed bucket artifacts, never one pooled artifact. `--mode bucketed` requires both
+`linear_probe.assert_preregistered()` and all three per-seed bucket artifacts to exist before it
+will even attempt anything -- the D5-10 guard -- and its body is not implemented until plan
+05-05. `--selfcheck` is this plan's own automated implementation check: it runs the complete
+probe-to-verdict path on a synthetic, dimensionally PU-shaped fixture with a planted linear map
+and a planted curvature-to-residual ordering, and writes exactly one JSONL row tagged
+`data_source = "synthetic_planted"`. No PU probe number is computed by any command below.
 
     python notebooks/diagnostics/curvature_probe_decodability_run.py --selfcheck
     python notebooks/diagnostics/curvature_probe_decodability_run.py --mode field --smoke
     python notebooks/diagnostics/curvature_probe_decodability_run.py --mode field
-    python notebooks/diagnostics/curvature_probe_decodability_run.py --mode pool
+    python notebooks/diagnostics/curvature_probe_decodability_run.py --mode pool     # refuses
+    python notebooks/diagnostics/curvature_probe_decodability_run.py --mode perseed
     python notebooks/diagnostics/curvature_probe_decodability_run.py --mode bucketed
 """
 
@@ -241,32 +244,167 @@ def run_field_mode(a: argparse.Namespace) -> None:
     run_inter_seed_diagnostics(a.field_stem)
 
 
+POOLING_REFUSAL_MESSAGE = (
+    "Seed pooling was put to the developer at the 05-03 Task 1 blocking checkpoint and "
+    "ratified as NOT DONE. See "
+    ".planning/phases/05-curvature-conditioned-linear-decodability/05-03-DECISION.md -- "
+    "05-CONTEXT.md D5-04 (pool the three cached CAE seeds into one averaged ||H|| field) is "
+    "superseded by that ratified, one-way decision. Use --mode perseed instead."
+)
+"""The refusal text `run_pool_mode` raises and `--pooling-method`'s tripwire raises. A named,
+durable pointer to the record rather than a bare NotImplementedError, so a later reader lands
+on the decision, not on a stub."""
+
+
 def run_pool_mode(a: argparse.Namespace) -> None:
-    """`--mode pool` is pre-registered but not implemented until plan 05-03."""
-    raise NotImplementedError(
-        "--mode pool is pre-registered but not implemented until plan 05-03."
-    )
+    """`--mode pool` no longer stubs with `NotImplementedError` -- it refuses BY NAME. Seed
+    pooling was ratified NOT DONE at the `05-03` Task 1 blocking checkpoint
+    (`05-03-DECISION.md`), which supersedes `05-CONTEXT.md` D5-04. Raises `RuntimeError`
+    naming the decision record and directing the caller to `--mode perseed`.
+    """
+    raise RuntimeError(POOLING_REFUSAL_MESSAGE)
 
 
 def run_bucketed_mode(a: argparse.Namespace) -> None:
     """`--mode bucketed` -- the D5-10 guard, complete in this task even though the branch it
     guards is not. Before touching any data: calls `linear_probe.assert_preregistered()`,
-    then checks the pooled field artifact exists, raising `FileNotFoundError` naming the
-    missing path. Only after both pass does it reach the body, which raises
+    then checks all three per-seed bucket artifacts exist, raising `FileNotFoundError` listing
+    every missing one. Only after both pass does it reach the body, which raises
     `NotImplementedError` until plan 05-05. With the pre-registration constants unset today,
-    the first guard fires and this mode is dead.
+    the first guard fires and this mode is dead. The guard order is D5-10's and does not
+    change: `assert_preregistered()` is checked before any artifact existence check, and
+    before any data is read.
     """
     linear_probe.assert_preregistered()
-    field_path = cache.cache_path(a.field_stem, "npz")
-    if not field_path.exists():
+    bucket_paths = [
+        cache.cache_path(f"{a.bucket_stem}_seed{seed}", "npz") for seed in CANONICAL_SEED_STEMS
+    ]
+    missing = [str(p) for p in bucket_paths if not p.exists()]
+    if missing:
         raise FileNotFoundError(
-            f"--mode bucketed requires the frozen pooled curvature field artifact at "
-            f"{field_path}, which does not exist. Run --mode field then --mode pool first "
-            "to produce it."
+            "--mode bucketed requires all three per-seed bucket artifacts to exist. Missing: "
+            f"{missing}. Run --mode perseed first to produce them."
         )
     raise NotImplementedError(
         "--mode bucketed's body is pre-registered but not implemented until plan 05-05."
     )
+
+
+def _effective_distinct_levels(values: np.ndarray, tolerances: Tuple[float, ...]) -> Tuple[int, ...]:
+    """Count distinct levels in `values` at each RELATIVE tolerance in `tolerances`. Sorts
+    `values` once, then for each tolerance walks the sorted array once, opening a new level
+    whenever the gap to the current level's representative value exceeds
+    `tolerance * abs(representative)`. This is the measurement that corrects
+    `05-02-SUMMARY.md`: that summary's exact-float64 counts (5,301 / 9,852) and its
+    `np.round(H_norm, 6)` counts are both ABSOLUTE, and at magnitude ~5e4 an absolute
+    six-decimal rounding is a relative precision of ~2e-11 -- fine enough to count last-ULP
+    float noise as structure. Returns one count per tolerance, in the same order as
+    `tolerances`.
+    """
+    values = np.asarray(values, dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError(
+            f"_effective_distinct_levels: values must be one-dimensional, got shape {values.shape}."
+        )
+    if values.shape[0] == 0:
+        raise ValueError("_effective_distinct_levels: values must be non-empty.")
+    sorted_values = np.sort(values)
+    counts = []
+    for tol in tolerances:
+        n_levels = 1
+        representative = sorted_values[0]
+        for v in sorted_values[1:]:
+            if abs(v - representative) > tol * abs(representative):
+                n_levels += 1
+                representative = v
+        counts.append(n_levels)
+    return tuple(counts)
+
+
+def run_perseed_mode(a: argparse.Namespace) -> None:
+    """`--mode perseed`: three INDEPENDENT bucketings, one per seed in `CANONICAL_SEED_STEMS`
+    order, each cut over THAT seed's own 10,000-point field -- never over a test split, never
+    mixed across seeds. This is the ratified replacement for `--mode pool`
+    (`05-03-DECISION.md`): `linear_probe.pool_seed_fields` is never called and no pooled
+    artifact is ever written by this mode.
+    """
+    _, _, subsample_file = load_pu_pair()
+
+    print("=" * 78)
+    print(f"Per-seed bucketing (D5-07/D5-09) -- seeds={CANONICAL_SEED_STEMS}, n_buckets=3")
+    print("no pooled field is built here; three independent per-seed bucketings follow")
+    print("=" * 78)
+
+    tolerances: Tuple[float, ...] = (1e-9, 1e-6, 1e-3)
+    n_buckets = 3
+    levels_by_seed: Dict[int, Tuple[int, ...]] = {}
+
+    for seed in CANONICAL_SEED_STEMS:
+        loaded = _load_cached_seed_field(seed, a.field_stem)
+        if loaded is None:
+            missing_stem = f"{a.field_stem}_seed{seed}"
+            raise FileNotFoundError(
+                f"--mode perseed requires seed {seed}'s cached field artifact at stem "
+                f"{missing_stem!r}, which does not exist. This mode never recomputes a "
+                "field -- run --mode field first."
+            )
+        H_norm = loaded["H_norm"]
+        labels, edges = linear_probe.bucket_by_field(H_norm, n_buckets)
+        levels = _effective_distinct_levels(H_norm, tolerances)
+        levels_by_seed[seed] = levels
+        counts_info = linear_probe.bucket_counts(labels, n_buckets)
+
+        print(f"seed {seed}: effective distinct levels at rel {tolerances} = {levels}")
+        print(f"seed {seed}: bucket edges (full float64 repr) = ({edges[0]!r}, {edges[1]!r})")
+        print(
+            f"seed {seed}: full-field bucket counts = {list(counts_info['counts'])}  "
+            f"median={float(np.median(H_norm)):.6g}  min={float(np.min(H_norm)):.6g}  "
+            f"max={float(np.max(H_norm)):.6g}"
+        )
+
+        cfg: Dict[str, Any] = {
+            "kind": "05_curvature_buckets_perseed",
+            "seed": int(seed),
+            "source_field_stem": f"{a.field_stem}_seed{seed}",
+            "n_buckets": int(n_buckets),
+            "bucket_rule": "equal_frequency_rank_partition_stable_argsort",
+            "subsample_file": str(subsample_file),
+            "curvature_convention": chart_curvature.CURVATURE_CONVENTION,
+            "seed_handling_rule": "no_pooling_per_seed_verdicts",
+        }
+
+        def _compute() -> Dict[str, np.ndarray]:
+            return {
+                "H_norm": H_norm,
+                "bucket_labels": labels.astype(np.int64),
+                "bucket_edges": np.asarray(edges, dtype=np.float64),
+                "seed_stem": np.asarray(seed, dtype=np.int64),
+                "n_buckets": np.asarray(n_buckets, dtype=np.int64),
+                "effective_distinct_levels": np.asarray(levels, dtype=np.int64),
+                "effective_level_tolerances": np.asarray(tolerances, dtype=np.float64),
+                "n_charts_used": np.asarray(loaded["n_charts_used"]),
+            }
+
+        stem = f"{a.bucket_stem}_seed{seed}"
+        cache.npz_cache(stem, cfg, _compute)
+        print(f"wrote {cache.cache_path(stem, 'npz')}")
+
+    print("=" * 78)
+    print(
+        "no pooled field was built; the three seeds' bucket labels are independent; the "
+        "phase read-out is three per-seed verdicts and their spread (05-03-DECISION.md)"
+    )
+    expected_levels = {20260814: (4, 4, 4), 20260815: (3, 3, 3)}
+    for seed, expected in expected_levels.items():
+        measured = levels_by_seed.get(seed)
+        if measured == expected:
+            print(f"seed {seed}: measured effective levels {measured} match the expected {expected}")
+        else:
+            print(
+                f"seed {seed}: measured effective levels {measured} DO NOT match the expected "
+                f"{expected} -- this changes what 05-04 freezes"
+            )
+    print("=" * 78)
 
 
 def _spearman_report(a: np.ndarray, b: np.ndarray, name: str) -> Dict[str, Any]:
@@ -586,7 +724,7 @@ def selfcheck() -> bool:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--mode", choices=["field", "pool", "bucketed"], default="field")
+    p.add_argument("--mode", choices=["field", "pool", "perseed", "bucketed"], default="field")
     p.add_argument("--selfcheck", action="store_true")
     p.add_argument("--smoke", action="store_true")
     p.add_argument("--smoke-n", type=int, default=64)
@@ -595,12 +733,25 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--record-path", type=str, default=None)
     p.add_argument("--field-stem", type=str, default="05_curvature_field")
-    p.add_argument("--pooling-method", type=str, default=None)
+    p.add_argument("--bucket-stem", type=str, default="05_curvature_buckets")
+    p.add_argument(
+        "--pooling-method",
+        type=str,
+        default=None,
+        help=(
+            "Retained only as a tripwire: supplying this flag under ANY mode raises the same "
+            "RuntimeError --mode pool raises, naming 05-03-DECISION.md. It exists so passing "
+            "it fails loudly instead of being silently ignored."
+        ),
+    )
     return p
 
 
 def main() -> None:
     a = build_arg_parser().parse_args()
+
+    if a.pooling_method is not None:
+        raise RuntimeError(POOLING_REFUSAL_MESSAGE)
 
     if a.selfcheck:
         ok = selfcheck()
@@ -612,6 +763,10 @@ def main() -> None:
 
     if a.mode == "pool":
         run_pool_mode(a)
+        return
+
+    if a.mode == "perseed":
+        run_perseed_mode(a)
         return
 
     if a.mode == "bucketed":
