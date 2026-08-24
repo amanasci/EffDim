@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 04
 current_phase_name: region-partitioning-regional-alignment-mknn
-status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-08-24T13:27:37.420Z"
+status: verifying
+stopped_at: Completed 04-06-PLAN.md -- Phase 4 closed
+last_updated: "2026-08-24T13:43:18.279Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 11
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 87
-  completed_plans: 80
+  completed_plans: 81
 last_activity_desc: Phase 3 closed - 03-11 summary and findings supplement recorded
 ---
 
@@ -268,7 +268,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-24
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 93% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -408,6 +408,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 04 P03 | 25min | 3 tasks | 4 files |
 | Phase 04 P04 | ~1h20min (52min compute) | 2 tasks | 2 files |
 | Phase 04 P05 | 25min | 2 tasks | 2 files |
+| Phase 04 P06 | 45min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -582,6 +583,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 04-04: frozen split region_0=6256, region_1=3244, excluded=500 (sums to 10000), both clear MIN_REGION_N=500; mean_unit_norm=0.294748 (mean-centered vs uncentered covariance forms do not coincide -- COVARIANCE_FORM is a live choice); eigval_top=0.0316 vs second 0.0202 (ratio 1.57, v not a well-separated principal axis)
 - [Phase ?]: 04-05: VERDICT_RULE HOLDS at every k including HEADLINE_K=20 -- region 1 (n=3244) scores higher than region 0 (n=6256) at every k, CIs disjoint, exceeds own 99th-pctile null at every k. Applied mechanically from the committed VERDICT_RULE with no amendment. The D4-14 density caveat travels with it: region 1's median density is ~5,735x lower than region 0's, and MKNN is itself density-sensitive by construction, so this HOLDS result cannot be attributed to curvature rather than density by anything in this phase.
 - [Phase ?]: 04-05: run_regional_cell mirrors run_global_cell's existing membership-matrix pattern from plan 04-01 exactly (mknn.py untouched); both pre-registered skip conditions (n_region<MIN_REGION_N, k+1>n_region) never fired for this split -- all 8 cells are status:ok.
+- [Phase ?]: Phase 4 closed: HOLDS verdict at every k including headline k=20, qualified by an independently-verified region-size artifact (chance floor scales with 1/n_region) plus the three accepted gaps (unvalidated field, unclosed codimension gap, uncontrolled density confound) -- no verdict amended, all documented in 04-FINDINGS.md
 
 ### Pending Todos
 
@@ -628,8 +630,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T13:27:37.373Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-08-24T13:43:18.232Z
+Stopped at: Completed 04-06-PLAN.md -- Phase 4 closed
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
