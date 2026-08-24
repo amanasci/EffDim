@@ -7,8 +7,10 @@ ratified, one-way, NOT to pool the three seeds -- superseding 05-CONTEXT.md D5-0
 `--mode perseed` instead, which bucketizes each seed's own field independently and writes three
 per-seed bucket artifacts, never one pooled artifact. `--mode bucketed` requires both
 `linear_probe.assert_preregistered()` and all three per-seed bucket artifacts to exist before it
-will even attempt anything -- the D5-10 guard -- and its body is not implemented until plan
-05-05. `--selfcheck` is this plan's own automated implementation check: it runs the complete
+will even attempt anything -- the D5-10 guard -- and, as of plan 05-05, its body fits ONE global
+ridge map (D5-02) and buckets the held-out residuals three times, once per seed's frozen
+`BUCKET_EDGES_PER_SEED` entry, producing three per-seed verdicts and one phase verdict, both
+applied only through the frozen `linear_probe` rule functions. `--selfcheck` is this plan's own automated implementation check: it runs the complete
 probe-to-verdict path on a synthetic, dimensionally PU-shaped fixture with a planted linear map
 and a planted curvature-to-residual ordering, and writes exactly one JSONL row tagged
 `data_source = "synthetic_planted"`. No PU probe number is computed by any command below.
@@ -265,29 +267,396 @@ def run_pool_mode(a: argparse.Namespace) -> None:
     raise RuntimeError(POOLING_REFUSAL_MESSAGE)
 
 
+def _fit_and_evaluate(
+    X_train: np.ndarray,
+    Y_train: np.ndarray,
+    X_test: np.ndarray,
+    Y_test: np.ndarray,
+    alpha_grid: Any,
+    alpha_per_target: bool,
+    fit_intercept: bool,
+    r2_multioutput: str,
+) -> Tuple[Dict[str, Any], np.ndarray, np.ndarray, float]:
+    """The ONE call site of the ``linear_probe`` module's ridge-fit entry point in this file.
+    Fits on ``(X_train, Y_train)``, then predicts and scores on ``(X_test, Y_test)`` via
+    ``linear_probe.predict_probe`` / ``per_point_residuals`` / ``aggregate_r2``. Shared by BOTH
+    ``selfcheck()`` (the synthetic fixture) and ``run_bucketed_mode()`` (the real PU probe) so
+    there is structurally one fit path in this file, not one path per caller.
+    Returns ``(fit, Y_pred_test, residuals_test, r2)``.
+    """
+    fit = linear_probe.fit_probe(X_train, Y_train, alpha_grid, alpha_per_target, fit_intercept)
+    Y_pred_test = linear_probe.predict_probe(fit, X_test)
+    residuals_test = linear_probe.per_point_residuals(Y_test, Y_pred_test)
+    r2 = linear_probe.aggregate_r2(Y_test, Y_pred_test, multioutput=r2_multioutput)
+    return fit, Y_pred_test, residuals_test, r2
+
+
+def _score_one_seed(
+    seed: int,
+    H_norm: np.ndarray,
+    bucket_labels: np.ndarray,
+    test_idx: np.ndarray,
+    residuals_test: np.ndarray,
+    Y_true_test: np.ndarray,
+    Y_pred_test: np.ndarray,
+    n_buckets: int,
+    n_bootstrap: int,
+    bootstrap_seed: int,
+    confidence_level: float,
+    size_match_n_repeats: int,
+    size_match_seed: int,
+    verdict_rule: str,
+    r2_multioutput: str,
+) -> Dict[str, Any]:
+    """One seed's D5-07/D5-08/D5-09 scoring over the SAME shared ``residuals_test`` /
+    ``Y_pred_test`` every seed reads (one global fit, D5-02) -- only the bucketing differs per
+    seed. ``H_norm``/``bucket_labels`` are that seed's full-field arrays (the ones the frozen
+    ``BUCKET_EDGES_PER_SEED[i]`` entry was cut over); ``bucket_labels[test_idx]`` is a lookup
+    against those already-assigned labels, never a re-cut on the test split.
+
+    Returns a dict carrying: ``bucket_stats`` (per-bucket n / mean residual / R-squared / CI, in
+    ascending bucket-index order so index 0 is lowest-curvature and -1 is highest),
+    ``full_field_bucket_counts``, ``realized_bucket_counts`` (the TEST-split counts D5-08
+    requires -- RESEARCH Pitfall 4), ``size_match`` (``linear_probe.size_matched_check``'s
+    return, called with the REALIZED test-split arrays), ``spearman`` (the D5-07 continuous
+    statistic), ``verdict`` and ``criteria`` (``linear_probe.apply_verdict_rule``'s own return,
+    the ONLY source of this seed's verdict string).
+    """
+    labels_test = bucket_labels[test_idx]
+    full_field_counts = linear_probe.bucket_counts(bucket_labels, n_buckets)["counts"]
+
+    bucket_stats = []
+    for b in range(n_buckets):
+        mask = labels_test == b
+        r_bucket = residuals_test[mask]
+        ci = linear_probe.bucket_residual_ci(r_bucket, n_bootstrap, bootstrap_seed, confidence_level)
+        r2_bucket = linear_probe.aggregate_r2(
+            Y_true_test[mask], Y_pred_test[mask], multioutput=r2_multioutput
+        )
+        bucket_stats.append(
+            {
+                "bucket_index": b,
+                "n": int(mask.sum()),
+                "score": ci["score"],
+                "r2": r2_bucket,
+                "ci_low": ci["ci_low"],
+                "ci_high": ci["ci_high"],
+                "degenerate": ci["degenerate"],
+                "confidence_level": ci["confidence_level"],
+                "n_resamples": ci["n_resamples"],
+            }
+        )
+
+    size_match = linear_probe.size_matched_check(
+        residuals_test, labels_test, size_match_n_repeats, size_match_seed, confidence_level
+    )
+
+    spearman_result = _spearman_report(
+        H_norm[test_idx], residuals_test, f"D5-07 continuous seed {seed}"
+    )
+
+    verdict_result = linear_probe.apply_verdict_rule(bucket_stats, size_match, verdict_rule)
+
+    return {
+        "bucket_stats": bucket_stats,
+        "full_field_bucket_counts": tuple(int(c) for c in full_field_counts),
+        "realized_bucket_counts": tuple(b["n"] for b in bucket_stats),
+        "size_match": size_match,
+        "spearman": spearman_result,
+        "verdict": verdict_result["verdict"],
+        "criteria": verdict_result["criteria"],
+    }
+
+
+def _load_bucket_artifact(seed: int, bucket_stem_prefix: str) -> Dict[str, Any]:
+    """Load ONE seed's frozen per-seed bucket artifact -- never recomputes, never falls back to
+    ``--mode perseed``. Returns the raw arrays plus the sidecar manifest dict (used for the
+    subsample-path provenance check)."""
+    stem = f"{bucket_stem_prefix}_seed{seed}"
+    npz_path = cache.cache_path(stem, "npz")
+    with np.load(npz_path) as z:
+        H_norm = np.asarray(z["H_norm"], dtype=np.float64)
+        bucket_labels = np.asarray(z["bucket_labels"], dtype=np.int64)
+        bucket_edges = tuple(float(v) for v in np.asarray(z["bucket_edges"], dtype=np.float64))
+    manifest = json.loads(cache.cache_path(stem, "meta.json").read_text())
+    return {
+        "H_norm": H_norm,
+        "bucket_labels": bucket_labels,
+        "bucket_edges": bucket_edges,
+        "manifest": manifest,
+    }
+
+
 def run_bucketed_mode(a: argparse.Namespace) -> None:
-    """`--mode bucketed` -- the D5-10 guard, complete in this task even though the branch it
-    guards is not. Before touching any data: calls `linear_probe.assert_preregistered()`,
-    then checks all three per-seed bucket artifacts exist, raising `FileNotFoundError` listing
-    every missing one. Only after both pass does it reach the body, which raises
-    `NotImplementedError` until plan 05-05. With the pre-registration constants unset today,
-    the first guard fires and this mode is dead. The guard order is D5-10's and does not
-    change: `assert_preregistered()` is checked before any artifact existence check, and
-    before any data is read.
+    """`--mode bucketed` -- the phase's headline computation. The D5-10 guard --
+    `assert_preregistered()` then the three-artifact existence check -- runs first and is
+    unchanged from the 05-03 stub. Every constant this function reads comes off `linear_probe`,
+    echoed verbatim into every emitted row; no CLI flag can override any of them. ONE global fit
+    (`_fit_and_evaluate`, this file's sole `fit_probe` call site) on the training split; the
+    held-out test-split residuals are bucketed THREE times, once per seed's frozen
+    `BUCKET_EDGES_PER_SEED` entry (`_score_one_seed`), never refit per bucket and never refit
+    per seed (D5-02). Per-seed verdicts come only from `linear_probe.apply_verdict_rule`; the
+    phase verdict comes only from `linear_probe.combine_seed_verdicts`.
+
+    Under `--smoke`, every provenance assertion below runs against the full 10,000-row
+    artifacts first; only the split/fit/bucket/verdict path itself then runs on the first
+    `a.smoke_n` rows (for wall-clock speed), and nothing is written to the JSONL record.
     """
     linear_probe.assert_preregistered()
-    bucket_paths = [
-        cache.cache_path(f"{a.bucket_stem}_seed{seed}", "npz") for seed in CANONICAL_SEED_STEMS
-    ]
+    seed_stems = linear_probe.SEED_STEMS
+    bucket_paths = [cache.cache_path(f"{a.bucket_stem}_seed{seed}", "npz") for seed in seed_stems]
     missing = [str(p) for p in bucket_paths if not p.exists()]
     if missing:
         raise FileNotFoundError(
             "--mode bucketed requires all three per-seed bucket artifacts to exist. Missing: "
             f"{missing}. Run --mode perseed first to produce them."
         )
-    raise NotImplementedError(
-        "--mode bucketed's body is pre-registered but not implemented until plan 05-05."
+
+    t0 = time.monotonic()
+
+    TRAIN_FRACTION = linear_probe.TRAIN_FRACTION
+    SPLIT_SEED = linear_probe.SPLIT_SEED
+    RIDGE_ALPHA_GRID = linear_probe.RIDGE_ALPHA_GRID
+    ALPHA_PER_TARGET = linear_probe.ALPHA_PER_TARGET
+    FIT_INTERCEPT = linear_probe.FIT_INTERCEPT
+    R2_MULTIOUTPUT = linear_probe.R2_MULTIOUTPUT
+    N_BUCKETS = linear_probe.N_BUCKETS
+    BUCKET_EDGES_PER_SEED = linear_probe.BUCKET_EDGES_PER_SEED
+    SEED_HANDLING_RULE = linear_probe.SEED_HANDLING_RULE
+    N_BOOTSTRAP = linear_probe.N_BOOTSTRAP
+    BOOTSTRAP_SEED = linear_probe.BOOTSTRAP_SEED
+    CONFIDENCE_LEVEL = linear_probe.CONFIDENCE_LEVEL
+    SIZE_MATCH_N_REPEATS = linear_probe.SIZE_MATCH_N_REPEATS
+    SIZE_MATCH_SEED = linear_probe.SIZE_MATCH_SEED
+    VERDICT_RULE = linear_probe.VERDICT_RULE
+    SEED_VERDICT_COMBINATION_RULE = linear_probe.SEED_VERDICT_COMBINATION_RULE
+    PHASE_VERDICT_VALUES = linear_probe.PHASE_VERDICT_VALUES
+
+    X_hsc, X_ls, subsample_file = load_pu_pair()
+    resolved_subsample_file = str(Path(subsample_file).resolve())
+    n_full = int(X_hsc.shape[0])
+    if X_ls.shape[0] != n_full:
+        raise ValueError(
+            f"run_bucketed_mode: hsc has {n_full} rows but legacysurvey has {X_ls.shape[0]} rows."
+        )
+
+    seed_data: Dict[int, Dict[str, Any]] = {}
+    for i, seed in enumerate(seed_stems):
+        artifact = _load_bucket_artifact(seed, a.bucket_stem)
+        manifest_subsample = str(Path(artifact["manifest"]["subsample_file"]).resolve())
+        if manifest_subsample != resolved_subsample_file:
+            raise ValueError(
+                f"run_bucketed_mode: seed {seed}'s bucket artifact carries "
+                f"subsample_file={manifest_subsample!r}, which does not match the resolved "
+                f"subsample {resolved_subsample_file!r}."
+            )
+        frozen_edges = tuple(float(v) for v in BUCKET_EDGES_PER_SEED[i])
+        if artifact["bucket_edges"] != frozen_edges:
+            raise ValueError(
+                f"run_bucketed_mode: seed {seed}'s artifact bucket_edges="
+                f"{artifact['bucket_edges']!r} does not equal the frozen "
+                f"BUCKET_EDGES_PER_SEED[{i}]={frozen_edges!r}."
+            )
+        if artifact["H_norm"].shape[0] != n_full or artifact["bucket_labels"].shape[0] != n_full:
+            raise ValueError(
+                f"run_bucketed_mode: seed {seed}'s artifact carries {artifact['H_norm'].shape[0]} "
+                f"rows, expected {n_full} (matching hsc/legacysurvey)."
+            )
+        seed_data[seed] = artifact
+
+    if n_full != 10000:
+        raise ValueError(f"run_bucketed_mode: expected 10,000 rows everywhere, got {n_full}.")
+
+    if a.smoke:
+        n_use = min(a.smoke_n, n_full)
+        print(
+            f"SMOKE: reduced to n={n_use} of {n_full} rows for the split/fit/bucket/verdict "
+            "path only -- every provenance assertion above already ran against the full "
+            "10,000-row artifacts. Writes nothing.\n"
+        )
+        X_hsc_use = X_hsc[:n_use]
+        X_ls_use = X_ls[:n_use]
+        seed_data_use = {
+            seed: {
+                "H_norm": seed_data[seed]["H_norm"][:n_use],
+                "bucket_labels": seed_data[seed]["bucket_labels"][:n_use],
+            }
+            for seed in seed_stems
+        }
+    else:
+        n_use = n_full
+        X_hsc_use = X_hsc
+        X_ls_use = X_ls
+        seed_data_use = {
+            seed: {
+                "H_norm": seed_data[seed]["H_norm"],
+                "bucket_labels": seed_data[seed]["bucket_labels"],
+            }
+            for seed in seed_stems
+        }
+
+    train_idx, test_idx = linear_probe.train_test_split_indices(n_use, TRAIN_FRACTION, SPLIT_SEED)
+    n_train, n_test = int(train_idx.shape[0]), int(test_idx.shape[0])
+
+    fit, Y_pred_test, residuals_test, r2_overall = _fit_and_evaluate(
+        X_hsc_use[train_idx],
+        X_ls_use[train_idx],
+        X_hsc_use[test_idx],
+        X_ls_use[test_idx],
+        RIDGE_ALPHA_GRID,
+        ALPHA_PER_TARGET,
+        FIT_INTERCEPT,
+        R2_MULTIOUTPUT,
     )
+    Y_true_test = X_ls_use[test_idx]
+    selected_alpha = float(fit["alpha_"])
+    mean_residual_overall = float(residuals_test.mean())
+
+    print("=" * 78)
+    print(
+        f"Bucketed probe (D5-01/D5-02) -- n_train={n_train} n_test={n_test} "
+        f"selected_alpha={selected_alpha:g} r2_overall={r2_overall:.6g}"
+    )
+    print("=" * 78)
+
+    per_seed_results: Dict[int, Dict[str, Any]] = {}
+    verdicts: Dict[int, str] = {}
+    for seed in seed_stems:
+        result = _score_one_seed(
+            seed,
+            seed_data_use[seed]["H_norm"],
+            seed_data_use[seed]["bucket_labels"],
+            test_idx,
+            residuals_test,
+            Y_true_test,
+            Y_pred_test,
+            N_BUCKETS,
+            N_BOOTSTRAP,
+            BOOTSTRAP_SEED,
+            CONFIDENCE_LEVEL,
+            SIZE_MATCH_N_REPEATS,
+            SIZE_MATCH_SEED,
+            VERDICT_RULE,
+            R2_MULTIOUTPUT,
+        )
+        per_seed_results[seed] = result
+        verdicts[seed] = result["verdict"]
+        print(
+            f"seed {seed}: realized test-split bucket counts={result['realized_bucket_counts']}  "
+            f"size_match_n={result['size_match']['n_match']}  "
+            f"full_field_bucket_counts={result['full_field_bucket_counts']}"
+        )
+
+    for seed in seed_stems:
+        print(f"seed {seed} verdict: {verdicts[seed]}")
+
+    combo = linear_probe.combine_seed_verdicts(verdicts, SEED_VERDICT_COMBINATION_RULE)
+    phase_verdict = combo["phase_verdict"]
+    if phase_verdict not in PHASE_VERDICT_VALUES:
+        raise RuntimeError(
+            f"run_bucketed_mode: combine_seed_verdicts produced {phase_verdict!r}, not a member "
+            f"of PHASE_VERDICT_VALUES={PHASE_VERDICT_VALUES!r}."
+        )
+    print(f"phase verdict: {phase_verdict}  (n_holds={combo['n_holds']} of 3)")
+    print("=" * 78)
+
+    if a.smoke:
+        return
+
+    wallclock_s = time.monotonic() - t0
+    record_path = cache.cache_path("05_curvature_probe_decodability", "jsonl")
+    record_path.parent.mkdir(parents=True, exist_ok=True)
+
+    provenance = {
+        "data_source": "pu",
+        "subsample_file": resolved_subsample_file,
+        "curvature_convention": linear_probe.CURVATURE_CONVENTION,
+        "curvature_source_function": linear_probe.CURVATURE_SOURCE_FUNCTION,
+        "field_stem": a.field_stem,
+        "bucket_stem": a.bucket_stem,
+    }
+
+    with record_path.open("a") as fh:
+        for seed in seed_stems:
+            r = per_seed_results[seed]
+            for stat in r["bucket_stats"]:
+                row = {
+                    "kind": "probe_bucket",
+                    "seed_stem": int(seed),
+                    "bucket_index": int(stat["bucket_index"]),
+                    "bucket_n": int(stat["n"]),
+                    "full_field_bucket_n": int(r["full_field_bucket_counts"][stat["bucket_index"]]),
+                    "bucket_mean_residual": float(stat["score"]),
+                    "bucket_r2": float(stat["r2"]),
+                    "ci_low": float(stat["ci_low"]),
+                    "ci_high": float(stat["ci_high"]),
+                    "degenerate": bool(stat["degenerate"]),
+                    "confidence_level": float(stat["confidence_level"]),
+                    "n_resamples": int(stat["n_resamples"]),
+                    **provenance,
+                }
+                fh.write(json.dumps(row, default=float) + "\n")
+                fh.flush()
+
+        for seed in seed_stems:
+            r = per_seed_results[seed]
+            row = {
+                "kind": "probe_seed",
+                "seed_stem": int(seed),
+                "bucket_edges": list(seed_data[seed]["bucket_edges"]),
+                "realized_bucket_counts": list(r["realized_bucket_counts"]),
+                "full_field_bucket_counts": list(r["full_field_bucket_counts"]),
+                "verdict": r["verdict"],
+                "verdict_criteria": r["criteria"],
+                "spearman_h_residual_rho": r["spearman"]["rho"],
+                "spearman_h_residual_p": r["spearman"]["p_value"],
+                "spearman_h_residual_n": r["spearman"]["n"],
+                "spearman_h_residual_undefined": r["spearman"]["undefined"],
+                "spearman_direction_axis": None,
+                "spearman_direction_axis_reason": (
+                    "both operands are scalar fields -- curvature magnitude and per-point "
+                    "residual -- so there is no pair of vectors to take a cosine between and no "
+                    "vector direction axis exists; the sign of rho is the direction."
+                ),
+                "size_match_n": int(r["size_match"]["n_match"]),
+                "size_match_median_diff": float(r["size_match"]["median_diff"]),
+                "size_match_sign_stable": bool(r["size_match"]["sign_stable"]),
+                "size_match_ci_disjoint_fraction": float(r["size_match"]["ci_disjoint_fraction"]),
+                "size_match_n_repeats": int(r["size_match"]["n_repeats"]),
+                "selected_alpha": selected_alpha,
+                "r2_overall": r2_overall,
+                **provenance,
+            }
+            fh.write(json.dumps(row, default=float) + "\n")
+            fh.flush()
+
+        overall_row = {
+            "kind": "probe_overall",
+            "n": n_use,
+            "n_train": n_train,
+            "n_test": n_test,
+            "train_fraction": TRAIN_FRACTION,
+            "split_seed": SPLIT_SEED,
+            "selected_alpha": selected_alpha,
+            "alpha_grid": list(RIDGE_ALPHA_GRID),
+            "r2_overall": r2_overall,
+            "mean_residual_overall": mean_residual_overall,
+            "n_buckets": N_BUCKETS,
+            "seed_stems": list(seed_stems),
+            "seed_handling_rule": SEED_HANDLING_RULE,
+            "bucket_edges_per_seed": [list(e) for e in BUCKET_EDGES_PER_SEED],
+            "per_seed_verdicts": {str(s): verdicts[s] for s in seed_stems},
+            "n_holds": combo["n_holds"],
+            "phase_verdict": phase_verdict,
+            "phase_verdict_values": list(PHASE_VERDICT_VALUES),
+            "seed_verdict_combination_rule": SEED_VERDICT_COMBINATION_RULE,
+            "wallclock_s": wallclock_s,
+            **provenance,
+        }
+        fh.write(json.dumps(overall_row, default=float) + "\n")
+        fh.flush()
+
+    print(f"wrote {record_path}")
 
 
 def _effective_distinct_levels(values: np.ndarray, tolerances: Tuple[float, ...]) -> Tuple[int, ...]:
@@ -735,13 +1104,10 @@ def selfcheck() -> bool:
     )
 
     alpha_grid = (1e-3, 1e-2, 1e-1, 1.0, 10.0)
-    fit = linear_probe.fit_probe(
-        X[train_idx], Y[train_idx], alpha_grid=alpha_grid, alpha_per_target=False,
-        fit_intercept=True,
+    fit, Y_pred_test, residuals_test, r2 = _fit_and_evaluate(
+        X[train_idx], Y[train_idx], X[test_idx], Y[test_idx],
+        alpha_grid, False, True, "variance_weighted",
     )
-    Y_pred_test = linear_probe.predict_probe(fit, X[test_idx])
-    residuals_test = linear_probe.per_point_residuals(Y[test_idx], Y_pred_test)
-    r2 = linear_probe.aggregate_r2(Y[test_idx], Y_pred_test, multioutput="variance_weighted")
     check("recovered aggregate R-squared exceeds 0.99", r2 > 0.99)
 
     ybar = Y[test_idx].mean(axis=0)
