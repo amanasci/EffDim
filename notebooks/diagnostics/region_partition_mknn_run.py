@@ -1,14 +1,17 @@
 """Phase 4 region-partitioning MKNN runner. `--mode global` (plan 04-01) computes the
 region-blind, partition-blind crossmodal HSC-vs-Legacy-Survey MKNN across the frozen
-`--mknn-k` grid. `--mode partition` is implemented by a later plan in this phase
-(04-04 onward). `--mode regional` (this plan, 04-03) guards its own computation behind
-`region_partition.assert_preregistered()` plus an existence check on the frozen partition
-artifact -- both must pass before it will even attempt a regional MKNN cell, and the cell
-computation itself is still implemented by a later plan (04-04 onward).
+`--mknn-k` grid. `--mode partition` (plan 04-04) computes the density-corrected PU field
+at the frozen k, REGN-01/REGN-02's density diagnostics, the D4-09 sign split, and REGN-06's
+frozen partition artifact -- all before any regional MKNN number exists. `--mode regional`
+(plan 04-03 added the guard; the cell computation itself is a later plan) requires both
+`region_partition.assert_preregistered()` and the frozen partition artifact to exist before
+it will even attempt a regional MKNN cell.
 
     python notebooks/diagnostics/region_partition_mknn_run.py --selfcheck
     python notebooks/diagnostics/region_partition_mknn_run.py --mode global --smoke
     python notebooks/diagnostics/region_partition_mknn_run.py --mode global
+    python notebooks/diagnostics/region_partition_mknn_run.py --mode partition --smoke
+    python notebooks/diagnostics/region_partition_mknn_run.py --mode partition
 """
 
 import argparse
@@ -24,8 +27,10 @@ if str(NOTEBOOK_ROOT) not in sys.path:
     sys.path.insert(0, str(NOTEBOOK_ROOT))
 
 import numpy as np
+from scipy.stats import mannwhitneyu, spearmanr
 
 from pu_manifold import cache
+from pu_manifold import curvature_probe
 from pu_manifold import mknn
 from pu_manifold import region_partition
 
@@ -113,6 +118,255 @@ def run_global_cell(
         "subsample_file": subsample_file,
         "wallclock_s": time.monotonic() - t0,
     }
+
+
+def _spearman_report(a: np.ndarray, b: np.ndarray, name: str) -> Dict[str, Any]:
+    """One plain Spearman correlation, printed with its p-value and point count. When
+    either input is constant, ``scipy.stats.spearmanr`` returns NaN rather than raising;
+    that case is reported with an explicit undefined marker rather than a number, per
+    REGN-02's own read-out requirement."""
+    n_pts = int(a.shape[0])
+    rho, p = spearmanr(a, b)
+    if np.isnan(rho):
+        print(f"REGN-02 {name}: UNDEFINED (constant input, spearmanr returned NaN) -- n={n_pts}")
+        return {"rho": None, "p_value": None, "n": n_pts, "undefined": True}
+    print(f"REGN-02 {name}: rho={rho:+.4f}  p={p:.4g}  n={n_pts}")
+    return {"rho": float(rho), "p_value": float(p), "n": n_pts, "undefined": False}
+
+
+def run_partition(
+    X_ls: np.ndarray,
+    k: int,
+    d: int,
+    k_density: int,
+    min_norm_percentile: float,
+    seed: int,
+    subsample_file: str,
+    smoke: bool = False,
+) -> Dict[str, Any]:
+    """``--mode partition``'s full compute, in the Ordering constraint's own order: the
+    density-corrected PU field at ``k`` (D4-13's estimator, computed on the ``legacysurvey``
+    column, matching ``pu_curvature_rankability_run.py``'s protocol), REGN-01's ambient
+    768-d local density (printed BEFORE the split is trusted), the D4-09 diametrical sign
+    split, REGN-05's region counts, REGN-06's frozen artifact (written before any regional
+    MKNN number is computed), and REGN-02's density correlations plus the region-level
+    Mann-Whitney comparison.
+
+    Every parameter is a required argument with no default, so the caller always names the
+    frozen constants explicitly at the call site (D-07) -- this function chooses nothing.
+    ``smoke=True`` runs the identical path at whatever (reduced) size/``k``/``d`` the caller
+    passes and skips both cache writes, matching ``--mode global --smoke``'s "writes
+    nothing" convention -- a smoke pass must never collide with the real frozen artifact's
+    manifest.
+    """
+    n = X_ls.shape[0]
+    print(
+        f"computing density-corrected PU field: n={n}, k={k}, d={d}, k_density={k_density} "
+        "(density_correct=True) ..."
+    )
+    t0 = time.monotonic()
+    H = curvature_probe.centroid_mean_curvature(
+        X_ls, k=k, d=d, density_correct=True, k_density=k_density
+    )
+    field_wallclock = time.monotonic() - t0
+    print(f"field wallclock: {field_wallclock:.1f}s")
+
+    # REGN-01: ambient 768-d local density, printed before the split is trusted.
+    w = curvature_probe.local_density_weights(X_ls, k_density=k_density, d=d)
+    rho = 1.0 / w
+    rho_p05 = float(np.percentile(rho, 5))
+    rho_p50 = float(np.percentile(rho, 50))
+    rho_p95 = float(np.percentile(rho, 95))
+    rho_ratio = rho_p95 / rho_p05 if rho_p05 > 0 else float("inf")
+    print(
+        "REGN-01: local_density_weights' w is mean-normalized to 1, so rho = 1/w is a "
+        "RELATIVE density, not an absolute one."
+    )
+    print(
+        f"  rho p05={rho_p05:.6g}  p50={rho_p50:.6g}  p95={rho_p95:.6g}  "
+        f"p95/p05={rho_ratio:.3f}"
+    )
+
+    # The D4-09 diametrical sign-split partition -- every parameter is the frozen constant
+    # the caller passed in, chosen nowhere in this function.
+    result = region_partition.region_partition(H, min_norm_percentile)
+    v = result["v"]
+    labels = result["labels"]
+    keep_idx = result["keep_idx"]
+    excluded_idx = result["excluded_idx"]
+    h_norm_full = result["h_norm"]
+    proj = result["proj"]
+    floor = result["floor"]
+    eigval_spectrum = result["eigval_spectrum"]
+    eigval_top5 = sorted(eigval_spectrum.tolist(), reverse=True)[:5]
+    print(
+        f"partition: floor={floor:.6g} (min_norm_percentile={min_norm_percentile}), "
+        f"excluded={int(excluded_idx.shape[0])}, mean_unit_norm={result['mean_unit_norm']:.6g}"
+    )
+    print(f"  eigval_top={result['eigval_top']:.6g}")
+    print(f"  eigval_spectrum top-5: {[f'{e:.6g}' for e in eigval_top5]}")
+
+    # REGN-05: region/exclusion counts, closure asserted against n.
+    counts = region_partition.region_counts(labels, int(excluded_idx.shape[0]), result["n_zero_projection"])
+    n_region_0 = counts["n_region_0"]
+    n_region_1 = counts["n_region_1"]
+    n_excluded = counts["n_excluded"]
+    n_zero_projection = counts["n_zero_projection"]
+    if n_region_0 + n_region_1 + n_excluded != n:
+        raise AssertionError(
+            f"region membership counts ({n_region_0} + {n_region_1} + {n_excluded}) do not "
+            f"sum to n={n}."
+        )
+    print(
+        f"REGN-05: region_0={n_region_0} ({counts['fraction_region_0'] * 100:.1f}%)  "
+        f"region_1={n_region_1} ({counts['fraction_region_1'] * 100:.1f}%)  "
+        f"excluded={n_excluded} ({counts['fraction_excluded'] * 100:.1f}%)  "
+        f"n_zero_projection={n_zero_projection}"
+    )
+    undersized_region: List[int] = []
+    for label_val, count in ((0, n_region_0), (1, n_region_1)):
+        if count < region_partition.MIN_REGION_N:
+            undersized_region.append(label_val)
+            print(
+                f"  PRE-REGISTERED CONSEQUENCE: region {label_val} has n={count} < "
+                f"MIN_REGION_N={region_partition.MIN_REGION_N} -- recorded as undefined "
+                f"('{region_partition.MIN_REGION_N_UNDEFINED_REASON}'), nothing computed "
+                "for it, no adjustment made."
+            )
+
+    # REGN-06: freeze v, labels, keep_idx, excluded_idx, h_norm, signed_projection -- BEFORE
+    # anything downstream reads a label. Skipped in smoke mode so a reduced-size smoke pass
+    # never collides with the real frozen artifact's config manifest.
+    partition_cfg = {
+        "K_FROZEN": int(k),
+        "FIELD_D": int(d),
+        "K_DENSITY": int(k_density),
+        "MIN_NORM_PERCENTILE": float(min_norm_percentile),
+        "SEED": int(seed),
+        "COVARIANCE_FORM": region_partition.COVARIANCE_FORM,
+        "subsample_file": subsample_file,
+    }
+    if not smoke:
+        cache.npz_cache(
+            "04_region_partition",
+            partition_cfg,
+            lambda: {
+                "v": v,
+                "labels": labels,
+                "keep_idx": keep_idx,
+                "excluded_idx": excluded_idx,
+                "h_norm": h_norm_full,
+                "signed_projection": proj,
+            },
+        )
+        print(f"REGN-06: frozen partition artifact written to {cache.cache_path('04_region_partition', 'npz')}")
+    else:
+        print("SMOKE: REGN-06 artifact write skipped -- smoke mode writes nothing.")
+
+    # REGN-02: both Spearman correlations, plain, on surviving non-excluded points only.
+    rho_survivors = rho[keep_idx]
+    h_norm_survivors = h_norm_full[keep_idx]
+    spearman_density_vs_hnorm = _spearman_report(rho_survivors, h_norm_survivors, "density vs ||H||")
+    spearman_density_vs_projection = _spearman_report(rho_survivors, proj, "density vs signed projection <H/||H||, v>")
+
+    # Region-level density comparison (D4-14's other half of the evidence): median/IQR per
+    # region plus a two-sided Mann-Whitney U test.
+    rho_region_0 = rho_survivors[labels == 0]
+    rho_region_1 = rho_survivors[labels == 1]
+    median_density_region_0 = float(np.median(rho_region_0)) if rho_region_0.size else None
+    median_density_region_1 = float(np.median(rho_region_1)) if rho_region_1.size else None
+    iqr_density_region_0 = (
+        float(np.percentile(rho_region_0, 75) - np.percentile(rho_region_0, 25)) if rho_region_0.size else None
+    )
+    iqr_density_region_1 = (
+        float(np.percentile(rho_region_1, 75) - np.percentile(rho_region_1, 25)) if rho_region_1.size else None
+    )
+    if rho_region_0.size and rho_region_1.size:
+        mw_stat, mw_p = mannwhitneyu(rho_region_0, rho_region_1, alternative="two-sided")
+        mw_stat, mw_p = float(mw_stat), float(mw_p)
+    else:
+        mw_stat, mw_p = None, None
+    print(
+        "region-level density comparison (the single most decision-relevant density number "
+        "this phase can report, given D4-14's declined controls):"
+    )
+    print(
+        f"  region_0: median={median_density_region_0}  IQR={iqr_density_region_0}  "
+        f"n={int(rho_region_0.size)}"
+    )
+    print(
+        f"  region_1: median={median_density_region_1}  IQR={iqr_density_region_1}  "
+        f"n={int(rho_region_1.size)}"
+    )
+    print(f"  Mann-Whitney U (two-sided): statistic={mw_stat}  p={mw_p}")
+
+    h_p05 = float(np.percentile(h_norm_full, 5))
+    h_p95 = float(np.percentile(h_norm_full, 95))
+    h_spread = float(h_p95 / h_p05) if h_p05 > 0 else float("inf")
+
+    diagnostics = {
+        "spearman_density_vs_hnorm": spearman_density_vs_hnorm,
+        "spearman_density_vs_projection": spearman_density_vs_projection,
+        "mannwhitneyu_statistic": mw_stat,
+        "mannwhitneyu_pvalue": mw_p,
+        "median_density_region_0": median_density_region_0,
+        "median_density_region_1": median_density_region_1,
+        "iqr_density_region_0": iqr_density_region_0,
+        "iqr_density_region_1": iqr_density_region_1,
+        "n_region_0": int(n_region_0),
+        "n_region_1": int(n_region_1),
+        "n_excluded": int(n_excluded),
+        "n_zero_projection": int(n_zero_projection),
+        "undersized_region": undersized_region,
+        "rho_p05": rho_p05,
+        "rho_p50": rho_p50,
+        "rho_p95": rho_p95,
+        "rho_p95_over_p05": rho_ratio,
+        "mean_unit_norm": float(result["mean_unit_norm"]),
+        "eigval_top": float(result["eigval_top"]),
+        "h_spread": h_spread,
+        "floor": float(floor),
+        "min_norm_percentile": float(min_norm_percentile),
+        "k_frozen": int(k),
+        "d": int(d),
+        "k_density": int(k_density),
+        "seed": int(seed),
+        "subsample_file": subsample_file,
+        "field_wallclock_s": float(field_wallclock),
+        "smoke": bool(smoke),
+    }
+    if not smoke:
+        cache.json_cache("04_density_diagnostics", partition_cfg, lambda: diagnostics)
+        print(f"density diagnostics written to {cache.cache_path('04_density_diagnostics', 'json')}")
+    else:
+        print("SMOKE: density diagnostics write skipped -- smoke mode writes nothing.")
+
+    print(
+        "\nD4-14: the density confound is REPORTED, not CONTROLLED, in this phase. The only "
+        "density-confound check run is the REGN-02 Spearman correlation (before and after "
+        "the split) plus the region-level Mann-Whitney comparison above -- no partial "
+        "regression, no density-matched null, no centroid-distance control, no "
+        "density-matched stratification. MKNN is itself a k-NN statistic and therefore "
+        "directly density-sensitive by construction, so a later regional MKNN difference "
+        "CANNOT be attributed to curvature rather than to regional density by anything in "
+        "this phase."
+    )
+    print(
+        f"D4-05: PU's measured ||H|| spread is {h_spread:.2f}x (p95/p05 over the full field) "
+        "against the runner's own calibration -- unrankable quadratic_bowl at 1.4x, "
+        "rankable cubic/ridge at 28.2x/34.3x. PU sits far nearer the unrankable end. This "
+        "gates nothing: direction is a unit vector and does not consume the magnitude "
+        "spread."
+    )
+    print(
+        "CODIMENSION CAVEAT: every fixture the direction-partition decision (D4-01) rests "
+        "on is codimension 1, where H = H_scalar * n_hat; PU's codimension is roughly 748 "
+        "(d ~ 20 inside D = 768). A cosine near 1.000 on those fixtures demonstrates "
+        "recovery of a surface's normal orientation, a tangent-space problem known to "
+        "converge well -- not resolution of H's direction within a 748-wide normal space. "
+        "That gap is unmeasured on PU and unclosed by anything in this milestone."
+    )
+    return diagnostics
 
 
 def selfcheck() -> bool:
@@ -285,6 +539,41 @@ def main() -> None:
             "phase (04-04 onward); this plan only adds the pre-registration/artifact guard "
             "above, which must exist before that computation is written."
         )
+
+    if a.mode == "partition":
+        _, X_ls, subsample_file = load_pu_pair()
+        if a.smoke:
+            print(
+                "SMOKE: n=800, k=25, d=3, k_density=10 -- proves the partition path runs "
+                "end to end, writes nothing.\n"
+            )
+            run_partition(
+                X_ls[:800],
+                k=25,
+                d=3,
+                k_density=10,
+                min_norm_percentile=region_partition.MIN_NORM_PERCENTILE,
+                seed=a.seed,
+                subsample_file=subsample_file,
+                smoke=True,
+            )
+            return
+        print("=" * 78)
+        print(
+            f"Region partition -- n={X_ls.shape[0]}, k={region_partition.K_FROZEN}, "
+            f"d={region_partition.FIELD_D}, k_density={region_partition.K_DENSITY}"
+        )
+        print("=" * 78)
+        run_partition(
+            X_ls,
+            k=region_partition.K_FROZEN,
+            d=region_partition.FIELD_D,
+            k_density=region_partition.K_DENSITY,
+            min_norm_percentile=region_partition.MIN_NORM_PERCENTILE,
+            seed=region_partition.SEED,
+            subsample_file=subsample_file,
+        )
+        return
 
     if a.mode != "global":
         raise NotImplementedError(
