@@ -869,7 +869,7 @@ checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -890,7 +890,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 05-05-PLAN.md — The bucketed probe run: one global fit, three per-seed bucketings, three per-seed verdicts and one phase verdict, all applied mechanically from the committed rules
+- [x] 05-05-PLAN.md — The bucketed probe run: one global fit, three per-seed bucketings, three per-seed verdicts and one phase verdict, all applied mechanically from the committed rules
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
