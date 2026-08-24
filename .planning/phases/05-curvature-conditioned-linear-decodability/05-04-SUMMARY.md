@@ -255,3 +255,9 @@ None - no external service configuration required.
 ---
 *Phase: 05-curvature-conditioned-linear-decodability*
 *Completed: 2026-08-24*
+
+## Self-Check: PASSED
+
+All modified/created source files (`linear_probe.py`, `test_linear_probe.py`,
+`05-PREREGISTRATION.md`, this `05-04-SUMMARY.md`) found on disk; all three commit hashes
+(`32dabe3`, `b45ae1b`, `bce31dc`) found in `git log`.

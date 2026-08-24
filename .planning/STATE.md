@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-08-24T22:02:52.160Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-08-24T23:12:03.778Z"
 last_activity: 2026-08-24
 last_activity_desc: 05-03 complete (per-seed bucketing, verdict combination, density confound)
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 93
-  completed_plans: 84
+  completed_plans: 85
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute (05-01, 05-02, 05-03 complete; 05-04 next)
 Last activity: 2026-08-24 — 05-03 complete (per-seed bucketing, verdict combination, density confound)
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -449,6 +449,7 @@ Progress: [█████████░] 90% of planned plans (17/17; Phases 1
 | Phase 05 P01 | 19min | 3 tasks | 3 files |
 | Phase 05 P02 | 3h20m | 2 tasks | 1 files |
 | Phase 05 P03 | 15m | 3 tasks | 3 files |
+| Phase 05 P04 | ~7min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -631,6 +632,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 05-03: SEED_HANDLING_RULE checked by exact equality in assert_preregistered (not a non-empty-string check), so a future edit assigning a pooling-method name fails the guard rather than passing it
 - [Phase ?]: 05-03: POOLING_METHOD and BUCKET_EDGES are structurally removed from linear_probe.py (not left unused) -- the pooled design cannot be re-entered by assigning a value
 - [Phase ?]: 05-03: seed 20260814's realized full-field bucket counts [3334,2956,3710] diverge from near-balanced due to a genuine 2,102-point exact-duplicate block at the field's max value; D5-07's tie rule applied correctly, not a code bug -- see 05-03-SUMMARY.md
+- [Phase ?]: 05-04 Task 1 checkpoint: ratified ratify-recommended with no amendments -- all 31 linear_probe.py constants, VERDICT_RULE, and SEED_VERDICT_COMBINATION_RULE frozen exactly as the planner proposed (commit 32dabe3), before any PU probe number exists
+- [Phase ?]: 05-04: SPLIT ACROSS SEEDS frozen as a complete terminal non-supportive outcome for 1-2 of 3 per-seed HOLDS -- never upgraded by majority vote, continuous Spearman, or a different N_BUCKETS
 
 ### Pending Todos
 
@@ -684,8 +687,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T22:02:52.110Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-08-24T23:12:03.729Z
+Stopped at: Completed 05-04-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

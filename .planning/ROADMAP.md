@@ -869,7 +869,7 @@ checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -886,7 +886,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 05-04-PLAN.md — The pre-registration freeze: all 31 constants, the full VERDICT_RULE and the SEED_VERDICT_COMBINATION_RULE defining what a split outcome means, in committed source plus 05-PREREGISTRATION.md
+- [x] 05-04-PLAN.md — The pre-registration freeze: all 31 constants, the full VERDICT_RULE and the SEED_VERDICT_COMBINATION_RULE defining what a split outcome means, in committed source plus 05-PREREGISTRATION.md
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
