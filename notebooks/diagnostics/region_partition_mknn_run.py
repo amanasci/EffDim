@@ -168,6 +168,11 @@ def selfcheck() -> bool:
     return ok
 
 
+PAPER_RANGE_LOW = 0.34   # percent, arXiv:2509.19453 Table 2, Legacy-vs-HSC column
+PAPER_RANGE_HIGH = 2.25  # percent, same source
+PAPER_N = 101725
+
+
 def _header() -> None:
     print(
         f"{'k_mknn':>7} {'n':>7} {'score%':>9} {'floor%':>9} {'ratio':>8} "
@@ -184,8 +189,55 @@ def _row(r: Dict[str, Any]) -> None:
 
 
 def summarize(records: List[Dict[str, Any]]) -> None:
-    print("\nGlobal crossmodal MKNN read-out (raw numbers, not yet framed against the")
-    print("origin paper -- see notebooks/04_region_partition_mknn.ipynb for that read-out).")
+    """Full read-out: one line per k with the raw score, the chance floor, the ratio
+    over chance, the permutation p-value, the 95% CI and BOTH sides' k-occurrence
+    hubness skewness (MKNN-08) -- printed beside the numbers, not asserted in prose
+    alone. Followed by a fixed comparison block naming this run's n, the origin
+    paper's raw range and n (D4-19), and the k caveat (MKNN-06 sets the grid, not
+    the paper)."""
+    print("\nGlobal crossmodal MKNN read-out, full grid:")
+    print(
+        f"{'k_mknn':>7} {'n':>7} {'score%':>9} {'floor%':>9} {'ratio':>8} "
+        f"{'p':>8} {'ci_low%':>9} {'ci_high%':>9} {'hub_hsc':>9} {'hub_ls':>9}"
+    )
+    for r in records:
+        print(
+            f"{r['k_mknn']:>7} {r['n']:>7} {r['score'] * 100:>9.4g} "
+            f"{r['chance_floor'] * 100:>9.4g} {r['ratio_over_chance']:>8.3f} "
+            f"{r['p_value']:>8.4f} {r['ci_low'] * 100:>9.4g} {r['ci_high'] * 100:>9.4g} "
+            f"{r['hubness_skewness_hsc']:>9.3f} {r['hubness_skewness_legacysurvey']:>9.3f}"
+        )
+
+    n_this = records[0]["n"] if records else None
+    print("\n--- comparison against the origin paper (D4-19) ---")
+    print(f"this run:  n = {n_this}, raw MKNN 4sf shown above per k, ratio-over-chance carries")
+    print("           the comparison across the n mismatch, NOT the raw number")
+    print(
+        f"paper:     Legacy-vs-HSC published range {PAPER_RANGE_LOW}% - {PAPER_RANGE_HIGH}% "
+        f"at n = {PAPER_N} (arXiv:2509.19453 Table 2)"
+    )
+    print(
+        f"NOTE: n = {n_this} here vs n = {PAPER_N} in the paper -- raw numbers are NOT "
+        "directly comparable across this n mismatch; the ratio-over-chance framing is what"
+    )
+    print("carries the comparison, per D4-19.")
+    print(
+        "NOTE: the paper does not state the k behind Table 2. This phase's grid "
+        "{5, 10, 20, 50} is set by MKNN-06, never by the paper."
+    )
+    if records:
+        hub_all = [r["hubness_skewness_hsc"] for r in records] + [
+            r["hubness_skewness_legacysurvey"] for r in records
+        ]
+        hub_range = f"{min(hub_all):.3f} to {max(hub_all):.3f}"
+    else:
+        hub_range = "n/a"
+    print(
+        f"CAVEAT (MKNN-08): k-occurrence hubness skewness ranges {hub_range} across both "
+        "embedding sides and every k above (see hub_hsc / hub_ls columns) -- MKNN alignment "
+        "metrics are hubness-sensitive in high dimensions; this caveat applies to every "
+        "result above."
+    )
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
