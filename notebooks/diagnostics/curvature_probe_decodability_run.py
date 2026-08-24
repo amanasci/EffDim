@@ -22,6 +22,7 @@ import argparse
 import glob
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -30,12 +31,26 @@ if str(NOTEBOOK_ROOT) not in sys.path:
     sys.path.insert(0, str(NOTEBOOK_ROOT))
 
 import numpy as np
+import torch
 from scipy.stats import spearmanr
 
-from pu_manifold import cache, linear_probe
+from pu_manifold import cache, cae, chart_curvature, linear_probe
 
 DEFAULT_RECORD = cache.cache_path("05_curvature_probe_decodability", "jsonl")
 SELFCHECK_RECORD = cache.cache_path("05_probe_selfcheck", "jsonl")
+
+# --- Sealed CAE architecture constants -- must match curvature_field_pu_run.py's build_cae /
+# load_converged_model exactly, since these are the same three sealed checkpoints. ------------
+PU_IN_DIM = 768
+PU_EMBED_DIM = 40
+PU_CHART_DIM = 20
+PU_HIDDEN_WIDTH = 250
+PU_ACTIVATION = "silu"
+CONVERGED_CKPT_STEM = "03_converged_cae_pu"
+
+CURVATURE_SOURCE_FUNCTION_NAME = "chart_curvature.chart_curvature_field"
+"""The load-bearing correction to D5-03: the string this phase's CURVATURE_SOURCE_FUNCTION
+constant will carry at the 05-04 freeze, naming the function actually called below."""
 
 
 def load_pu_pair(
@@ -69,6 +84,180 @@ def load_pu_pair(
         )
     print(f"loaded {column_a} {Xa.shape} and {column_b} {Xb.shape} from {Path(best).name}")
     return Xa, Xb, best
+
+
+def build_cae(n_charts: int, device: torch.device = torch.device("cpu")) -> "cae.ChartAutoEncoder":
+    """Constructed exactly as `curvature_field_pu_run.build_cae`, then moved to `device`
+    AFTER construction (`model.to(device)`) -- never by passing `device=` into the
+    constructor -- so `torch.manual_seed(seed)`'s RNG consumption order is unaffected. Default
+    `cpu`: zero behaviour change. All three sealed checkpoints are `n_charts=4`.
+    """
+    model = cae.ChartAutoEncoder(
+        in_dim=PU_IN_DIM,
+        embed_dim=PU_EMBED_DIM,
+        chart_dim=PU_CHART_DIM,
+        n_charts=n_charts,
+        hidden=[PU_HIDDEN_WIDTH, PU_HIDDEN_WIDTH, PU_HIDDEN_WIDTH],
+        activation=PU_ACTIVATION,
+    )
+    return model.to(device)
+
+
+def load_converged_model(n_charts: int, seed: int, device: torch.device) -> Any:
+    """Rebuild the converged CAE from its sealed checkpoint. Never retrains: a missing
+    checkpoint is a named `FileNotFoundError`, never a silent fallback to training -- silently
+    training a replacement would put a DIFFERENT model behind the same reported number.
+    Validates the checkpoint's own recorded `n_charts` and `seed` match the requested ones,
+    raising `ValueError` on mismatch.
+    """
+    ckpt_path = cache.cache_path(f"{CONVERGED_CKPT_STEM}_nc{n_charts}_seed{seed}", "pt")
+    if not ckpt_path.exists():
+        raise FileNotFoundError(
+            f"No converged checkpoint at {ckpt_path}. This runner never trains a replacement."
+        )
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    if int(ckpt["n_charts"]) != n_charts or int(ckpt["seed"]) != seed:
+        raise ValueError(
+            f"{ckpt_path} carries n_charts={ckpt['n_charts']} seed={ckpt['seed']}, but "
+            f"n_charts={n_charts} seed={seed} was requested."
+        )
+    model = build_cae(n_charts, device=device).double()
+    model.load_state_dict(ckpt["state_dict"])
+    model.eval()
+    return model, ckpt
+
+
+def extract_seed_field(
+    seed: int,
+    n_charts: int,
+    batch_size: int,
+    x64: np.ndarray,
+    field_stem_prefix: str,
+    subsample_file: str,
+) -> Dict[str, np.ndarray]:
+    """The decoder-side curvature field for ONE seed, cached through `cache.npz_cache` at
+    stem `f"{field_stem_prefix}_seed{seed}"`. The `cfg` dict keyed into the manifest carries
+    `seed`, `n_charts`, `mode`, `batch_size`, `n_rows`, `subsample_file`,
+    `curvature_convention` and `source_function`, so a re-run with a different configuration
+    raises the manifest mismatch rather than silently reusing a stale field.
+
+    This is the load-bearing correction to D5-03: the call is routed through
+    `chart_curvature.chart_curvature_field`, which takes AMBIENT 768-d rows (not a latent),
+    internally encodes, takes `chart_probs(z).argmax(dim=1)`, computes per-chart curvature and
+    reassembles in the original row order. `notebooks/pu_manifold/decoder_curvature.py` --
+    the module D5-03 itself names -- is `chart_curvature.py` with the
+    `chart_decoders[chart_idx]` two-hop composition removed, built for Phase 02.6's
+    no-chart-index substrates; `ChartAutoEncoder` has no bare single-hop decode entry point
+    matching that module's signature, so nothing is imported from it here.
+    """
+    stem = f"{field_stem_prefix}_seed{seed}"
+    cfg: Dict[str, Any] = {
+        "seed": int(seed),
+        "n_charts": int(n_charts),
+        "mode": "reverse",
+        "batch_size": int(batch_size),
+        "n_rows": int(x64.shape[0]),
+        "subsample_file": str(subsample_file),
+        "curvature_convention": chart_curvature.CURVATURE_CONVENTION,
+        "source_function": CURVATURE_SOURCE_FUNCTION_NAME,
+    }
+
+    def _compute() -> Dict[str, np.ndarray]:
+        model, _ = load_converged_model(n_charts, seed, torch.device("cpu"))
+        x_tensor = torch.as_tensor(x64, dtype=torch.float64)
+        field = chart_curvature.chart_curvature_field(
+            model, x_tensor, batch_size=batch_size, mode="reverse"
+        )
+        return {
+            "H_norm": field["H_norm"].detach().cpu().numpy().astype(np.float64),
+            "H_vec": field["H_vec"].detach().cpu().numpy().astype(np.float64),
+            "chart_assignment": field["chart_assignment"].detach().cpu().numpy().astype(np.int64),
+            "metric_condition_number": field["metric_condition_number"]
+            .detach()
+            .cpu()
+            .numpy()
+            .astype(np.float64),
+            "lambda_min": field["lambda_min"].detach().cpu().numpy().astype(np.float64),
+            "lambda_max": field["lambda_max"].detach().cpu().numpy().astype(np.float64),
+            "det_g": field["det_g"].detach().cpu().numpy().astype(np.float64),
+            "log10_det_g": field["log10_det_g"].detach().cpu().numpy().astype(np.float64),
+            "n_charts_used": np.asarray(field["n_charts_used"]),
+        }
+
+    return cache.npz_cache(stem, cfg, _compute)
+
+
+def run_field_mode(a: argparse.Namespace) -> None:
+    """`--mode field`: extract the decoder-side `||H||` field for each seed in `a.seeds`,
+    over the `legacysurvey` embedding (the CAE's own fitted substrate -- see
+    `curvature_field_pu_run._load_subsample`, which reads the same column). `--smoke` uses
+    only the first `a.smoke_n` rows and only the first seed, bypasses the cache entirely so a
+    reduced field can never be mistaken for the real one, and writes nothing.
+    """
+    _, X_ls, subsample_file = load_pu_pair()
+
+    if a.smoke:
+        seed = a.seeds[0]
+        print(
+            f"SMOKE: n={a.smoke_n}, seed={seed} only -- proves the field extraction path "
+            "runs end to end against a genuine sealed checkpoint, bypasses the cache, writes "
+            "nothing.\n"
+        )
+        model, _ = load_converged_model(a.n_charts, seed, torch.device("cpu"))
+        x64 = X_ls[: a.smoke_n].astype(np.float64)
+        x_tensor = torch.as_tensor(x64, dtype=torch.float64)
+        field = chart_curvature.chart_curvature_field(
+            model, x_tensor, batch_size=a.batch_size, mode="reverse"
+        )
+        H_norm = field["H_norm"].detach().cpu().numpy().astype(np.float64)
+        print(
+            f"seed {seed}: n={x64.shape[0]}  median H_norm={float(np.median(H_norm)):.6g}  "
+            f"n_distinct_H_norm={len(np.unique(H_norm))}  n_charts_used={field['n_charts_used']}"
+        )
+        return
+
+    print("=" * 78)
+    print(f"Curvature field extraction -- seeds={a.seeds}, n_charts={a.n_charts}")
+    print("=" * 78)
+    for seed in a.seeds:
+        t0 = time.monotonic()
+        x64 = X_ls.astype(np.float64)
+        result = extract_seed_field(seed, a.n_charts, a.batch_size, x64, a.field_stem, subsample_file)
+        H_norm = result["H_norm"]
+        print(
+            f"seed {seed}: wallclock={time.monotonic() - t0:.1f}s  "
+            f"median H_norm={float(np.median(H_norm)):.6g}  "
+            f"n_distinct_H_norm={len(np.unique(H_norm))}  "
+            f"n_charts_used={int(np.asarray(result['n_charts_used']))}"
+        )
+
+
+def run_pool_mode(a: argparse.Namespace) -> None:
+    """`--mode pool` is pre-registered but not implemented until plan 05-03."""
+    raise NotImplementedError(
+        "--mode pool is pre-registered but not implemented until plan 05-03."
+    )
+
+
+def run_bucketed_mode(a: argparse.Namespace) -> None:
+    """`--mode bucketed` -- the D5-10 guard, complete in this task even though the branch it
+    guards is not. Before touching any data: calls `linear_probe.assert_preregistered()`,
+    then checks the pooled field artifact exists, raising `FileNotFoundError` naming the
+    missing path. Only after both pass does it reach the body, which raises
+    `NotImplementedError` until plan 05-05. With the pre-registration constants unset today,
+    the first guard fires and this mode is dead.
+    """
+    linear_probe.assert_preregistered()
+    field_path = cache.cache_path(a.field_stem, "npz")
+    if not field_path.exists():
+        raise FileNotFoundError(
+            f"--mode bucketed requires the frozen pooled curvature field artifact at "
+            f"{field_path}, which does not exist. Run --mode field then --mode pool first "
+            "to produce it."
+        )
+    raise NotImplementedError(
+        "--mode bucketed's body is pre-registered but not implemented until plan 05-05."
+    )
 
 
 def _spearman_report(a: np.ndarray, b: np.ndarray, name: str) -> Dict[str, Any]:
@@ -272,11 +461,19 @@ def main() -> None:
         ok = selfcheck()
         sys.exit(0 if ok else 1)
 
-    raise NotImplementedError(
-        f"--mode {a.mode!r} is pre-registered but not implemented until a later task in this "
-        "plan (Task 3 completes --mode field and the --mode bucketed guard; --mode pool is "
-        "implemented at plan 05-03; --mode bucketed's body is implemented at plan 05-05)."
-    )
+    if a.mode == "field":
+        run_field_mode(a)
+        return
+
+    if a.mode == "pool":
+        run_pool_mode(a)
+        return
+
+    if a.mode == "bucketed":
+        run_bucketed_mode(a)
+        return
+
+    raise NotImplementedError(f"--mode {a.mode!r} is not a recognized mode.")
 
 
 if __name__ == "__main__":
