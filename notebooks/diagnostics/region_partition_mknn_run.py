@@ -3,15 +3,17 @@ region-blind, partition-blind crossmodal HSC-vs-Legacy-Survey MKNN across the fr
 `--mknn-k` grid. `--mode partition` (plan 04-04) computes the density-corrected PU field
 at the frozen k, REGN-01/REGN-02's density diagnostics, the D4-09 sign split, and REGN-06's
 frozen partition artifact -- all before any regional MKNN number exists. `--mode regional`
-(plan 04-03 added the guard; the cell computation itself is a later plan) requires both
+(plan 04-03 added the guard; plan 04-05 implements the cell computation) requires both
 `region_partition.assert_preregistered()` and the frozen partition artifact to exist before
-it will even attempt a regional MKNN cell.
+it will even attempt a regional MKNN cell -- the eight-cell grid, region-scoped nulls,
+bootstrap CIs, hubness, and the pre-registered verdict applied mechanically.
 
     python notebooks/diagnostics/region_partition_mknn_run.py --selfcheck
     python notebooks/diagnostics/region_partition_mknn_run.py --mode global --smoke
     python notebooks/diagnostics/region_partition_mknn_run.py --mode global
     python notebooks/diagnostics/region_partition_mknn_run.py --mode partition --smoke
     python notebooks/diagnostics/region_partition_mknn_run.py --mode partition
+    python notebooks/diagnostics/region_partition_mknn_run.py --mode regional
 """
 
 import argparse
@@ -374,6 +376,270 @@ def run_partition(
     return diagnostics
 
 
+def run_regional_cell(
+    region: int,
+    k_mknn: int,
+    X_hsc_region: np.ndarray,
+    X_ls_region: np.ndarray,
+    n_permutations: int,
+    n_resamples: int,
+    seed: int,
+    null_quantile: float,
+    confidence_level: float,
+    k_frozen: int,
+    subsample_file: str,
+) -> Dict[str, Any]:
+    """One flat, JSONL-serializable regional MKNN row (MKNN-03..MKNN-06, MKNN-08). Every
+    parameter is a required argument sourced from `region_partition`'s frozen constants at
+    the call site -- this function chooses nothing.
+
+    Per D4-16, `X_hsc_region`/`X_ls_region` are ALREADY subset to the region's own rows by
+    the caller; every neighbour set, score, null and CI computed here therefore lives
+    entirely inside that region's own index set -- no global null is computed anywhere in
+    this function.
+
+    Skip conditions are checked BEFORE anything is computed: `n_region < MIN_REGION_N`
+    (RESEARCH Pitfall 3 -- an undersized region's own null and CI become unstable) and
+    `k_mknn + 1 > n_region` (a k-NN query cannot ask for more neighbours than the region
+    has points). Both are pre-registered; neither is a judgement made here. A skipped cell
+    is recorded with `status: "undefined"`, `score: None` and an explicit `reason`, never
+    silently dropped.
+    """
+    t0 = time.monotonic()
+    n_region = int(X_hsc_region.shape[0])
+    k_over_n_region = float(k_mknn) / n_region if n_region > 0 else None
+
+    row: Dict[str, Any] = {
+        "kind": "mknn_regional",
+        "region": int(region),
+        "k_mknn": int(k_mknn),
+        "n_region": n_region,
+        "k_over_n_region": k_over_n_region,
+        "null_scope": "region",
+        "null_n": n_region,
+        "n_permutations": int(n_permutations),
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "null_quantile": float(null_quantile),
+        "confidence_level": float(confidence_level),
+        "k_frozen": int(k_frozen),
+        "subsample_file": subsample_file,
+    }
+    undefined_fields: Dict[str, Any] = {
+        "score": None,
+        "chance_floor": None,
+        "ratio_over_chance": None,
+        "p_value": None,
+        "null_mean": None,
+        "null_std": None,
+        "null_threshold": None,
+        "clears_null": None,
+        "ci_low": None,
+        "ci_high": None,
+        "degenerate": None,
+        "hubness_skewness_hsc": None,
+        "hubness_skewness_legacysurvey": None,
+    }
+
+    if n_region < region_partition.MIN_REGION_N:
+        row.update(undefined_fields)
+        row["status"] = "undefined"
+        row["reason"] = region_partition.MIN_REGION_N_UNDEFINED_REASON
+        row["wallclock_s"] = time.monotonic() - t0
+        return row
+    if k_mknn + 1 > n_region:
+        row.update(undefined_fields)
+        row["status"] = "undefined"
+        row["reason"] = "k+1 > n_region"
+        row["wallclock_s"] = time.monotonic() - t0
+        return row
+
+    score = mknn.mknn_score(X_hsc_region, X_ls_region, k_mknn)
+    perm = mknn.permutation_null(
+        X_hsc_region, X_ls_region, k_mknn, n_permutations, seed, null_quantile
+    )
+    boot = mknn.bootstrap_ci(
+        X_hsc_region, X_ls_region, k_mknn, n_resamples, seed, confidence_level
+    )
+    hub_hsc = mknn.hubness_skewness(X_hsc_region, k_mknn)
+    hub_ls = mknn.hubness_skewness(X_ls_region, k_mknn)
+    floor = mknn.chance_floor(n_region, k_mknn)
+
+    row["status"] = "ok"
+    row["reason"] = None
+    row["score"] = score
+    row["chance_floor"] = floor
+    row["ratio_over_chance"] = score / floor
+    row["p_value"] = perm["p_value"]
+    row["null_mean"] = perm["null_mean"]
+    row["null_std"] = perm["null_std"]
+    row["null_threshold"] = perm["null_threshold"]
+    row["clears_null"] = perm["clears_null"]
+    row["ci_low"] = boot["ci_low"]
+    row["ci_high"] = boot["ci_high"]
+    row["degenerate"] = boot["degenerate"]
+    row["hubness_skewness_hsc"] = hub_hsc
+    row["hubness_skewness_legacysurvey"] = hub_ls
+    row["wallclock_s"] = time.monotonic() - t0
+    return row
+
+
+def _regional_row_print(r: Dict[str, Any]) -> None:
+    if r["status"] != "ok":
+        print(
+            f"  region={r['region']} k={r['k_mknn']:>3} n_region={r['n_region']:>5}: "
+            f"UNDEFINED ({r['reason']})"
+        )
+        return
+    print(
+        f"  region={r['region']} k={r['k_mknn']:>3} n_region={r['n_region']:>5} "
+        f"k/n={r['k_over_n_region']:.4g} score%={r['score'] * 100:.4g} "
+        f"floor%={r['chance_floor'] * 100:.4g} ratio={r['ratio_over_chance']:.3f} "
+        f"p={r['p_value']:.4f} CI=[{r['ci_low'] * 100:.4g}%, {r['ci_high'] * 100:.4g}%] "
+        f"clears_null={r['clears_null']}"
+    )
+
+
+def apply_verdict(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Apply `region_partition.VERDICT_RULE` mechanically to the eight regional rows
+    (MKNN-07). Reads `HEADLINE_K`, `NULL_QUANTILE` and `CONFIDENCE_LEVEL` from
+    `region_partition` -- chosen nowhere in this function, and never amended now that a
+    regional number exists.
+
+    A `k` HOLDS iff BOTH: (a) the two regions' `CONFIDENCE_LEVEL` bootstrap CIs at that k
+    are disjoint, AND (b) the higher-scoring region's observed score strictly exceeds its
+    OWN region-scoped null threshold (already the `NULL_QUANTILE` percentile of that
+    region's own permutation null, per `mknn.permutation_null`). The headline call is made
+    at `HEADLINE_K` alone; the remaining three k are reported as sensitivity only and
+    cannot overturn or escalate it. Any cell recorded `status: "undefined"` makes that k's
+    outcome `UNDEFINED`, and if that k is the headline k, the headline verdict becomes
+    "NO DETECTABLE DIFFERENCE (comparison undefined at this split balance)".
+
+    Returns a dict with `headline_k`, `headline_verdict`, `per_k`, `rule_text` (the
+    verbatim `VERDICT_RULE`) and `density_caveat`. Prints the whole thing, including the
+    verbatim rule text, so the applied rule and the rule as frozen are visible side by
+    side in one output.
+    """
+    by_region_k: Dict[Tuple[int, int], Dict[str, Any]] = {
+        (r["region"], r["k_mknn"]): r for r in rows
+    }
+    per_k: Dict[int, Dict[str, Any]] = {}
+    for k in region_partition.MKNN_K_GRID:
+        r0 = by_region_k.get((0, k))
+        r1 = by_region_k.get((1, k))
+        if r0 is None or r1 is None or r0["status"] != "ok" or r1["status"] != "ok":
+            per_k[k] = {
+                "outcome": "UNDEFINED",
+                "reason": "a required regional cell is undefined at this k",
+            }
+            continue
+        ci_disjoint = bool((r0["ci_high"] < r1["ci_low"]) or (r1["ci_high"] < r0["ci_low"]))
+        higher, lower = (r0, r1) if r0["score"] >= r1["score"] else (r1, r0)
+        exceeds_own_null = bool(higher["score"] > higher["null_threshold"])
+        holds = bool(ci_disjoint and exceeds_own_null)
+        per_k[k] = {
+            "outcome": "HOLDS" if holds else "NO DETECTABLE DIFFERENCE",
+            "ci_disjoint": ci_disjoint,
+            "higher_region": higher["region"],
+            "higher_score": higher["score"],
+            "higher_null_threshold": higher["null_threshold"],
+            "lower_region": lower["region"],
+            "exceeds_own_null": exceeds_own_null,
+        }
+
+    headline = per_k.get(region_partition.HEADLINE_K, {"outcome": "UNDEFINED"})
+    if headline["outcome"] == "UNDEFINED":
+        headline_verdict = "NO DETECTABLE DIFFERENCE (comparison undefined at this split balance)"
+    elif headline["outcome"] == "HOLDS":
+        headline_verdict = (
+            f"HOLDS at HEADLINE_K={region_partition.HEADLINE_K}: region "
+            f"{headline['higher_region']} scores higher, CIs disjoint, and its observed "
+            f"score strictly exceeds its own {region_partition.NULL_QUANTILE:.0%} null "
+            "threshold."
+        )
+    else:
+        headline_verdict = (
+            f"NO DETECTABLE DIFFERENCE at HEADLINE_K={region_partition.HEADLINE_K} -- a "
+            "complete, valid outcome per VERDICT_RULE; never a phase failure and never "
+            "escalated by the sensitivity k."
+        )
+
+    density_caveat = (
+        "D4-14 CAVEAT: a detected regional MKNN difference under this rule CANNOT be "
+        "attributed to curvature rather than to regional density by anything in this "
+        "phase -- the density-confound battery run in this phase is the REGN-02 "
+        "correlation only, no density-matched null, no partial regression, no "
+        "centroid-distance control, no density-matched stratification. MKNN is itself a "
+        "k-NN statistic and therefore directly density-sensitive by construction."
+    )
+
+    result = {
+        "headline_k": region_partition.HEADLINE_K,
+        "headline_verdict": headline_verdict,
+        "per_k": per_k,
+        "rule_text": region_partition.VERDICT_RULE,
+        "density_caveat": density_caveat,
+    }
+
+    print("\n" + "=" * 78)
+    print("VERDICT_RULE (verbatim, from region_partition.py):")
+    print("=" * 78)
+    print(region_partition.VERDICT_RULE)
+    print("=" * 78)
+    print(
+        f"Per-k outcomes (headline k = {region_partition.HEADLINE_K}, the remaining three "
+        "are sensitivity only and cannot overturn or escalate the headline):"
+    )
+    for k in region_partition.MKNN_K_GRID:
+        label = "HEADLINE" if k == region_partition.HEADLINE_K else "sensitivity"
+        print(f"  k={k:>3} [{label:>11}]: {per_k[k]['outcome']}")
+    print(f"\nHEADLINE VERDICT (k={region_partition.HEADLINE_K}): {headline_verdict}")
+    print(f"\n{density_caveat}")
+
+    return result
+
+
+def _print_regional_closing_statements(rows: List[Dict[str, Any]]) -> None:
+    """The three fixed closing statements this task's action requires: D4-14 (density
+    confound, in the caveat's own words rather than a weaker restatement), D4-16 (regional
+    numbers are not directly comparable to the global MKNN-02 figure), and MKNN-08 (the
+    hubness caveat, substantiated by the printed k-occurrence skewness immediately beside
+    it rather than asserted as prose alone)."""
+    print("\n" + "=" * 78)
+    print("CLOSING STATEMENTS")
+    print("=" * 78)
+    print(
+        "D4-14: a regional MKNN difference cannot be separated from a regional density "
+        "difference by anything in this phase. MKNN is itself a k-NN statistic and "
+        "therefore directly density-sensitive by construction, and no density-matched "
+        "null, partial regression, centroid-distance control or density-matched "
+        "stratification was run -- see 04-04-SUMMARY.md's measured confound "
+        "(spearman(density, signed_projection) = +0.8208, n=9500)."
+    )
+    print(
+        "D4-16: the regional numbers above are NOT directly comparable to the global "
+        "MKNN-02 figure, because k/n differs between a region and the whole cloud. A "
+        "smaller region raises chance alignment, which is exactly what that region's own "
+        "null absorbs -- the comparison that carries meaning is each region against its "
+        "own null and its own chance floor, never region against global."
+    )
+    print("MKNN-08 hubness caveat, substantiated by the printed k-occurrence skewness:")
+    for r in rows:
+        if r["status"] != "ok":
+            print(f"  region={r['region']} k={r['k_mknn']:>3}: n/a (cell undefined)")
+            continue
+        print(
+            f"  region={r['region']} k={r['k_mknn']:>3}: "
+            f"hub_hsc={r['hubness_skewness_hsc']:.3f}  "
+            f"hub_legacysurvey={r['hubness_skewness_legacysurvey']:.3f}"
+        )
+    print(
+        "\nEvery regional result above carries the hubness caveat: k-NN alignment metrics "
+        "are hubness-sensitive in high dimensions (Radovanovic, Nanopoulos and Ivanovic, "
+        "JMLR 2010)."
+    )
+
+
 def selfcheck() -> bool:
     """MKNN-01's known-answer assertions on synthetic data. This runner flag is the
     phase's automated implementation check (D4-18 declines `tests/test_mknn.py`)."""
@@ -539,11 +805,58 @@ def main() -> None:
                 f"{partition_artifact}, which does not exist. Run --mode partition first "
                 "to produce it (a later plan in this phase implements --mode partition)."
             )
-        raise NotImplementedError(
-            "--mode regional's cell computation is implemented in a later plan in this "
-            "phase (04-04 onward); this plan only adds the pre-registration/artifact guard "
-            "above, which must exist before that computation is written."
+
+        X_hsc, X_ls, subsample_file = load_pu_pair()
+        with np.load(partition_artifact) as part:
+            labels = part["labels"]
+            keep_idx = part["keep_idx"]
+
+        record_path = Path(a.record_path) if a.record_path else DEFAULT_RECORD
+        record_path.parent.mkdir(parents=True, exist_ok=True)
+
+        print("=" * 78)
+        print(
+            f"Regional crossmodal MKNN -- MKNN_K_GRID={region_partition.MKNN_K_GRID}, "
+            f"HEADLINE_K={region_partition.HEADLINE_K}, "
+            f"N_PERMUTATIONS={region_partition.N_PERMUTATIONS}, "
+            f"N_BOOTSTRAP={region_partition.N_BOOTSTRAP}"
         )
+        print("=" * 78)
+        print(f"record_path = {record_path}\n")
+
+        rows: List[Dict[str, Any]] = []
+        with record_path.open("a") as fh:
+            for region in (0, 1):
+                region_rows_idx = keep_idx[labels == region]
+                n_region = int(region_rows_idx.shape[0])
+                # Per D4-16: subset BOTH embeddings to the region's own rows first, then
+                # every N_k, score, null and CI computed below lives inside that same
+                # index set. No global null is computed anywhere in this branch.
+                X_hsc_region = X_hsc[region_rows_idx]
+                X_ls_region = X_ls[region_rows_idx]
+                print(f"region {region}: n_region={n_region}")
+                for k in region_partition.MKNN_K_GRID:
+                    r = run_regional_cell(
+                        region,
+                        k,
+                        X_hsc_region,
+                        X_ls_region,
+                        n_permutations=region_partition.N_PERMUTATIONS,
+                        n_resamples=region_partition.N_BOOTSTRAP,
+                        seed=region_partition.SEED,
+                        null_quantile=region_partition.NULL_QUANTILE,
+                        confidence_level=region_partition.CONFIDENCE_LEVEL,
+                        k_frozen=region_partition.K_FROZEN,
+                        subsample_file=subsample_file,
+                    )
+                    fh.write(json.dumps(r, default=float) + "\n")
+                    fh.flush()
+                    rows.append(r)
+                    _regional_row_print(r)
+
+        apply_verdict(rows)
+        _print_regional_closing_statements(rows)
+        return
 
     if a.mode == "partition":
         _, X_ls, subsample_file = load_pu_pair()
