@@ -106,12 +106,12 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 > discipline they encode is preserved; only the quantity changes. REGN-06 is new. See the dated
 > re-mint section at the bottom of this file.
 
-- [ ] **REGN-01**: Local sample-density measure per point **in the ambient embedding space the curvature field is estimated in** — the 768-d normalized embeddings, not Isomap coordinates — shown
-- [ ] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
+- [x] **REGN-01**: Local sample-density measure per point **in the ambient embedding space the curvature field is estimated in** — the 768-d normalized embeddings, not Isomap coordinates — shown
+- [x] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
 - [x] **REGN-03**: Points partitioned by a **data-derived direction criterion**, never by a fixed absolute threshold
 - [x] **REGN-04**: The partition rule specified and frozen **before** regional alignment is computed, and that ordering visible in the notebook
-- [ ] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
-- [ ] **REGN-06**: The direction eigenvector `v` and the resulting sign split **recorded and frozen as artifacts** before any MKNN number is computed, so the split is auditable after the fact
+- [x] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
+- [x] **REGN-06**: The direction eigenvector `v` and the resulting sign split **recorded and frozen as artifacts** before any MKNN number is computed, so the split is auditable after the fact
 
 ### Regional Alignment (MKNN)
 
@@ -223,12 +223,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-06 | Phase 3 | Complete (controls run; both curved fixtures failed at d=20) |
 | CURV-07 | Phase 3 | Answered (negative, conditioned on the override) |
 | CURV-08 | Phase 3 | Complete |
-| REGN-01 | Phase 4 | Pending |
-| REGN-02 | Phase 4 | Pending |
+| REGN-01 | Phase 4 | Complete |
+| REGN-02 | Phase 4 | Complete |
 | REGN-03 | Phase 4 | Complete |
 | REGN-04 | Phase 4 | Complete |
-| REGN-05 | Phase 4 | Pending |
-| REGN-06 | Phase 4 | Pending |
+| REGN-05 | Phase 4 | Complete |
+| REGN-06 | Phase 4 | Complete |
 | MKNN-01 | Phase 4 | Complete |
 | MKNN-02 | Phase 4 | Complete |
 | MKNN-03 | Phase 4 | Pending |
