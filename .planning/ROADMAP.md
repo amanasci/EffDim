@@ -861,8 +861,11 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 **Goal:** Measure whether linear crossmodal decodability degrades as decoder-side manifold curvature
 magnitude increases — one global ridge map `hsc -> legacysurvey` on frozen PU embeddings, held-out
-per-point residuals bucketed by a pooled decoder-side `||H||` field, judged under a rule frozen
-before any PU probe number exists.
+per-point residuals bucketed independently by each of three per-seed decoder-side `||H||` fields,
+judged per seed under a rule frozen before any PU probe number exists and combined into one phase
+read-out by a frozen combination rule. *(Amended 2026-08-24: the seeds are NOT pooled. See
+`05-03-DECISION.md`, which superseded `05-CONTEXT.md` D5-04 at the `05-03` Task 1 one-way blocking
+checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
@@ -879,16 +882,16 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-03-PLAN.md — Ratify the one-way seed-pooling rule, build the pooled field and bucket labels, re-measure the density confound
+- [ ] 05-03-PLAN.md — Carry the ratified no-pooling decision into the code: restructure the pre-registration block for three verdicts (constants still unset), build three per-seed bucketings, re-measure the density confound per seed
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 05-04-PLAN.md — The pre-registration freeze: every constant and the full VERDICT_RULE in committed source plus 05-PREREGISTRATION.md
+- [ ] 05-04-PLAN.md — The pre-registration freeze: all 31 constants, the full VERDICT_RULE and the SEED_VERDICT_COMBINATION_RULE defining what a split outcome means, in committed source plus 05-PREREGISTRATION.md
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 05-05-PLAN.md — The bucketed probe run: the phase's headline numbers, verdict applied mechanically from the committed rule
+- [ ] 05-05-PLAN.md — The bucketed probe run: one global fit, three per-seed bucketings, three per-seed verdicts and one phase verdict, all applied mechanically from the committed rules
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md, and the mechanical git-ancestry proof of the ordering guarantee
+- [ ] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md reporting three verdicts and their spread, and the mechanical git-ancestry proof of the ordering guarantee
