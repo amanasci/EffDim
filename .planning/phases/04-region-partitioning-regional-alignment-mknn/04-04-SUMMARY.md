@@ -248,8 +248,12 @@ Each task was committed atomically:
    `464b906` (feat)
 2. **Task 2: Notebook sections 3-6 — field, density, partition, and the pre-registration
    cell** - `fc150a4` (feat)
+3. **Post-hoc fix: persist `eigval_spectrum`, caught during final verification** -
+   `1c09e43` (fix) — the code change itself had been applied and run before `464b906`, but
+   the diff was left uncommitted; see Issues Encountered below.
 
-**Plan metadata:** committed as part of this SUMMARY's own docs commit.
+**Plan metadata:** `7afb73a` (docs: add plan summary), `950d971` (docs: complete plan —
+STATE.md/ROADMAP.md/REQUIREMENTS.md).
 
 ## Files Created/Modified
 
@@ -313,8 +317,12 @@ Each task was committed atomically:
   correlations, Mann-Whitney statistic, `mean_unit_norm`, `eigval_top`) reproduced exactly
   across the two full runs; the new `eigval_spectrum_top5` values matched the first run's
   stdout log exactly.
-- **Committed in:** `464b906` (Task 1 commit, since the fix landed before Task 1 was
-  committed)
+- **Committed in:** `1c09e43` (a standalone fix commit, made after the fact: the code
+  change was applied and the full `--mode partition` run was repeated against it before
+  this commit was made, so the deployed `04_region_partition.npz`/`04_density_diagnostics.json`
+  artifacts on disk already reflected it -- but the source diff itself was left uncommitted
+  until this correction, caught during final verification after the plan's other commits.
+  See "Issues Encountered" below.)
 
 **2. [Rule 1 - Bug] Section 6's git-log provenance printed empty**
 - **Found during:** Task 2, first notebook execution
@@ -330,12 +338,14 @@ Each task was committed atomically:
 
 ---
 
-**Total deviations:** 2 auto-fixed (both Rule 1 — bugs found and fixed during Task 2, before
-either task's commit).
+**Total deviations:** 2 auto-fixed (both Rule 1 — bugs found and fixed during Task 2).
 **Impact on plan:** Both fixes were necessary for the plan's own acceptance criteria
 (persisting the eigenvalue spectrum Section 5 requires; the commit provenance Section 6
-requires) and were caught and corrected before either task's commit. No scope creep — no
-regional MKNN number was computed at any point.
+requires). No scope creep — no regional MKNN number was computed at any point. The
+`eigval_spectrum` fix's code diff was applied and run before the eigenvalues were needed,
+but its commit was accidentally omitted until final verification caught it (see Issues
+Encountered) — the deployed artifacts always matched the fixed code; only the git history
+briefly lagged it.
 
 ## Issues Encountered
 
@@ -349,6 +359,14 @@ regional MKNN number was computed at any point.
   Decisions Made above. Investigated and fully explained (an intentional code change, not
   non-determinism); not re-investigated further per explicit instruction not to spend
   additional wall-clock on it.
+- **The `eigval_spectrum` code fix was left uncommitted after Task 1's commit.** The Edit
+  that added `eigval_spectrum`/`eigval_spectrum_top5` was applied and the full field run was
+  repeated against it, but the diff was never staged into `464b906` — a gap in this
+  execution's own discipline, not in the plan. Caught during final `git status` verification
+  after the plan's docs commits had already landed; corrected with a standalone `fix(04-04)`
+  commit (`1c09e43`) rather than rewriting history, per the no-amend policy. No artifact or
+  reported number was affected — the cached `.npz`/`.json` on disk were produced by the
+  already-edited (if not-yet-committed) code the whole time.
 
 ## User Setup Required
 
@@ -388,3 +406,7 @@ None — no external service configuration required.
 - FOUND: commit 464b906
 - FOUND: commit fc150a4
 - FOUND: commit 7afb73a
+- FOUND: commit 1c09e43 (post-hoc fix, see Issues Encountered)
+- CLEAN: `git status --short` shows no uncommitted diff on
+  notebooks/diagnostics/region_partition_mknn_run.py or notebooks/04_region_partition_mknn.ipynb
+  after 1c09e43 (re-verified after this correction)
