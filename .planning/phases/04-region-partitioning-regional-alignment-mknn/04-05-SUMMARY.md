@@ -276,3 +276,12 @@ None -- no external service configuration required.
 ---
 *Phase: 04-region-partitioning-regional-alignment-mknn*
 *Completed: 2026-08-24*
+
+## Self-Check: PASSED
+- FOUND: notebooks/diagnostics/region_partition_mknn_run.py
+- FOUND: notebooks/04_region_partition_mknn.ipynb
+- FOUND: .planning/phases/04-region-partitioning-regional-alignment-mknn/04-05-SUMMARY.md
+- FOUND: notebooks/.cache/04_region_partition_mknn.jsonl
+- FOUND commit: 647d01d
+- FOUND commit: bec5cc0
+- FOUND commit: 6aa43ad

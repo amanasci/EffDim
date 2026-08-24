@@ -117,10 +117,10 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 - [x] **MKNN-01**: MKNN score between two row-aligned embeddings computed as the k-normalized size of the k-NN set intersection, matching the origin paper
 - [x] **MKNN-02**: Global crossmodal MKNN number for HSC vs Legacy Survey reproduced and compared against the origin paper's published range
-- [ ] **MKNN-03**: Per-region MKNN score for the high- and low-curvature regions shown
-- [ ] **MKNN-04**: Each region gets its own permutation null, computed within that region's index set rather than reused from a global null
+- [x] **MKNN-03**: Per-region MKNN score for the high- and low-curvature regions shown
+- [x] **MKNN-04**: Each region gets its own permutation null, computed within that region's index set rather than reused from a global null
 - [x] **MKNN-05**: Bootstrap confidence intervals shown on every regional MKNN score
-- [ ] **MKNN-06**: Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown
+- [x] **MKNN-06**: Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown
 - [x] **MKNN-07**: Explicit verdict on whether regional difference is distinguishable from noise, where "no detectable difference" is a valid reported outcome
 - [x] **MKNN-08**: Hubness caveat for k-NN-based alignment metrics in high-dimensional spaces stated alongside the results
 
@@ -231,10 +231,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REGN-06 | Phase 4 | Complete |
 | MKNN-01 | Phase 4 | Complete |
 | MKNN-02 | Phase 4 | Complete |
-| MKNN-03 | Phase 4 | Pending |
-| MKNN-04 | Phase 4 | Pending |
+| MKNN-03 | Phase 4 | Complete |
+| MKNN-04 | Phase 4 | Complete |
 | MKNN-05 | Phase 4 | Complete |
-| MKNN-06 | Phase 4 | Pending |
+| MKNN-06 | Phase 4 | Complete |
 | MKNN-07 | Phase 4 | Complete |
 | MKNN-08 | Phase 4 | Complete |
 
