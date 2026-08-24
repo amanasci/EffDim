@@ -866,12 +866,12 @@ before any PU probe number exists.
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Tracer: the whole machine wired end to end on planted data, constants unset so the bucketed path is provably dead
+- [x] 05-01-PLAN.md — Tracer: the whole machine wired end to end on planted data, constants unset so the bucketed path is provably dead
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

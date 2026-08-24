@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.3
-current_phase_name: INSERTED, proposed — not yet planned
+current_phase: 05
+current_phase_name: curvature-conditioned-linear-decodability
 status: executing
-stopped_at: Completed 04-06-PLAN.md -- Phase 4 closed
-last_updated: "2026-08-24T15:33:51.316Z"
+stopped_at: Completed 05-01-PLAN.md -- Phase 5 whole-machine tracer proven on planted data and 64 real PU rows
+last_updated: "2026-08-24T16:09:25.307Z"
 last_activity: 2026-08-24
-last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 93
-  completed_plans: 81
+  completed_plans: 82
+last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
 ---
 
 # Project State
@@ -23,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 04 — region-partitioning-regional-alignment-mknn
+**Current focus:** Phase 05 — curvature-conditioned-linear-decodability
 
 ## Current Position
 
-Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
-Plan: Not started
+Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
+Plan: 2 of 6
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -269,7 +269,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-24 — Phase 04 complete, transitioned to Phase 02.3
+Last activity: 2026-08-24
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 93% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -409,6 +409,7 @@ Progress: [█████████░] 93% of planned plans (17/17; Phases 1
 | Phase 04 P04 | ~1h20min (52min compute) | 2 tasks | 2 files |
 | Phase 04 P05 | 25min | 2 tasks | 2 files |
 | Phase 04 P06 | 45min | 2 tasks | 3 files |
+| Phase 05 P01 | 19min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -584,6 +585,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 04-05: VERDICT_RULE HOLDS at every k including HEADLINE_K=20 -- region 1 (n=3244) scores higher than region 0 (n=6256) at every k, CIs disjoint, exceeds own 99th-pctile null at every k. Applied mechanically from the committed VERDICT_RULE with no amendment. The D4-14 density caveat travels with it: region 1's median density is ~5,735x lower than region 0's, and MKNN is itself density-sensitive by construction, so this HOLDS result cannot be attributed to curvature rather than density by anything in this phase.
 - [Phase ?]: 04-05: run_regional_cell mirrors run_global_cell's existing membership-matrix pattern from plan 04-01 exactly (mknn.py untouched); both pre-registered skip conditions (n_region<MIN_REGION_N, k+1>n_region) never fired for this split -- all 8 cells are status:ok.
 - [Phase ?]: Phase 4 closed: HOLDS verdict at every k including headline k=20, qualified by an independently-verified region-size artifact (chance floor scales with 1/n_region) plus the three accepted gaps (unvalidated field, unclosed codimension gap, uncontrolled density confound) -- no verdict amended, all documented in 04-FINDINGS.md
+- [Phase ?]: POOLING_METHOD's unset sentinel is None (not empty-string), matching the plan's own must_haves/acceptance criteria alongside BUCKET_EDGES and N_BUCKETS as the three constants gating the bucketed path
+- [Phase ?]: test_pool_seeds_no_single_seed_dominates uses 8 piecewise levels not 4: the plan's literal 4-level/>0.99 spec is mathematically infeasible (tie-corrected Spearman ceiling 0.9682 < 0.99); 8 levels clears the threshold while preserving the collapsed-metric shape
 
 ### Pending Todos
 
@@ -637,8 +640,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T13:43:18.232Z
-Stopped at: Completed 04-06-PLAN.md -- Phase 4 closed
+Last session: 2026-08-24T16:09:25.258Z
+Stopped at: Completed 05-01-PLAN.md -- Phase 5 whole-machine tracer proven on planted data and 64 real PU rows
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
