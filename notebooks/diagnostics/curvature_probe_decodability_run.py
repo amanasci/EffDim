@@ -20,11 +20,12 @@ probe number is computed by any command below.
 
 import argparse
 import glob
+import itertools
 import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 NOTEBOOK_ROOT = Path(__file__).resolve().parents[1]
 if str(NOTEBOOK_ROOT) not in sys.path:
@@ -38,6 +39,12 @@ from pu_manifold import cache, cae, chart_curvature, linear_probe
 
 DEFAULT_RECORD = cache.cache_path("05_curvature_probe_decodability", "jsonl")
 SELFCHECK_RECORD = cache.cache_path("05_probe_selfcheck", "jsonl")
+
+CANONICAL_SEED_STEMS = (20260813, 20260814, 20260815)
+"""The three sealed CAE seeds D5-05's inter-seed diagnostics run over -- fixed regardless of
+what `--seeds` a given `--mode field` invocation requested, since Task 1's own action text
+runs the three seeds one at a time across separate invocations. The diagnostics step only
+runs once all three of these seeds' cached field artifacts exist on disk."""
 
 # --- Sealed CAE architecture constants -- must match curvature_field_pu_run.py's build_cae /
 # load_converged_model exactly, since these are the same three sealed checkpoints. ------------
@@ -231,6 +238,8 @@ def run_field_mode(a: argparse.Namespace) -> None:
             f"n_charts_used={int(np.asarray(result['n_charts_used']))}"
         )
 
+    run_inter_seed_diagnostics(a.field_stem)
+
 
 def run_pool_mode(a: argparse.Namespace) -> None:
     """`--mode pool` is pre-registered but not implemented until plan 05-03."""
@@ -272,6 +281,142 @@ def _spearman_report(a: np.ndarray, b: np.ndarray, name: str) -> Dict[str, Any]:
         return {"rho": None, "p_value": None, "n": n_pts, "undefined": True}
     print(f"{name}: rho={rho:+.4f}  p={p:.4g}  n={n_pts}")
     return {"rho": float(rho), "p_value": float(p), "n": n_pts, "undefined": False}
+
+
+def _direction_axis_report(H_vec_a: np.ndarray, H_vec_b: np.ndarray, name: str) -> Dict[str, Any]:
+    """The direction axis, reported beside every rank statistic and never separately, per the
+    spike-findings-effdim rule that a rank statistic from this teacher is never reported
+    without it. This is INTER-SEED agreement, NOT agreement with true curvature: no analytic
+    truth exists for the PU field, so this is a weaker check than the spike-findings rule
+    intends -- it is used because it is the strongest direction axis this phase can construct,
+    not because it is equivalent.
+
+    Row-normalizes both ``H_vec`` fields with the codebase's own divide-by-zero floor
+    (``np.maximum(norm, 1e-12)``), takes the per-row dot product of the resulting unit
+    vectors, and reports the median cosine, the 25th/75th percentile cosine, and the fraction
+    of rows whose cosine is negative (the anti-alignment fraction).
+    """
+    a = np.asarray(H_vec_a, dtype=np.float64)
+    b = np.asarray(H_vec_b, dtype=np.float64)
+    if a.shape != b.shape:
+        raise ValueError(f"_direction_axis_report: shape mismatch {a.shape} vs {b.shape}.")
+    norm_a = np.maximum(np.linalg.norm(a, axis=1), 1e-12)
+    norm_b = np.maximum(np.linalg.norm(b, axis=1), 1e-12)
+    unit_a = a / norm_a[:, None]
+    unit_b = b / norm_b[:, None]
+    cosine = np.sum(unit_a * unit_b, axis=1)
+    median_cosine = float(np.median(cosine))
+    q25_cosine = float(np.percentile(cosine, 25))
+    q75_cosine = float(np.percentile(cosine, 75))
+    fraction_negative_cosine = float(np.mean(cosine < 0.0))
+    print(
+        f"{name} (direction axis, inter-seed only -- not agreement with true curvature): "
+        f"median_cosine={median_cosine:+.4f}  q25={q25_cosine:+.4f}  q75={q75_cosine:+.4f}  "
+        f"fraction_negative_cosine={fraction_negative_cosine:.4f}"
+    )
+    return {
+        "median_cosine": median_cosine,
+        "q25_cosine": q25_cosine,
+        "q75_cosine": q75_cosine,
+        "fraction_negative_cosine": fraction_negative_cosine,
+        "n": int(a.shape[0]),
+    }
+
+
+def _load_cached_seed_field(seed: int, field_stem_prefix: str) -> Optional[Dict[str, np.ndarray]]:
+    """Load one seed's cached field npz if it exists, else `None`. Never computes -- diagnostics
+    only read artifacts Task 1 has already produced."""
+    stem = f"{field_stem_prefix}_seed{seed}"
+    path = cache.cache_path(stem, "npz")
+    if not path.exists():
+        return None
+    return dict(np.load(path))
+
+
+def run_inter_seed_diagnostics(field_stem_prefix: str) -> None:
+    """D5-05: pairwise inter-seed Spearman (the rank axis) with the direction axis reported
+    beside every entry, per-seed summary statistics (RESEARCH Pitfall 2's piecewise-constant
+    symptom measurements), and the r/R non-application disclosure -- written through
+    `cache.json_cache` to `notebooks/.cache/05_inter_seed_diagnostics.json`. Runs only once all
+    three of `CANONICAL_SEED_STEMS`' field artifacts already exist on disk; otherwise prints a
+    one-line notice and returns without writing anything, since a partial invocation (this
+    plan's Task 1 runs one seed per command) leaves diagnostics with fewer than three seeds to
+    compare. Computes no pooled field and chooses no pooling method -- that is 05-03's blocking
+    checkpoint.
+    """
+    fields: Dict[int, Dict[str, np.ndarray]] = {}
+    for seed in CANONICAL_SEED_STEMS:
+        loaded = _load_cached_seed_field(seed, field_stem_prefix)
+        if loaded is None:
+            missing_path = cache.cache_path(f"{field_stem_prefix}_seed{seed}", "npz")
+            print(
+                f"Inter-seed diagnostics skipped: seed {seed}'s field artifact does not yet "
+                f"exist at {missing_path}. Diagnostics run once all three canonical seeds "
+                f"({CANONICAL_SEED_STEMS}) are cached."
+            )
+            return
+        fields[seed] = loaded
+
+    print("=" * 78)
+    print("Inter-seed diagnostics (D5-05): rank axis + direction axis beside it")
+    print("=" * 78)
+
+    def _compute() -> Dict[str, Any]:
+        pairwise_spearman: Dict[str, Any] = {}
+        pairwise_direction: Dict[str, Any] = {}
+        for seed_a, seed_b in itertools.combinations(CANONICAL_SEED_STEMS, 2):
+            pair_name = f"{seed_a}_vs_{seed_b}"
+            spearman_report = _spearman_report(
+                fields[seed_a]["H_norm"],
+                fields[seed_b]["H_norm"],
+                f"inter-seed spearman({seed_a}, {seed_b})",
+            )
+            direction_report = _direction_axis_report(
+                fields[seed_a]["H_vec"],
+                fields[seed_b]["H_vec"],
+                f"inter-seed direction({seed_a}, {seed_b})",
+            )
+            pairwise_spearman[pair_name] = spearman_report
+            pairwise_direction[pair_name] = direction_report
+
+        per_seed: Dict[str, Any] = {}
+        for seed in CANONICAL_SEED_STEMS:
+            H_norm = fields[seed]["H_norm"]
+            chart_assignment = fields[seed]["chart_assignment"]
+            chart_fractions = {
+                str(int(c)): float(np.mean(chart_assignment == c))
+                for c in sorted(np.unique(chart_assignment).tolist())
+            }
+            per_seed[str(seed)] = {
+                "median_h_norm": float(np.median(H_norm)),
+                "min_h_norm": float(np.min(H_norm)),
+                "max_h_norm": float(np.max(H_norm)),
+                "n_distinct_h_norm": int(len(np.unique(np.round(H_norm, 6)))),
+                "chart_fractions": chart_fractions,
+                "median_log10_det_g": float(np.median(fields[seed]["log10_det_g"])),
+                "n_charts_used": int(np.asarray(fields[seed]["n_charts_used"])),
+                "n": int(H_norm.shape[0]),
+            }
+
+        return {
+            "pairwise_spearman": pairwise_spearman,
+            "pairwise_direction": pairwise_direction,
+            "per_seed": per_seed,
+            "r_over_R": None,
+            "r_over_R_reason": (
+                "not defined for an autodiff decoder-side estimator: chart_curvature_field "
+                "has no neighbourhood and no k"
+            ),
+            "seed_stems": list(CANONICAL_SEED_STEMS),
+        }
+
+    cfg = {
+        "kind": "05_inter_seed_diagnostics",
+        "field_stem_prefix": field_stem_prefix,
+        "seed_stems": list(CANONICAL_SEED_STEMS),
+    }
+    cache.json_cache("05_inter_seed_diagnostics", cfg, _compute)
+    print(f"wrote {cache.cache_path('05_inter_seed_diagnostics', 'json')}")
 
 
 def _piecewise_constant_field(values: np.ndarray, n_levels: int) -> np.ndarray:
