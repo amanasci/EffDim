@@ -859,11 +859,20 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 
 ### Phase 5: Curvature-Conditioned Linear Decodability
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Measure whether linear crossmodal decodability degrades as decoder-side manifold curvature
+magnitude increases — one global ridge map `hsc -> legacysurvey` on frozen PU embeddings, held-out
+per-point residuals bucketed by a pooled decoder-side `||H||` field, judged under a rule frozen
+before any PU probe number exists.
+**Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
+thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 0 plans
+**Plans:** 6 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 5 to break down)
+- [ ] 05-01-PLAN.md — Tracer: the whole machine wired end to end on planted data, constants unset so the bucketed path is provably dead
+- [ ] 05-02-PLAN.md — Extract three seeds' decoder-side curvature fields (~2.6 h, per-seed cached) and measure inter-seed agreement with its direction axis
+- [ ] 05-03-PLAN.md — Ratify the one-way seed-pooling rule, build the pooled field and bucket labels, re-measure the density confound
+- [ ] 05-04-PLAN.md — The pre-registration freeze: every constant and the full VERDICT_RULE in committed source plus 05-PREREGISTRATION.md
+- [ ] 05-05-PLAN.md — The bucketed probe run: the phase's headline numbers, verdict applied mechanically from the committed rule
+- [ ] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md, and the mechanical git-ancestry proof of the ordering guarantee
