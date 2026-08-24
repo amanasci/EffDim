@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 04
-current_phase_name: region-partitioning-regional-alignment-mknn
-status: verifying
+current_phase: 02.3
+current_phase_name: INSERTED, proposed — not yet planned
+status: planning
 stopped_at: Completed 04-06-PLAN.md -- Phase 4 closed
-last_updated: "2026-08-24T13:43:18.279Z"
+last_updated: "2026-08-24T13:51:02.538Z"
 last_activity: 2026-08-24
+last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
 progress:
   total_phases: 11
   completed_phases: 9
   total_plans: 87
   completed_plans: 81
-last_activity_desc: Phase 3 closed - 03-11 summary and findings supplement recorded
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 04 (region-partitioning-regional-alignment-mknn) — EXECUTING
-Plan: 6 of 6
+Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
+Plan: Not started
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -268,8 +268,8 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
-Status: Phase complete — ready for verification
-Last activity: 2026-08-24
+Status: Ready to plan
+Last activity: 2026-08-24 — Phase 04 complete, transitioned to Phase 02.3
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 

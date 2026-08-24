@@ -36,7 +36,7 @@ Phase numbering restarts at 1 for this milestone. The core library v1.1 builds o
 - [ ] **Phase 02.7: Manifold-Template Inference Front End** (INSERTED) — A screening rule that infers a named manifold template from a point cloud, behind D-01/D-03's joint decision and D-16's in-library positive controls. **ON HOLD 2026-08-12 at 10/12 plans: `02.7-10` Tasks 2/3 (the ~17h benchmark grid) unrun, `02.7-11`/`02.7-12` unstarted, and `notebooks/02.7_swiss_roll_template_check.ipynb` prints 1 of 4 read-out lines true (GMST local-dispersion instability plus inflated banded β₀; both controls fail their labels). Does not block Phase 3.**
 - [ ] **Phase 3: Decoder & Curvature Field** — Per-point mean-curvature field via autodiff through a C2-smooth CAE chart decoder, Swiss roll first, synthetic control last. **ACTIVE from 2026-08-12 on a deliberate override of its own PASS precondition — see `02-NOTE-phase-2-stage-on-hold.md` §3.**
 - [x] **Phase 03.1: Decoder Metric Regularization** (INSERTED) — Add scale-aware and second-order priors to the CAE training objective and measure whether they fix the metric pathologies Phase 3 diagnosed. **Phase 3's field failed its own three-seed spread (52× range, two of three fields piecewise-constant on uniformly collapsed metrics); the training objective constrains no decoder derivative at any order, and `cond(g)` is scale-invariant so it cannot even detect the collapse.** **Sealed 2026-08-21: `scale` fully repairs the metric (`log10_det_g` -83.9 → +0.037, negative reconstruction cost) but only partially and non-seed-consistently moves ordering (`rho` -0.122 → +0.116); `christoffel` alone does not demonstrate its own mechanism under this ladder. Necessary but not sufficient — CURV-04 is closed, Phase 4 stays blocked. See Phase Details and `03.1-FINDINGS.md`.**
-- [ ] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs
+- [x] **Phase 4: Region Partitioning & Regional Alignment (MKNN)** — Density-checked high/low-curvature regions compared on crossmodal MKNN alignment against permutation nulls and bootstrap CIs (completed 2026-08-24)
 
 ## Phase Details
 
@@ -854,5 +854,5 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
 | 3. Decoder & Curvature Field | v1.1 | 11/11 | Complete (field NOT validated) | 2026-08-23 |
 | 03.1. Decoder Metric Regularization (INSERTED) | v1.1 | 5/5 | Complete (metric repaired, ordering unmoved) | 2026-08-22 |
-| 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 6/6 | In Progress|  |
+| 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 6/6 | Complete    | 2026-08-24 |
 </content>
