@@ -151,16 +151,15 @@ def test_pool_seed_fields_requires_explicit_method():
         lp.pool_seed_fields({1: [1.0, 2.0], 2: [3.0, 4.0]}, method="not_a_real_method")
 
 
-# --- Test 4: convention agreement, deliberately RED until the 05-04 freeze -------------------
+# --- Test 4: convention agreement, frozen at the 05-04 freeze ---------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="constant is unset until the 05-04 pre-registration freeze")
 def test_curvature_convention_matches_sealed_modules():
     """D5-06: linear_probe.CURVATURE_CONVENTION equals chart_curvature.CURVATURE_CONVENTION
-    equals curvature_probe.CURVATURE_CONVENTION equals the string "trace". This test is
-    written now and is RED until the freeze at 05-04 sets the constant -- 05-04 Task 2 must
-    REMOVE this expected-failure marker (see the decorator above), and the test must then
-    pass."""
+    equals curvature_probe.CURVATURE_CONVENTION equals the string "trace". This test was
+    written RED before the 05-04 freeze; the freeze tripwire (the xfail marker that formerly
+    decorated this test) was removed by 05-04 Task 2 once the constant was set, and the test
+    now passes for real."""
     from pu_manifold import chart_curvature, curvature_probe
 
     assert (
@@ -250,13 +249,13 @@ def test_size_matched_check_uses_test_split_counts():
 
 
 def test_assert_preregistered_raises_when_absent(monkeypatch):
-    """D5-10: assert_preregistered() raises RuntimeError on the module as shipped. Then with
-    monkeypatch.setattr filling VERDICT_RULE with a string that omits the literal N_BUCKETS,
-    it still raises RuntimeError; with every constant monkeypatched to a well-formed value it
-    does not raise. Three separate assertions, so the guard is proven live in both
-    directions."""
-    with pytest.raises(RuntimeError):
-        lp.assert_preregistered()
+    """D5-10: as of the 05-04 freeze, assert_preregistered() no longer raises on the module as
+    shipped -- the module ships FROZEN, not unset, and this first assertion now proves the
+    freeze is intact rather than absent. Then with monkeypatch.setattr filling VERDICT_RULE
+    with a string that omits the literal N_BUCKETS, it raises RuntimeError; with every
+    constant monkeypatched back to a well-formed value it does not raise. Three separate
+    assertions, so the guard is proven live in both directions on top of a frozen module."""
+    lp.assert_preregistered()  # the shipped, frozen module must not raise
 
     monkeypatch.setattr(lp, "VERDICT_RULE", "a rule that omits the bucket-count constant name")
     with pytest.raises(RuntimeError):

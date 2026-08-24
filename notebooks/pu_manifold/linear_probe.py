@@ -66,66 +66,184 @@ from sklearn.linear_model import RidgeCV
 from sklearn.metrics import r2_score
 
 
-# --- Pre-registration (D5-09, ratified at plan 05-04's blocking checkpoint) -----------------
+# --- Pre-registration (D5-09, FROZEN at plan 05-04 Task 2, this commit) --------------------
 #
-# WRITTEN UNSET. Every constant below, and VERDICT_RULE's full text, are filled EXACTLY ONCE
-# at plan 05-04's blocking decision checkpoint -- BEFORE any PU probe number exists. Amending
-# any of them after a PU probe number has been computed invalidates the phase: a rule chosen
-# after seeing the numbers is a rationalization, not a pre-registration. See
+# FROZEN. Every constant below, and VERDICT_RULE's and SEED_VERDICT_COMBINATION_RULE's full
+# text, were ratified at plan 05-04's Task 1 blocking decision checkpoint (the protocol) and
+# at plan 05-03's Task 1 blocking checkpoint (the seed-handling rule, 05-03-DECISION.md) --
+# BOTH before any PU probe number existed anywhere in this repository. Amending any of them
+# after a PU probe number has been computed invalidates the phase: a rule chosen after seeing
+# the numbers is a rationalization, not a pre-registration. From this commit forward,
+# `notebooks/pu_manifold/linear_probe.py` is closed -- a later edit is a recorded pre-
+# registration BREACH, written up in `05-FINDINGS.md`/`05-VERIFICATION.md` with the diff and
+# the reason, never a silent fix. See
 # `.planning/phases/05-curvature-conditioned-linear-decodability/05-PREREGISTRATION.md` for
-# the full committed record once it exists.
+# the full committed record, including both checkpoints' ratification notes.
 #
-# Unset convention: descriptive-text string constants are "", numeric constants are None,
-# tuple constants are None. BUCKET_EDGES_PER_SEED and N_BUCKETS -- two of the constants that
-# gate whether the bucketed path can run at all -- are `None` while unset, so no
-# truthy-but-meaningless placeholder can be mistaken for a real value. With every constant
-# below unset, `assert_preregistered()` raises today, which is the point: the bucketed path
-# is structurally dead until the freeze.
-#
-# THE POOLED DESIGN IS SUPERSEDED (05-03). `05-CONTEXT.md` D5-04's pooled-field design --
-# `POOLING_METHOD` (a required normalization method name) and `BUCKET_EDGES` (one flat tuple
-# of edges cut over a pooled field) -- was put to the developer at the `05-03` Task 1 blocking
-# checkpoint and REJECTED, one-way, per `05-03-DECISION.md`. Both constants are REMOVED from
-# this block rather than left unused, so the pooled path cannot be re-entered by assigning
-# them: a later executor reading only `05-CONTEXT.md` D5-04 finds no constant to set. In their
-# place: `SEED_HANDLING_RULE` (will hold the string naming the ratified no-pooling decision),
-# `BUCKET_EDGES_PER_SEED` (will hold three per-seed edge tuples, one per `SEED_STEMS` entry,
-# never one pooled tuple), `SEED_VERDICT_COMBINATION_RULE` and `PHASE_VERDICT_VALUES` (will
-# hold how three per-seed verdicts combine into one phase read-out, including the terminal
-# "SPLIT ACROSS SEEDS" outcome). See this module's docstring paragraph (b) for the measured
-# evidence the rejection was made on.
+# `05-CONTEXT.md` D5-04's pooled-field design -- `POOLING_METHOD` (a required normalization
+# method name) and `BUCKET_EDGES` (one flat tuple of edges cut over a pooled field) -- is
+# SUPERSEDED by `05-03-DECISION.md`. Both constants were REMOVED at `05-03` rather than left
+# unused, so the pooled path cannot be re-entered by assigning them. In their place:
+# `SEED_HANDLING_RULE` (the ratified no-pooling decision), `BUCKET_EDGES_PER_SEED` (three
+# per-seed edge tuples, one per `SEED_STEMS` entry, never one pooled tuple),
+# `SEED_VERDICT_COMBINATION_RULE` and `PHASE_VERDICT_VALUES` (how three per-seed verdicts
+# combine into one phase read-out, including the terminal "SPLIT ACROSS SEEDS" outcome). See
+# this module's docstring paragraph (b) for the measured evidence the rejection was made on.
 
-TRAIN_FRACTION = None
-SPLIT_SEED = None
-SPLIT_RULE = ""
-RIDGE_ALPHA_GRID = None
-RIDGE_SELECTION_RULE = ""
-ALPHA_PER_TARGET = None
-FIT_INTERCEPT = None
-EMBEDDING_PREPROCESSING = ""
-RESIDUAL_METRIC = ""
-R2_MULTIOUTPUT = ""
-N_BUCKETS = None
-BUCKET_RULE = ""
-BUCKET_EDGES_PER_SEED = None
-SEED_HANDLING_RULE = ""
-SEED_STEMS = None
-N_CHARTS = None
-CURVATURE_MODE = ""
-CURVATURE_CONVENTION = ""
-CURVATURE_SOURCE_FUNCTION = ""
-SIZE_MATCH_RULE = ""
-SIZE_MATCH_N_REPEATS = None
-SIZE_MATCH_SEED = None
-N_BOOTSTRAP = None
-BOOTSTRAP_SEED = None
-CONFIDENCE_LEVEL = None
-K_DENSITY = None
-FIELD_D = None
-VERDICT_RULE = ""
-SEED_VERDICT_COMBINATION_RULE = ""
-PHASE_VERDICT_VALUES = None
-PREREGISTRATION_PATH = ""
+TRAIN_FRACTION = 0.7
+SPLIT_SEED = 20260824
+SPLIT_RULE = (
+    "One permutation of np.arange(10000) under np.random.default_rng(SPLIT_SEED); the first "
+    "7,000 indices of the permutation are train, the last 3,000 are test; both index arrays "
+    "are returned sorted ascending. ONE split, shared by all three seeds' bucketings, so the "
+    "three per-seed verdicts differ only in how the same held-out residuals are bucketed and "
+    "never in which points were held out. Deliberately NOT stratified by bucket -- "
+    "stratifying would manufacture the equal per-bucket test counts D5-08 exists to check for "
+    "rather than assume. Implemented by train_test_split_indices."
+)
+RIDGE_ALPHA_GRID = (1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4)
+RIDGE_SELECTION_RULE = (
+    "scikit-learn RidgeCV's efficient generalized leave-one-out cross-validation, evaluated "
+    "on the training split alone, selecting ONE alpha from RIDGE_ALPHA_GRID. The GRID and the "
+    "SELECTION RULE are frozen; the selected alpha is an OUTPUT and is reported at 05-05, "
+    "never pre-specified. If the design matrix is well-conditioned in practice, the rule "
+    "selects a near-zero alpha and the fit degrades gracefully to OLS, so RESEARCH A2 cannot "
+    "silently distort the result."
+)
+ALPHA_PER_TARGET = False
+FIT_INTERCEPT = True
+EMBEDDING_PREPROCESSING = (
+    "raw_as_cached -- both modalities are already L2-normalized upstream (every row norm "
+    "equals 1.0 to float64 rounding in the resolved npz), so re-normalizing would be a no-op "
+    "dressed as a decision."
+)
+RESIDUAL_METRIC = "squared_l2_per_point"
+R2_MULTIOUTPUT = "variance_weighted"
+N_BUCKETS = 3
+BUCKET_RULE = (
+    "Equal-frequency rank partition of ONE SEED's ||H|| field over all 10,000 points by "
+    "stable argsort and np.array_split, applied INDEPENDENTLY to each of the three seeds; a "
+    "value equal to an edge lands in the HIGHER bucket (assign_buckets' documented tie rule). "
+    "Tertiles (N_BUCKETS=3) rather than quartiles because at a 70/30 split three buckets "
+    "leave roughly 1,000 test points each, supporting a percentile bootstrap without the CI "
+    "collapsing; quartiles would leave roughly 750 and buy nothing."
+)
+BUCKET_EDGES_PER_SEED = (
+    (1225.4263017421292, 1538.3597929379368),
+    (49062.2351870738, 66977.54374981482),
+    (51694.86079512253, 75252.52609688243),
+)
+SEED_HANDLING_RULE = "no_pooling_per_seed_verdicts"
+SEED_STEMS = (20260813, 20260814, 20260815)
+N_CHARTS = 4
+CURVATURE_MODE = "reverse"
+CURVATURE_CONVENTION = "trace"
+CURVATURE_SOURCE_FUNCTION = "chart_curvature.chart_curvature_field"
+SIZE_MATCH_RULE = (
+    "Per seed, subsample every bucket down to the smallest REALIZED TEST-SPLIT bucket count "
+    "FOR THAT SEED (never the full-field count, never a count borrowed from another seed), "
+    "and re-run that seed's highest-versus-lowest comparison SIZE_MATCH_N_REPEATS times under "
+    "SIZE_MATCH_SEED. This is the exact artifact that undercut Phase 4's HOLDS verdict, built "
+    "into the protocol from the start."
+)
+SIZE_MATCH_N_REPEATS = 200
+SIZE_MATCH_SEED = 20260824
+N_BOOTSTRAP = 1000
+BOOTSTRAP_SEED = 20260824
+CONFIDENCE_LEVEL = 0.95
+K_DENSITY = 30
+FIELD_D = 20
+VERDICT_RULE = """D5-09 per-seed VERDICT_RULE -- ratified at plan 05-04's Task 1 blocking
+checkpoint, before any PU probe number existed.
+
+Per seed, the headline comparison is that seed's highest-||H|| bucket (of N_BUCKETS = 3
+tertiles) against its lowest, on mean per-point squared L2 residual over the ONE shared 70/30
+test split (TRAIN_FRACTION, SPLIT_SEED), under that seed's own frozen BUCKET_EDGES_PER_SEED
+entry.
+
+That seed's verdict is HOLDS if and only if ALL three of:
+  (a) the highest and lowest bucket's CONFIDENCE_LEVEL (0.95) percentile bootstrap CIs on
+      mean per-point squared L2 residual are disjoint;
+  (b) the highest bucket's mean residual strictly exceeds the lowest bucket's; AND
+  (c) the sign survives that seed's SIZE_MATCH_RULE re-check (subsampled to that seed's
+      realized test-split bucket counts) with CIs disjoint in at least half of
+      SIZE_MATCH_N_REPEATS = 200 repeats.
+
+NO DETECTABLE RELATIONSHIP is that seed's verdict whenever any one of (a)/(b)/(c) fails. It is
+a complete, valid, TERMINAL per-seed outcome -- never a phase failure, never escalated by the
+continuous statistic, and never re-decided by trying a different N_BUCKETS.
+
+The three per-seed verdicts (HOLDS / NO DETECTABLE RELATIONSHIP) then combine under
+SEED_VERDICT_COMBINATION_RULE into exactly one of PHASE_VERDICT_VALUES, including the
+terminal outcome SPLIT ACROSS SEEDS -- see that rule's own text for the full mapping and for
+why a split is not partial support.
+
+The continuous Spearman between that seed's curvature magnitude and per-point residual on the
+test split is reported per seed alongside the verdict as SENSITIVITY ONLY; it can neither
+establish nor overturn any verdict at either the per-seed or the phase level.
+
+D5-11 CAVEAT, carried in this rule's own text rather than only alongside it: the field this
+rule buckets on has no demonstrated relationship to true curvature. The sealed d=20 decoder
+row is rank_spearman_rho = -0.015106571347065712 against the only analytic-curvature control
+that tests it, essentially zero, with 52 to 75 percent of points anti-aligned in direction. A
+Swiss roll / low-d anchor was offered and declined for this phase. No verdict produced under
+this rule can be attributed to curvature by anything in this phase. The mitigating context --
+the sealed saddle control sets a constant analytic Hessian, so its ||H|| varies only through
+the pullback metric, which may make that fixture structurally unable to show ordering at all
+-- is reported and is explicitly NOT used to upgrade any result produced under this rule; the
+question is open and it is not for autonomous action.
+
+D5-12 CAVEAT, carried in this rule's own text: the CAE supplying every decoder this rule reads
+curvature from failed its own validity gate (CAE_VERDICT = FAIL, Phase 02.2); Phase 3 ran on a
+deliberate override of that gate; Phase 03.1 found the pullback metric repaired by the scale
+prior while the curvature ordering only partially and non-seed-consistently moved. Every
+verdict this rule produces inherits that chain.
+
+D5-13 NOTE: the per-seed density Spearman (spearman(density, ||H||)) is reported alongside
+every verdict as a disclosure only; it is not a gate under this rule.
+"""
+SEED_VERDICT_COMBINATION_RULE = """D5-09 SEED_VERDICT_COMBINATION_RULE -- ratified at plan
+05-04's Task 1 blocking checkpoint, before any PU probe number existed. Supersedes
+05-CONTEXT.md D5-04's pooled-field design per 05-03-DECISION.md.
+
+The probe is scored once per seed under the IDENTICAL protocol (the identical TRAIN_FRACTION
+70/30 split, shared across all three seeds' bucketings via the one SPLIT_SEED) and the
+IDENTICAL VERDICT_RULE, producing exactly one per-seed terminal verdict per seed: HOLDS or
+NO DETECTABLE RELATIONSHIP.
+
+The three per-seed verdicts combine into exactly one PHASE_VERDICT_VALUES member by counting
+the HOLDS outcomes:
+  * three of three HOLDS  -> "HOLDS IN ALL THREE SEEDS"
+  * zero of three HOLDS   -> "NO DETECTABLE RELATIONSHIP IN ANY SEED"
+  * one or two of three   -> "SPLIT ACROSS SEEDS"
+
+SPLIT ACROSS SEEDS is a COMPLETE TERMINAL OUTCOME and is NOT partial support for the
+hypothesis. The three seed fields were measured at 05-02 to be mutually anti-correlated on
+rank (pairwise Spearman on H_norm -0.1402, +0.2019, -0.2725 -- sign-inconsistent, two of
+three negative) and directionally orthogonal (median cosine of unit H_vec 0.0007 to 0.0039,
+with 46 to 48 percent of points anti-aligned between any pair), so a relationship that appears
+in one or two of three seeds' fields and not the third is a property of that individual
+decoder fit, not of the manifold, and does not license the claim that decodability degrades
+with curvature.
+
+A split is NEVER upgraded to HOLDS IN ALL THREE SEEDS by majority vote, by the continuous
+Spearman statistic, by a non-headline bucket, or by trying a different N_BUCKETS; and it is
+NEVER downgraded to NO DETECTABLE RELATIONSHIP IN ANY SEED either -- it is reported exactly as
+SPLIT ACROSS SEEDS, with all three per-seed verdicts and their supporting numbers beside it.
+
+Because one split is shared across all three seeds' bucketings, the three per-seed verdicts
+are NOT statistically independent -- they score the same held-out residuals under three
+different bucketings -- which isolates the field as the only thing that differs between them,
+but must be stated in 05-FINDINGS.md rather than left implicit.
+"""
+PHASE_VERDICT_VALUES = (
+    "HOLDS IN ALL THREE SEEDS",
+    "SPLIT ACROSS SEEDS",
+    "NO DETECTABLE RELATIONSHIP IN ANY SEED",
+)
+PREREGISTRATION_PATH = (
+    ".planning/phases/05-curvature-conditioned-linear-decodability/05-PREREGISTRATION.md"
+)
 
 
 def assert_preregistered() -> None:
