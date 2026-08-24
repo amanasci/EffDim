@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 3
-current_phase_name: decoder-curvature-field
+current_phase: 04
+current_phase_name: region-partitioning-regional-alignment-mknn
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-08-23T11:55:52.171Z"
-last_activity: 2026-08-23
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-08-24T07:18:24.974Z"
+last_activity: 2026-08-24
 progress:
   total_phases: 11
   completed_phases: 8
   total_plans: 87
-  completed_plans: 75
+  completed_plans: 76
 last_activity_desc: Phase 3 closed - 03-11 summary and findings supplement recorded
 ---
 
@@ -23,12 +23,12 @@ last_activity_desc: Phase 3 closed - 03-11 summary and findings supplement recor
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 03.1 — decoder-metric-regularization-inserted
+**Current focus:** Phase 04 — region-partitioning-regional-alignment-mknn
 
 ## Current Position
 
-Phase: 3 (decoder-curvature-field) — CLOSED 2026-08-23
-Plan: 11 of 11
+Phase: 04 (region-partitioning-regional-alignment-mknn) — EXECUTING
+Plan: 2 of 6
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -269,7 +269,7 @@ This phase had **no discuss pass** on its first attempt. It has one now: `02.6-C
 Phase: 02.5 (local-curvature-feasibility-cae-re-gate) — PAUSED
 Plan: 10 of 13
 Status: Ready to execute
-Last activity: 2026-08-23
+Last activity: 2026-08-24
 
 **Phase 02.5 is planned (2026-08-07).** 13 plans across 12 waves. No REQ-IDs exist for this phase — `02.5-CONTEXT.md`'s 16 decisions are the de-facto requirement set, and decision coverage is **16/16 (D-00..D-15)**, verified by the plan-checker rather than accepted from the planner. Plan-checker returned **0 blockers, 0 warnings**. Wave order: `01` centroid-estimator tracer → `02` fixtures and density correction → `03` quadric cross-check and permutation null → `04` verdict layer ∥ `05` stage-1 Swiss roll notebook → `06` stage-1 pre-registration → **`07` stage-1 GO/NO-GO** → `08` chart curvature → `09` stage-2 notebook → `10` stage-2 pre-registration → `11` Gate A → `12` verdict → `13` D-13/D-14 obligations and the phase record. Only wave 4 runs in parallel (`04` ∥ `05`, disjoint `files_modified`); pre-registration ordering forces the rest to be sequential. Plans `05`, `06`, `07`, `09`, `10`, `12`, `13` are non-autonomous — each carries a blocking human checkpoint.
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -403,6 +403,7 @@ Progress: [█████████░] 91% of planned plans (17/17; Phases 1
 | Phase 03.1 P03 | 2.7h | 3 tasks | 1 files |
 | Phase 03.1 P04 | 5h24m | 3 tasks | 1 files |
 | Phase 03.1 P05 | ~1.3h | 3 tasks | 4 files |
+| Phase 04 P01 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -566,6 +567,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 03.1-04: scale's Tier-1 verdict MECHANISM DEMONSTRATED (both target fields moved monotonically, top rung strictly better); christoffel's is MECHANISM NOT DEMONSTRATED (cond(g) non-monotone under F1's 2-rung relief) -- checkpoint satisfied by user review, phase directed to the combination cell and findings doc.
 - [Phase ?]: Phase 03.1 sealed: scale fully repairs the metric (log10_det_g -83.9 -> +0.037) at negative reconstruction cost, but rank rho moves only -0.122 -> +0.116 -- necessary but not sufficient. CURV-04 closed; Phase 4 stays blocked, no route out proposed (D-11).
 - [Phase ?]: christoffel's Tier-1 verdict is MECHANISM NOT DEMONSTRATED under the ladder's F1-cut rung resolution, but the combination cell's cond(g) halving (5.7e2 -> 2.8e2 vs scale alone) is independent evidence it contributed something the ladder alone could not locate.
+- [Phase ?]: MKNN-02: ratio-over-chance (not the raw number) carries the paper comparison at n=10,000 vs the paper's n=101,725 (D4-19) — all four k scores fall outside the paper's 0.34%-2.25% band but clear chance by 26x-98x
+- [Phase ?]: MKNN-08: hubness caveat substantiated by k-occurrence skewness (0.966-1.494 across all k and both embedding sides), computed from data rather than hardcoded, on every reported MKNN result
+- [Phase ?]: D4-12: Swiss-roll-rule non-applicability for MKNN and the sign-split partition stated explicitly in notebooks/04_region_partition_mknn.ipynb, naming 02.5_swiss_roll_curvature_probe_check.ipynb as the estimator's existing coverage
 
 ### Pending Todos
 
@@ -612,12 +616,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-23T10:49:38.164Z
-Stopped at: Phase 4 context gathered
+Last session: 2026-08-24T07:18:24.917Z
+Stopped at: Completed 04-01-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: .planning/phases/04-region-partitioning-regional-alignment-mknn/04-CONTEXT.md
+Resume file: None
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them

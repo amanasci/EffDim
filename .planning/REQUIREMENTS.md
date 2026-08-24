@@ -115,14 +115,14 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 ### Regional Alignment (MKNN)
 
-- [ ] **MKNN-01**: MKNN score between two row-aligned embeddings computed as the k-normalized size of the k-NN set intersection, matching the origin paper
-- [ ] **MKNN-02**: Global crossmodal MKNN number for HSC vs Legacy Survey reproduced and compared against the origin paper's published range
+- [x] **MKNN-01**: MKNN score between two row-aligned embeddings computed as the k-normalized size of the k-NN set intersection, matching the origin paper
+- [x] **MKNN-02**: Global crossmodal MKNN number for HSC vs Legacy Survey reproduced and compared against the origin paper's published range
 - [ ] **MKNN-03**: Per-region MKNN score for the high- and low-curvature regions shown
 - [ ] **MKNN-04**: Each region gets its own permutation null, computed within that region's index set rather than reused from a global null
-- [ ] **MKNN-05**: Bootstrap confidence intervals shown on every regional MKNN score
+- [x] **MKNN-05**: Bootstrap confidence intervals shown on every regional MKNN score
 - [ ] **MKNN-06**: Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown
 - [ ] **MKNN-07**: Explicit verdict on whether regional difference is distinguishable from noise, where "no detectable difference" is a valid reported outcome
-- [ ] **MKNN-08**: Hubness caveat for k-NN-based alignment metrics in high-dimensional spaces stated alongside the results
+- [x] **MKNN-08**: Hubness caveat for k-NN-based alignment metrics in high-dimensional spaces stated alongside the results
 
 ---
 
@@ -229,14 +229,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REGN-04 | Phase 4 | Pending |
 | REGN-05 | Phase 4 | Pending |
 | REGN-06 | Phase 4 | Pending |
-| MKNN-01 | Phase 4 | Pending |
-| MKNN-02 | Phase 4 | Pending |
+| MKNN-01 | Phase 4 | Complete |
+| MKNN-02 | Phase 4 | Complete |
 | MKNN-03 | Phase 4 | Pending |
 | MKNN-04 | Phase 4 | Pending |
-| MKNN-05 | Phase 4 | Pending |
+| MKNN-05 | Phase 4 | Complete |
 | MKNN-06 | Phase 4 | Pending |
 | MKNN-07 | Phase 4 | Pending |
-| MKNN-08 | Phase 4 | Pending |
+| MKNN-08 | Phase 4 | Complete |
 
 **Coverage:** v1.1 requirements: 56 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 6 + MKNN 8). Mapped to phases: 56/56 ✓ · Unmapped: 0 ✓
 
