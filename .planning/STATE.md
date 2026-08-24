@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
-status: blocked
-stopped_at: "Phase 5 halted at wave 3 -- 05-03 one-way pooling checkpoint ratified 'do not pool'; waves 3-6 need replan to per-seed verdicts before the 05-04 freeze (see 05-03-DECISION.md)"
-last_updated: "2026-08-24T19:34:07.792Z"
+status: ready_to_execute
+stopped_at: null
+last_updated: "2026-08-24T21:27:04.463Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 93
   completed_plans: 83
-last_activity_desc: Phase 5 waves 1-2 complete; halted at wave 3 pending replan of 05-03..05-06
+last_activity_desc: "Phase 5 waves 3-6 replanned for per-seed verdicts (63c94c7); plans verified, ready to execute from wave 3"
 ---
 
 # Project State
@@ -27,8 +27,45 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
+Phase: 05 (curvature-conditioned-linear-decodability) — READY TO EXECUTE (resumes at wave 3)
 Plan: 3 of 6
+Status: Ready to execute
+Last activity: 2026-08-24
+
+**Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
+wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
+the plans: `POOLING_METHOD` -> `SEED_HANDLING_RULE`, `BUCKET_EDGES` -> `BUCKET_EDGES_PER_SEED`,
+new `SEED_VERDICT_COMBINATION_RULE` and `combine_seed_verdicts`, `--mode pool` raises. `05-CONTEXT.md`
+D5-04 (**"pool the three seeds"**) is **superseded** — the supersession is recorded in all four
+amended plans' `<superseded_decision>` blocks, not only in the decision file. D5-05's pooled-field
+half is dispositioned in `05-03` Task 3 rather than dropped. 05-01 and 05-02 were not touched.
+
+**Three planner judgement calls the checker confirmed, carried into execution.** (1) `W` is fit
+**once**, not once per seed — split seed, split rule and data are identical across seeds, so three
+fits would return bit-identical maps; the per-seed axis is bucketing. **Consequence: the three
+verdicts are not independent replicates, so their spread measures field disagreement, not sampling
+variability** — stated in `05-FINDINGS.md`'s accepted gaps, not buried. (2) The tracer's
+`assert_preregistered` interface is restructured in wave 3, **before** the freeze, because neither
+a flat `BUCKET_EDGES` tuple nor a non-empty `POOLING_METHOD` survives per-seed; every constant stays
+UNSET across the restructure and `05-06` proves exactly 3 commits on `linear_probe.py` with the
+freeze most recent via `git merge-base --is-ancestor`. (3) `SPLIT ACROSS SEEDS` is frozen as a
+**complete terminal non-supportive outcome** — if 2 of 3 seeds show the effect the phase declines to
+claim it. On the measured evidence a split is the *likely* outcome, so this is the consequential
+choice; it is put to the developer at `05-04` Task 1's blocking checkpoint with
+`ratify-with-amendments` available, not applied as a planner default.
+
+**A retraction that must propagate.** `05-02-SUMMARY.md`'s claim that seeds 20260814/15 have
+5,301 / 9,852 distinct `H_norm` values is **wrong** — float noise in the last ULPs. True counts at
+relative precision are **4** and **3**. `05-RESEARCH.md` Pitfall 2 and `03-09-SUMMARY.md` were
+correct. Enforced by a 400-character retraction-window check in `05-04` Task 3 and in `05-06`.
+
+**Gate override, recorded for verify-phase.** The step-13a decision coverage gate returned
+`passed: false, reason: "could-not-parse"` and was **overridden by the developer on 2026-08-24**.
+The gate's parser expects `- **D-NN:**` bullets; this phase uses `- **D5-NN:**` (the convention
+Phase 04 set), so it extracted 0 decisions. This is a parser format mismatch, **not** an uncovered
+decision: D5-01..D5-13 all appear in plan `requirements` frontmatter, confirmed independently by
+frontmatter extraction and by the plan-checker's union check. Phase 04 shares the blind spot.
+
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
