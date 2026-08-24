@@ -777,7 +777,7 @@ Plans:
 
 **Decisions taken 2026-08-23** (`phases/03-decoder-curvature-field/03-NOTE-phase-4-decisions.md`): **D4-01** partition on curvature direction, not `|H|` quantiles — **adopted on PARTIAL evidence**: the partition-fidelity validation was built then deliberately scoped out (both schemes read the same field at the same points, so location error cancels). **Unclosed codimension gap:** every spike 003 fixture is a codimension-1 graph where `H = H_scalar * n_hat`, so "direction" IS the surface normal and the cosine 1.000 result shows normal-ORIENTATION recovery, not resolution within a normal space; PU's codimension is ~748. **D4-02 RESOLVED 2026-08-23 to the point-cloud `centroid_mean_curvature`** — three cells, both arms on identical data at `d=20`: cloud `rho` +0.41..+0.61 with cosine +0.77..+0.92 in **2s**, decoder `rho` +0.002..+0.018 with cosine ~0 (twice negative) in ~358s, its magnitude inflated 12,000-42,000x consistent with `cond(g)` 4e11-1.6e12. *Caveat: the decoder arm is undertrained vs Phase 3's sealed fits (mse_per_dim 0.23-0.32 against 1.6e-02), so this is not a clean disqualification of a well-trained decoder — but 200->400 epochs moved its `rho` only +0.0019 -> +0.0072.* **Consequence: Phase 03.1's metric regularization is OPTIONAL, not blocking**, and Phase 3's non-reproducing field is off the critical path. `k` becomes the main free parameter (hundreds at `d=20`). **D4-03** PU split-half reliability (`R_H = 0.589` at `k=231`) is accepted as sufficient; cross-estimator agreement on PU is NOT required. That is a **deliberately accepted blind spot** — split-half reliability cannot detect a bias both halves share (measured: `R_H = 0.990` with `rho = 0.469` on the Swiss roll) — and any Phase 4 result inherits an unvalidated field, which Phase 4's record must state in its own words.
 
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -787,7 +787,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-03-PLAN.md — The diametrical sign-split helper with a known-answer test, then the blocking pre-registration checkpoint and freeze (REGN-03, REGN-04, MKNN-07)
+- [x] 04-03-PLAN.md — The diametrical sign-split helper with a known-answer test, then the blocking pre-registration checkpoint and freeze (REGN-03, REGN-04, MKNN-07)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -854,5 +854,5 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 02.7. Manifold-Template Inference Front End (INSERTED) | v1.1 | 10/12 | On hold 2026-08-12 | - |
 | 3. Decoder & Curvature Field | v1.1 | 11/11 | Complete (field NOT validated) | 2026-08-23 |
 | 03.1. Decoder Metric Regularization (INSERTED) | v1.1 | 5/5 | Complete (metric repaired, ordering unmoved) | 2026-08-22 |
-| 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 2/6 | In Progress|  |
+| 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 3/6 | In Progress|  |
 </content>

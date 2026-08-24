@@ -108,7 +108,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 
 - [ ] **REGN-01**: Local sample-density measure per point **in the ambient embedding space the curvature field is estimated in** — the 768-d normalized embeddings, not Isomap coordinates — shown
 - [ ] **REGN-02**: Correlation between local density and curvature reported explicitly, before any region split is trusted
-- [ ] **REGN-03**: Points partitioned by a **data-derived direction criterion**, never by a fixed absolute threshold
+- [x] **REGN-03**: Points partitioned by a **data-derived direction criterion**, never by a fixed absolute threshold
 - [x] **REGN-04**: The partition rule specified and frozen **before** regional alignment is computed, and that ordering visible in the notebook
 - [ ] **REGN-05**: Each region's point count shown, since region size affects every downstream k-NN statistic
 - [ ] **REGN-06**: The direction eigenvector `v` and the resulting sign split **recorded and frozen as artifacts** before any MKNN number is computed, so the split is auditable after the fact
@@ -121,7 +121,7 @@ Added 2026-08-07 with Phase 02.4 (INSERTED), to empirically test whether the Top
 - [ ] **MKNN-04**: Each region gets its own permutation null, computed within that region's index set rather than reused from a global null
 - [x] **MKNN-05**: Bootstrap confidence intervals shown on every regional MKNN score
 - [ ] **MKNN-06**: Whether the high-vs-low result holds across k = 5, 10, 20, 50 shown
-- [ ] **MKNN-07**: Explicit verdict on whether regional difference is distinguishable from noise, where "no detectable difference" is a valid reported outcome
+- [x] **MKNN-07**: Explicit verdict on whether regional difference is distinguishable from noise, where "no detectable difference" is a valid reported outcome
 - [x] **MKNN-08**: Hubness caveat for k-NN-based alignment metrics in high-dimensional spaces stated alongside the results
 
 ---
@@ -225,7 +225,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURV-08 | Phase 3 | Complete |
 | REGN-01 | Phase 4 | Pending |
 | REGN-02 | Phase 4 | Pending |
-| REGN-03 | Phase 4 | Pending |
+| REGN-03 | Phase 4 | Complete |
 | REGN-04 | Phase 4 | Complete |
 | REGN-05 | Phase 4 | Pending |
 | REGN-06 | Phase 4 | Pending |
@@ -235,7 +235,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MKNN-04 | Phase 4 | Pending |
 | MKNN-05 | Phase 4 | Complete |
 | MKNN-06 | Phase 4 | Pending |
-| MKNN-07 | Phase 4 | Pending |
+| MKNN-07 | Phase 4 | Complete |
 | MKNN-08 | Phase 4 | Complete |
 
 **Coverage:** v1.1 requirements: 56 total (DATA 5 + ISO 5 + SPEC 7 + GEOM 5 + CAE 7 + DEC 5 + CURV 8 + REGN 6 + MKNN 8). Mapped to phases: 56/56 ✓ · Unmapped: 0 ✓
