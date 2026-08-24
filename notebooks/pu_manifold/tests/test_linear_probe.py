@@ -14,6 +14,7 @@ explicitly and ``05-RESEARCH.md``'s Validation Architecture lists it as the sole
 for this phase.
 """
 
+import itertools
 import sys
 from pathlib import Path
 
@@ -261,17 +262,133 @@ def test_assert_preregistered_raises_when_absent(monkeypatch):
     with pytest.raises(RuntimeError):
         lp.assert_preregistered()
 
-    monkeypatch.setattr(lp, "VERDICT_RULE", "well-formed rule naming N_BUCKETS explicitly")
+    monkeypatch.setattr(
+        lp,
+        "VERDICT_RULE",
+        "well-formed rule naming N_BUCKETS and SPLIT ACROSS SEEDS explicitly",
+    )
     monkeypatch.setattr(lp, "N_BUCKETS", 3)
     monkeypatch.setattr(lp, "TRAIN_FRACTION", 0.8)
     monkeypatch.setattr(lp, "SPLIT_SEED", 20260824)
     monkeypatch.setattr(lp, "RIDGE_ALPHA_GRID", (0.1, 1.0, 10.0))
-    monkeypatch.setattr(lp, "POOLING_METHOD", "per_seed_median_divide")
-    monkeypatch.setattr(lp, "BUCKET_EDGES", (1.0, 2.0))
+    monkeypatch.setattr(lp, "SEED_HANDLING_RULE", "no_pooling_per_seed_verdicts")
     monkeypatch.setattr(lp, "SEED_STEMS", (20260813, 20260814, 20260815))
+    monkeypatch.setattr(
+        lp, "BUCKET_EDGES_PER_SEED", ((1.0, 2.0), (3.0, 4.0), (5.0, 6.0))
+    )
+    monkeypatch.setattr(
+        lp,
+        "SEED_VERDICT_COMBINATION_RULE",
+        "well-formed rule naming SPLIT ACROSS SEEDS explicitly",
+    )
+    monkeypatch.setattr(
+        lp,
+        "PHASE_VERDICT_VALUES",
+        (
+            "HOLDS IN ALL THREE SEEDS",
+            "SPLIT ACROSS SEEDS",
+            "NO DETECTABLE RELATIONSHIP IN ANY SEED",
+        ),
+    )
     monkeypatch.setattr(lp, "CURVATURE_CONVENTION", "trace")
     monkeypatch.setattr(lp, "CURVATURE_SOURCE_FUNCTION", "chart_curvature.chart_curvature_field")
     lp.assert_preregistered()  # must not raise
+
+
+def test_assert_preregistered_rejects_flat_bucket_edges(monkeypatch):
+    """D5-04/D5-09: with every OTHER constant monkeypatched to a well-formed value,
+    BUCKET_EDGES_PER_SEED set to a flat tuple of floats -- the shape a pooled design would
+    produce -- still raises RuntimeError."""
+    monkeypatch.setattr(
+        lp,
+        "VERDICT_RULE",
+        "well-formed rule naming N_BUCKETS and SPLIT ACROSS SEEDS explicitly",
+    )
+    monkeypatch.setattr(lp, "N_BUCKETS", 3)
+    monkeypatch.setattr(lp, "TRAIN_FRACTION", 0.8)
+    monkeypatch.setattr(lp, "SPLIT_SEED", 20260824)
+    monkeypatch.setattr(lp, "RIDGE_ALPHA_GRID", (0.1, 1.0, 10.0))
+    monkeypatch.setattr(lp, "SEED_HANDLING_RULE", "no_pooling_per_seed_verdicts")
+    monkeypatch.setattr(lp, "SEED_STEMS", (20260813, 20260814, 20260815))
+    monkeypatch.setattr(
+        lp,
+        "SEED_VERDICT_COMBINATION_RULE",
+        "well-formed rule naming SPLIT ACROSS SEEDS explicitly",
+    )
+    monkeypatch.setattr(
+        lp,
+        "PHASE_VERDICT_VALUES",
+        (
+            "HOLDS IN ALL THREE SEEDS",
+            "SPLIT ACROSS SEEDS",
+            "NO DETECTABLE RELATIONSHIP IN ANY SEED",
+        ),
+    )
+    monkeypatch.setattr(lp, "CURVATURE_CONVENTION", "trace")
+    monkeypatch.setattr(lp, "CURVATURE_SOURCE_FUNCTION", "chart_curvature.chart_curvature_field")
+
+    # A flat tuple of six floats: the shape a single pooled edge set (not three per-seed
+    # tuples) would take.
+    monkeypatch.setattr(lp, "BUCKET_EDGES_PER_SEED", (1.0, 2.0, 3.0, 4.0, 5.0, 6.0))
+    with pytest.raises(RuntimeError):
+        lp.assert_preregistered()
+
+    # Also reject a 3-tuple of bare floats (matches len(SEED_STEMS) but each entry is not
+    # itself a per-seed edge tuple).
+    monkeypatch.setattr(lp, "BUCKET_EDGES_PER_SEED", (1.0, 2.0, 3.0))
+    with pytest.raises(RuntimeError):
+        lp.assert_preregistered()
+
+
+# --- Test 9: combine_seed_verdicts, the promotion invariant ----------------------------------
+
+
+def test_combine_seed_verdicts_known_answer():
+    """D5-09: all eight three-seed verdict combinations land on exactly one of the three
+    terminal phase strings, with n_holds matching the count of per-seed HOLDS outcomes."""
+    seeds = (20260813, 20260814, 20260815)
+    rule = "x SPLIT ACROSS SEEDS x"
+    seen = set()
+    for combo in itertools.product(("HOLDS", "NO DETECTABLE RELATIONSHIP"), repeat=3):
+        per_seed = dict(zip(seeds, combo))
+        result = lp.combine_seed_verdicts(per_seed, rule)
+        n_holds_expected = sum(1 for c in combo if c == "HOLDS")
+        assert result["n_holds"] == n_holds_expected
+        assert result["n_seeds"] == 3
+        if n_holds_expected == 3:
+            assert result["phase_verdict"] == "HOLDS IN ALL THREE SEEDS"
+        elif n_holds_expected == 0:
+            assert result["phase_verdict"] == "NO DETECTABLE RELATIONSHIP IN ANY SEED"
+        else:
+            assert result["phase_verdict"] == "SPLIT ACROSS SEEDS"
+        seen.add(result["phase_verdict"])
+    assert seen == {
+        "HOLDS IN ALL THREE SEEDS",
+        "SPLIT ACROSS SEEDS",
+        "NO DETECTABLE RELATIONSHIP IN ANY SEED",
+    }
+
+
+def test_combine_seed_verdicts_requires_three_seeds():
+    """D5-09/promotion invariant: a phase-level outcome cannot exist from fewer or more than
+    three per-seed rows. Two seeds and four seeds both raise ValueError naming the count."""
+    rule = "x SPLIT ACROSS SEEDS x"
+    with pytest.raises(ValueError):
+        lp.combine_seed_verdicts({20260813: "HOLDS", 20260814: "HOLDS"}, rule)
+    with pytest.raises(ValueError):
+        lp.combine_seed_verdicts(
+            {1: "HOLDS", 2: "HOLDS", 3: "HOLDS", 4: "HOLDS"}, rule
+        )
+
+
+def test_combine_seed_verdicts_raises_on_empty_rule():
+    """D5-09: combine_seed_verdicts cannot run before the freeze -- an empty or
+    whitespace-only rule raises RuntimeError, mirroring apply_verdict_rule's own guard."""
+    per_seed = {20260813: "HOLDS", 20260814: "HOLDS", 20260815: "HOLDS"}
+    with pytest.raises(RuntimeError):
+        lp.combine_seed_verdicts(per_seed, "")
+    with pytest.raises(RuntimeError):
+        lp.combine_seed_verdicts(per_seed, "   ")
 
 
 # --- Test 8: input guards ----------------------------------------------------------------------

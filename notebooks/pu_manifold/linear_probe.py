@@ -14,15 +14,28 @@ the named constant ``CURVATURE_SOURCE_FUNCTION`` (unset here, filled at the 05-0
 the correction is auditable rather than buried in a comment. This module imports nothing
 from ``decoder_curvature``, and the runner does not either.
 
-(b) **A raw ``np.mean`` across the three seeds' fields would not be a fair average.** The
-measured ``||H||`` medians across the three sealed CAE seeds are 1359.0, 51437.9 and 70794.1
--- a 52-fold range, with two of the three fields piecewise-constant on collapsed metrics.
-Weighted naively by raw magnitude that is roughly 1.1 percent / 41.6 percent / 57.3 percent
-seed influence: one seed would be almost entirely averaged away and the "pooled" field would
-mostly reflect whichever seed happens to have the largest raw scale, not a genuine consensus.
-:func:`pool_seed_fields` therefore takes its normalization method as a REQUIRED argument with
-no default -- a default is exactly how a pooling rule would get inherited by accident instead
-of chosen explicitly and frozen at 05-04 (D5-04).
+(b) **The pooled design is REMOVED from this module, not merely left unused.**
+``05-CONTEXT.md`` D5-04 said to pool the three cached CAE seeds into one averaged ``||H||``
+field. That was put to the developer at the ``05-03`` Task 1 blocking checkpoint and REJECTED
+-- one-way, per ``05-03-DECISION.md``, which SUPERSEDES D5-04. The evidence: measured at
+``05-02`` over all 10,000 PU points, the three seeds' fields are mutually anti-correlated on
+rank (pairwise Spearman on ``H_norm`` -0.1402, +0.2019, -0.2725 -- sign-inconsistent, two of
+three negative) and directionally orthogonal (median cosine of unit ``H_vec`` 0.0007 to 0.0039,
+with 46 to 48 percent of points anti-aligned between any pair), with seeds 20260814 and
+20260815 taking 4 and 3 effective distinct levels (see the correction below) at a metric
+determinant around ``1e-166``, roughly 100 orders of magnitude from seed 20260813's continuous
+field. Any pooled field would not be a consensus: it would be seed 20260813's structure plus
+two step-like functions that disagree with it and with each other. Rejected alongside the raw
+mean: per-seed median-divide then average (``05-RESEARCH.md``'s own recommendation), per-seed
+percentile-rank then average, and halting the phase. :func:`pool_seed_fields` is RETAINED as
+tested but unused code, per CLAUDE.md's additive-only rule -- Phase 5 calls it nowhere.
+
+**Correction to 05-02-SUMMARY.md.** That summary reported seeds 20260814/15 as "not literally
+piecewise-constant -- 5,301 / 9,852 exact distinct ``H_norm`` values (not 3-4)". That claim is
+WRONG: those counts are float noise in the last ULPs. Measured directly from the cached fields
+at RELATIVE precision, seed 20260814 has 4 distinct levels and seed 20260815 has 3, stable from
+rel 1e-9 through rel 1e-3. ``05-RESEARCH.md`` Pitfall 2 and ``03-09-SUMMARY.md``'s original
+measurement were both correct.
 
 (c) **D5-11's accepted gap.** The field this phase splits on has no demonstrated relationship
 to true curvature: the sealed ``d=20`` decoder row is
@@ -63,11 +76,24 @@ from sklearn.metrics import r2_score
 # the full committed record once it exists.
 #
 # Unset convention: descriptive-text string constants are "", numeric constants are None,
-# tuple constants are None. POOLING_METHOD, BUCKET_EDGES and N_BUCKETS -- the three constants
-# that gate whether the bucketed path can run at all -- are all `None` while unset, so no
+# tuple constants are None. BUCKET_EDGES_PER_SEED and N_BUCKETS -- two of the constants that
+# gate whether the bucketed path can run at all -- are `None` while unset, so no
 # truthy-but-meaningless placeholder can be mistaken for a real value. With every constant
 # below unset, `assert_preregistered()` raises today, which is the point: the bucketed path
 # is structurally dead until the freeze.
+#
+# THE POOLED DESIGN IS SUPERSEDED (05-03). `05-CONTEXT.md` D5-04's pooled-field design --
+# `POOLING_METHOD` (a required normalization method name) and `BUCKET_EDGES` (one flat tuple
+# of edges cut over a pooled field) -- was put to the developer at the `05-03` Task 1 blocking
+# checkpoint and REJECTED, one-way, per `05-03-DECISION.md`. Both constants are REMOVED from
+# this block rather than left unused, so the pooled path cannot be re-entered by assigning
+# them: a later executor reading only `05-CONTEXT.md` D5-04 finds no constant to set. In their
+# place: `SEED_HANDLING_RULE` (will hold the string naming the ratified no-pooling decision),
+# `BUCKET_EDGES_PER_SEED` (will hold three per-seed edge tuples, one per `SEED_STEMS` entry,
+# never one pooled tuple), `SEED_VERDICT_COMBINATION_RULE` and `PHASE_VERDICT_VALUES` (will
+# hold how three per-seed verdicts combine into one phase read-out, including the terminal
+# "SPLIT ACROSS SEEDS" outcome). See this module's docstring paragraph (b) for the measured
+# evidence the rejection was made on.
 
 TRAIN_FRACTION = None
 SPLIT_SEED = None
@@ -81,8 +107,8 @@ RESIDUAL_METRIC = ""
 R2_MULTIOUTPUT = ""
 N_BUCKETS = None
 BUCKET_RULE = ""
-BUCKET_EDGES = None
-POOLING_METHOD = None
+BUCKET_EDGES_PER_SEED = None
+SEED_HANDLING_RULE = ""
 SEED_STEMS = None
 N_CHARTS = None
 CURVATURE_MODE = ""
@@ -97,21 +123,31 @@ CONFIDENCE_LEVEL = None
 K_DENSITY = None
 FIELD_D = None
 VERDICT_RULE = ""
+SEED_VERDICT_COMBINATION_RULE = ""
+PHASE_VERDICT_VALUES = None
 PREREGISTRATION_PATH = ""
 
 
 def assert_preregistered() -> None:
     """Raise ``RuntimeError`` unless the pre-registration is intact. Checks, in order, one
     check per constant, raising on the FIRST failing check (``region_partition.py``'s own
-    idiom): ``VERDICT_RULE`` is a non-empty string naming ``N_BUCKETS``; ``N_BUCKETS`` is a
-    positive int; ``TRAIN_FRACTION`` is a float strictly inside ``(0, 1)``; ``SPLIT_SEED`` is
-    a positive int; ``RIDGE_ALPHA_GRID`` is a non-empty tuple of positive floats;
-    ``POOLING_METHOD`` is a non-empty string; ``BUCKET_EDGES`` is a tuple of
-    ``N_BUCKETS - 1`` finite floats in strictly ascending order; ``SEED_STEMS`` is a tuple of
-    three positive ints; ``CURVATURE_CONVENTION`` equals ``"trace"``;
-    ``CURVATURE_SOURCE_FUNCTION`` is a non-empty string. Called at the top of the runner's
-    ``--mode bucketed`` branch so that path fails loudly rather than computing anything when
-    the pre-registration is absent or malformed.
+    idiom): ``VERDICT_RULE`` is a non-empty string naming ``N_BUCKETS`` and naming the
+    ``"SPLIT ACROSS SEEDS"`` outcome; ``N_BUCKETS`` is a positive int; ``TRAIN_FRACTION`` is a
+    float strictly inside ``(0, 1)``; ``SPLIT_SEED`` is a positive int; ``RIDGE_ALPHA_GRID`` is
+    a non-empty tuple of positive floats; ``SEED_HANDLING_RULE`` equals the exact ratified
+    string ``"no_pooling_per_seed_verdicts"``; ``SEED_STEMS`` is a tuple of three positive
+    ints; ``BUCKET_EDGES_PER_SEED`` is a tuple of ``len(SEED_STEMS)`` per-seed tuples, each of
+    ``N_BUCKETS - 1`` finite floats in strictly ascending order; ``SEED_VERDICT_COMBINATION_
+    RULE`` is a non-empty string naming the ``"SPLIT ACROSS SEEDS"`` outcome;
+    ``PHASE_VERDICT_VALUES`` is a tuple of exactly three distinct non-empty strings and every
+    outcome :func:`combine_seed_verdicts` can produce under the frozen rule is a member of it;
+    ``CURVATURE_CONVENTION`` equals ``"trace"``; ``CURVATURE_SOURCE_FUNCTION`` is a non-empty
+    string. Called at the top of the runner's ``--mode bucketed`` branch so that path fails
+    loudly rather than computing anything when the pre-registration is absent or malformed.
+
+    ``SEED_HANDLING_RULE`` is checked by EQUALITY, not by a non-empty-string check: a future
+    edit that assigns it a pooling-method name (re-entering the design ``05-03-DECISION.md``
+    ratified as rejected) must fail this guard rather than pass it.
     """
     if not isinstance(VERDICT_RULE, str) or not VERDICT_RULE.strip():
         raise RuntimeError(
@@ -120,6 +156,11 @@ def assert_preregistered() -> None:
     if "N_BUCKETS" not in VERDICT_RULE:
         raise RuntimeError(
             f"assert_preregistered: VERDICT_RULE={VERDICT_RULE!r} does not name N_BUCKETS."
+        )
+    if "SPLIT ACROSS SEEDS" not in VERDICT_RULE:
+        raise RuntimeError(
+            f"assert_preregistered: VERDICT_RULE={VERDICT_RULE!r} does not name the "
+            '"SPLIT ACROSS SEEDS" outcome.'
         )
     if not isinstance(N_BUCKETS, int) or isinstance(N_BUCKETS, bool) or N_BUCKETS <= 0:
         raise RuntimeError(f"assert_preregistered: N_BUCKETS={N_BUCKETS!r} is not a positive int.")
@@ -141,21 +182,11 @@ def assert_preregistered() -> None:
             f"assert_preregistered: RIDGE_ALPHA_GRID={RIDGE_ALPHA_GRID!r} is not a non-empty "
             "tuple of positive floats."
         )
-    if not isinstance(POOLING_METHOD, str) or not POOLING_METHOD.strip():
+    if SEED_HANDLING_RULE != "no_pooling_per_seed_verdicts":
         raise RuntimeError(
-            f"assert_preregistered: POOLING_METHOD={POOLING_METHOD!r} is empty or not a string."
-        )
-    if (
-        not isinstance(BUCKET_EDGES, tuple)
-        or len(BUCKET_EDGES) != N_BUCKETS - 1
-        or not all(isinstance(v, float) and np.isfinite(v) for v in BUCKET_EDGES)
-        or list(BUCKET_EDGES) != sorted(BUCKET_EDGES)
-        or len(set(BUCKET_EDGES)) != len(BUCKET_EDGES)
-    ):
-        raise RuntimeError(
-            f"assert_preregistered: BUCKET_EDGES={BUCKET_EDGES!r} is not a tuple of "
-            f"{None if N_BUCKETS is None else N_BUCKETS - 1} finite floats in strictly "
-            "ascending order."
+            f"assert_preregistered: SEED_HANDLING_RULE={SEED_HANDLING_RULE!r} does not equal "
+            '"no_pooling_per_seed_verdicts" -- the ratified no-pooling decision '
+            "(05-03-DECISION.md)."
         )
     if (
         not isinstance(SEED_STEMS, tuple)
@@ -166,6 +197,62 @@ def assert_preregistered() -> None:
             f"assert_preregistered: SEED_STEMS={SEED_STEMS!r} is not a tuple of three positive "
             "ints."
         )
+    if not isinstance(BUCKET_EDGES_PER_SEED, tuple) or len(BUCKET_EDGES_PER_SEED) != len(SEED_STEMS):
+        raise RuntimeError(
+            f"assert_preregistered: BUCKET_EDGES_PER_SEED={BUCKET_EDGES_PER_SEED!r} is not a "
+            f"tuple of {len(SEED_STEMS)} per-seed edge tuples (one per SEED_STEMS entry, never "
+            "one pooled tuple)."
+        )
+    for _seed_idx, _edges in enumerate(BUCKET_EDGES_PER_SEED):
+        if (
+            not isinstance(_edges, tuple)
+            or len(_edges) != N_BUCKETS - 1
+            or not all(isinstance(v, float) and np.isfinite(v) for v in _edges)
+            or list(_edges) != sorted(_edges)
+            or len(set(_edges)) != len(_edges)
+        ):
+            raise RuntimeError(
+                f"assert_preregistered: BUCKET_EDGES_PER_SEED[{_seed_idx}]={_edges!r} is not a "
+                f"tuple of {N_BUCKETS - 1} finite floats in strictly ascending order -- the "
+                "shape a pooled design would produce instead."
+            )
+    if (
+        not isinstance(SEED_VERDICT_COMBINATION_RULE, str)
+        or not SEED_VERDICT_COMBINATION_RULE.strip()
+        or "SPLIT ACROSS SEEDS" not in SEED_VERDICT_COMBINATION_RULE
+    ):
+        raise RuntimeError(
+            f"assert_preregistered: SEED_VERDICT_COMBINATION_RULE="
+            f"{SEED_VERDICT_COMBINATION_RULE!r} is empty or does not name the "
+            '"SPLIT ACROSS SEEDS" outcome.'
+        )
+    if (
+        not isinstance(PHASE_VERDICT_VALUES, tuple)
+        or len(PHASE_VERDICT_VALUES) != 3
+        or not all(isinstance(v, str) and v for v in PHASE_VERDICT_VALUES)
+        or len(set(PHASE_VERDICT_VALUES)) != 3
+    ):
+        raise RuntimeError(
+            f"assert_preregistered: PHASE_VERDICT_VALUES={PHASE_VERDICT_VALUES!r} is not a "
+            "tuple of exactly three distinct non-empty strings."
+        )
+    _canonical_trios = (
+        {s: "HOLDS" for s in SEED_STEMS},
+        {s: "NO DETECTABLE RELATIONSHIP" for s in SEED_STEMS},
+        {
+            SEED_STEMS[0]: "HOLDS",
+            SEED_STEMS[1]: "NO DETECTABLE RELATIONSHIP",
+            SEED_STEMS[2]: "NO DETECTABLE RELATIONSHIP",
+        },
+    )
+    for _trio in _canonical_trios:
+        _result = combine_seed_verdicts(_trio, SEED_VERDICT_COMBINATION_RULE)
+        if _result["phase_verdict"] not in PHASE_VERDICT_VALUES:
+            raise RuntimeError(
+                f"assert_preregistered: combine_seed_verdicts produced "
+                f"{_result['phase_verdict']!r}, which is not a member of "
+                f"PHASE_VERDICT_VALUES={PHASE_VERDICT_VALUES!r}."
+            )
     if CURVATURE_CONVENTION != "trace":
         raise RuntimeError(
             f"assert_preregistered: CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} does not "
@@ -615,4 +702,68 @@ def apply_verdict_rule(
             "residual_higher_at_high_curvature": residual_higher_at_high_curvature,
             "size_match_sign_stable": sign_stable,
         },
+    }
+
+
+_VALID_PER_SEED_VERDICTS = ("HOLDS", "NO DETECTABLE RELATIONSHIP")
+"""The two terminal per-seed verdict strings :func:`apply_verdict_rule` can produce -- the
+only values :func:`combine_seed_verdicts` accepts as input."""
+
+
+def combine_seed_verdicts(per_seed_verdicts: Dict[int, str], rule: str) -> Dict[str, Any]:
+    """Maps exactly three per-seed terminal verdicts onto one of the three terminal
+    phase-level outcomes -- the promotion this plan makes structural (05-03-DECISION.md): the
+    verdict-bearing noun is now ``(seed, field)``, not ``field``, and no phase-level row can
+    exist without three per-seed rows beside it.
+
+    ``per_seed_verdicts`` maps seed int to that seed's terminal verdict string, each one of
+    :data:`_VALID_PER_SEED_VERDICTS` (:func:`apply_verdict_rule`'s own output). ``rule`` is the
+    frozen ``SEED_VERDICT_COMBINATION_RULE`` text. Counts the ``"HOLDS"`` outcomes:
+
+    * three -- ``"HOLDS IN ALL THREE SEEDS"``
+    * zero -- ``"NO DETECTABLE RELATIONSHIP IN ANY SEED"``
+    * one or two -- ``"SPLIT ACROSS SEEDS"`` -- a complete, terminal, non-supportive outcome,
+      not a near-miss awaiting a tie-break
+
+    Computes no statistic, applies no threshold, takes no numeric argument -- the arithmetic
+    already happened once per seed in :func:`apply_verdict_rule`. Raises ``RuntimeError`` when
+    ``rule`` is empty or whitespace-only, mirroring :func:`apply_verdict_rule`'s pre-freeze
+    guard, so this function cannot run before the ``05-04`` freeze. Raises ``ValueError`` when
+    ``per_seed_verdicts`` does not hold exactly three entries (naming the count actually
+    supplied), and ``ValueError`` when any value is not a member of
+    :data:`_VALID_PER_SEED_VERDICTS` (naming the offending value).
+    """
+    if not isinstance(rule, str) or not rule.strip():
+        raise RuntimeError(
+            "combine_seed_verdicts: rule is empty; cannot run before the pre-registration "
+            "freeze."
+        )
+    if not isinstance(per_seed_verdicts, dict) or len(per_seed_verdicts) != 3:
+        n_seeds = len(per_seed_verdicts) if isinstance(per_seed_verdicts, dict) else None
+        raise ValueError(
+            "combine_seed_verdicts: per_seed_verdicts must hold exactly three seeds, got "
+            f"{n_seeds if n_seeds is not None else per_seed_verdicts!r}."
+        )
+    for seed, verdict in per_seed_verdicts.items():
+        if verdict not in _VALID_PER_SEED_VERDICTS:
+            raise ValueError(
+                f"combine_seed_verdicts: per-seed verdict for seed {seed} is {verdict!r}, not "
+                f"one of {_VALID_PER_SEED_VERDICTS}."
+            )
+
+    sorted_seeds = sorted(per_seed_verdicts.keys())
+    n_holds = sum(1 for s in sorted_seeds if per_seed_verdicts[s] == "HOLDS")
+    if n_holds == 3:
+        phase_verdict = "HOLDS IN ALL THREE SEEDS"
+    elif n_holds == 0:
+        phase_verdict = "NO DETECTABLE RELATIONSHIP IN ANY SEED"
+    else:
+        phase_verdict = "SPLIT ACROSS SEEDS"
+
+    return {
+        "phase_verdict": phase_verdict,
+        "n_holds": n_holds,
+        "n_seeds": len(sorted_seeds),
+        "per_seed_verdicts": {s: per_seed_verdicts[s] for s in sorted_seeds},
+        "rule": rule,
     }
