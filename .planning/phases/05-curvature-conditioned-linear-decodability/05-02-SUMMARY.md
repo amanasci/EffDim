@@ -291,3 +291,8 @@ None - no external service configuration required.
 ---
 *Phase: 05-curvature-conditioned-linear-decodability*
 *Completed: 2026-08-24*
+
+## Self-Check: PASSED
+
+All three per-seed npz artifacts and the inter-seed diagnostics JSON found on disk; both commit
+hashes (`ed8f3f7`, `2229357`) found in `git log`.

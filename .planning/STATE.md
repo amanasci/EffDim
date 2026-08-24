@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
 status: executing
-stopped_at: Completed 05-01-PLAN.md -- Phase 5 whole-machine tracer proven on planted data and 64 real PU rows
-last_updated: "2026-08-24T16:09:25.307Z"
+stopped_at: Completed 05-02-PLAN.md -- three-seed curvature field extraction + inter-seed diagnostics (D5-05)
+last_updated: "2026-08-24T19:34:07.792Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 93
-  completed_plans: 82
+  completed_plans: 83
 last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 the pre-declared rule applied unchanged) and `03-09` delivered the curvature field. Next: `03-10`
 (synthetic controls) then `03-11` (phase record).
 
@@ -327,7 +327,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -410,6 +410,7 @@ Progress: [█████████░] 88% of planned plans (17/17; Phases 1
 | Phase 04 P05 | 25min | 2 tasks | 2 files |
 | Phase 04 P06 | 45min | 2 tasks | 3 files |
 | Phase 05 P01 | 19min | 3 tasks | 3 files |
+| Phase 05 P02 | 3h20m | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -587,6 +588,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: Phase 4 closed: HOLDS verdict at every k including headline k=20, qualified by an independently-verified region-size artifact (chance floor scales with 1/n_region) plus the three accepted gaps (unvalidated field, unclosed codimension gap, uncontrolled density confound) -- no verdict amended, all documented in 04-FINDINGS.md
 - [Phase ?]: POOLING_METHOD's unset sentinel is None (not empty-string), matching the plan's own must_haves/acceptance criteria alongside BUCKET_EDGES and N_BUCKETS as the three constants gating the bucketed path
 - [Phase ?]: test_pool_seeds_no_single_seed_dominates uses 8 piecewise levels not 4: the plan's literal 4-level/>0.99 spec is mathematically infeasible (tie-corrected Spearman ceiling 0.9682 < 0.99); 8 levels clears the threshold while preserving the collapsed-metric shape
+- [Phase ?]: 05-02: distinct-H_norm-value counts reported at three precisions (exact/6dp/12dp) after measuring seeds 14/15 are NOT literally piecewise-constant (5,301/9,852 exact distinct values, not the 3-4 RESEARCH.md's restatement of 03-09's '20-bin histogram fill' claimed)
+- [Phase ?]: 05-02: three sealed CAE seeds' curvature fields do not agree on rank order (Spearman -0.14/+0.20/-0.27, sign-inconsistent) or direction (median cosine ~0.001-0.004, 46-48% anti-aligned) -- the measured evidence 05-03's one-way pooling checkpoint is decided on
 
 ### Pending Todos
 
@@ -640,8 +643,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T16:09:25.258Z
-Stopped at: Completed 05-01-PLAN.md -- Phase 5 whole-machine tracer proven on planted data and 64 real PU rows
+Last session: 2026-08-24T19:34:07.742Z
+Stopped at: Completed 05-02-PLAN.md -- three-seed curvature field extraction + inter-seed diagnostics (D5-05)
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

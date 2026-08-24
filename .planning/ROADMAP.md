@@ -866,7 +866,7 @@ before any PU probe number exists.
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 
 Plans:
 **Wave 1**
@@ -875,7 +875,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-02-PLAN.md — Extract three seeds' decoder-side curvature fields (~2.6 h, per-seed cached) and measure inter-seed agreement with its direction axis
+- [x] 05-02-PLAN.md — Extract three seeds' decoder-side curvature fields (~2.6 h, per-seed cached) and measure inter-seed agreement with its direction axis
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
