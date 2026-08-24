@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
-status: executing
-stopped_at: Completed 05-02-PLAN.md -- three-seed curvature field extraction + inter-seed diagnostics (D5-05)
+status: blocked
+stopped_at: "Phase 5 halted at wave 3 -- 05-03 one-way pooling checkpoint ratified 'do not pool'; waves 3-6 need replan to per-seed verdicts before the 05-04 freeze (see 05-03-DECISION.md)"
 last_updated: "2026-08-24T19:34:07.792Z"
 last_activity: 2026-08-24
 progress:
@@ -13,7 +13,7 @@ progress:
   completed_phases: 9
   total_plans: 93
   completed_plans: 83
-last_activity_desc: Phase 04 complete, transitioned to Phase 02.3
+last_activity_desc: Phase 5 waves 1-2 complete; halted at wave 3 pending replan of 05-03..05-06
 ---
 
 # Project State
