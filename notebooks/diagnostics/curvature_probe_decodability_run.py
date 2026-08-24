@@ -38,7 +38,7 @@ import numpy as np
 import torch
 from scipy.stats import spearmanr
 
-from pu_manifold import cache, cae, chart_curvature, linear_probe
+from pu_manifold import cache, cae, chart_curvature, curvature_probe, linear_probe
 
 DEFAULT_RECORD = cache.cache_path("05_curvature_probe_decodability", "jsonl")
 SELFCHECK_RECORD = cache.cache_path("05_probe_selfcheck", "jsonl")
@@ -406,6 +406,8 @@ def run_perseed_mode(a: argparse.Namespace) -> None:
             )
     print("=" * 78)
 
+    run_density_diagnostics(a)
+
 
 def _spearman_report(a: np.ndarray, b: np.ndarray, name: str) -> Dict[str, Any]:
     """One plain Spearman correlation, printed with its p-value and point count. When either
@@ -555,6 +557,123 @@ def run_inter_seed_diagnostics(field_stem_prefix: str) -> None:
     }
     cache.json_cache("05_inter_seed_diagnostics", cfg, _compute)
     print(f"wrote {cache.cache_path('05_inter_seed_diagnostics', 'json')}")
+
+
+DENSITY_K_DENSITY = 30
+"""Phase 4's pre-registered `region_partition.K_DENSITY` (D4-15), reused unchanged so Phase 4
+and Phase 5's density numbers sit on the same footing."""
+
+DENSITY_FIELD_D = 20
+"""Phase 4's pre-registered `region_partition.FIELD_D` (D-07), reused unchanged for the same
+reason -- the intrinsic-dimension parameter `local_density_weights`' k-NN density formula
+takes, not the ambient ``X``'s own column count."""
+
+
+def run_density_diagnostics(a: argparse.Namespace) -> None:
+    """D5-13: re-measure ``spearman(density, ||H||)`` PER SEED on the decoder-side fields,
+    with Phase 4's own point-cloud (-0.0273) and direction (+0.8208) reference numbers quoted
+    beside them, and dispose of D5-05's pooled-versus-seed half (which has no referent under
+    ``05-03-DECISION.md``'s ratified refusal to pool) rather than silently dropping it. Writes
+    ``notebooks/.cache/05_density_diagnostics.json`` through ``cache.json_cache``. Mirrors
+    :func:`run_inter_seed_diagnostics`'s own partial-invocation guard: runs only once all
+    three canonical seeds' field artifacts already exist, otherwise prints a one-line notice
+    and returns without writing anything.
+    """
+    fields: Dict[int, Dict[str, np.ndarray]] = {}
+    for seed in CANONICAL_SEED_STEMS:
+        loaded = _load_cached_seed_field(seed, a.field_stem)
+        if loaded is None:
+            missing_path = cache.cache_path(f"{a.field_stem}_seed{seed}", "npz")
+            print(
+                f"Density diagnostics skipped: seed {seed}'s field artifact does not yet "
+                f"exist at {missing_path}."
+            )
+            return
+        fields[seed] = loaded
+
+    print("=" * 78)
+    print("Density confound diagnostics (D5-13): per seed, Phase 4's own estimator/constants")
+    print("=" * 78)
+
+    _, X_ls, _ = load_pu_pair()
+    X64 = X_ls.astype(np.float64)
+
+    def _compute() -> Dict[str, Any]:
+        # REGN-01 convention, unchanged: `weight` is the INVERSE local density, mean-normalized
+        # to 1; `reciprocal` (= 1 / weight) is the RELATIVE density itself.
+        weight = curvature_probe.local_density_weights(
+            X64, k_density=DENSITY_K_DENSITY, d=DENSITY_FIELD_D
+        )
+        reciprocal = 1.0 / weight
+
+        spearman_density_per_seed_h: Dict[str, Any] = {}
+        spearman_inverse_of_weight_per_seed_h: Dict[str, Any] = {}
+        for seed in CANONICAL_SEED_STEMS:
+            H_norm = fields[seed]["H_norm"]
+            spearman_density_per_seed_h[str(seed)] = _spearman_report(
+                weight, H_norm, f"spearman(inverse_density_weight, ||H||) seed={seed}"
+            )
+            spearman_inverse_of_weight_per_seed_h[str(seed)] = _spearman_report(
+                reciprocal, H_norm, f"spearman(relative_density, ||H||) seed={seed}"
+            )
+
+        return {
+            "spearman_density_per_seed_h": spearman_density_per_seed_h,
+            "spearman_inverse_of_weight_per_seed_h": spearman_inverse_of_weight_per_seed_h,
+            "k_density": DENSITY_K_DENSITY,
+            "field_d": DENSITY_FIELD_D,
+            "density_definition": (
+                "curvature_probe.local_density_weights returns the per-point INVERSE local "
+                "density, normalized to mean 1 (REGN-01's own convention). "
+                "spearman_density_per_seed_h correlates THAT quantity against each seed's "
+                "||H||; spearman_inverse_of_weight_per_seed_h correlates its reciprocal "
+                "(the RELATIVE density itself) against the same field -- the two keys have "
+                "opposite sign by construction, and both are recorded so the sign of a "
+                "density correlation is never ambiguous."
+            ),
+            "phase4_pointcloud_reference": (
+                "-0.0273 (n=9500, p=0.0078) -- 04-FINDINGS.md's "
+                "spearman(density, centroid_mean_curvature), measured on the POINT-CLOUD "
+                "field. A different curvature estimator (centroid_mean_curvature, "
+                "point-cloud-side) than these decoder-side chart_curvature_field values; "
+                "does not transfer."
+            ),
+            "phase4_direction_reference": (
+                "+0.8208 (n=9500, p≈0) -- 04-FINDINGS.md's "
+                "spearman(density, signed_projection onto v). This attached to curvature "
+                "DIRECTION (the sign of the projection onto the frozen split axis v), which "
+                "is the axis Phase 5 is not splitting on -- Phase 5 buckets by ||H|| "
+                "magnitude only."
+            ),
+            "direction_axis": None,
+            "direction_axis_reason": (
+                "both operands are scalar fields -- a density weight and a curvature "
+                "magnitude -- so there is no pair of vectors to take a cosine between and no "
+                "vector direction axis exists; the sign of rho is the direction."
+            ),
+            "seed_stems": list(CANONICAL_SEED_STEMS),
+            "pooled_field_disposition": (
+                "05-CONTEXT.md D5-05 asks for the Spearman between each seed and the pooled "
+                "field. No pooled field exists: seed pooling was put to the developer at the "
+                "05-03 Task 1 blocking checkpoint and ratified as NOT DONE in "
+                "05-03-DECISION.md, superseding D5-04. The statistic therefore has no "
+                "referent and was NOT computed against a substitute. D5-05's first half -- "
+                "the pairwise inter-seed Spearman with its direction axis -- was measured at "
+                "05-02 and is recorded in notebooks/.cache/05_inter_seed_diagnostics.json."
+            ),
+        }
+
+    cfg = {
+        "kind": "05_density_diagnostics",
+        "field_stem_prefix": a.field_stem,
+        "seed_stems": list(CANONICAL_SEED_STEMS),
+        "k_density": DENSITY_K_DENSITY,
+        "field_d": DENSITY_FIELD_D,
+    }
+    result = cache.json_cache("05_density_diagnostics", cfg, _compute)
+    measured = {s: v["rho"] for s, v in result["spearman_density_per_seed_h"].items()}
+    print(f"measured spearman(inverse_density_weight, ||H||) per seed: {measured}")
+    print(f"wrote {cache.cache_path('05_density_diagnostics', 'json')}")
 
 
 def _piecewise_constant_field(values: np.ndarray, n_levels: int) -> np.ndarray:
