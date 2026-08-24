@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 0
 fixed_count: 1
-total_count: 6
-last_updated: 2026-08-12T14:21:05.897Z
+total_count: 7
+last_updated: 2026-08-24T22:02:10.831Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-08-12T14:21:05.897Z
 | 4 | 02.6 | deviation | notebooks/pu_manifold/tests/test_decoder_curvature.py |  | plan must-have claimed plain_decoder_curvature batch-split results are exact torch.equal bit-identical; measured false at real (hidden=64x3) architecture scale (~7e-14, amplified by pullback-metric condition number ~470), also confirmed in sealed chart_curvature.chart_mean_curvature itself via a duck-typed decoder of matching width -- test corrected to atol=1e-9, determinism (same z twice) kept as exact torch.equal | open |  | 2026-08-10T14:20:45.037Z |  |
 | 5 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-SCREENING-RULE-AMENDMENT-01.md |  | SC-5's D-02 live prediction (roll ambient beta_1=1 -> Euclidean-only spurious cycle) was never exercised through decide()'s abstain path; condition (b) fired first in every measured run. Untested under the amended gating_dispersion gate. | open |  | 2026-08-12T13:55:51.767Z |  |
 | 6 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md |  | 02.7-10 Task 2/3 not executed by explicit user scope decision -- no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md, blocking checkpoint not reached. Runner built/tested/committed only (ac6a3fd). | open |  | 2026-08-12T14:21:05.897Z |  |
+| 7 | 05 | deviation | notebooks/.cache/05_curvature_buckets_seed20260814.npz |  | Seed 20260814's full-field bucket counts [3334,2956,3710] (spread 754) diverge from the 'near-exactly balanced' assumption in 05-03's action text, due to a genuine 2,102-point exact-duplicate block at the field's maximum value; D5-07 tie rule applied correctly, not a code bug -- see 05-03-SUMMARY.md Findings | open |  | 2026-08-24T22:02:10.831Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-08-12T14:21:05.897Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-12T14:21:05.897Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "deviation",
+    "phase": "05",
+    "file": "notebooks/.cache/05_curvature_buckets_seed20260814.npz",
+    "line": null,
+    "description": "Seed 20260814's full-field bucket counts [3334,2956,3710] (spread 754) diverge from the 'near-exactly balanced' assumption in 05-03's action text, due to a genuine 2,102-point exact-duplicate block at the field's maximum value; D5-07 tie rule applied correctly, not a code bug -- see 05-03-SUMMARY.md Findings",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-24T22:02:10.831Z",
     "resolved_at": null
   }
 ]

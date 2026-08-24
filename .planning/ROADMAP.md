@@ -869,7 +869,7 @@ checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -882,7 +882,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-03-PLAN.md — Carry the ratified no-pooling decision into the code: restructure the pre-registration block for three verdicts (constants still unset), build three per-seed bucketings, re-measure the density confound per seed
+- [x] 05-03-PLAN.md — Carry the ratified no-pooling decision into the code: restructure the pre-registration block for three verdicts (constants still unset), build three per-seed bucketings, re-measure the density confound per seed
 
 **Wave 4** *(blocked on Wave 3 completion)*
 

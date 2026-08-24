@@ -4,16 +4,16 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
-status: ready_to_execute
-stopped_at: null
-last_updated: "2026-08-24T21:27:04.463Z"
+status: executing
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-08-24T22:02:52.160Z"
 last_activity: 2026-08-24
+last_activity_desc: 05-03 complete (per-seed bucketing, verdict combination, density confound)
 progress:
   total_phases: 12
   completed_phases: 9
   total_plans: 93
-  completed_plans: 83
-last_activity_desc: "Phase 5 waves 3-6 replanned for per-seed verdicts (63c94c7); plans verified, ready to execute from wave 3"
+  completed_plans: 84
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 05 (curvature-conditioned-linear-decodability) — READY TO EXECUTE (resumes at wave 3)
-Plan: 3 of 6
-Status: Ready to execute
-Last activity: 2026-08-24
+Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
+Plan: 4 of 6
+Status: Ready to execute (05-01, 05-02, 05-03 complete; 05-04 next)
+Last activity: 2026-08-24 — 05-03 complete (per-seed bucketing, verdict combination, density confound)
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -448,6 +448,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 04 P06 | 45min | 2 tasks | 3 files |
 | Phase 05 P01 | 19min | 3 tasks | 3 files |
 | Phase 05 P02 | 3h20m | 2 tasks | 1 files |
+| Phase 05 P03 | 15m | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -627,6 +628,9 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: test_pool_seeds_no_single_seed_dominates uses 8 piecewise levels not 4: the plan's literal 4-level/>0.99 spec is mathematically infeasible (tie-corrected Spearman ceiling 0.9682 < 0.99); 8 levels clears the threshold while preserving the collapsed-metric shape
 - [Phase ?]: 05-02: distinct-H_norm-value counts reported at three precisions (exact/6dp/12dp) after measuring seeds 14/15 are NOT literally piecewise-constant (5,301/9,852 exact distinct values, not the 3-4 RESEARCH.md's restatement of 03-09's '20-bin histogram fill' claimed)
 - [Phase ?]: 05-02: three sealed CAE seeds' curvature fields do not agree on rank order (Spearman -0.14/+0.20/-0.27, sign-inconsistent) or direction (median cosine ~0.001-0.004, 46-48% anti-aligned) -- the measured evidence 05-03's one-way pooling checkpoint is decided on
+- [Phase ?]: 05-03: SEED_HANDLING_RULE checked by exact equality in assert_preregistered (not a non-empty-string check), so a future edit assigning a pooling-method name fails the guard rather than passing it
+- [Phase ?]: 05-03: POOLING_METHOD and BUCKET_EDGES are structurally removed from linear_probe.py (not left unused) -- the pooled design cannot be re-entered by assigning a value
+- [Phase ?]: 05-03: seed 20260814's realized full-field bucket counts [3334,2956,3710] diverge from near-balanced due to a genuine 2,102-point exact-duplicate block at the field's max value; D5-07's tie rule applied correctly, not a code bug -- see 05-03-SUMMARY.md
 
 ### Pending Todos
 
@@ -680,8 +684,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T19:34:07.742Z
-Stopped at: Completed 05-02-PLAN.md -- three-seed curvature field extraction + inter-seed diagnostics (D5-05)
+Last session: 2026-08-24T22:02:52.110Z
+Stopped at: Completed 05-03-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
