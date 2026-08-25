@@ -869,7 +869,7 @@ checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 6/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1**

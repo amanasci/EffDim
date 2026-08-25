@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 05
-current_phase_name: curvature-conditioned-linear-decodability
-status: executing
+current_phase: 02.3
+current_phase_name: INSERTED, proposed — not yet planned
+status: planning
 stopped_at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
-last_updated: "2026-08-25T00:34:51.782Z"
+last_updated: "2026-08-25T00:46:56.072Z"
 last_activity: 2026-08-24
-last_activity_desc: 05-03 complete (per-seed bucketing, verdict combination, density confound)
+last_activity_desc: Phase 05 complete, transitioned to Phase 02.3
 progress:
   total_phases: 12
   completed_phases: 10
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 05 (curvature-conditioned-linear-decodability) — EXECUTING
-Plan: 6 of 6
-Status: Ready to execute (05-01, 05-02, 05-03 complete; 05-04 next)
-Last activity: 2026-08-24 — 05-03 complete (per-seed bucketing, verdict combination, density confound)
+Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-24 — Phase 05 complete, transitioned to Phase 02.3
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
