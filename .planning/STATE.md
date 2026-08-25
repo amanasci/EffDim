@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 05
 current_phase_name: curvature-conditioned-linear-decodability
 status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-08-24T23:36:04.046Z"
+stopped_at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
+last_updated: "2026-08-25T00:34:51.782Z"
 last_activity: 2026-08-24
 last_activity_desc: 05-03 complete (per-seed bucketing, verdict combination, density confound)
 progress:
   total_phases: 12
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 93
-  completed_plans: 86
+  completed_plans: 87
 ---
 
 # Project State
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 94% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -451,6 +451,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 05 P03 | 15m | 3 tasks | 3 files |
 | Phase 05 P04 | ~7min | 3 tasks | 3 files |
 | Phase 05 P05 | 7min | 3 tasks | 1 files |
+| Phase 05 P06 | 35m | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -637,6 +638,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 05-04: SPLIT ACROSS SEEDS frozen as a complete terminal non-supportive outcome for 1-2 of 3 per-seed HOLDS -- never upgraded by majority vote, continuous Spearman, or a different N_BUCKETS
 - [Phase ?]: Consolidated the runner's fit_probe call site through a shared _fit_and_evaluate helper (used by both selfcheck() and run_bucketed_mode) so the file carries exactly one literal call site, per Task 1's own grep-based acceptance criterion
 - [Phase ?]: Phase headline result: SPLIT ACROSS SEEDS (n_holds=2 of 3) -- seeds 20260813/20260815 HOLDS, seed 20260814 NO DETECTABLE RELATIONSHIP; RESEARCH A2's ridge justification (severe rank deficiency ~18-25 dims) measured and NOT confirmed (effective_rank_1pct=531 of 768)
+- [Phase ?]: Phase 5 closed with SPLIT ACROSS SEEDS phase verdict (2 of 3 seeds HOLDS), approved at the Task 3 blocking human-verify checkpoint after independent re-verification of the ordering guarantee and all verdict strings.
+- [Phase ?]: D5-04 (pooled field) recorded SUPERSEDED by 05-03-DECISION.md; D5-05 split into a met inter-seed-agreement half and a dispositioned pooled-vs-seed half with no referent.
 
 ### Pending Todos
 
@@ -690,8 +693,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-24T23:36:03.996Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-08-25T00:34:51.730Z
+Stopped at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

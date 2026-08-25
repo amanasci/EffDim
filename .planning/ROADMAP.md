@@ -869,7 +869,7 @@ checkpoint on measured inter-seed disagreement.)*
 **Requirements**: D5-01 .. D5-13 (no milestone REQ-IDs were minted for this phase; `05-CONTEXT.md`'s
 thirteen locked decisions are the de-facto requirement set, following Phase 02.5's precedent)
 **Depends on:** Phase 4
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -894,4 +894,4 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md reporting three verdicts and their spread, and the mechanical git-ancestry proof of the ordering guarantee
+- [x] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md reporting three verdicts and their spread, and the mechanical git-ancestry proof of the ordering guarantee
