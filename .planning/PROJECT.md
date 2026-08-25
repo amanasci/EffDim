@@ -75,11 +75,13 @@ Python >= 3.8. Core package installable without GPU/deep-learning stack. Noteboo
 | 2026-07-31 | `k*=15` frozen by pre-registered plateau rule, unchanged after seeing results | Thresholds fixed pre-fit with a cell-index assertion, preventing post-hoc retuning. Known limitation in `WINDOWS.md`: `STAGE2_K` unevenly spaced, plateau maximal in index space not k space |
 | 2026-08-04 | Chart Auto-Encoder (arXiv:1912.10094) tested behind a ratified pre-registration and returned `CAE_VERDICT = FAIL` | T1 geodesic distortion 0.296981 (threshold `<0.15`) and T3 held-out reconstruction margin 3.586350 (threshold `<0.90`) both failed; T2 passed. Thresholds were git-ancestry-proved to predate every fit, so the negative result is publishable as measured. Validated in Phase 02.2 |
 | 2026-08-04 | On the 02.2 FAIL the user chose to iterate, not adopt 02.1's Krein representation or stop | Phase 3 now depends on a proposed Phase 02.3 reaching PASS from a freshly re-registered protocol. Per D-02 no automatic Krein fallback fired; the 02.2 verdict is sealed and any changed constant requires a new pre-registration plus a full re-run |
+| 2026-08-24 | The three CAE seeds are NOT pooled into one averaged `||H||` field; each seed is bucketed and judged separately | Ratified one-way at the 05-03 Task 1 blocking checkpoint on measured inter-seed disagreement (pairwise Spearman -0.1402/+0.2019/-0.2725, median cosine 0.0007-0.0039, 46-48% anti-aligned). Supersedes `05-CONTEXT.md` D5-04. See `05-03-DECISION.md` |
+| 2026-08-24 | Phase 5 returned `SPLIT ACROSS SEEDS` (2 of 3 seeds HOLDS) under a rule frozen before any probe number existed | One global ridge map `hsc -> legacysurvey` (n_train=7000, n_test=3000, alpha=0.1, r2=0.643931): seed 20260813 HOLDS, 20260814 NO DETECTABLE RELATIONSHIP, 20260815 HOLDS. Per the frozen `SEED_VERDICT_COMBINATION_RULE` this is a complete terminal outcome and explicitly NOT partial support -- it is not upgradable by majority vote, continuous Spearman, or a different `N_BUCKETS`. Freeze commit `32dabe3` git-ancestry-proved to precede every number. Inherits D5-12's `CAE_VERDICT = FAIL` and carries D5-11's no-known-answer-anchor caveat. Validated in Phase 5 |
 
 ## Evolution
 
 Updated at phase transitions (`/gsd-transition`) and milestone boundaries (`/gsd-complete-milestone`): move requirements between Validated/Active/Out of Scope, log decisions, refresh Context.
 
 ---
-*Last updated: 2026-08-04 after completing Phase 02.2: Chart Autoencoder Validity Test (`CAE_VERDICT = FAIL`; user elected to iterate)*
+*Last updated: 2026-08-24 after completing Phase 5: Curvature-Conditioned Linear Decodability (phase verdict `SPLIT ACROSS SEEDS`, 2 of 3 seeds; a terminal non-supportive outcome, not partial support)*
 </content>
