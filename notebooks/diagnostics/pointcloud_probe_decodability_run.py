@@ -111,6 +111,29 @@ def load_phase4_field(subsample_file: str, n_expected: int) -> np.ndarray:
     return h
 
 
+def _json_safe(obj: Any) -> Any:
+    """Recursively cast numpy scalars AND arrays to native Python types.
+
+    ``cae.to_native`` handles numpy scalars and torch tensors but not ``np.ndarray``, and
+    ``lp.bucket_counts`` returns its per-bucket counts as an array. Written here rather than
+    by extending ``cae.to_native`` because ``cae.py`` is sealed Phase 02.2 code and this is a
+    serialization detail of one runner, not a change to shared behaviour.
+    """
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return _json_safe(obj.tolist())
+    if isinstance(obj, np.floating):
+        return float(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    return obj
+
+
 def _spearman(a: np.ndarray, b: np.ndarray) -> Dict[str, Any]:
     rho, p = spearmanr(a, b)
     if np.isnan(rho):
@@ -182,9 +205,9 @@ def run_selfcheck() -> None:
     print(f"  shuffled field -> {shuffled['verdict']}")
     print(f"  SELFCHECK {'PASS' if ok else 'FAIL'}")
     with SELFCHECK_RECORD.open("a") as fh:
-        fh.write(json.dumps({"kind": "06_selfcheck", "pass": bool(ok),
-                             "planted": planted["verdict"],
-                             "shuffled": shuffled["verdict"]}, default=float) + "\n")
+        fh.write(json.dumps(_json_safe({"kind": "06_selfcheck", "pass": bool(ok),
+                                        "planted": planted["verdict"],
+                                        "shuffled": shuffled["verdict"]})) + "\n")
     if not ok:
         raise SystemExit("selfcheck FAILED -- the bucketed path must not be run")
 
@@ -244,7 +267,7 @@ def run_bucketed() -> None:
         },
     }
     with DEFAULT_RECORD.open("a") as fh:
-        fh.write(json.dumps(record, default=float) + "\n")
+        fh.write(json.dumps(_json_safe(record)) + "\n")
 
     print("\n" + "=" * 78)
     print(f"  PHASE 6 VERDICT: {result['verdict']}")
