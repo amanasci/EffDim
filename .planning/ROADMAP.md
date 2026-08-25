@@ -855,6 +855,8 @@ Unstarted pre-v1.1 work. Independent of v1.1 — no v1.1 phase depends on any of
 | 3. Decoder & Curvature Field | v1.1 | 11/11 | Complete (field NOT validated) | 2026-08-23 |
 | 03.1. Decoder Metric Regularization (INSERTED) | v1.1 | 5/5 | Complete (metric repaired, ordering unmoved) | 2026-08-22 |
 | 4. Region Partitioning & Regional Alignment (MKNN) | v1.1 | 6/6 | Complete    | 2026-08-24 |
+| 5. Curvature-Conditioned Linear Decodability | v1.1 | 6/6 | Complete (SPLIT ACROSS SEEDS) | 2026-08-24 |
+| 6. Point-Cloud Curvature-Conditioned Linear Decodability | v1.1 | n/a | Complete (NO DETECTABLE RELATIONSHIP) | 2026-08-24 |
 </content>
 
 ### Phase 5: Curvature-Conditioned Linear Decodability
@@ -927,8 +929,25 @@ set, following Phase 5's and Phase 02.5's precedent)
 **Depends on:** Phase 4 (frozen `K_FROZEN`, density correction, and the sealed `h_norm` field),
 Phase 5 (frozen split, ridge protocol, residual metric, and bucketing machinery in
 `notebooks/pu_manifold/linear_probe.py`)
-**Plans:** 0 plans
+**Outcome (2026-08-24): `NO DETECTABLE RELATIONSHIP`.** Fails on criterion (a) alone — the
+highest and lowest tertile's 95% bootstrap CIs overlap by `0.000914`; criteria (b) and (c) both
+hold. The pattern is **not monotone** (bucket 1 sits below bucket 0; only the top tertile is
+elevated). Protocol inheritance is exact and checkable: `mean_residual_overall =
+0.06642936194948156`, byte-identical to Phase 5's, so both phases scored the same 3,000 held-out
+residuals. **The answer is instrument-dependent** — Phase 5 returned `SPLIT ACROSS SEEDS` on the
+same residuals. Neither verdict upgrades or downgrades the other.
+
+**D4-08 closed, with a negative answer.** Spearman between Phase 4's point-cloud field and the
+three Phase 5 decoder fields: `-0.0875`, `+0.0487`, `-0.1177` — all below `|0.12|` and
+sign-inconsistent. The two instruments are not two measurements of one quantity.
+
+**Plans:** executed without formal plan files (autonomous run at the developer's standing
+instruction). Artifacts: `06-CONTEXT.md`, `06-PREREGISTRATION.md`,
+`06-PREREGISTRATION-AMENDMENT-01.md`, `06-FINDINGS.md`, `06-VERIFICATION.md`.
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 6 to break down)
+- [x] Freeze (`c11218c`) — 32 pre-registration constants and `VERDICT_RULE` in committed source
+- [x] Runner (`37d1ba8`) — `--selfcheck` and `--mode bucketed`, with the D6-01 provenance guard
+- [x] Amendment 01 (`62dc10a`) — `R2_MULTIOUTPUT` restored; phase re-run
+- [x] Findings and verification — 9/9 conduct checks reproduced; awaiting developer review
