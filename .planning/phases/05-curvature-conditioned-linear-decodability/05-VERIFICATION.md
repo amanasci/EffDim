@@ -187,7 +187,7 @@ IDs (D5-01..D5-13) and the probe did run over them.
 | Behavior | Command | Result | Status |
 |---|---|---|---|
 | Full test suite | `.venv/bin/python -m pytest notebooks/pu_manifold/tests/ -q` | `390 passed, 1 skipped` | PASS |
-| `--selfcheck` (implementation self-check on synthetic data) | `.venv/bin/python notebooks/diagnostics/curvature_probe_decodability_run.py --selfcheck` | All 8 checks `[PASS]`, exit 0 | PASS |
+| `--selfcheck` (implementation self-check on synthetic data) | `.venv/bin/python notebooks/diagnostics/curvature_probe_decodability_run.py --selfcheck` | All 7 checks `[PASS]`, exit 0 | PASS |
 | `--mode pool` refuses by name | `.venv/bin/python notebooks/diagnostics/curvature_probe_decodability_run.py --mode pool` | `RuntimeError` naming `05-03-DECISION.md`, exit 1 | PASS |
 | `--mode bucketed` raises when the pre-registration is stubbed empty | Not re-run destructively against the frozen module (would breach the D5-09 freeze); guard behavior is unit-tested instead | `run_bucketed_mode`'s first line calls `linear_probe.assert_preregistered()` unconditionally; `test_assert_preregistered_raises_when_absent` and `test_assert_preregistered_rejects_flat_bucket_edges` both exercise the raise path via `monkeypatch`, never by editing the shipped module | PASS (via unit test, not a live destructive run) |
 | Notebook fully executed | `execution_count` sequential per code cell, all with outputs (plots included) | confirmed via the notebook's own JSON | PASS |
