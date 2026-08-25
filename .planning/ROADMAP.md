@@ -895,3 +895,40 @@ Plans:
 **Wave 6** *(blocked on Wave 5 completion)*
 
 - [x] 05-06-PLAN.md — Executed notebook, 05-FINDINGS.md reporting three verdicts and their spread, and the mechanical git-ancestry proof of the ordering guarantee
+
+### Phase 6: Point-Cloud Curvature-Conditioned Linear Decodability
+
+**Goal:** Re-run Phase 5's probe with the curvature field swapped for the training-free
+point-cloud estimator, changing nothing else. One global ridge map `hsc -> legacysurvey` on the
+same frozen PU embeddings, the same 70/30 split, the same `RIDGE_ALPHA_GRID` and selection rule,
+the same per-point squared-L2 residual metric, the same tertile bucketing — but bucketed by the
+**density-corrected `centroid_mean_curvature` field at Phase 4's frozen `K_FROZEN = 500`**
+(already computed and sealed as `h_norm` in `notebooks/.cache/04_region_partition.npz`) instead of
+the three CAE decoder-side `||H||` fields. Judged under a single verdict rule frozen before any
+Phase 6 number exists.
+
+**Why inserted:** three independent reasons, all from the sealed record. (1) **Consistency** —
+Phase 4 already partitions on `centroid_mean_curvature`, density-corrected, at `k = K_FROZEN = 500`
+(`04-FINDINGS.md`); Phase 5 reverted to the CAE decoder route. (2) **The decoder route is not
+reproducible** — `05-03-DECISION.md` measured the three seeds' fields mutually anti-correlated on
+rank (pairwise Spearman `-0.1402`, `+0.2019`, `-0.2725`) and directionally orthogonal (median
+cosine `0.0007`–`0.0039`, 46–48% of points anti-aligned). The point-cloud estimator has no
+training and no seeds, so `SPLIT ACROSS SEEDS` cannot arise as an outcome. (3) **It closes D4-08**
+— cross-estimator agreement was recommended at the Phase 3 close and declined twice (D4-03,
+D4-08); running the probe on both fields over the same held-out residuals measures it directly.
+
+**What this phase does NOT claim:** the point-cloud field is validated only by split-half
+reliability on PU (`04-FINDINGS.md` Gap 1), which cannot detect a bias both halves share —
+measured on the Swiss roll at `R_H = 0.990` alongside `rho = 0.469`. Phase 6 inherits that gap
+verbatim and does not close it.
+
+**Requirements**: D6-01 .. D6-NN (`06-CONTEXT.md`'s locked decisions are the de-facto requirement
+set, following Phase 5's and Phase 02.5's precedent)
+**Depends on:** Phase 4 (frozen `K_FROZEN`, density correction, and the sealed `h_norm` field),
+Phase 5 (frozen split, ridge protocol, residual metric, and bucketing machinery in
+`notebooks/pu_manifold/linear_probe.py`)
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 6 to break down)
