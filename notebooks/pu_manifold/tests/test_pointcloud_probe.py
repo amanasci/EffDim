@@ -20,7 +20,7 @@ INHERITED = (
     "TRAIN_FRACTION", "SPLIT_SEED", "RIDGE_ALPHA_GRID", "ALPHA_PER_TARGET", "FIT_INTERCEPT",
     "EMBEDDING_PREPROCESSING", "RESIDUAL_METRIC", "N_BUCKETS", "N_BOOTSTRAP", "BOOTSTRAP_SEED",
     "CONFIDENCE_LEVEL", "SIZE_MATCH_N_REPEATS", "SIZE_MATCH_SEED", "K_DENSITY", "FIELD_D",
-    "CURVATURE_CONVENTION",
+    "CURVATURE_CONVENTION", "R2_MULTIOUTPUT",
 )
 
 
@@ -99,3 +99,39 @@ def test_verdict_is_terminal_rejects_anything_else():
     assert pp.verdict_is_terminal("NO DETECTABLE RELATIONSHIP")
     assert not pp.verdict_is_terminal("SPLIT ACROSS SEEDS")
     assert not pp.verdict_is_terminal("PARTIAL")
+
+
+def test_no_phase_5_scalar_constant_is_silently_dropped():
+    """The check that would have caught the R2_MULTIOUTPUT defect.
+
+    Hand-listing what Phase 6 inherits is exactly how one gets missed: R2_MULTIOUTPUT was
+    absent from the first freeze, and the runner hardcoded "uniform_average" instead of Phase
+    5's frozen "variance_weighted". Enumerating linear_probe's own scalar constants and
+    requiring each to be either inherited or deliberately excluded makes the omission
+    impossible to repeat.
+    """
+    deliberately_excluded = {
+        # Phase 6 has one field and no model seeds (D6-03)
+        "SEED_STEMS", "SEED_HANDLING_RULE", "SEED_VERDICT_COMBINATION_RULE",
+        "PHASE_VERDICT_VALUES", "BUCKET_EDGES_PER_SEED", "N_CHARTS", "CURVATURE_MODE",
+        # Phase 6 restates these for a single field
+        "VERDICT_RULE", "SPLIT_RULE", "BUCKET_RULE", "SIZE_MATCH_RULE",
+        "RIDGE_SELECTION_RULE", "CURVATURE_SOURCE_FUNCTION", "PREREGISTRATION_PATH",
+    }
+    missed = []
+    for name in dir(lp):
+        if not name.isupper() or name.startswith("_"):
+            continue
+        if name in deliberately_excluded:
+            continue
+        value = getattr(lp, name)
+        if not isinstance(value, (int, float, bool, str, tuple)):
+            continue
+        if not hasattr(pp, name):
+            missed.append(name)
+        elif getattr(pp, name) != value:
+            missed.append(f"{name} (present but differs)")
+    assert not missed, (
+        f"Phase 6 neither inherits nor deliberately excludes: {missed}. Every Phase 5 constant "
+        f"must be one or the other -- silence is how one gets dropped (D6-04)."
+    )

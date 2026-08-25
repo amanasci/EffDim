@@ -152,7 +152,7 @@ def score_field(
                        pp.ALPHA_PER_TARGET, pp.FIT_INTERCEPT)
     Y_pred = lp.predict_probe(fit, X[test_idx])
     resid = lp.per_point_residuals(Y[test_idx], Y_pred)
-    r2 = lp.aggregate_r2(Y[test_idx], Y_pred, "uniform_average")
+    r2 = lp.aggregate_r2(Y[test_idx], Y_pred, pp.R2_MULTIOUTPUT)
 
     labels_all, edges = lp.bucket_by_field(field, pp.N_BUCKETS)
     labels_test = labels_all[test_idx]
