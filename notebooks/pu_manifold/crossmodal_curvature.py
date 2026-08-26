@@ -366,3 +366,140 @@ def describe_inheritance() -> Dict[str, Any]:
             "SEED_HANDLING_RULE": SEED_HANDLING_RULE,
         },
     }
+
+
+# =============================================================================================
+# Compute functions (plan 07-02, Task 1). Everything above this line is the frozen
+# pre-registration -- nothing above it is touched by this addition. Pure functions only: no
+# file I/O, and no defaults on any pre-registered parameter, matching pointcloud_probe.py's
+# stated discipline about how a pre-registered value gets inherited by accident instead of
+# chosen explicitly at every call site.
+# =============================================================================================
+
+from typing import Tuple  # noqa: E402 -- deliberately below the freeze, not merged into the
+
+# module's original ``from typing import Any, Dict`` line above, so that line is never touched.
+
+import numpy as np  # noqa: E402
+
+from . import curvature_probe  # noqa: E402
+from . import mknn  # noqa: E402
+
+
+def split_indices(n: int, split_seed: int, holdout_fraction: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Re-declares ``curvature_field_pu_run._split``'s algorithm rather than importing a
+    diagnostics module (D7-05 adjacency: this file imports only sealed ``pu_manifold``
+    modules, never a ``notebooks/diagnostics`` script): ``np.random.default_rng(split_seed)
+    .permutation(n)``, the first ``round(n * holdout_fraction)`` entries are holdout, the
+    rest train. Returns ``(train_idx, holdout_idx)``."""
+    rng = np.random.default_rng(split_seed)
+    perm = rng.permutation(n)
+    n_holdout = int(round(n * holdout_fraction))
+    holdout_idx = perm[:n_holdout]
+    train_idx = perm[n_holdout:]
+    return train_idx, holdout_idx
+
+
+def per_point_mknn(z1: Any, z2: Any, k: Any) -> np.ndarray:
+    """The D7-04 gap-fill: returns the exact ``(n,)`` per-point array ``mknn.mknn_score``
+    computes internally and averages away in its own final line
+    (``((A & B).sum(axis=1) / k).mean()``). This function and ``mknn.mknn_score`` must never
+    silently diverge -- ``per_point_mknn(z1, z2, k).mean() == mknn.mknn_score(z1, z2, k)`` is
+    pinned by a regression test in ``tests/test_crossmodal_curvature.py``.
+
+    Composes ``mknn._membership_matrix`` unchanged -- a plain, unmangled top-level function --
+    exactly as ``mknn.mknn_score`` does, so this inherits its fixed k+1-neighbour,
+    self-excluded convention plus its own non-finite, ``n < 2`` and ``k + 1 > n`` guards by
+    composition. A locally rebuilt ``NearestNeighbors`` call would silently use a different
+    convention, which is exactly what this function avoids by never rebuilding one.
+    """
+    z1 = np.asarray(z1, dtype=np.float64)
+    z2 = np.asarray(z2, dtype=np.float64)
+    if z1.shape[0] != z2.shape[0]:
+        raise ValueError(
+            f"per_point_mknn: z1 has {z1.shape[0]} rows but z2 has {z2.shape[0]} rows; "
+            "rows must be row-aligned."
+        )
+    A = mknn._membership_matrix(z1, k)
+    B = mknn._membership_matrix(z2, k)
+    return (A & B).sum(axis=1) / k
+
+
+def two_tailed_permutation_null(
+    h: Any, m: Any, n_resamples: int, seed: int, quantile_per_tail: float
+) -> Dict[str, Any]:
+    """Implements SIGNIFICANCE_TAIL_RULE. ``curvature_probe.permutation_null`` is one-sided
+    by construction (``alternative="greater"``), and the research hypothesis predicts a
+    NEGATIVE association -- more curvature, worse alignment -- which the upper-tail test as
+    written cannot detect on its own. Spearman on a negated array is exactly the negated
+    Spearman because average-rank reversal is exact including ties (TIE_HANDLING_RULE), so
+    calling ``curvature_probe.permutation_null`` a second time on ``(-h, m)`` is a mirror of
+    the same statistic, not a second, different one -- this function runs both calls and
+    reports whichever tail cleared.
+
+    Returns a dict carrying both tail dicts under ``positive_tail`` / ``negative_tail``, plus
+    ``observed_rho`` (the positive tail's ``observed_rho``, i.e. the actual Spearman of ``h``
+    against ``m``), ``clears_either`` (the boolean OR of the two ``clears_null`` values), and
+    ``direction`` (``"positive"``, ``"negative"`` or ``"neither"``). Both tails clearing
+    simultaneously is near-impossible by construction (one is the exact negation of the
+    other, and ``alternative="greater"`` demands each be strictly above its own threshold),
+    but if it happens the tie-break favors ``"positive"`` deterministically.
+    """
+    h_arr = np.asarray(h, dtype=np.float64)
+    positive_tail = curvature_probe.permutation_null(h_arr, m, n_resamples, seed, quantile_per_tail)
+    negative_tail = curvature_probe.permutation_null(-h_arr, m, n_resamples, seed, quantile_per_tail)
+
+    positive_clears = bool(positive_tail["clears_null"])
+    negative_clears = bool(negative_tail["clears_null"])
+    clears_either = positive_clears or negative_clears
+
+    if positive_clears:
+        direction = "positive"
+    elif negative_clears:
+        direction = "negative"
+    else:
+        direction = "neither"
+
+    return {
+        "positive_tail": positive_tail,
+        "negative_tail": negative_tail,
+        "observed_rho": positive_tail["observed_rho"],
+        "clears_either": clears_either,
+        "direction": direction,
+    }
+
+
+def apply_verdict(per_d_results: Dict[int, bool], positive_control_cleared_at: Any) -> str:
+    """Mechanically applies VERDICT_RULE. ``per_d_results`` maps each ``d`` in ``D_SWEEP`` to
+    that ``d``'s ``clears_either`` boolean; ``positive_control_cleared_at`` is the smallest
+    ``POSITIVE_CONTROL_TARGET_RHOS`` entry that cleared, or ``None`` if the positive control
+    recovered nothing at the pre-registered effect-size grid.
+
+    Returns one member of ``VERDICT_VALUES``: all ``d`` clearing gives
+    ``ASSOCIATION DETECTED``; all ``d`` not clearing gives ``NO DETECTABLE RELATIONSHIP``
+    unless ``positive_control_cleared_at`` is ``None``, in which case it gives
+    ``UNDERPOWERED -- NO CLAIM``; disagreement gives ``SPLIT ACROSS d``.
+
+    Raises ``ValueError`` if ``per_d_results``' keys are not exactly ``set(D_SWEEP)`` -- a
+    verdict computed from a partial sweep is not a verdict.
+    """
+    if set(per_d_results.keys()) != set(D_SWEEP):
+        raise ValueError(
+            f"apply_verdict: per_d_results keys {sorted(per_d_results.keys())} do not "
+            f"exactly match D_SWEEP {D_SWEEP}."
+        )
+
+    clears = list(per_d_results.values())
+    if all(clears):
+        verdict = "ASSOCIATION DETECTED"
+    elif not any(clears):
+        verdict = (
+            "UNDERPOWERED -- NO CLAIM"
+            if positive_control_cleared_at is None
+            else "NO DETECTABLE RELATIONSHIP"
+        )
+    else:
+        verdict = "SPLIT ACROSS d"
+
+    assert verdict_is_terminal(verdict)
+    return verdict
