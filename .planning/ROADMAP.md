@@ -1006,7 +1006,7 @@ about CKA, which is not implemented anywhere in the codebase.
 requirement set, following Phases 5, 6 and 02.5)
 **Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
 (`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1019,7 +1019,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07-03-PLAN.md — The D7-02 positive control at PU's realized `||H||` dynamic range, and the D7-03 density/hubness diagnostics that gate nothing
+- [x] 07-03-PLAN.md — The D7-02 positive control at PU's realized `||H||` dynamic range, and the D7-03 density/hubness diagnostics that gate nothing
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
