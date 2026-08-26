@@ -103,6 +103,10 @@ Simplest fix: default `--freeze-commit` to `FREEZE_COMMIT_SHA` and drop the CLI 
 entirely, since the constant already lives in this file and `run_positive_control` already
 uses it that way.
 
+**Status: Fixed** in `fix(07): harden runner guard gaps CR-01/CR-02/CR-03, add focused tests`
+— the equality check was added alongside the existing strict-ancestor check (both must hold);
+verified the exact reproducibility invocation (`--freeze-commit f032745...`) still passes.
+
 ### CR-02: `--mode positive-control` writes to the frozen record with no strict-ancestor check at all
 
 **File:** `notebooks/diagnostics/07_crossmodal_curvature_run.py:287-377`
@@ -125,6 +129,10 @@ def run_positive_control(args: argparse.Namespace) -> str:
     _strict_ancestor_or_exit(FREEZE_COMMIT_SHA)
     ...
 ```
+
+**Status: Fixed** in `fix(07): harden runner guard gaps CR-01/CR-02/CR-03, add focused tests`
+— `run_positive_control` now calls `_strict_ancestor_or_exit(FREEZE_COMMIT_SHA)` immediately
+after `cc.assert_preregistered()`, before the `--field-npz` check.
 
 ### CR-03: `--max-epochs`, `--smoke-rows`, and `--threads` are silently ignored when passed with `--flag=value` syntax, bypassing the sealed-record safety guard
 
@@ -152,15 +160,34 @@ Two consequences, both silent (no error, no warning):
    lines 446-453 ("`--smoke-rows`/`--max-epochs` MUST be paired with `--record-path`, refusing
    to let a reduced-scale run default onto the frozen record") never fires. If both
    `--max-epochs=N` and `--smoke-rows=N` are passed with `=` syntax and `--record-path` is
-   omitted, the run silently proceeds to append full-scale sweep rows to the real,
-   already-sealed `notebooks/.cache/07_crossmodal_curvature.jsonl` — the exact outcome this
-   guard exists to prevent, just reached by a route the guard doesn't recognize. The same
-   token-matching bug is present for `--threads` at lines 19-27 (parsed before argparse even
-   runs, for the stated reason that the thread cap must precede the torch import); a
-   `--threads=N` invocation silently keeps the default of 8 rather than raising or honoring
-   the requested value. `argparse`'s own `--threads` definition (line 738) is consequently
-   dead — `args.threads` is never read anywhere in the file; only the module-level `_THREADS`
-   (populated by the broken raw scan) is used.
+   omitted, the run silently proceeds to append sweep rows to the real, already-sealed
+   `notebooks/.cache/07_crossmodal_curvature.jsonl`. The same token-matching bug is present
+   for `--threads` at lines 19-27 (parsed before argparse even runs, for the stated reason
+   that the thread cap must precede the torch import); a `--threads=N` invocation silently
+   keeps the default of 8 rather than raising or honoring the requested value. `argparse`'s
+   own `--threads` definition (line 738) is consequently dead — `args.threads` is never read
+   anywhere in the file; only the module-level `_THREADS` (populated by the broken raw scan)
+   is used.
+
+**Correction (post-review verification, 2026-08-26):** point 2's original phrasing (superseded
+above) called this "the exact outcome this guard exists to prevent" — that overstates the harm
+and was verified wrong by direct re-reading of the control flow. The guard at lines 446-453
+exists specifically to stop a REDUCED-scale exercise run from landing on the sealed record.
+But when the `=`-syntax bug fires, `--smoke-rows=N`/`--max-epochs=N` are not honored at all —
+`n_rows_override` falls back to `None` (the full dataset) and `max_epochs` falls back to
+`cc.MAX_EPOCHS` (600, the full value) per point 1 above. So what actually gets appended to the
+sealed record in this failure mode is a genuine FULL-SCALE sweep row, computed exactly like a
+legitimate `--mode dsweep` production run — not reduced-scale or lower-fidelity data. The real
+harm is different from what the original phrasing implied: not data-quality contamination of
+the sealed record, but (a) a caller who explicitly asked for a cheap, reduced-scale exercise
+silently getting the full ~2h production-cost computation instead, with no error telling them
+their flag was ignored, and (b) that unintended full-scale run's row landing in the sealed
+record when the caller never intended a production run to happen at all (e.g., duplicate/
+unwanted rows, or a `d` being marked "already recorded" for a future `--resume` in a way the
+caller did not choose). Severity stays **Critical** — a silent argv-parsing failure with no
+error or warning that defeats a load-bearing safety guard is still critical — but on the
+corrected grounds above, not the original "reduced-scale data contaminates the record" framing.
+Fixed in `fix(07): harden runner guard gaps CR-01/CR-02/CR-03, add focused tests`.
 **Fix:** Use the argparse-parsed values directly instead of re-scanning `sys.argv`:
 ```python
 is_scratch = args.smoke_rows is not None or args.max_epochs is not None
