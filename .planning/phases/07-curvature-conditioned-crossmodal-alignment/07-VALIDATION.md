@@ -5,7 +5,7 @@ slug: curvature-conditioned-crossmodal-alignment
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
 status: draft
 nyquist_compliant: false
-wave_0_complete: false
+wave_0_complete: false  # test_crossmodal_curvature.py created in 07-01 T3 (wave 1)
 created: 2026-08-25
 ---
 
@@ -44,17 +44,26 @@ a test, and is excluded from every sampling gate below.
 
 ## Per-Task Verification Map
 
-*Populated after planning. Task IDs are assigned by `gsd-planner`; the requirement→test mapping
-below is inherited from `07-RESEARCH.md` and is authoritative for which behaviors need coverage.*
+*Populated by `/gsd-plan-phase 7` on 2026-08-25. The whole phase is serial — waves 1..5, one plan
+per wave — because D7-06's freeze must precede every number, the `d`-sweep must not run concurrently
+(§7's measured ~10x contention slowdown), and every plan touches `crossmodal_curvature.py`.*
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | D7-04 | — | N/A | unit | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py::test_per_point_mknn_mean_matches_mknn_score -x` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | D7-04 | — | N/A | unit | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py::test_per_point_mknn_known_answers -x` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | D7-06 | — | Raises on missing/malformed constant | unit | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py::test_assert_preregistered_raises_on_unset_constants -x` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | D7-02 | — | N/A | unit/smoke | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py::test_positive_control_recovers_planted_effect -x` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | D7-03 | — | N/A | unit | `pytest notebooks/pu_manifold/tests/test_cross_split_curvature.py -q` | ✅ pre-existing | ⬜ pending |
-| TBD | TBD | TBD | D7-05 | T-7-01 | Runner writes only inside the cache root | unit | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py -q` | ❌ W0 | ⬜ pending |
+| 07-01 T2 | 07-01 | 1 | D7-06 | T-07-02 | Guard refuses to proceed while any constant is unset | unit | `.venv/bin/python -c "...cc.assert_preregistered()"` | ❌ W0 | ⬜ pending |
+| 07-01 T3 | 07-01 | 1 | D7-06 | T-07-02 | Raises naming each absent/None/empty/malformed constant; strict-ancestor freeze proof | unit | `pytest notebooks/pu_manifold/tests/test_crossmodal_curvature.py -q` | ❌ W0 | ⬜ pending |
+| 07-02 T1 | 07-02 | 2 | D7-01, D7-04, D7-06 | T-07-01, T-07-04 | Cache containment on `--record-path`; thread caps before torch import; smoke writes nothing | smoke | `07_crossmodal_curvature_run.py --selfcheck && --mode smoke --smoke-rows 800` | ❌ W0 | ⬜ pending |
+| 07-02 T2 | 07-02 | 2 | D7-04 | — | N/A | unit | `pytest ...::test_per_point_mknn_mean_matches_mknn_score -x` | ❌ W0 | ⬜ pending |
+| 07-02 T2 | 07-02 | 2 | D7-04 | — | N/A | unit | `pytest ...::test_per_point_mknn_known_answers -x` | ❌ W0 | ⬜ pending |
+| 07-02 T2 | 07-02 | 2 | D7-04 | — | Degenerate input raises rather than returning a partial array | unit | `pytest ...::test_per_point_mknn_guards -x` | ❌ W0 | ⬜ pending |
+| 07-03 T1 | 07-03 | 3 | D7-02 | T-07-05 | Control is deterministic; constant/non-finite/short input raises | unit | `pytest ...-k positive_control` | ❌ W0 | ⬜ pending |
+| 07-03 T2 | 07-03 | 3 | D7-03 | — | Diagnostics structurally cannot reach `apply_verdict` | unit | `pytest ...-k density` | ❌ W0 | ⬜ pending |
+| 07-03 T2 | 07-03 | 3 | D7-03 | — | N/A | unit | `pytest notebooks/pu_manifold/tests/test_cross_split_curvature.py -q` | ✅ pre-existing | ⬜ pending |
+| 07-03 T3 | 07-03 | 3 | D7-02, D7-05 | T-07-01 | `--field-npz` resolved through cache containment; refuses to invent a missing field | smoke | `07_crossmodal_curvature_run.py --selfcheck` | ❌ W0 | ⬜ pending |
+| 07-04 T1 | 07-04 | 4 | D7-01, D7-06 | T-07-02, T-07-04 | Strict-ancestor freeze proof rejects the self-ancestor case; no concurrency primitives present | smoke | `--mode dsweep --smoke-rows 600 --max-epochs 2` at a scratch record path | ❌ W0 | ⬜ pending |
+| 07-04 T3 | 07-04 | 4 | D7-01..D7-04, D7-06 | T-07-03, T-07-05 | Every record row stamps preregistration_commit and run_commit | manual-only | see Manual-Only Verifications | N/A | ⬜ pending |
+| 07-05 T1 | 07-05 | 5 | D7-01 | T-07-06 | Notebook reads the record and recomputes nothing | unit | `python -c "...every code cell carries outputs"` | ❌ W0 | ⬜ pending |
+| 07-05 T2 | 07-05 | 5 | D7-02, D7-03, D7-07 | T-07-07 | Fidelity quoted as a range, non-claims present, SHAs match the record | unit | `python -c "...findings ok"` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -72,8 +81,8 @@ below is inherited from `07-RESEARCH.md` and is authoritative for which behavior
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Headline `spearman(‖H‖_i, MKNN_i)` at `d ∈ {20,25,32}` on the real 10,000-point PU cloud | D7-01 | ~2h wall-clock; must run serially with `OMP_NUM_THREADS` capped (`07-CONTEXT.md` §7). Too slow for per-commit sampling. | Run the phase runner in `--mode dsweep`, serially, one `d` at a time; record results to the cache; report all three `d` values. |
-| Freeze-before-compute git ancestry proof | D7-06 | Requires inspecting real commit history against the run's recorded commit SHA | `git merge-base --is-ancestor <freeze-commit> HEAD` and confirm the freeze commit predates the first PU number. |
+| Headline `spearman(‖H‖_i, MKNN_i)` at `d ∈ {20,25,32}` on the real 10,000-point PU cloud | D7-01 | ~2h wall-clock; must run serially with `OMP_NUM_THREADS` capped (`07-CONTEXT.md` §7). Too slow for per-commit sampling. | ONE invocation of `07_crossmodal_curvature_run.py --mode dsweep --freeze-commit <sha> --threads 8`, which loops over `D_SWEEP` in-process. Never three invocations and never parallel wave tasks. Resumable with `--resume`. Report all three `d` values. |
+| Freeze-before-compute git ancestry proof | D7-06 | Requires inspecting real commit history against the run's recorded commit SHA | BOTH `git merge-base --is-ancestor <freeze-commit> HEAD` exiting 0 AND `git rev-list --count <freeze-commit>..HEAD` being at least 1. The second is not redundant: a commit is its own ancestor, so `--is-ancestor` alone accepts a number produced in the freeze commit itself. |
 
 ---
 
@@ -87,3 +96,8 @@ below is inherited from `07-RESEARCH.md` and is authoritative for which behavior
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
+
+**Sampling continuity check (planning-time):** no three consecutive tasks lack an `<automated>`
+verify. The only manual-only item is 07-04 Task 3, the ~2h deliverable run, which is bracketed by
+07-04 Task 1's reduced-scale automated invocation before it and 07-05 Task 1's automated
+notebook-execution check after it.

@@ -999,12 +999,16 @@ for PU exists; the analytic validation gives a *range*, `+0.53` to `+0.97`, not 
 estimate); that a null means no relationship exists absent D7-02's power evidence; or anything
 about CKA, which is not implemented anywhere in the codebase.
 
-**Requirements**: D7-01 .. D7-03 (`07-CONTEXT.md`'s locked decisions are the de-facto requirement
-set, following Phases 5, 6 and 02.5)
+**Requirements**: D7-01 .. D7-07 (`07-CONTEXT.md` §3's locked decisions are the de-facto
+requirement set, following Phases 5, 6 and 02.5)
 **Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
 (`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 7 to break down)
+- [ ] 07-01-PLAN.md — Ratify the six open decisions blind, then commit the pre-registration constants block as THE FREEZE COMMIT (D7-06)
+- [ ] 07-02-PLAN.md — Tracer: one `d`, one verdict, end to end — the runner, the per-point MKNN gap-fill (D7-04), and the two-tailed permutation wrapper
+- [ ] 07-03-PLAN.md — The D7-02 positive control at PU's realized `||H||` dynamic range, and the D7-03 density/hubness diagnostics that gate nothing
+- [ ] 07-04-PLAN.md — The real serial `d ∈ {20,25,32}` sweep (~2h), the positive control run, and the mechanically applied verdict
+- [ ] 07-05-PLAN.md — The reporting notebook (committed with outputs) and `07-FINDINGS.md`
