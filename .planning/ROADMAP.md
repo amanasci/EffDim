@@ -951,3 +951,60 @@ Plans:
 - [x] Runner (`37d1ba8`) — `--selfcheck` and `--mode bucketed`, with the D6-01 provenance guard
 - [x] Amendment 01 (`62dc10a`) — `R2_MULTIOUTPUT` restored; phase re-run
 - [x] Findings and verification — 9/9 conduct checks reproduced; awaiting developer review
+
+### Phase 7: Curvature-Conditioned Crossmodal Alignment
+
+**Goal:** Answer the milestone's actual research question — **does the curvature of the PU
+embedding manifold explain the weak crossmodal convergence reported by the Platonic Universe
+paper (arXiv:2509.19453)?** Measure `spearman(||H||_i, MKNN_i)` over all 10,000 points, using a
+curvature field from an instrument validated against analytic ground truth, with a positive
+control establishing the test's power and density/hubness reported as diagnostics.
+
+**Why this phase exists, and why it is not a fourth re-run.** Phases 5 and 6 both bucketed
+*ridge-regression residual* by `||H||` tertiles. That is the wrong outcome variable — the source
+paper's probe is **MKNN**, not linear decodability — so neither phase speaks to the claim the
+milestone set out to test. Phase 4 did use MKNN but partitioned on curvature *direction*, on an
+axis measured `+0.8208` correlated with density, with a raw-score gap its own findings attribute
+mostly to region-size imbalance. **The record therefore contains no interpretable answer to the
+research question**, and this phase supplies one.
+
+**Two design changes from Phases 4-6, both of which increase power:**
+
+1. **Per-point, not per-region.** `mknn.mknn_score` already computes
+   `(A & B).sum(axis=1) / k` — a per-point array — before averaging it away. Retaining it gives
+   **10,000 paired observations** instead of 2-3 buckets. Spearman is scale-free, so this also
+   sidesteps the near-constant-field problem that makes tertile bucketing underpowered on PU
+   (`||H||` spread measured at 1.5x by the plain-AE decoder, 3.94x by Phase 4's centroid).
+2. **A validated instrument.** The plain-AE decoder + `decoder_curvature.plain_decoder_curvature`
+   scores `rho = +0.9745` (ridge, `D=768`), `+0.9166` (ridge at PU's own low-spread regime) and
+   `+0.5253` (cubic, `D=768`) against analytic truth at `d=20` — the first instrument in this
+   milestone validated against a known answer at PU's dimension and ambient size.
+
+**The three deliverables (D7-01..D7-03):**
+
+- **D7-01 — the curvature field**, from the frozen instrument. Latent dimension set by measured
+  reconstruction (`pu_latent_sweep`), not defaulted to 20; PU's intrinsic-dimension estimates run
+  18-25 and the `d=20` fit converged at 98.207% with `cond(g) = 17.6`.
+- **D7-02 — the positive control.** Plant a curvature-MKNN relationship **at PU's realized
+  `||H||` spread** and show the test recovers it. Without this a null is uninterpretable, and a
+  null is the likely outcome. Phase 6's selfcheck does not serve: it planted a ~20x-spread field,
+  not PU's ~1.5x.
+- **D7-03 — density and hubness diagnostics.** `spearman(density, ||H||)`, the density partial on
+  the headline correlation, and `mknn.hubness_skewness`. **Reported, gating nothing** — MKNN is a
+  k-NN statistic and therefore mechanically density-sensitive, which is precisely how Phase 4's
+  result became uninterpretable.
+
+**What this phase will NOT claim:** that either field measures true curvature (no ground truth
+for PU exists; the analytic validation gives a *range*, `+0.53` to `+0.97`, not a point
+estimate); that a null means no relationship exists absent D7-02's power evidence; or anything
+about CKA, which is not implemented anywhere in the codebase.
+
+**Requirements**: D7-01 .. D7-03 (`07-CONTEXT.md`'s locked decisions are the de-facto requirement
+set, following Phases 5, 6 and 02.5)
+**Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
+(`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 7 to break down)
