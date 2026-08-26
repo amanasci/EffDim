@@ -975,6 +975,7 @@ research question**, and this phase supplies one.
    **10,000 paired observations** instead of 2-3 buckets. Spearman is scale-free, so this also
    sidesteps the near-constant-field problem that makes tertile bucketing underpowered on PU
    (`||H||` spread measured at 1.5x by the plain-AE decoder, 3.94x by Phase 4's centroid).
+
 2. **A validated instrument.** The plain-AE decoder + `decoder_curvature.plain_decoder_curvature`
    scores `rho = +0.9745` (ridge, `D=768`), `+0.9166` (ridge at PU's own low-spread regime) and
    `+0.5253` (cubic, `D=768`) against analytic truth at `d=20` — the first instrument in this
@@ -985,10 +986,12 @@ research question**, and this phase supplies one.
 - **D7-01 — the curvature field**, from the frozen instrument. Latent dimension set by measured
   reconstruction (`pu_latent_sweep`), not defaulted to 20; PU's intrinsic-dimension estimates run
   18-25 and the `d=20` fit converged at 98.207% with `cond(g) = 17.6`.
+
 - **D7-02 — the positive control.** Plant a curvature-MKNN relationship **at PU's realized
   `||H||` spread** and show the test recovers it. Without this a null is uninterpretable, and a
   null is the likely outcome. Phase 6's selfcheck does not serve: it planted a ~20x-spread field,
   not PU's ~1.5x.
+
 - **D7-03 — density and hubness diagnostics.** `spearman(density, ||H||)`, the density partial on
   the headline correlation, and `mknn.hubness_skewness`. **Reported, gating nothing** — MKNN is a
   k-NN statistic and therefore mechanically density-sensitive, which is precisely how Phase 4's
@@ -1006,9 +1009,26 @@ requirement set, following Phases 5, 6 and 02.5)
 **Plans:** 5 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 07-01-PLAN.md — Ratify the six open decisions blind, then commit the pre-registration constants block as THE FREEZE COMMIT (D7-06)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 07-02-PLAN.md — Tracer: one `d`, one verdict, end to end — the runner, the per-point MKNN gap-fill (D7-04), and the two-tailed permutation wrapper
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 07-03-PLAN.md — The D7-02 positive control at PU's realized `||H||` dynamic range, and the D7-03 density/hubness diagnostics that gate nothing
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 07-04-PLAN.md — The real serial `d ∈ {20,25,32}` sweep (~2h), the positive control run, and the mechanically applied verdict
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 07-05-PLAN.md — The reporting notebook (committed with outputs) and `07-FINDINGS.md`
+
+**Cross-cutting constraints:**
+
+- Importing crossmodal_curvature never mutates module-level state in any sealed module (no monkeypatching, no attribute assignment onto mknn / cae / decoder_curvature / curvature_probe / cross_split_curvature), regardless of import order.

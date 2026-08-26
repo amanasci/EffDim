@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 02.3
 current_phase_name: INSERTED, proposed — not yet planned
-status: planning
+status: executing
 stopped_at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
-last_updated: "2026-08-25T00:46:56.072Z"
+last_updated: "2026-08-26T03:23:09.788Z"
 last_activity: 2026-08-24
 last_activity_desc: Phase 05 complete, transitioned to Phase 02.3
 progress:
-  total_phases: 12
+  total_phases: 14
   completed_phases: 10
-  total_plans: 93
+  total_plans: 98
   completed_plans: 87
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-24 — Phase 05 complete, transitioned to Phase 02.3
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
@@ -684,6 +684,7 @@ From `TODO.md`:
 | Phase | Gate | Verdict | Basis for override | Recorded |
 |-------|------|---------|--------------------|----------|
 | 05 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap.** The handler extracts `- **D-NN:**` bullets; `05-CONTEXT.md` names its decisions `D5-01`..`D5-13`, so it parsed 0 of 13. Coverage verified two independent ways: (a) gsd-plan-checker's own decision table, (b) direct grep — the union of the six plans' `requirements` frontmatter is exactly D5-01..D5-13, and every decision resolves to at least one implementing task. User approved proceeding 2026-08-24. **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 5.** | 2026-08-24 |
+| 07 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap** — the same cause recorded for Phase 5 above. The handler extracts `- **D-NN:**` bullets; `07-CONTEXT.md` names its decisions `D7-01`..`D7-07`, so it parsed 0 of 7 and returned `total: 0`, `uncovered: []` — it found no dropped decision, it found no decision at all. Coverage verified two independent ways: (a) gsd-plan-checker's own decision table (7/7, VERIFICATION PASSED, 0 blockers), (b) direct grep — the union of the five plans' `requirements` frontmatter is exactly D7-01..D7-07. User approved proceeding 2026-08-25. **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 7.** | 2026-08-25 |
 
 ## Deferred Items
 
