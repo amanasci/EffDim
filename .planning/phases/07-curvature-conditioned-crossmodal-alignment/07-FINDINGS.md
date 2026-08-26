@@ -57,12 +57,17 @@ Planted at PU's own realized `d=20` `||H||` dynamic range (`h_norm` p95/p05 spre
 `HEADLINE_K=20`, `POSITIVE_CONTROL_SEED=20260825`, through the identical two-tailed permutation
 machinery used on the real sweep:
 
-| target rho | achieved rho | clears_either | direction |
-|---|---|---|---|
-| 0.02 | 0.02004 | False | neither |
-| 0.05 | 0.05003 | **True** | positive |
-| 0.10 | 0.10004 | **True** | positive |
-| 0.20 | 0.20004 | **True** | positive |
+| target | achieved | positive-tail threshold | margin | clears |
+|---|---|---|---|---|
+| 0.02 | 0.020037 | 0.020506 | **-0.00047** | False |
+| 0.05 | 0.050030 | 0.020306 | +0.029724 | True |
+| 0.10 | 0.100040 | 0.019692 | +0.080348 | True |
+| 0.20 | 0.200040 | 0.020551 | +0.179489 | True |
+
+`achieved_rho` measures whether the PLANT succeeded (the 40-iteration bisection converged on every
+row); `clears_either` measures whether the TEST detected it. They answer different questions. The
+0.02 row failed by 0.00047 — roughly 2% of its own threshold — so it is not far below detectability,
+it landed a hair inside the noise band.
 
 `smallest_cleared_target = 0.05`.
 
@@ -89,7 +94,26 @@ The density partial, per `d` — `spearman(density, ||H||)` / `partial_rho_raw` 
 At d=20 and d=32 the density-controlled residual sits only marginally above its own `d`'s null
 threshold rather than clearly above it (0.0242 vs. 0.0206 at d=20 — 17% above; 0.0217 vs. 0.0187
 at d=32 — 16% above). At d=25 the residual stays clearly above its threshold (0.0658 vs. 0.0197,
-over 3x). **This mirrors Phase 4's own recorded finding — its `HOLDS` verdict was 0.82 correlated
+over 3x). **A partial correlation has no pre-registered null of its own** — these percentages
+borrow the raw statistic's threshold (each `d`'s `negative_tail_threshold` from Sec 1.1, computed
+on the raw field, not on any density-conditioned quantity) and are orientation only, not a
+significance test. They should not read as more precise than that construction supports.
+
+The same comparison, read against the positive control's own null-band edge — Sec 1.3's `target_rho
+= 0.02` row put the positive-tail threshold at 0.020506, the value this phase's own power analysis
+puts at the boundary of detectability, rounded here to **≈0.0205**:
+
+| d | density-controlled residual | ≈ null-band edge (0.0205) | margin |
+|---|---|---|---|
+| 20 | -0.02419 | 0.0205 | ~18% above |
+| 25 | -0.06583 | 0.0205 | ~3.2x above |
+| 32 | -0.02172 | 0.0205 | ~6% above |
+
+The curvature-specific signal at d=20 and d=32 sits at the magnitude where this phase's own positive
+control demonstrated the test cannot reliably separate signal from noise — Sec 1.3's 0.02 row missed
+its own threshold by only 0.00047. Only d=25 survives density-control with room to spare.
+
+**This mirrors Phase 4's own recorded finding — its `HOLDS` verdict was 0.82 correlated
 with density and its raw gap was mostly a region-size artifact (`04-FINDINGS.md` Sec 5).**
 `DIAGNOSTICS_ARE_NON_GATING = True` is honored exactly here: none of this changes the verdict in
 Sec 1.1 — `apply_verdict`'s signature has exactly two parameters, neither naming density, so the
@@ -108,12 +132,20 @@ not Phase 6's retired selfcheck, which planted `rng.random(n)`, a ~20x-spread fi
 measured order-2x spread — and ran it through the identical two-tailed permutation machinery used
 on the real sweep.
 
-**The test recovers a planted effect as small as `rho=0.05`** (Sec 1.3). The observed magnitudes
-at d=20 (-0.11218) and d=25 (-0.12789) comfortably exceed this floor — more than double it. d=32's
-observed magnitude (-0.02373) sits close to the control's own un-cleared 0.02 target, in the band
-the phase's own power analysis calls marginal: these are not strictly contradictory (the control's
-null is built on a differently-planted array, and -0.02373 does exceed its own 0.01873 threshold),
-but d=32 is where detection is weakest by the phase's own measurement.
+The test recovers `smallest_cleared_target = 0.05` — the smallest grid point in
+`POSITIVE_CONTROL_TARGET_RHOS = (0.02, 0.05, 0.10, 0.20)` that cleared (Sec 1.3). This is not the
+same claim as "the detection floor is 0.05": the grid has no point between 0.02 and 0.05, and the
+0.02 row's own threshold (Sec 1.3) puts the actual null-band edge at approximately **0.0205** — the
+0.02 plant landed 0.00047 short of it. So the true detection floor lies somewhere in the interval
+0.021-0.05, and this four-point grid cannot resolve where within it. `smallest_cleared_target = 0.05`
+stays the recorded, pre-registered quantity it is; it is not restated here as the floor.
+
+The observed magnitudes at d=20 (-0.11218) and d=25 (-0.12789) comfortably exceed even the 0.05 grid
+point — more than double it. d=32's observed magnitude (-0.02373) sits close to the control's own
+un-cleared 0.02 target, in the band the phase's own power analysis calls marginal: these are not
+strictly contradictory (the control's null is built on a differently-planted array, and -0.02373 does
+exceed its own 0.01873 threshold), but d=32 is where detection is weakest by the phase's own
+measurement.
 
 One structural boundary on what this control can and cannot confirm: `plant_positive_control`
 rank-transforms `h_real` before ever touching its raw values, so the mechanism is rank-invariant
