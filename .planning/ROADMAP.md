@@ -1006,12 +1006,12 @@ about CKA, which is not implemented anywhere in the codebase.
 requirement set, following Phases 5, 6 and 02.5)
 **Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
 (`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — Ratify the six open decisions blind, then commit the pre-registration constants block as THE FREEZE COMMIT (D7-06)
+- [x] 07-01-PLAN.md — Ratify the six open decisions blind, then commit the pre-registration constants block as THE FREEZE COMMIT (D7-06)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

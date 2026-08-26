@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.3
-current_phase_name: INSERTED, proposed — not yet planned
+current_phase: 07
+current_phase_name: curvature-conditioned-crossmodal-alignment
 status: executing
-stopped_at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
-last_updated: "2026-08-26T03:23:09.788Z"
-last_activity: 2026-08-24
-last_activity_desc: Phase 05 complete, transitioned to Phase 02.3
+stopped_at: Completed 07-01-PLAN.md (freeze commit f032745, guard commit 9f16332)
+last_updated: "2026-08-26T12:20:11.362Z"
+last_activity: 2026-08-25
+last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 14
   completed_phases: 10
   total_plans: 98
-  completed_plans: 87
+  completed_plans: 88
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 05 — curvature-conditioned-linear-decodability
+**Current focus:** Phase 07 — curvature-conditioned-crossmodal-alignment
 
 ## Current Position
 
-Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
-Plan: Not started
+Phase: 07 (curvature-conditioned-crossmodal-alignment) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-24 — Phase 05 complete, transitioned to Phase 02.3
+Last activity: 2026-08-25 — Phase 07 execution started
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 94% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -452,6 +452,7 @@ Progress: [█████████░] 94% of planned plans (17/17; Phases 1
 | Phase 05 P04 | ~7min | 3 tasks | 3 files |
 | Phase 05 P05 | 7min | 3 tasks | 1 files |
 | Phase 05 P06 | 35m | 3 tasks | 3 files |
+| Phase 07 P01 | 11min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -640,6 +641,10 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: Phase headline result: SPLIT ACROSS SEEDS (n_holds=2 of 3) -- seeds 20260813/20260815 HOLDS, seed 20260814 NO DETECTABLE RELATIONSHIP; RESEARCH A2's ridge justification (severe rank deficiency ~18-25 dims) measured and NOT confirmed (effective_rank_1pct=531 of 768)
 - [Phase ?]: Phase 5 closed with SPLIT ACROSS SEEDS phase verdict (2 of 3 seeds HOLDS), approved at the Task 3 blocking human-verify checkpoint after independent re-verification of the ordering guarantee and all verdict strings.
 - [Phase ?]: D5-04 (pooled field) recorded SUPERSEDED by 05-03-DECISION.md; D5-05 split into a met inter-seed-agreement half and a dispositioned pooled-vs-seed half with no referent.
+- [Phase ?]: Task 1 checkpoint ratified ratify-all: HEADLINE_K=20, two-tailed permutation route, four-value VERDICT_VALUES, notebooks/.cache/ record location, single seed across d-sweep, positive control frozen in same commit
+- [Phase ?]: D7-03 flagged assumption accepted: density statistic reported on 1.0/w matching Phase 4's REGN-01 sign convention
+- [Phase ?]: D7-07 flagged assumption accepted: ALIGNMENT_METRIC='mknn' frozen as a checkable constant carried on every record row
+- [Phase ?]: SEED_HANDLING_RULE='single_seed_across_d_sweep' recorded as an accepted limitation inherited from Phase 5's seed-instability finding, never a silent assumption
 
 ### Pending Todos
 
@@ -697,8 +702,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-25T00:34:51.730Z
-Stopped at: Completed 05-06-PLAN.md -- Phase 5 CLOSED
+Last session: 2026-08-26T12:20:11.308Z
+Stopped at: Completed 07-01-PLAN.md (freeze commit f032745, guard commit 9f16332)
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
