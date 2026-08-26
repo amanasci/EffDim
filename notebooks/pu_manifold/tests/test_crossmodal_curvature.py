@@ -468,3 +468,124 @@ def test_split_indices_is_deterministic():
     train_b, holdout_b = cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION)
     np.testing.assert_array_equal(train_a, train_b)
     np.testing.assert_array_equal(holdout_a, holdout_b)
+
+
+# =============================================================================================
+# Plan 07-03, Task 1 -- plant_positive_control, smallest_cleared_target (D7-02). Every full
+# plant_positive_control call runs cc.N_PERMUTATIONS (frozen at 1000) permutations per tail per
+# target, so this section deliberately keeps the number of full calls small and shares the
+# 2,000-point PU-matched fixture across every assertion that needs it via a module-scoped
+# fixture, rather than recomputing it per test.
+# =============================================================================================
+
+_POSITIVE_CONTROL_TEST_K = cc.HEADLINE_K  # 20 -- matches PU's own real per-point MKNN array
+
+
+@pytest.fixture(scope="module")
+def _pu_matched_positive_control():
+    """A 2,000-point synthetic ``h_real`` whose p95/p05 spread (~1.49) matches PU's own
+    measured `d=20` ``||H||`` spread of 1.495 (07-CONTEXT.md Section 5), run through
+    ``plant_positive_control`` at the frozen ``POSITIVE_CONTROL_TARGET_RHOS`` and
+    ``POSITIVE_CONTROL_SEED`` ONCE and shared (module scope) across every test that only reads
+    the result -- each full call costs ~4 targets x 2 tails x cc.N_PERMUTATIONS permutations."""
+    rng = np.random.default_rng(20260825)
+    n = 2000
+    h_real = rng.lognormal(mean=0.0, sigma=0.12, size=n)
+    ratio = np.percentile(h_real, 95) / np.percentile(h_real, 5)
+    assert 1.3 < ratio < 1.7, f"fixture drifted from PU's measured spread=1.495: ratio={ratio}"
+    results = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    return h_real, results
+
+
+def test_plant_positive_control_recovers_targets_within_tolerance_at_pu_matched_spread(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    assert len(results) == len(cc.POSITIVE_CONTROL_TARGET_RHOS)
+    for result, target_rho in zip(results, cc.POSITIVE_CONTROL_TARGET_RHOS):
+        assert result["target_rho"] == pytest.approx(target_rho)
+        assert abs(result["achieved_rho"] - target_rho) < 0.02
+        assert np.sign(result["achieved_rho"]) == np.sign(target_rho)
+
+
+def test_plant_positive_control_planted_array_is_j_over_k_discretized(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    k = _POSITIVE_CONTROL_TEST_K
+    for result in results:
+        planted = result["planted"]
+        assert np.allclose(planted * k, np.round(planted * k))
+        assert result["n_distinct"] <= k + 1
+
+
+def test_plant_positive_control_results_are_in_target_rho_order(_pu_matched_positive_control):
+    _, results = _pu_matched_positive_control
+    observed = [r["target_rho"] for r in results]
+    assert observed == list(cc.POSITIVE_CONTROL_TARGET_RHOS)
+
+
+def test_plant_positive_control_carries_the_full_two_tailed_permutation_null_result(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    for result in results:
+        for key in ("positive_tail", "negative_tail", "observed_rho", "clears_either", "direction"):
+            assert key in result
+
+
+def test_plant_positive_control_is_deterministic_across_two_calls():
+    rng = np.random.default_rng(20260826)
+    h_real = rng.lognormal(mean=0.0, sigma=0.12, size=300)
+    target_rhos = (0.10,)
+    results_a = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, target_rhos, cc.POSITIVE_CONTROL_SEED
+    )
+    results_b = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, target_rhos, cc.POSITIVE_CONTROL_SEED
+    )
+    np.testing.assert_array_equal(results_a[0]["planted"], results_b[0]["planted"])
+    assert results_a[0]["achieved_rho"] == results_b[0]["achieved_rho"]
+    assert results_a[0]["slope"] == results_b[0]["slope"]
+
+
+def test_plant_positive_control_raises_on_constant_h_real():
+    h_real = np.ones(500)
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, _POSITIVE_CONTROL_TEST_K, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+def test_plant_positive_control_raises_on_non_finite_h_real():
+    rng = np.random.default_rng(20260826)
+    h_real = rng.normal(size=500)
+    h_real[0] = np.nan
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, _POSITIVE_CONTROL_TEST_K, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+def test_plant_positive_control_raises_on_too_few_rows():
+    rng = np.random.default_rng(20260826)
+    k = 20
+    h_real = rng.normal(size=k + 1)  # k + 1 < k + 2
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, k, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+def test_smallest_cleared_target_positive_control_returns_none_when_nothing_clears():
+    fake_results = [
+        {"target_rho": rho, "clears_either": False} for rho in cc.POSITIVE_CONTROL_TARGET_RHOS
+    ]
+    assert cc.smallest_cleared_target(fake_results) is None
+
+
+def test_smallest_cleared_target_positive_control_returns_smallest_clearing_target():
+    fake_results = [
+        {"target_rho": rho, "clears_either": (rho >= 0.10)}
+        for rho in cc.POSITIVE_CONTROL_TARGET_RHOS
+    ]
+    assert cc.smallest_cleared_target(fake_results) == 0.10

@@ -376,11 +376,13 @@ def describe_inheritance() -> Dict[str, Any]:
 # chosen explicitly at every call site.
 # =============================================================================================
 
-from typing import Tuple  # noqa: E402 -- deliberately below the freeze, not merged into the
+from typing import List, Tuple  # noqa: E402 -- deliberately below the freeze, not merged into
 
-# module's original ``from typing import Any, Dict`` line above, so that line is never touched.
+# the module's original ``from typing import Any, Dict`` line above, so that line is never
+# touched.
 
 import numpy as np  # noqa: E402
+from scipy.stats import rankdata, spearmanr  # noqa: E402
 
 from . import curvature_probe  # noqa: E402
 from . import mknn  # noqa: E402
@@ -503,3 +505,141 @@ def apply_verdict(per_d_results: Dict[int, bool], positive_control_cleared_at: A
 
     assert verdict_is_terminal(verdict)
     return verdict
+
+
+# =============================================================================================
+# Compute functions (plan 07-03, Tasks 1-2). Everything above this line -- the frozen
+# pre-registration plus plan 07-02's compute functions -- is untouched by this addition.
+# =============================================================================================
+
+
+def _relative_precision_distinct_count(values: np.ndarray) -> int:
+    """Distinct-value count after rounding at RELATIVE precision (divide by the array's own
+    maximum absolute value, round to 12 decimals) rather than on raw float equality --
+    05-02-SUMMARY.md's retracted 5,301/9,852-vs-4/3 distinct-value miscount is the cautionary
+    precedent this guards against, restated at every count site in this module."""
+    values = np.asarray(values, dtype=np.float64)
+    max_abs = np.max(np.abs(values))
+    if max_abs == 0:
+        return int(len(np.unique(values)))
+    normalized = np.round(values / max_abs, 12)
+    return int(len(np.unique(normalized)))
+
+
+def _planted_array(u: np.ndarray, k: int, slope: float, seed: int) -> np.ndarray:
+    """One draw of POSITIVE_CONTROL_RULE's mechanism at a candidate ``slope``: ``p = clip(0.5 +
+    slope * (u - 0.5), 0.0, 1.0)``, ``j ~ Binomial(k, p)`` from a generator RE-CREATED from
+    ``seed`` (never a generator threaded across calls), and the planted value is ``j / k``. The
+    re-creation is what makes the whole bisection search in :func:`plant_positive_control`
+    deterministic: the same ``(u, k, slope, seed)`` always draws the same ``j``."""
+    p = np.clip(0.5 + slope * (u - 0.5), 0.0, 1.0)
+    rng = np.random.default_rng(seed)
+    j = rng.binomial(k, p)
+    return j / k
+
+
+def plant_positive_control(
+    h_real: Any, k: int, target_rhos: Any, seed: int
+) -> List[Dict[str, Any]]:
+    """D7-02's positive control. Implements ``POSITIVE_CONTROL_RULE`` exactly -- the rule
+    string is the specification and this function is its implementation, not the other way
+    round.
+
+    Plants a curvature-MKNN relationship at PU's own realized ``||H||`` dynamic range: ``h_real``
+    must be PU's own measured ``d=20`` field, never a synthetic surrogate, because planting at
+    PU's actual dynamic range is the whole content of D7-02. Phase 6's ``rng.random(n)``
+    selfcheck (a ~20x-spread field driving a magnitude-scaled noise term) does not serve as a
+    substitute for PU's own narrower, order-2x regime.
+
+    Mechanism, per target in ``target_rhos``, in order: rank-transform ``h_real`` once to
+    ``u = (rankdata(h_real) - 0.5) / n``; bisect a candidate ``slope`` over 40 iterations on the
+    bracket ``[0.0, 2.0]`` against the achieved ``scipy.stats.spearmanr(h_real, planted)``,
+    re-seeding the generator to ``seed`` at every trial via :func:`_planted_array` so the whole
+    search is deterministic; the achieved Spearman is recorded beside the target, never silently
+    substituted for it, and if a target is unreachable under the frozen mechanism the recorded
+    ``achieved_rho`` says so, which is itself the honest result -- the bracket is never widened
+    to force a match.
+
+    For each target, the final planted array is run through :func:`two_tailed_permutation_null`
+    using the SAME ``N_PERMUTATIONS``, ``PERMUTATION_SEED`` and ``NULL_QUANTILE_PER_TAIL`` the
+    headline test uses -- passed explicitly at this call site, since ``two_tailed_permutation_null``
+    takes no defaults on any pre-registered parameter. Reusing the identical machinery is the
+    point: a control run through different machinery measures the power of a different test.
+
+    Returns a list, one dict per entry of ``target_rhos`` IN THAT ORDER, each carrying
+    ``target_rho``, ``achieved_rho``, ``slope``, ``n_distinct`` (the planted array's distinct-value
+    count at relative precision, at most ``k + 1``), ``planted`` (the array itself, for callers
+    that need to inspect or re-derive a statistic from it), and every key of the
+    ``two_tailed_permutation_null`` result (``positive_tail``, ``negative_tail``,
+    ``observed_rho``, ``clears_either``, ``direction``) merged in directly.
+
+    Raises ``ValueError`` naming ``h_real`` before any search happens -- guard first -- when
+    ``h_real`` is constant (mirrors ``curvature_probe.permutation_null``'s own ``np.ptp(arr) ==
+    0`` guard), when it contains a non-finite value, or when ``h_real.shape[0] < k + 2``. A
+    degenerate control that silently returns something is the single worst failure available
+    here: it would make an underpowered test look powered and license a null the evidence does
+    not support.
+    """
+    h = np.asarray(h_real, dtype=np.float64).ravel()
+
+    if not np.all(np.isfinite(h)):
+        raise ValueError("plant_positive_control: h_real contains a non-finite value.")
+    if np.ptp(h) == 0:
+        raise ValueError("plant_positive_control: h_real is constant (np.ptp(h_real) == 0).")
+    if h.shape[0] < k + 2:
+        raise ValueError(
+            f"plant_positive_control: h_real has {h.shape[0]} rows, fewer than k + 2 = {k + 2}."
+        )
+
+    n = h.shape[0]
+    u = (rankdata(h) - 0.5) / n
+
+    results: List[Dict[str, Any]] = []
+    for target_rho in target_rhos:
+        low, high = 0.0, 2.0
+        for _ in range(40):
+            mid = (low + high) / 2.0
+            mid_planted = _planted_array(u, k, mid, seed)
+            mid_achieved = float(spearmanr(h, mid_planted).statistic)
+            if mid_achieved < target_rho:
+                low = mid
+            else:
+                high = mid
+
+        slope = high
+        planted = _planted_array(u, k, slope, seed)
+        achieved_rho = float(spearmanr(h, planted).statistic)
+        n_distinct = _relative_precision_distinct_count(planted)
+
+        null_result = two_tailed_permutation_null(
+            h, planted, N_PERMUTATIONS, PERMUTATION_SEED, NULL_QUANTILE_PER_TAIL
+        )
+
+        results.append(
+            {
+                "target_rho": float(target_rho),
+                "achieved_rho": achieved_rho,
+                "slope": float(slope),
+                "n_distinct": n_distinct,
+                "planted": planted,
+                **null_result,
+            }
+        )
+
+    return results
+
+
+def smallest_cleared_target(results: Any) -> Any:
+    """The value ``apply_verdict`` consumes as ``positive_control_cleared_at``: the smallest
+    ``target_rho`` among ``results`` (as returned by :func:`plant_positive_control`) whose
+    ``clears_either`` is ``True``, or ``None`` if none cleared.
+
+    ``assert_preregistered`` has already guaranteed ``POSITIVE_CONTROL_TARGET_RHOS`` is strictly
+    increasing, and :func:`plant_positive_control` iterates it in that order and returns results
+    in that same order -- so this is just the first clearing entry in iteration order, and it is
+    implemented exactly that way rather than by sorting or re-deriving an order.
+    """
+    for result in results:
+        if result["clears_either"]:
+            return result["target_rho"]
+    return None
