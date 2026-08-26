@@ -1,12 +1,14 @@
 """Phase 7 crossmodal curvature runner. `--mode smoke` (07-02) proves the pipeline end to end;
 `--mode positive-control` (07-03) plants D7-02's positive control against a real d=20 field
 supplied via `--field-npz`, refusing to regenerate one if none is available; `--mode dsweep`
-(07-04) is still a declared CLI choice only, raising NotImplementedError until that plan lands.
-Distinct from the nine pre-existing `07_*_run.py` spike scripts, which stay untouched and
-satisfy no pre-registration. Usage:
+(07-04) is the deliverable: one serial in-process loop over `crossmodal_curvature.D_SWEEP`,
+refusing to run without a `--freeze-commit` strict-ancestor proof (D7-06). Distinct from the
+nine pre-existing `07_*_run.py` spike scripts, which stay untouched and satisfy no
+pre-registration. Usage:
     python notebooks/diagnostics/07_crossmodal_curvature_run.py --selfcheck
     python notebooks/diagnostics/07_crossmodal_curvature_run.py --mode smoke
     python notebooks/diagnostics/07_crossmodal_curvature_run.py --mode positive-control --field-npz <path>
+    python notebooks/diagnostics/07_crossmodal_curvature_run.py --mode dsweep --freeze-commit <sha>
 """
 
 import os
@@ -48,6 +50,8 @@ torch.set_num_threads(_THREADS)
 
 from pu_manifold import cache  # noqa: E402
 from pu_manifold import cae  # noqa: E402
+from pu_manifold import cross_split_curvature  # noqa: E402
+from pu_manifold import curvature_probe  # noqa: E402
 from pu_manifold import decoder_curvature  # noqa: E402
 from pu_manifold import mknn  # noqa: E402
 from pu_manifold import crossmodal_curvature as cc  # noqa: E402
@@ -57,6 +61,11 @@ from pu_manifold import crossmodal_curvature as cc  # noqa: E402
 # (PREREGISTRATION_FREEZE_RULE). Recorded on every non-smoke record row as
 # ``preregistration_commit``.
 FREEZE_COMMIT_SHA = "f032745f6450068c63763993d39fa112fd36bb8c"
+
+# Cost model (07-CONTEXT.md Section 7), measured on the real d=20 PU field: curvature
+# computation dominates over training and scales as D * d**2. Printed as a per-d banner in
+# --mode dsweep so a human watching the ~2h real run can see whether a given d is on pace.
+DSWEEP_COST_MODEL_MINUTES = {20: 24, 25: 38, 32: 62}
 
 
 def _git_rev_parse(rev: str) -> str:
@@ -139,7 +148,9 @@ def fit_and_field(
 
     train_cfg = dict(cc.TRAIN_CFG)
     train_cfg["max_epochs"] = max_epochs
+    t0 = time.monotonic()
     cae.train_plain_ae(model, x_train32, train_cfg)
+    wallclock_fit_s = time.monotonic() - t0
 
     model.eval().double()
     with torch.no_grad():
@@ -149,7 +160,9 @@ def fit_and_field(
     sig = float((torch.linalg.norm(x_holdout64, dim=1) ** 2).mean())
     var_explained = 1.0 - recon["mse_total"] / sig
 
+    t0 = time.monotonic()
     field = decoder_curvature.plain_decoder_curvature(model, z_full)
+    wallclock_field_s = time.monotonic() - t0
     h_norm = np.linalg.norm(field["H_vec"].detach().cpu().numpy(), axis=1)
     cond = field["metric_condition_number"].detach().cpu().numpy()
 
@@ -158,7 +171,18 @@ def fit_and_field(
         "metric_condition_number": cond,
         "var_explained": float(var_explained),
         "reconstruction_stats": recon,
+        "wallclock_fit_s": wallclock_fit_s,
+        "wallclock_field_s": wallclock_field_s,
     }
+
+
+def _distinct_value_count(arr: np.ndarray) -> int:
+    """Distinct-value count at RELATIVE precision. Thin wrapper around
+    `crossmodal_curvature._relative_precision_distinct_count` (plan 07-03) -- reused, not
+    reimplemented; divide by the array's own maximum absolute value, round to 12 decimals,
+    then `np.unique`, never raw float equality. `05-02-SUMMARY.md`'s retracted 5,301/9,852-
+    vs-4/3 distinct-value miscount is the cautionary precedent."""
+    return cc._relative_precision_distinct_count(arr)
 
 
 def resolve_record_path(record_path_arg: Optional[str]) -> Path:
@@ -322,7 +346,7 @@ def run_positive_control(args: argparse.Namespace) -> str:
 
     for result in results:
         row = {
-            "kind": "positive_control",
+            "row_kind": "positive_control",
             "target_rho": result["target_rho"],
             "achieved_rho": result["achieved_rho"],
             "slope": result["slope"],
@@ -351,6 +375,265 @@ def run_positive_control(args: argparse.Namespace) -> str:
         outcome = f"smallest_cleared_target: {cleared_at}"
     print(f"\n{outcome}")
     return outcome
+
+
+def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
+    """D7-06's freeze-ancestry gate. Exits 1 naming D7-06 unless `freeze_commit` is BOTH an
+    ancestor of HEAD (`git merge-base --is-ancestor`) AND a STRICT one
+    (`git rev-list --count <freeze>..HEAD >= 1`) -- `--is-ancestor` alone is insufficient
+    because a commit is its own ancestor, so it would pass even for a number produced in the
+    freeze commit itself (PREREGISTRATION_FREEZE_RULE)."""
+    if not freeze_commit:
+        print(
+            "ERROR (D7-06): --mode dsweep requires --freeze-commit naming the frozen "
+            "commit's SHA. Refusing to compute a PU number without a strict-ancestor proof.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", freeze_commit, "HEAD"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+    )
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{freeze_commit}..HEAD"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+        capture_output=True,
+        text=True,
+    )
+    count = -1
+    if count_result.returncode == 0 and count_result.stdout.strip().isdigit():
+        count = int(count_result.stdout.strip())
+
+    if is_ancestor.returncode != 0 or count < 1:
+        print(
+            f"ERROR (D7-06): --freeze-commit {freeze_commit} is not a STRICT git ancestor of "
+            f"HEAD. is_ancestor_exit={is_ancestor.returncode} "
+            f"rev_list_count({freeze_commit}..HEAD)={count}. A commit is its own ancestor, so "
+            "`git merge-base --is-ancestor` alone is insufficient -- "
+            "`git rev-list --count <freeze>..HEAD` must also be >= 1. "
+            "PREREGISTRATION_FREEZE_RULE: no PU number may be produced at or before the "
+            "freeze commit itself.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def run_dsweep(args: argparse.Namespace) -> str:
+    """`--mode dsweep`: ONE sequential in-process loop over `crossmodal_curvature.D_SWEEP`,
+    never concurrent tasks or processes (three concurrent torch jobs on this machine were
+    measured driving load to 44 for roughly a 10x slowdown -- 07-CONTEXT.md Section 7).
+
+    Order, and the order matters: `assert_preregistered()` first; the strict-ancestor freeze
+    proof before any compute; load the pair once; compute every `MKNN_K_GRID` per-point array
+    once, before the `d` loop (MKNN depends only on the two frozen embeddings and `k`, never
+    on `d`); compute the density array once, before the `d` loop, and reuse it inside the loop
+    for each `d`'s density statistics (`local_density_weights` is itself a k-NN computation on
+    the full ambient cloud and does not depend on `d`, so recomputing it inside the loop would
+    triple its cost for an identical value); then, for each `d` in `D_SWEEP` in tuple order,
+    fit, field, both permutation tails, the non-gating sensitivity grid, that `d`'s density
+    statistics, and one appended record row.
+
+    `--resume`: a `d` already present in the record under a matching `preregistration_commit`
+    is skipped. `--max-epochs` / `--smoke-rows`: reduced-scale exercise only -- when either is
+    passed, this prints a prominent NOT-THE-DELIVERABLE banner and requires `--record-path`,
+    refusing to let a reduced-scale run silently land in the frozen record or the frozen npz.
+    """
+    cc.assert_preregistered()
+    _strict_ancestor_or_exit(args.freeze_commit)
+
+    is_scratch = ("--smoke-rows" in sys.argv) or ("--max-epochs" in sys.argv)
+    if is_scratch and not args.record_path:
+        print(
+            "ERROR: --smoke-rows / --max-epochs is a reduced-scale exercise, not the "
+            "deliverable, and MUST be paired with --record-path pointing at a scratch path -- "
+            "refusing to let a reduced-scale run default onto the frozen record.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path)
+
+    if is_scratch:
+        fields_path = record_path.with_name(record_path.stem + "_fields.npz")
+        cache._assert_inside_cache(fields_path)
+        print(
+            f"\n{'=' * 78}\n"
+            "THIS IS A REDUCED-SCALE EXERCISE RUN, NOT THE DELIVERABLE (--smoke-rows and/or "
+            "--max-epochs were passed). Writing to the scratch paths "
+            f"{record_path} / {fields_path}, never the frozen record.\n"
+            f"{'=' * 78}\n"
+        )
+    else:
+        fields_path = cache.cache_path("07_crossmodal_curvature_fields", "npz")
+
+    max_epochs = args.max_epochs if "--max-epochs" in sys.argv else cc.MAX_EPOCHS
+    n_rows_override = args.smoke_rows if "--smoke-rows" in sys.argv else None
+
+    already_done_ds = set()
+    if args.resume and record_path.exists():
+        with record_path.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    existing = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if (
+                    existing.get("row_kind") == "sweep"
+                    and existing.get("preregistration_commit") == preregistration_commit
+                ):
+                    already_done_ds.add(existing.get("d"))
+        if already_done_ds:
+            print(f"[resume] d values already recorded under a matching preregistration_commit: "
+                  f"{sorted(already_done_ds)} -- these will be skipped.")
+
+    X_hsc_full, X_ls_full, subsample_file = load_pu_pair(cc.PU_COLUMN_A, cc.PU_COLUMN_B)
+    n_rows = n_rows_override if n_rows_override is not None else X_hsc_full.shape[0]
+    X_hsc = X_hsc_full[:n_rows]
+    X_ls = X_ls_full[:n_rows]
+    print(
+        f"\nDSWEEP: {n_rows} rows from {Path(subsample_file).name}, D_SWEEP={cc.D_SWEEP}, "
+        f"max_epochs={max_epochs}, HEADLINE_K={cc.HEADLINE_K}.\n"
+    )
+
+    print(f"[per_point_mknn] computing once for every k in MKNN_K_GRID={cc.MKNN_K_GRID} "
+          "-- MKNN depends only on the frozen embeddings and k, never on d.")
+    mknn_by_k: Dict[int, np.ndarray] = {}
+    mknn_distinct_by_k: Dict[str, int] = {}
+    for k in cc.MKNN_K_GRID:
+        t0 = time.monotonic()
+        mknn_by_k[k] = cc.per_point_mknn(X_hsc, X_ls, k)
+        mknn_distinct_by_k[str(k)] = _distinct_value_count(mknn_by_k[k])
+        print(
+            f"  k={k}: wallclock={time.monotonic() - t0:.1f}s  "
+            f"n_distinct={mknn_distinct_by_k[str(k)]} (<= k + 1 = {k + 1})"
+        )
+    m_headline = mknn_by_k[cc.HEADLINE_K]
+
+    print(
+        f"\n[density] computing local_density_weights once on the {cc.DENSITY_INPUT} array at "
+        f"DENSITY_K={cc.DENSITY_K}, DENSITY_FIELD_D={cc.DENSITY_FIELD_D} -- this does not "
+        "depend on d, so it is computed once here and reused for each d's density statistics."
+    )
+    t0 = time.monotonic()
+    w = curvature_probe.local_density_weights(X_ls, cc.DENSITY_K, cc.DENSITY_FIELD_D)
+    density = 1.0 / w  # DENSITY_SIGN_CONVENTION: report on 1/w, matching Phase 4's REGN-01
+    print(f"  wallclock={time.monotonic() - t0:.1f}s")
+
+    spearman_density_vs_mknn = float(spearmanr(density, m_headline).statistic)
+    density_p05 = float(np.percentile(density, 5))
+    density_p50 = float(np.percentile(density, 50))
+    density_p95 = float(np.percentile(density, 95))
+    density_ratio_p95_p05 = density_p95 / density_p05 if density_p05 > 0 else float("inf")
+    hubness_skewness_a = float(mknn.hubness_skewness(X_hsc, cc.HEADLINE_K))
+    hubness_skewness_b = float(mknn.hubness_skewness(X_ls, cc.HEADLINE_K))
+    chance_floor_val = float(mknn.chance_floor(X_hsc.shape[0], cc.HEADLINE_K))
+
+    for d in cc.D_SWEEP:
+        if d in already_done_ds:
+            print(f"\n[resume] skipping d={d} -- already recorded.")
+            continue
+
+        projected_min = DSWEEP_COST_MODEL_MINUTES.get(d)
+        print(
+            f"\n{'-' * 78}\n"
+            f"[d={d}] starting fit + field. Projected field time from the cost model: "
+            f"~{projected_min} min (07-CONTEXT.md Section 7).\n"
+            f"{'-' * 78}"
+        )
+
+        fit = fit_and_field(X_ls, d=d, max_epochs=max_epochs, n_rows=n_rows)
+        print(
+            f"[d={d}] fit+field done. wallclock_fit={fit['wallclock_fit_s']:.1f}s  "
+            f"wallclock_field={fit['wallclock_field_s']:.1f}s  "
+            f"var_explained={fit['var_explained']:.4f}  "
+            f"cond(g) median={float(np.median(fit['metric_condition_number'])):.4e}"
+        )
+
+        two_tail = cc.two_tailed_permutation_null(
+            fit["h_norm"], m_headline, cc.N_PERMUTATIONS, cc.PERMUTATION_SEED,
+            cc.NULL_QUANTILE_PER_TAIL,
+        )
+        print(
+            f"[d={d}] observed_rho={two_tail['observed_rho']:.4f}  "
+            f"direction={two_tail['direction']}  clears_either={two_tail['clears_either']}"
+        )
+
+        sensitivity_grid = {}
+        for k_other in cc.MKNN_K_GRID:
+            if k_other == cc.HEADLINE_K:
+                continue
+            sensitivity_grid[str(k_other)] = float(
+                spearmanr(fit["h_norm"], mknn_by_k[k_other]).statistic
+            )
+
+        spearman_density_vs_h = float(spearmanr(density, fit["h_norm"]).statistic)
+        partial_rho_raw = float(
+            cross_split_curvature.partial_spearman(fit["h_norm"], m_headline, controls=None)
+        )
+        partial_rho_density_controlled = float(
+            cross_split_curvature.partial_spearman(fit["h_norm"], m_headline, controls=density)
+        )
+
+        row = {
+            "row_kind": "sweep",
+            "d": d,
+            "alignment_metric": cc.ALIGNMENT_METRIC,
+            "n": n_rows,
+            "k": cc.HEADLINE_K,
+            "var_explained": fit["var_explained"],
+            "cond_g_median": float(np.median(fit["metric_condition_number"])),
+            "cond_g_p95": float(np.percentile(fit["metric_condition_number"], 95)),
+            "cond_g_max": float(np.max(fit["metric_condition_number"])),
+            "h_norm_median": float(np.median(fit["h_norm"])),
+            "h_norm_p05": float(np.percentile(fit["h_norm"], 5)),
+            "h_norm_p95": float(np.percentile(fit["h_norm"], 95)),
+            "observed_rho": two_tail["observed_rho"],
+            "positive_tail_threshold": float(two_tail["positive_tail"]["null_threshold"]),
+            "positive_tail_clears_null": bool(two_tail["positive_tail"]["clears_null"]),
+            "negative_tail_threshold": float(two_tail["negative_tail"]["null_threshold"]),
+            "negative_tail_clears_null": bool(two_tail["negative_tail"]["clears_null"]),
+            "clears_either": bool(two_tail["clears_either"]),
+            "direction": two_tail["direction"],
+            "sensitivity_grid": sensitivity_grid,
+            "spearman_density_vs_h": spearman_density_vs_h,
+            "spearman_density_vs_mknn": spearman_density_vs_mknn,
+            "partial_rho_raw": partial_rho_raw,
+            "partial_rho_density_controlled": partial_rho_density_controlled,
+            "density_p05": density_p05,
+            "density_p50": density_p50,
+            "density_p95": density_p95,
+            "density_ratio_p95_p05": density_ratio_p95_p05,
+            "hubness_skewness_a": hubness_skewness_a,
+            "hubness_skewness_b": hubness_skewness_b,
+            "chance_floor": chance_floor_val,
+            "mknn_n_distinct_by_k": mknn_distinct_by_k,
+            "preregistration_commit": preregistration_commit,
+            "run_commit": run_commit,
+            "wallclock_s": {"fit": fit["wallclock_fit_s"], "field": fit["wallclock_field_s"]},
+        }
+        append_record_row(row, record_path)
+
+        savez_kwargs = {f"h_norm_{d}": fit["h_norm"], f"cond_g_{d}": fit["metric_condition_number"]}
+        if fields_path.exists():
+            with np.load(fields_path) as existing_z:
+                for key in existing_z.files:
+                    savez_kwargs.setdefault(key, existing_z[key])
+        if d == 20:
+            # --mode positive-control (run_positive_control) reads the bare "h_norm" key --
+            # plant at PU's own realized d=20 dynamic range (D7-02's key link).
+            savez_kwargs["h_norm"] = fit["h_norm"]
+            savez_kwargs["cond_g"] = fit["metric_condition_number"]
+        np.savez(fields_path, **savez_kwargs)
+        print(f"[d={d}] wrote fields to {fields_path}")
+
+    print(f"\nDSWEEP done. Record: {record_path}. Fields: {fields_path}.")
+    return str(record_path)
 
 
 def selfcheck() -> bool:
@@ -456,6 +739,31 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--smoke-rows", type=int, default=800)
     p.add_argument("--smoke-permutations", type=int, default=50)
     p.add_argument(
+        "--freeze-commit",
+        type=str,
+        default=None,
+        help=(
+            "--mode dsweep only, REQUIRED: the frozen commit's SHA (read from "
+            "07-01-SUMMARY.md, not re-derived from git log). Must be a STRICT git ancestor "
+            "of HEAD (D7-06) -- a commit is its own ancestor, so passing the current HEAD's "
+            "own SHA here is rejected."
+        ),
+    )
+    p.add_argument(
+        "--resume",
+        action="store_true",
+        help="--mode dsweep only: skip any d already recorded under a matching preregistration_commit.",
+    )
+    p.add_argument(
+        "--max-epochs",
+        type=int,
+        default=None,
+        help=(
+            "--mode dsweep only: override MAX_EPOCHS for a reduced-scale exercise run. When "
+            "passed (together with --record-path), this is NOT the deliverable."
+        ),
+    )
+    p.add_argument(
         "--field-npz",
         type=str,
         default=None,
@@ -477,10 +785,8 @@ def main() -> None:
         sys.exit(0 if ok else 1)
 
     if args.mode == "dsweep":
-        raise NotImplementedError(
-            "--mode dsweep is a pre-registered CLI surface (crossmodal_curvature.D_SWEEP) "
-            "but its compute is implemented by plan 07-04, not this plan (07-02)."
-        )
+        run_dsweep(args)
+        return
     if args.mode == "positive-control":
         run_positive_control(args)
         return
