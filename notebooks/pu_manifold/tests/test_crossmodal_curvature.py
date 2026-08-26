@@ -688,3 +688,61 @@ def test_density_diagnostics_never_reaches_apply_verdict():
     assert len(params) == 2
     assert not any("density" in p.lower() for p in params)
 
+
+# =============================================================================================
+# Plan 07-03, Task 3 -- D7-02's objection to Phase 6's rejected rng.random(n) selfcheck, turned
+# into a measurement rather than left as prose.
+# =============================================================================================
+
+
+def test_positive_control_wide_spread_vs_narrow_spread_separation_measurement():
+    """plant_positive_control rank-transforms h_real (scipy.stats.rankdata) before ever using
+    its raw values, so its planting mechanism is by construction invariant to h_real's
+    magnitude/spread -- only h_real's RANK ORDER matters. This test measures whether a
+    WIDE-spread h_real (ratio ~20, built with rng.random(n), Phase 6's own rejected selfcheck
+    mechanism) and a NARROW-spread h_real (ratio ~1.5, matching PU's own measured spread)
+    separate in smallest_cleared_target.
+
+    MEASURED OUTCOME (recorded here per the plan's own instruction to record the result
+    whichever way it falls, and restated in 07-03-SUMMARY.md): at n=500 with
+    POSITIVE_CONTROL_SEED, the two do NOT separate -- both recover smallest_cleared_target ==
+    0.10. This is the honest content of D7-02's objection to Phase 6's selfcheck: the objection
+    is about WHAT was planted there (Phase 6 scaled a NOISE TERM by the raw, unranked field
+    value itself, so a wider raw spread mechanically produced a stronger signal-to-noise ratio
+    -- a magnitude-driven mechanism), not about detectability specifically at PU's own narrow
+    dynamic range. plant_positive_control's rank-based mechanism does not share that magnitude
+    dependence, and this test's assertions are written to hold regardless of which way the
+    comparison falls -- both fixtures must still successfully plant SOMETHING (assert not
+    None), and the measured comparison is asserted to match what was actually observed rather
+    than a value chosen in advance.
+    """
+    n = 500
+    rng_narrow = np.random.default_rng(20260825)
+    h_narrow = rng_narrow.lognormal(mean=0.0, sigma=0.12, size=n)
+    ratio_narrow = np.percentile(h_narrow, 95) / np.percentile(h_narrow, 5)
+    assert 1.2 < ratio_narrow < 1.8, f"narrow fixture drifted: ratio={ratio_narrow}"
+
+    rng_wide = np.random.default_rng(20260826)
+    h_wide = rng_wide.random(n)  # Phase 6's own rejected mechanism, verbatim
+    ratio_wide = np.percentile(h_wide, 95) / np.percentile(h_wide, 5)
+    assert 10.0 < ratio_wide < 40.0, f"wide fixture drifted: ratio={ratio_wide}"
+
+    narrow_results = cc.plant_positive_control(
+        h_narrow, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    wide_results = cc.plant_positive_control(
+        h_wide, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    narrow_cleared = cc.smallest_cleared_target(narrow_results)
+    wide_cleared = cc.smallest_cleared_target(wide_results)
+
+    # Both fixtures must plant something recoverable -- a positive control that recovers
+    # nothing at either spread would itself be a defect in the mechanism, not a finding about
+    # separation.
+    assert narrow_cleared is not None
+    assert wide_cleared is not None
+
+    # The measured comparison, pinned exactly as observed (see docstring): no separation.
+    assert narrow_cleared == pytest.approx(0.10)
+    assert wide_cleared == pytest.approx(0.10)
+    assert narrow_cleared == wide_cleared

@@ -1,9 +1,12 @@
 """Phase 7 crossmodal curvature runner. `--mode smoke` (07-02) proves the pipeline end to end;
-`--mode dsweep` (07-04) and `--mode positive-control` (07-03) are declared CLI choices only,
-raising NotImplementedError until those plans land. Distinct from the nine pre-existing
-`07_*_run.py` spike scripts, which stay untouched and satisfy no pre-registration. Usage:
+`--mode positive-control` (07-03) plants D7-02's positive control against a real d=20 field
+supplied via `--field-npz`, refusing to regenerate one if none is available; `--mode dsweep`
+(07-04) is still a declared CLI choice only, raising NotImplementedError until that plan lands.
+Distinct from the nine pre-existing `07_*_run.py` spike scripts, which stay untouched and
+satisfy no pre-registration. Usage:
     python notebooks/diagnostics/07_crossmodal_curvature_run.py --selfcheck
     python notebooks/diagnostics/07_crossmodal_curvature_run.py --mode smoke
+    python notebooks/diagnostics/07_crossmodal_curvature_run.py --mode positive-control --field-npz <path>
 """
 
 import os
@@ -39,6 +42,7 @@ import glob  # noqa: E402
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
+from scipy.stats import spearmanr  # noqa: E402
 
 torch.set_num_threads(_THREADS)
 
@@ -256,6 +260,99 @@ def run_smoke(args: argparse.Namespace) -> str:
     return verdict
 
 
+def run_positive_control(args: argparse.Namespace) -> str:
+    """D7-02's positive control, run against a real PU ``d=20`` ``||H||`` field. Refuses to
+    invent a field it does not have: the field must be supplied via ``--field-npz`` and must
+    carry an ``"h_norm"`` array (the same key ``run_smoke``'s ``fit_and_field`` returns), read
+    from a path resolved through ``cache.cache_path`` / ``cache._assert_inside_cache`` so a
+    traversal path raises rather than reads (T-07-01). If no field is available -- either
+    ``--field-npz`` was not passed, or the path it names does not exist -- this raises naming
+    plan 07-04 rather than regenerating one, matching plan 07-04's own d=20 sweep as the sole
+    intended producer of that field.
+
+    Calls ``crossmodal_curvature.assert_preregistered()`` first. Runs
+    ``crossmodal_curvature.plant_positive_control`` at the frozen ``HEADLINE_K``,
+    ``POSITIVE_CONTROL_TARGET_RHOS`` and ``POSITIVE_CONTROL_SEED``, appends one flat record row
+    per target to the frozen record (``preregistration_commit`` / ``run_commit`` per
+    T-07-03), and prints ``smallest_cleared_target``'s value -- or, if nothing cleared, the
+    string naming that the verdict is therefore forced to ``UNDERPOWERED -- NO CLAIM``
+    (D7-02's override). Returns the printed ``smallest_cleared_target`` string.
+    """
+    cc.assert_preregistered()
+
+    if not args.field_npz:
+        raise FileNotFoundError(
+            "--mode positive-control requires --field-npz pointing at a real d=20 ||H|| field "
+            "written by plan 07-04's sweep; none was provided, and this mode refuses to "
+            "regenerate one. Run plan 07-04's d=20 sweep first, or pass an existing field's "
+            "path via --field-npz."
+        )
+
+    candidate = Path(args.field_npz)
+    cache._assert_inside_cache(candidate)
+    if not candidate.exists():
+        raise FileNotFoundError(
+            f"--mode positive-control: {candidate} does not exist -- plan 07-04's d=20 sweep "
+            "has not written a field there yet, and this mode refuses to regenerate one."
+        )
+
+    with np.load(candidate) as z:
+        if "h_norm" not in z.files:
+            raise KeyError(
+                f"--mode positive-control: {candidate} does not carry an 'h_norm' array "
+                f"(found: {sorted(z.files)}); this mode expects the same key run_smoke's "
+                "fit_and_field returns."
+            )
+        h_real = np.asarray(z["h_norm"], dtype=np.float64)
+
+    print(
+        f"\nPOSITIVE CONTROL: {h_real.shape[0]} points loaded from {candidate.name}, planting "
+        f"at HEADLINE_K={cc.HEADLINE_K}, targets={cc.POSITIVE_CONTROL_TARGET_RHOS}, "
+        f"seed={cc.POSITIVE_CONTROL_SEED}.\n"
+    )
+
+    results = cc.plant_positive_control(
+        h_real, cc.HEADLINE_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    cleared_at = cc.smallest_cleared_target(results)
+
+    preregistration_commit = _git_rev_parse(FREEZE_COMMIT_SHA)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path)
+
+    for result in results:
+        row = {
+            "kind": "positive_control",
+            "target_rho": result["target_rho"],
+            "achieved_rho": result["achieved_rho"],
+            "slope": result["slope"],
+            "n_distinct": result["n_distinct"],
+            "clears_either": bool(result["clears_either"]),
+            "direction": result["direction"],
+            "positive_tail_threshold": float(result["positive_tail"]["null_threshold"]),
+            "negative_tail_threshold": float(result["negative_tail"]["null_threshold"]),
+            "field_npz": str(candidate),
+            "preregistration_commit": preregistration_commit,
+            "run_commit": run_commit,
+        }
+        append_record_row(row, record_path)
+        print(
+            f"  target_rho={result['target_rho']:.3f}  achieved_rho={result['achieved_rho']:.4f}  "
+            f"clears_either={result['clears_either']}  direction={result['direction']}"
+        )
+
+    if cleared_at is None:
+        outcome = (
+            "positive control recovered NOTHING at the pre-registered effect-size grid "
+            f"{cc.POSITIVE_CONTROL_TARGET_RHOS} -- verdict is forced to UNDERPOWERED -- NO CLAIM "
+            "(D7-02 override)."
+        )
+    else:
+        outcome = f"smallest_cleared_target: {cleared_at}"
+    print(f"\n{outcome}")
+    return outcome
+
+
 def selfcheck() -> bool:
     """No PU data, no torch training. Known-answer assertions on synthetic arrays, mirroring
     `region_partition_mknn_run.selfcheck`'s own tally convention."""
@@ -316,6 +413,35 @@ def selfcheck() -> bool:
         two_tail_pos["direction"] == "positive" and two_tail_pos["clears_either"],
     )
 
+    # D7-02: plant_positive_control's j/k discretization, determinism, and (via
+    # partial_spearman below) the D7-03 partial-correlation route -- a single small target on a
+    # small array keeps this within selfcheck's own fast-path budget (still pays for
+    # N_PERMUTATIONS x 2 tails once per call, unlike every other check here).
+    h_positive_control = rng.lognormal(mean=0.0, sigma=0.12, size=300)
+    pc_results_a = cc.plant_positive_control(h_positive_control, cc.HEADLINE_K, (0.10,), 20260826)
+    pc_results_b = cc.plant_positive_control(h_positive_control, cc.HEADLINE_K, (0.10,), 20260826)
+    planted = pc_results_a[0]["planted"]
+    check(
+        "plant_positive_control's planted array is exactly j/HEADLINE_K discretized",
+        bool(np.allclose(planted * cc.HEADLINE_K, np.round(planted * cc.HEADLINE_K))),
+    )
+    check(
+        "plant_positive_control is deterministic across two identical calls",
+        bool(np.array_equal(planted, pc_results_b[0]["planted"]))
+        and pc_results_a[0]["achieved_rho"] == pc_results_b[0]["achieved_rho"],
+    )
+
+    from pu_manifold import cross_split_curvature
+
+    h_tie_free = rng.normal(size=300)
+    m_tie_free = rng.normal(size=300)
+    raw_spearman = float(spearmanr(h_tie_free, m_tie_free).statistic)
+    partial_no_controls = cross_split_curvature.partial_spearman(h_tie_free, m_tie_free, controls=None)
+    check(
+        "partial_spearman(h, m, controls=None) agrees with raw Spearman on a tie-free fixture",
+        bool(np.isclose(partial_no_controls, raw_spearman, atol=1e-6)),
+    )
+
     total = counts["pass"] + counts["fail"]
     print(f"\n{counts['pass']} passed, {counts['fail']} failed, {total} total")
     return counts["fail"] == 0
@@ -329,6 +455,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--smoke-rows", type=int, default=800)
     p.add_argument("--smoke-permutations", type=int, default=50)
+    p.add_argument(
+        "--field-npz",
+        type=str,
+        default=None,
+        help=(
+            "--mode positive-control only: path to a .npz carrying an 'h_norm' array -- a "
+            "real d=20 ||H|| field written by plan 07-04's sweep. Resolved through "
+            "cache._assert_inside_cache before it is ever opened (T-07-01); a traversal path "
+            "raises rather than reads."
+        ),
+    )
     return p
 
 
@@ -345,11 +482,8 @@ def main() -> None:
             "but its compute is implemented by plan 07-04, not this plan (07-02)."
         )
     if args.mode == "positive-control":
-        raise NotImplementedError(
-            "--mode positive-control is a pre-registered CLI surface "
-            "(crossmodal_curvature.POSITIVE_CONTROL_RULE) but its compute is implemented by "
-            "plan 07-03, not this plan (07-02)."
-        )
+        run_positive_control(args)
+        return
 
     run_smoke(args)
 
