@@ -1006,7 +1006,7 @@ about CKA, which is not implemented anywhere in the codebase.
 requirement set, following Phases 5, 6 and 02.5)
 **Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
 (`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1023,7 +1023,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 07-04-PLAN.md — The real serial `d ∈ {20,25,32}` sweep (~2h), the positive control run, and the mechanically applied verdict
+- [x] 07-04-PLAN.md — The real serial `d ∈ {20,25,32}` sweep (~2h), the positive control run, and the mechanically applied verdict
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
