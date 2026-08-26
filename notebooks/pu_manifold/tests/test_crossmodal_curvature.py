@@ -11,11 +11,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
+from scipy.stats import rankdata, spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_manifold import crossmodal_curvature as cc  # noqa: E402
+from pu_manifold import curvature_probe  # noqa: E402
+from pu_manifold import mknn  # noqa: E402
 
 
 # The freeze commit SHA recorded in this plan's SUMMARY -- the commit that added
@@ -212,3 +216,255 @@ def test_freeze_commit_is_a_strict_ancestor_of_head():
         "freeze commit is not a STRICT ancestor of HEAD -- HEAD IS the freeze commit "
         "(strict_distance == 0), which would mean no number-producing commit exists yet"
     )
+
+
+# =============================================================================================
+# Plan 07-02, Task 2 -- pin per_point_mknn, two_tailed_permutation_null, apply_verdict and
+# split_indices (added by Task 1) against the sealed function each re-composes. Loads no PU
+# data, trains nothing, reads no cache -- every fixture below is synthetic and small.
+# =============================================================================================
+
+_MKNN_K = 10
+
+
+def _distinct_at_relative_precision(values: np.ndarray) -> int:
+    """Counts distinct values after rounding at RELATIVE precision (divide by the array's
+    own maximum absolute value, round to 12 decimals) rather than on raw float equality.
+    05-02-SUMMARY.md reported 5,301 and 9,852 distinct values where the true counts at
+    relative precision were 4 and 3 -- the retraction is on record in STATE.md. Counting raw
+    float equality is that same error."""
+    values = np.asarray(values, dtype=np.float64)
+    max_abs = np.max(np.abs(values))
+    if max_abs == 0:
+        return int(len(np.unique(values)))
+    normalized = np.round(values / max_abs, 12)
+    return int(len(np.unique(normalized)))
+
+
+# --- per_point_mknn vs. mknn.mknn_score (D7-04 gap-fill regression) ------------------------
+
+
+def test_per_point_mknn_mean_agrees_with_mknn_score():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(400, 16))
+    z2 = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert per_point.mean() == pytest.approx(mknn.mknn_score(z1, z2, _MKNN_K))
+
+
+def test_per_point_mknn_is_all_ones_against_itself():
+    rng = np.random.default_rng(20260826)
+    z = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z, z, _MKNN_K)
+    assert np.allclose(per_point, 1.0)
+
+
+def test_per_point_mknn_independent_clouds_lands_near_chance_floor():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(400, 16))
+    z2 = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    floor = mknn.chance_floor(z1.shape[0], _MKNN_K)
+    # "within a factor of three" per the plan's acceptance behavior -- a loose bound, since
+    # the chance floor is itself an approximation, not an exact expectation.
+    assert floor / 3.0 <= per_point.mean() <= floor * 3.0
+
+
+def test_per_point_mknn_row_alignment_is_preserved_under_a_shared_permutation():
+    rng = np.random.default_rng(20260826)
+    n = 300
+    z1 = rng.normal(size=(n, 12))
+    z2 = rng.normal(size=(n, 12))
+    baseline = cc.per_point_mknn(z1, z2, _MKNN_K)
+
+    perm = rng.permutation(n)
+    permuted = cc.per_point_mknn(z1[perm], z2[perm], _MKNN_K)
+
+    np.testing.assert_array_equal(permuted, baseline[perm])
+
+
+# --- per_point_mknn degenerate-input guards -------------------------------------------------
+
+
+def test_per_point_mknn_raises_on_mismatched_row_counts():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(50, 8))
+    z2 = rng.normal(size=(40, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "rows" in str(excinfo.value)
+
+
+def test_per_point_mknn_raises_on_non_finite_entry():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(50, 8))
+    z2 = rng.normal(size=(50, 8))
+    z1[0, 0] = np.nan
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "non-finite" in str(excinfo.value)
+
+
+def test_per_point_mknn_raises_on_n_less_than_two():
+    z1 = np.zeros((1, 8))
+    z2 = np.zeros((1, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "n=1" in str(excinfo.value) or "at least 2" in str(excinfo.value)
+
+
+def test_per_point_mknn_raises_when_k_plus_one_exceeds_n():
+    rng = np.random.default_rng(20260826)
+    n = 5
+    z1 = rng.normal(size=(n, 8))
+    z2 = rng.normal(size=(n, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, n)  # k = n, so k + 1 > n
+    assert "exceeds" in str(excinfo.value)
+
+
+def test_per_point_mknn_distinct_value_count_is_bounded_by_k_plus_one():
+    rng = np.random.default_rng(20260826)
+    n = 500
+    z1 = rng.normal(size=(n, 20))
+    z2 = z1 + rng.normal(scale=0.5, size=(n, 20))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert _distinct_at_relative_precision(per_point) <= _MKNN_K + 1
+
+
+# --- two_tailed_permutation_null -------------------------------------------------------------
+
+
+def _discretized_pair(n: int, k: int, seed: int, direction: str):
+    """A synthetic (h, m) pair discretized like a real per-point MKNN array against a
+    uniform curvature-magnitude surrogate, matching the plan's construction: h is a uniform
+    draw, m is k minus (or plus) a monotone function of h's rank divided by n, so the pair
+    is strongly correlated in the requested direction and tie-dense like the real
+    statistic."""
+    rng = np.random.default_rng(seed)
+    h = rng.uniform(size=n)
+    rank_frac = (rankdata(h) - 0.5) / n  # in (0, 1), monotone in h
+    if direction == "negative":
+        m = np.floor(k * (1.0 - rank_frac))
+    elif direction == "positive":
+        m = np.floor(k * rank_frac)
+    else:
+        raise ValueError(f"_discretized_pair: unknown direction {direction!r}")
+    return h, m
+
+
+_N_RESAMPLES_TEST = 199  # frozen N_PERMUTATIONS is for the real run only; kept small here so
+# the file stays under ten seconds, passed explicitly rather than relying on any default.
+_TEST_SEED = 20260826
+
+
+def test_two_tailed_permutation_null_detects_negative_association():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["direction"] == "negative"
+    assert result["clears_either"] is True
+
+
+def test_two_tailed_permutation_null_detects_positive_association():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "positive")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["direction"] == "positive"
+    assert result["clears_either"] is True
+
+
+def test_two_tailed_permutation_null_does_not_clear_on_independent_pair():
+    rng = np.random.default_rng(_TEST_SEED)
+    h = rng.uniform(size=300)
+    m = rng.integers(0, _MKNN_K + 1, size=300).astype(np.float64)
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["clears_either"] is False
+
+
+def test_two_tailed_permutation_null_observed_rho_matches_spearman_and_negation():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["observed_rho"] == pytest.approx(spearmanr(h, m).statistic)
+    assert result["negative_tail"]["observed_rho"] == pytest.approx(-result["observed_rho"])
+
+
+def test_single_one_sided_permutation_null_call_misses_the_negative_association():
+    """The test that would have caught the one-sided defect: a single, un-mirrored
+    ``curvature_probe.permutation_null(h, m, ...)`` call is one-sided (alternative='greater')
+    and cannot detect a strongly NEGATIVE association -- exactly the defect
+    ``two_tailed_permutation_null`` exists to close."""
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    one_sided = curvature_probe.permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert one_sided["clears_null"] is False
+
+
+# --- apply_verdict -----------------------------------------------------------------------
+
+
+def test_apply_verdict_association_detected_when_every_d_clears():
+    per_d = {d: True for d in cc.D_SWEEP}
+    assert cc.apply_verdict(per_d, positive_control_cleared_at=0.05) == "ASSOCIATION DETECTED"
+
+
+def test_apply_verdict_no_detectable_relationship_when_no_d_clears_but_control_cleared():
+    per_d = {d: False for d in cc.D_SWEEP}
+    assert (
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+        == "NO DETECTABLE RELATIONSHIP"
+    )
+
+
+def test_apply_verdict_underpowered_when_no_d_clears_and_control_cleared_nothing():
+    per_d = {d: False for d in cc.D_SWEEP}
+    assert (
+        cc.apply_verdict(per_d, positive_control_cleared_at=None) == "UNDERPOWERED -- NO CLAIM"
+    )
+
+
+def test_apply_verdict_split_across_d_on_disagreement():
+    d_values = list(cc.D_SWEEP)
+    per_d = {d: (i == 0) for i, d in enumerate(d_values)}
+    assert cc.apply_verdict(per_d, positive_control_cleared_at=0.05) == "SPLIT ACROSS d"
+
+
+def test_apply_verdict_raises_on_partial_sweep_keys():
+    d_values = list(cc.D_SWEEP)
+    per_d = {d: True for d in d_values[:-1]}  # missing one d
+    with pytest.raises(ValueError):
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+
+
+def test_apply_verdict_raises_on_extra_key():
+    per_d = {d: True for d in cc.D_SWEEP}
+    per_d[max(cc.D_SWEEP) + 1] = True  # a d outside D_SWEEP
+    with pytest.raises(ValueError):
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+
+
+# --- split_indices -----------------------------------------------------------------------
+
+
+def test_split_indices_shape_and_disjointness():
+    train_idx, holdout_idx = cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION)
+    assert len(train_idx) == 8000
+    assert len(holdout_idx) == 2000
+    train_set = set(train_idx.tolist())
+    holdout_set = set(holdout_idx.tolist())
+    assert train_set.isdisjoint(holdout_set)
+    assert train_set | holdout_set == set(range(10000))
+
+
+def test_split_indices_is_deterministic():
+    train_a, holdout_a = cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION)
+    train_b, holdout_b = cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION)
+    np.testing.assert_array_equal(train_a, train_b)
+    np.testing.assert_array_equal(holdout_a, holdout_b)
