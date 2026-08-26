@@ -14,12 +14,31 @@ pre-registration. Usage:
 import os
 import sys
 
+
+def _flag_value_from_argv(flag, argv):
+    """Returns the string value passed for `flag` in `argv`, accepting BOTH argparse-standard
+    forms -- `--flag value` (a token equal to `flag` followed by another token) and
+    `--flag=value` (a single token starting with `flag=`) -- or `None` if `flag` was not
+    passed in either form. CR-03: a raw `flag in argv` token-equality scan silently misses the
+    `=` form entirely (the token is `"--flag=value"`, never `"--flag"`), even though argparse
+    itself parses both identically. Kept dependency-free (only `sys`/plain strings) so it can
+    run here, above the torch import, and be reused below for `--smoke-rows`/`--max-epochs`."""
+    prefix = flag + "="
+    for i, tok in enumerate(argv):
+        if tok == flag and i + 1 < len(argv):
+            return argv[i + 1]
+        if tok.startswith(prefix):
+            return tok[len(prefix):]
+    return None
+
+
 # Thread cap MUST be set before any import pulling in torch/numpy -- NEW engineering here (no
 # prior notebooks/ runner does this): 3 concurrent torch jobs measured load 44, ~10x slowdown.
 _THREADS = 8
-if "--threads" in sys.argv and sys.argv.index("--threads") + 1 < len(sys.argv):
+_threads_arg = _flag_value_from_argv("--threads", sys.argv)
+if _threads_arg is not None:
     try:
-        _THREADS = int(sys.argv[sys.argv.index("--threads") + 1])
+        _THREADS = int(_threads_arg)
     except ValueError:
         pass
 os.environ["OMP_NUM_THREADS"] = str(_THREADS)
@@ -294,15 +313,24 @@ def run_positive_control(args: argparse.Namespace) -> str:
     plan 07-04 rather than regenerating one, matching plan 07-04's own d=20 sweep as the sole
     intended producer of that field.
 
-    Calls ``crossmodal_curvature.assert_preregistered()`` first. Runs
-    ``crossmodal_curvature.plant_positive_control`` at the frozen ``HEADLINE_K``,
-    ``POSITIVE_CONTROL_TARGET_RHOS`` and ``POSITIVE_CONTROL_SEED``, appends one flat record row
-    per target to the frozen record (``preregistration_commit`` / ``run_commit`` per
-    T-07-03), and prints ``smallest_cleared_target``'s value -- or, if nothing cleared, the
+    Calls ``crossmodal_curvature.assert_preregistered()`` first, then the same strict-ancestor
+    freeze gate ``run_dsweep`` uses (CR-02: this path writes to the same sealed record
+    ``run_dsweep`` protects and must be gated identically -- ``assert_preregistered()`` alone
+    only checks that the constants themselves are well-formed, it says nothing about which git
+    commit is checked out). Runs ``crossmodal_curvature.plant_positive_control`` at the frozen
+    ``HEADLINE_K``, ``POSITIVE_CONTROL_TARGET_RHOS`` and ``POSITIVE_CONTROL_SEED``, appends one
+    flat record row per target to the frozen record (``preregistration_commit`` / ``run_commit``
+    per T-07-03), and prints ``smallest_cleared_target``'s value -- or, if nothing cleared, the
     string naming that the verdict is therefore forced to ``UNDERPOWERED -- NO CLAIM``
     (D7-02's override). Returns the printed ``smallest_cleared_target`` string.
     """
     cc.assert_preregistered()
+    # CR-02: gate identically to run_dsweep before any row can be written. Unlike run_dsweep,
+    # this path never took a caller-supplied --freeze-commit -- it already hardcodes
+    # FREEZE_COMMIT_SHA (preserved below) -- so only the strict-ancestor-of-HEAD half of the
+    # gate is new here; the equality-with-FREEZE_COMMIT_SHA half is trivially satisfied by
+    # construction.
+    _strict_ancestor_or_exit(FREEZE_COMMIT_SHA)
 
     if not args.field_npz:
         raise FileNotFoundError(
@@ -378,15 +406,33 @@ def run_positive_control(args: argparse.Namespace) -> str:
 
 
 def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
-    """D7-06's freeze-ancestry gate. Exits 1 naming D7-06 unless `freeze_commit` is BOTH an
-    ancestor of HEAD (`git merge-base --is-ancestor`) AND a STRICT one
+    """D7-06's freeze-ancestry gate. Exits 1 naming D7-06 unless `freeze_commit` resolves to
+    EXACTLY the module's hardcoded `FREEZE_COMMIT_SHA` (CR-01: a wrong-but-plausible SHA that
+    merely happens to precede HEAD in history -- a typo, an unrelated earlier commit -- must
+    not silently pass and get stamped as `preregistration_commit`) AND is BOTH an ancestor of
+    HEAD (`git merge-base --is-ancestor`) AND a STRICT one
     (`git rev-list --count <freeze>..HEAD >= 1`) -- `--is-ancestor` alone is insufficient
     because a commit is its own ancestor, so it would pass even for a number produced in the
-    freeze commit itself (PREREGISTRATION_FREEZE_RULE)."""
+    freeze commit itself (PREREGISTRATION_FREEZE_RULE). Both checks must hold."""
     if not freeze_commit:
         print(
             "ERROR (D7-06): --mode dsweep requires --freeze-commit naming the frozen "
             "commit's SHA. Refusing to compute a PU number without a strict-ancestor proof.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        resolved_commit = _git_rev_parse(freeze_commit)
+    except subprocess.CalledProcessError:
+        resolved_commit = None
+
+    if resolved_commit != FREEZE_COMMIT_SHA:
+        print(
+            f"ERROR (D7-06): --freeze-commit {freeze_commit} (resolves to {resolved_commit}) "
+            f"does not equal the known freeze commit FREEZE_COMMIT_SHA={FREEZE_COMMIT_SHA}. "
+            "Refusing to stamp a PU number with the wrong preregistration_commit -- "
+            "--freeze-commit must name THE freeze commit, not merely some earlier ancestor.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -442,7 +488,13 @@ def run_dsweep(args: argparse.Namespace) -> str:
     cc.assert_preregistered()
     _strict_ancestor_or_exit(args.freeze_commit)
 
-    is_scratch = ("--smoke-rows" in sys.argv) or ("--max-epochs" in sys.argv)
+    # CR-03: accept both `--flag value` and `--flag=value` -- a raw `"--flag" in sys.argv`
+    # token scan silently misses the `=` form, which would let a reduced-scale request fall
+    # through to the full-scale/production-record path below with no error.
+    is_scratch = (
+        _flag_value_from_argv("--smoke-rows", sys.argv) is not None
+        or _flag_value_from_argv("--max-epochs", sys.argv) is not None
+    )
     if is_scratch and not args.record_path:
         print(
             "ERROR: --smoke-rows / --max-epochs is a reduced-scale exercise, not the "
@@ -469,8 +521,14 @@ def run_dsweep(args: argparse.Namespace) -> str:
     else:
         fields_path = cache.cache_path("07_crossmodal_curvature_fields", "npz")
 
-    max_epochs = args.max_epochs if "--max-epochs" in sys.argv else cc.MAX_EPOCHS
-    n_rows_override = args.smoke_rows if "--smoke-rows" in sys.argv else None
+    max_epochs = (
+        args.max_epochs if _flag_value_from_argv("--max-epochs", sys.argv) is not None
+        else cc.MAX_EPOCHS
+    )
+    n_rows_override = (
+        args.smoke_rows if _flag_value_from_argv("--smoke-rows", sys.argv) is not None
+        else None
+    )
 
     already_done_ds = set()
     if args.resume and record_path.exists():
