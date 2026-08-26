@@ -1006,7 +1006,7 @@ about CKA, which is not implemented anywhere in the codebase.
 requirement set, following Phases 5, 6 and 02.5)
 **Depends on:** Phase 4 (`mknn.py`, and its density-confound cautionary record), Phase 6
 (`linear_probe.py` split/CI/verdict machinery), and the 2026-08-25 instrument-validation work
-**Plans:** 1/5 plans executed
+**Plans:** 2/5 plans executed
 
 Plans:
 **Wave 1**
@@ -1015,7 +1015,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07-02-PLAN.md — Tracer: one `d`, one verdict, end to end — the runner, the per-point MKNN gap-fill (D7-04), and the two-tailed permutation wrapper
+- [x] 07-02-PLAN.md — Tracer: one `d`, one verdict, end to end — the runner, the per-point MKNN gap-fill (D7-04), and the two-tailed permutation wrapper
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

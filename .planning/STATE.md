@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 07
 current_phase_name: curvature-conditioned-crossmodal-alignment
 status: executing
-stopped_at: Completed 07-01-PLAN.md (freeze commit f032745, guard commit 9f16332)
-last_updated: "2026-08-26T12:20:11.362Z"
+stopped_at: Completed 07-02-PLAN.md (tracer commit 031cc4a, gap-fill test-pin commit 129de14)
+last_updated: "2026-08-26T12:51:23.444Z"
 last_activity: 2026-08-25
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 14
   completed_phases: 10
   total_plans: 98
-  completed_plans: 88
+  completed_plans: 89
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 07 (curvature-conditioned-crossmodal-alignment) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-25 — Phase 07 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -453,6 +453,7 @@ Progress: [█████████░] 90% of planned plans (17/17; Phases 1
 | Phase 05 P05 | 7min | 3 tasks | 1 files |
 | Phase 05 P06 | 35m | 3 tasks | 3 files |
 | Phase 07 P01 | 11min | 3 tasks | 2 files |
+| Phase 07 P02 | 27min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -645,6 +646,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: D7-03 flagged assumption accepted: density statistic reported on 1.0/w matching Phase 4's REGN-01 sign convention
 - [Phase ?]: D7-07 flagged assumption accepted: ALIGNMENT_METRIC='mknn' frozen as a checkable constant carried on every record row
 - [Phase ?]: SEED_HANDLING_RULE='single_seed_across_d_sweep' recorded as an accepted limitation inherited from Phase 5's seed-instability finding, never a silent assumption
+- [Phase ?]: Tracer feedback gate confirmed (ratify: proceed to Task 2); smoke verdict ASSOCIATION DETECTED understood by all parties as a stubbed smoke-path artifact, not a Phase 7 finding
+- [Phase ?]: per_point_mknn, two_tailed_permutation_null, apply_verdict, split_indices pinned by 22 regression tests (140 total), including the explicit test documenting the closed one-sided-permutation defect
 
 ### Pending Todos
 
@@ -702,8 +705,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-26T12:20:11.308Z
-Stopped at: Completed 07-01-PLAN.md (freeze commit f032745, guard commit 9f16332)
+Last session: 2026-08-26T12:51:23.392Z
+Stopped at: Completed 07-02-PLAN.md (tracer commit 031cc4a, gap-fill test-pin commit 129de14)
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
