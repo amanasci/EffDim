@@ -384,6 +384,7 @@ from typing import List, Tuple  # noqa: E402 -- deliberately below the freeze, n
 import numpy as np  # noqa: E402
 from scipy.stats import rankdata, spearmanr  # noqa: E402
 
+from . import cross_split_curvature  # noqa: E402
 from . import curvature_probe  # noqa: E402
 from . import mknn  # noqa: E402
 
@@ -643,3 +644,90 @@ def smallest_cleared_target(results: Any) -> Any:
         if result["clears_either"]:
             return result["target_rho"]
     return None
+
+
+def density_diagnostics(
+    X_ambient: Any,
+    h: Any,
+    m: Any,
+    z_a: Any,
+    z_b: Any,
+    k: int,
+    density_k: int,
+    density_field_d: int,
+) -> Dict[str, float]:
+    """D7-03's density and hubness diagnostics. Reported alongside every verdict and GATES
+    NONE OF IT (``DIAGNOSTICS_ARE_NON_GATING``) -- ``apply_verdict``'s signature accepts only the
+    per-``d`` clearance mapping and the positive-control result, and that inability to accept a
+    density number is the mechanical expression of the non-gating property, not merely a
+    promise.
+
+    MKNN is a k-NN statistic and therefore mechanically density-sensitive, and this is precisely
+    how Phase 4's result became uninterpretable -- its split axis correlated ``+0.8208`` with
+    density (against ``spearman(density, ||H||) = -0.0273``) and its raw gap was mostly a
+    region-size artifact. Phase 4's ``HOLDS`` is NOT evidence of a curvature-alignment
+    association and is not cited as one anywhere in this phase. This diagnostic exists here as a
+    disclosure, not a gate, precisely so a Phase 4-shaped confound can be seen rather than
+    silently repeated.
+
+    ``curvature_probe.local_density_weights`` returns the per-point INVERSE local density ``w``,
+    mean-normalized to 1, so the density statistic reported throughout is taken on ``1.0 / w`` --
+    using ``w`` directly would flip the sign of every statistic below and break comparability
+    with Phase 4's measured ``spearman(density, ||H||) = -0.0273`` (``region_partition_mknn_run.py``
+    REGN-01, ``DENSITY_SIGN_CONVENTION``).
+
+    Reuses, never reimplements: ``cross_split_curvature.partial_spearman`` for the rank-space
+    partial correlation (``partial_rho_raw`` with ``controls=None``, ``partial_rho_density_controlled``
+    with ``controls=density``), ``mknn.hubness_skewness`` and ``mknn.chance_floor`` for the
+    hubness numbers. No residualize-and-correlate, bootstrap-CI, or permutation-test routine is
+    written locally.
+
+    ``X_ambient``: the ``(n, D)`` ambient point cloud ``local_density_weights`` computes distances
+    over. ``h``: the per-point curvature magnitude array. ``m``: the per-point MKNN array.
+    ``z_a``/``z_b``: the two paired-modality embeddings ``hubness_skewness`` is computed on. ``k``:
+    the MKNN neighbourhood size (``HEADLINE_K`` at the call site). ``density_k``/``density_field_d``:
+    ``DENSITY_K`` / ``DENSITY_FIELD_D`` at the call site.
+
+    Returns a flat dict whose every value is coerced to a plain Python ``float`` -- the record is
+    JSONL and the Phase 6 amendment ``fix(06): serialize numpy arrays in the Phase 6 record`` is
+    the cautionary precedent for what happens when a raw numpy value reaches a JSON writer.
+    """
+    X = np.asarray(X_ambient, dtype=np.float64)
+    h_arr = np.asarray(h, dtype=np.float64).ravel()
+    m_arr = np.asarray(m, dtype=np.float64).ravel()
+
+    # local_density_weights returns the per-point INVERSE local density mean-normalized to 1,
+    # so 1/w is the relative density; using w directly would flip the sign of every statistic
+    # below and break comparability with Phase 4's measured spearman(density, ||H||) = -0.0273.
+    w = curvature_probe.local_density_weights(X, density_k, density_field_d)
+    density = 1.0 / w
+
+    spearman_density_vs_h = float(spearmanr(density, h_arr).statistic)
+    spearman_density_vs_mknn = float(spearmanr(density, m_arr).statistic)
+    partial_rho_raw = float(cross_split_curvature.partial_spearman(h_arr, m_arr, controls=None))
+    partial_rho_density_controlled = float(
+        cross_split_curvature.partial_spearman(h_arr, m_arr, controls=density)
+    )
+
+    density_p05 = float(np.percentile(density, 5))
+    density_p50 = float(np.percentile(density, 50))
+    density_p95 = float(np.percentile(density, 95))
+    density_ratio_p95_p05 = density_p95 / density_p05 if density_p05 > 0 else float("inf")
+
+    hubness_skewness_a = float(mknn.hubness_skewness(z_a, k))
+    hubness_skewness_b = float(mknn.hubness_skewness(z_b, k))
+    chance_floor = float(mknn.chance_floor(X.shape[0], k))
+
+    return {
+        "spearman_density_vs_h": spearman_density_vs_h,
+        "spearman_density_vs_mknn": spearman_density_vs_mknn,
+        "partial_rho_raw": partial_rho_raw,
+        "partial_rho_density_controlled": partial_rho_density_controlled,
+        "density_p05": density_p05,
+        "density_p50": density_p50,
+        "density_p95": density_p95,
+        "density_ratio_p95_p05": density_ratio_p95_p05,
+        "hubness_skewness_a": hubness_skewness_a,
+        "hubness_skewness_b": hubness_skewness_b,
+        "chance_floor": chance_floor,
+    }

@@ -589,3 +589,102 @@ def test_smallest_cleared_target_positive_control_returns_smallest_clearing_targ
         for rho in cc.POSITIVE_CONTROL_TARGET_RHOS
     ]
     assert cc.smallest_cleared_target(fake_results) == 0.10
+
+
+# =============================================================================================
+# Plan 07-03, Task 2 -- density_diagnostics (D7-03). Cheap: no permutation test involved, only
+# a k-NN density query and two partial_spearman calls.
+# =============================================================================================
+
+_DENSITY_TEST_K = 10
+_DENSITY_TEST_DENSITY_K = 15
+_DENSITY_TEST_DENSITY_D = 5
+
+
+def _tie_free_density_fixture(seed, n=500, D=20):
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(n, D))
+    h = rng.normal(size=n)
+    m = rng.normal(size=n)
+    z_a = rng.normal(size=(n, 8))
+    z_b = rng.normal(size=(n, 8))
+    return X, h, m, z_a, z_b
+
+
+def _density_confounded_fixture(seed, n=500, D=20):
+    """A common latent drives both the ambient point cloud's LOCAL DENSITY (via a quadratic
+    spacing along one axis, ordered by the latent's own rank) and h/m directly, so density,
+    h and m are all mutually correlated -- the D7-03/Phase-4-shaped confound this diagnostic
+    exists to surface."""
+    rng = np.random.default_rng(seed)
+    latent = rng.normal(size=n)
+    rank = np.empty(n)
+    rank[np.argsort(latent)] = np.arange(n)
+    axis0 = rank**2
+    axis0 = axis0 / axis0.std()
+
+    X = np.zeros((n, D))
+    X[:, 0] = axis0
+    X[:, 1:] = rng.normal(scale=0.01, size=(n, D - 1))
+
+    h = latent + rng.normal(scale=0.05, size=n)
+    m = latent + rng.normal(scale=0.05, size=n)
+    z_a = rng.normal(size=(n, 8))
+    z_b = rng.normal(size=(n, 8))
+    return X, h, m, z_a, z_b
+
+
+def test_density_diagnostics_returns_a_dict_of_plain_floats():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert all(isinstance(v, float) for v in result.values())
+
+
+def test_density_diagnostics_dict_has_the_expected_keys():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    expected_keys = {
+        "spearman_density_vs_h", "spearman_density_vs_mknn", "partial_rho_raw",
+        "partial_rho_density_controlled", "density_p05", "density_p50", "density_p95",
+        "density_ratio_p95_p05", "hubness_skewness_a", "hubness_skewness_b", "chance_floor",
+    }
+    assert expected_keys <= set(result.keys())
+
+
+def test_density_diagnostics_partial_rho_raw_matches_spearman_on_tie_free_fixture():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert result["partial_rho_raw"] == pytest.approx(spearmanr(h, m).statistic, rel=1e-6)
+
+
+def test_density_diagnostics_partial_rho_density_controlled_changes_on_confounded_fixture():
+    X, h, m, z_a, z_b = _density_confounded_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert abs(result["partial_rho_density_controlled"]) < abs(result["partial_rho_raw"])
+
+
+def test_density_diagnostics_partial_rho_density_controlled_agrees_on_independent_fixture():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert abs(result["partial_rho_density_controlled"] - result["partial_rho_raw"]) < 0.05
+
+
+def test_density_diagnostics_never_reaches_apply_verdict():
+    """The non-gating property is structural, not a promise: apply_verdict's signature has
+    exactly two parameters, neither named for density."""
+    import inspect
+
+    params = list(inspect.signature(cc.apply_verdict).parameters)
+    assert len(params) == 2
+    assert not any("density" in p.lower() for p in params)
+
