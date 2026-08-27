@@ -448,3 +448,206 @@ def apply_seed_verdict(per_seed_results: Dict[int, bool], positive_control_clear
 
     assert verdict_is_terminal(verdict, SEED_VERDICT_VALUES)
     return verdict
+
+
+# =============================================================================================
+# Compute functions (plan 07.1-03, Task 1). Everything above this line -- the frozen
+# pre-registration from 07.1-01 -- is untouched by this addition. Pure functions only: no file
+# I/O, and no defaults on any pre-registered parameter, matching crossmodal_curvature.py's own
+# convention at its own line 512.
+# =============================================================================================
+
+import numpy as np  # noqa: E402
+from scipy.stats import rankdata  # noqa: E402
+
+from . import cross_split_curvature  # noqa: E402
+
+
+def density_strata(density: Any, n_strata: int) -> np.ndarray:
+    """D-01/D-02: equal-count quantile bins on density RANK, per ``STRATIFICATION_RULE``.
+
+    Assignment is by ``np.argsort(density, kind="stable")`` POSITION -- a stable sort so
+    exactly-tied density values are separated by their original index order into adjacent
+    strata rather than merged into one (``STRATIFICATION_RULE``'s explicit requirement; a
+    non-stable sort would make tied points' stratum assignment depend on the sort algorithm's
+    internal tie-breaking, which is an implementation detail, not a specification). Bin size is
+    ``n // n_strata``; the ``n % n_strata`` remainder rows go to the LAST stratum, so every
+    stratum holds exactly ``n // n_strata`` points except the last, which holds
+    ``n // n_strata + n % n_strata``.
+
+    Raises ``ValueError`` if ``n_strata < 1``, or if ``n // n_strata`` is below 3 -- the same
+    floor ``cross_split_curvature.partial_spearman`` enforces on any single rank correlation,
+    named explicitly in the message since a stratum below it could not support the
+    within-stratum permutation this stratification exists to feed.
+    """
+    density_arr = np.asarray(density, dtype=np.float64).ravel()
+    n = density_arr.shape[0]
+
+    if n_strata < 1:
+        raise ValueError(f"density_strata: n_strata={n_strata} must be at least 1.")
+
+    bin_size = n // n_strata
+    if bin_size < 3:
+        raise ValueError(
+            f"density_strata: n // n_strata = {n} // {n_strata} = {bin_size} is below the "
+            "3-point floor cross_split_curvature.partial_spearman enforces -- a stratum this "
+            "small cannot support a rank correlation, let alone a permutation over one."
+        )
+
+    order = np.argsort(density_arr, kind="stable")
+    strata = np.empty(n, dtype=int)
+    for i in range(n_strata):
+        lo = i * bin_size
+        hi = (i + 1) * bin_size if i < n_strata - 1 else n
+        strata[order[lo:hi]] = i
+    return strata
+
+
+def stratified_partial_null(
+    h: Any,
+    m: Any,
+    density: Any,
+    n_strata: int,
+    n_resamples: int,
+    seed: int,
+    quantile_per_tail: float,
+) -> Dict[str, Any]:
+    """D-06's restricted (within-stratum) permutation null for
+    ``partial_rho_density_controlled``, calibrated against the exact statistic
+    :func:`cross_split_curvature.partial_spearman` computes.
+
+    ``h`` and ``m`` are each permuted INDEPENDENTLY within the strata
+    :func:`density_strata` assigns from ``density``, mirroring
+    ``scipy.stats.permutation_test(permutation_type="pairings")``'s global re-pairing but
+    confined to one stratum at a time (``PERMUTATION_SCHEME_RULE``). Recorded trade-off,
+    verbatim from that frozen rule: because ``h``'s residualization also varies per
+    permutation, the resulting band mixes both residualization sides and is NOT attributable
+    to the MKNN link alone. The considered alternative -- shuffling ``m`` only, holding ``h``'s
+    joint distribution with density exactly fixed -- was evaluated and not chosen.
+
+    Guard clauses run first, mirroring ``curvature_probe.permutation_null``'s clause order and
+    message style, every message beginning ``"stratified_partial_null: "``: non-finite on
+    ``h``, non-finite on ``m``, non-finite on ``density``, a length mismatch across the three,
+    then a zero-peak-to-peak constant check on ``h`` and on ``m``.
+
+    Then, ONCE outside the resample loop: ``rankdata(h)``, ``rankdata(m)``,
+    ``rankdata(density)``, the design matrix ``column_stack([ones(n), rank(density)])`` (the
+    control, FIXED across every resample -- only ``h`` and ``m`` move), and the list of
+    per-stratum index arrays from :func:`density_strata`. Each resample permutes the
+    PRECOMPUTED RANK values within each stratum independently for ``h`` and for ``m``, then
+    computes the residual-Pearson statistic directly from the permuted rank vectors --
+    ``rankdata(x)[perm] == rankdata(x[perm])`` is what licenses skipping the rank transform
+    inside the loop (pinned by ``test_rank_permutation_equivariance``). All permutations are
+    drawn from a single ``np.random.default_rng(seed)``, so the same ``seed`` reproduces the
+    same null exactly (D-13).
+
+    The observed statistic is computed directly via
+    ``cross_split_curvature.partial_spearman(h, m, controls=density)`` -- reused, not
+    reimplemented -- rather than re-derived from the precomputed ranks, so this function's own
+    ``observed`` key can never silently diverge from the statistic every other 07.1 call site
+    reports.
+
+    Reading both tails off ONE null distribution is equivalent to Phase 7's mirror-call
+    two-tailed construction (``crossmodal_curvature.two_tailed_permutation_null``) because
+    ``partial_spearman(-h, m, controls=c) == -partial_spearman(h, m, controls=c)`` exactly
+    (pinned by ``test_partial_spearman_is_exactly_odd_under_negation``): a rank reversal is
+    affine and the design carries an intercept, so negating ``h`` before residualizing is the
+    same operation as residualizing then negating, and the same holds for every permuted
+    resample of ``h`` inside this null. One restricted-permutation null of the UNNEGATED pair
+    therefore already carries both tails of the mirror-call construction, and reading
+    ``null_low``/``null_high`` off it is the single-null equivalent of running the mirror call
+    twice.
+
+    Clearance is STRICT on both tails, mirroring ``curvature_probe.permutation_null``'s own
+    ``observed_rho > null_threshold``: ``clears_positive`` is ``observed > null_high``,
+    ``clears_negative`` is ``observed < null_low``. An observed value exactly equal to either
+    edge does NOT clear. ``null_high`` is the ``quantile_per_tail`` quantile of the null values
+    and ``null_low`` is the ``1 - quantile_per_tail`` quantile.
+
+    Returns a flat dict of plain Python scalars: ``observed``, ``null_mean``, ``null_std``,
+    ``null_low``, ``null_high``, ``n_strata``, ``stratum_size_min``, ``stratum_size_max``,
+    ``n_resamples``, ``seed``, ``quantile_per_tail``, ``clears_positive``, ``clears_negative``,
+    ``clears_either``, ``direction`` (``"positive"``, ``"negative"`` or ``"neither"``, with
+    ``"positive"`` winning a simultaneous tie deterministically, exactly as
+    ``two_tailed_permutation_null`` resolves it).
+    """
+    h_arr = np.asarray(h, dtype=np.float64).ravel()
+    m_arr = np.asarray(m, dtype=np.float64).ravel()
+    density_arr = np.asarray(density, dtype=np.float64).ravel()
+
+    if not np.all(np.isfinite(h_arr)):
+        raise ValueError("stratified_partial_null: h contains a non-finite value.")
+    if not np.all(np.isfinite(m_arr)):
+        raise ValueError("stratified_partial_null: m contains a non-finite value.")
+    if not np.all(np.isfinite(density_arr)):
+        raise ValueError("stratified_partial_null: density contains a non-finite value.")
+    if not (h_arr.shape[0] == m_arr.shape[0] == density_arr.shape[0]):
+        raise ValueError(
+            f"stratified_partial_null: h (len={h_arr.shape[0]}), m (len={m_arr.shape[0]}) and "
+            f"density (len={density_arr.shape[0]}) must all have the same length."
+        )
+    if np.ptp(h_arr) == 0:
+        raise ValueError("stratified_partial_null: h is constant (np.ptp(h) == 0).")
+    if np.ptp(m_arr) == 0:
+        raise ValueError("stratified_partial_null: m is constant (np.ptp(m) == 0).")
+
+    n = h_arr.shape[0]
+    strata = density_strata(density_arr, n_strata)
+    strat_indices = [np.where(strata == s)[0] for s in range(n_strata)]
+    stratum_sizes = [int(idx.shape[0]) for idx in strat_indices]
+
+    rank_h = rankdata(h_arr)
+    rank_m = rankdata(m_arr)
+    rank_density = rankdata(density_arr)
+    design = np.column_stack([np.ones(n), rank_density])  # controls FIXED across all resamples
+
+    def _partial_from_ranks(rh_p: np.ndarray, rm_p: np.ndarray) -> float:
+        def _resid(v: np.ndarray) -> np.ndarray:
+            coef, *_ = np.linalg.lstsq(design, v, rcond=None)
+            return v - design @ coef
+
+        ex, ey = _resid(rh_p), _resid(rm_p)
+        return float(np.corrcoef(ex, ey)[0, 1])
+
+    rng = np.random.default_rng(seed)
+    null_vals = np.empty(n_resamples, dtype=np.float64)
+    for b in range(n_resamples):
+        rh_p, rm_p = rank_h.copy(), rank_m.copy()
+        for idx in strat_indices:
+            rh_p[idx] = rank_h[rng.permutation(idx)]
+            rm_p[idx] = rank_m[rng.permutation(idx)]
+        null_vals[b] = _partial_from_ranks(rh_p, rm_p)
+
+    observed = float(cross_split_curvature.partial_spearman(h_arr, m_arr, controls=density_arr))
+    null_mean = float(np.mean(null_vals))
+    null_std = float(np.std(null_vals))
+    null_high = float(np.quantile(null_vals, quantile_per_tail))
+    null_low = float(np.quantile(null_vals, 1.0 - quantile_per_tail))
+
+    clears_positive = bool(observed > null_high)
+    clears_negative = bool(observed < null_low)
+    clears_either = clears_positive or clears_negative
+    if clears_positive:
+        direction = "positive"
+    elif clears_negative:
+        direction = "negative"
+    else:
+        direction = "neither"
+
+    return {
+        "observed": observed,
+        "null_mean": null_mean,
+        "null_std": null_std,
+        "null_low": null_low,
+        "null_high": null_high,
+        "n_strata": int(n_strata),
+        "stratum_size_min": int(min(stratum_sizes)),
+        "stratum_size_max": int(max(stratum_sizes)),
+        "n_resamples": int(n_resamples),
+        "seed": int(seed),
+        "quantile_per_tail": float(quantile_per_tail),
+        "clears_positive": clears_positive,
+        "clears_negative": clears_negative,
+        "clears_either": clears_either,
+        "direction": direction,
+    }
