@@ -262,8 +262,7 @@ def run_smoke(args: argparse.Namespace) -> str:
     t0 = time.monotonic()
     mknn_arr = cc.per_point_mknn(X_hsc, X_ls, cc.HEADLINE_K)
     t_mknn = time.monotonic() - t0
-    scale = max(float(np.max(np.abs(mknn_arr))), 1e-300)
-    n_distinct = int(np.unique(np.round(mknn_arr / scale, 12)).shape[0])
+    n_distinct = _distinct_value_count(mknn_arr)
     print(
         f"[per_point_mknn] wallclock={t_mknn:.1f}s  n_distinct={n_distinct} "
         f"(<= HEADLINE_K + 1 = {cc.HEADLINE_K + 1})"
