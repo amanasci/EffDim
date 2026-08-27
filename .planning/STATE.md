@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 07.1
 current_phase_name: INSERTED, proposed — not yet planned
-status: planning
+status: executing
 stopped_at: Phase 07.1 context gathered
-last_updated: "2026-08-27T02:46:41.993Z"
+last_updated: "2026-08-27T03:39:24.076Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 07 complete; 07.1 inserted after Phase 7
 progress:
   total_phases: 15
   completed_phases: 11
-  total_plans: 98
+  total_plans: 104
   completed_plans: 92
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 07.1 — Density-Stratified Null and Seed Stability (INSERTED, not yet planned)
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-26 — Phase 07 complete; 07.1 inserted after Phase 7
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at

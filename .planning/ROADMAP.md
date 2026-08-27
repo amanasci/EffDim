@@ -1064,10 +1064,23 @@ remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in he
 **Plans:** 6 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 07.1-01-PLAN.md — Freeze 07.1's own gating constants and both verdict rules before any number exists (D-08, D-11, D-14, D-15, D-16)
 - [ ] 07.1-02-PLAN.md — Close Phase 7 review debt WR-01, WR-02 and WR-04, each under a demonstrated no-op proof (D-17, D-18)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 07.1-03-PLAN.md — Tracer: the whole D7.1-01 path end to end at d=20 on real PU data, plus the null-routine test group (D-01, D-05, D-06, D-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 07.1-04-PLAN.md — D7.1-01: the direction-matched positive control, the 3-d x 3-S null grid with its null-mean bias diagnostic, and the verdict (D-02, D-03, D-04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 07.1-05-PLAN.md — D7.1-02: three serial d=25 fits at three TORCH_INIT_SEED values and the unanimity verdict (D-09..D-13)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 07.1-06-PLAN.md — 07.1-FINDINGS.md and the executed notebook, with the Swiss-roll gate declared satisfied
