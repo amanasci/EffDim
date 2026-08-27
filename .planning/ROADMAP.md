@@ -1061,12 +1061,12 @@ verdict rule. Phase 7's CR-01/CR-02/CR-03 runner guards were hardened in-phase (
 remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in here.
 **Requirements**: D7.1-01, D7.1-02
 **Depends on:** Phase 7
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 07.1-01-PLAN.md — Freeze 07.1's own gating constants and both verdict rules before any number exists (D-08, D-11, D-14, D-15, D-16)
+- [x] 07.1-01-PLAN.md — Freeze 07.1's own gating constants and both verdict rules before any number exists (D-08, D-11, D-14, D-15, D-16)
 - [ ] 07.1-02-PLAN.md — Close Phase 7 review debt WR-01, WR-02 and WR-04, each under a demonstrated no-op proof (D-17, D-18)
 
 **Wave 2** *(blocked on Wave 1 completion)*
