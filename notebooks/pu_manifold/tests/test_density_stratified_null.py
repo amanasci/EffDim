@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_manifold import cache  # noqa: E402
 from pu_manifold import cross_split_curvature  # noqa: E402
+from pu_manifold import crossmodal_curvature as cc  # noqa: E402
 from pu_manifold import density_stratified_null as dsn  # noqa: E402
 
 
@@ -289,6 +290,80 @@ def test_apply_seed_verdict_is_key_order_invariant():
     verdict_b = dsn.apply_seed_verdict(mapping_b, 0.02)
     verdict_c = dsn.apply_seed_verdict(mapping_c, 0.02)
     assert verdict_a == verdict_b == verdict_c == "SPLIT ACROSS SEEDS"
+
+
+# ================================================================================================
+# Plan 07.1-05, Task 1: split-identity across seeds (D-09) and the seed-scoping restore (T-07.1-19).
+# Neither test fits anything -- both run in well under a second.
+# ================================================================================================
+
+
+def test_split_indices_identical_across_seeds():
+    """D-09: calling cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION) three times,
+    with cc.TORCH_INIT_SEED set to each of the frozen TORCH_INIT_SEEDS in between, returns
+    arrays that are elementwise equal -- split_indices depends only on SPLIT_SEED/
+    HOLDOUT_FRACTION, never on TORCH_INIT_SEED, so the training data is identical across the
+    three fits regardless of which seed is active when the split is computed."""
+    entry_seed = cc.TORCH_INIT_SEED
+    assert entry_seed == 0, (
+        f"cc.TORCH_INIT_SEED={entry_seed!r} at test entry -- expected Phase 7's frozen 0. A "
+        "prior test in this suite left the sealed module mutated."
+    )
+    results = []
+    try:
+        for seed in dsn.TORCH_INIT_SEEDS:
+            cc.TORCH_INIT_SEED = seed
+            results.append(cc.split_indices(10000, cc.SPLIT_SEED, cc.HOLDOUT_FRACTION))
+    finally:
+        cc.TORCH_INIT_SEED = entry_seed
+
+    assert len(results) == len(dsn.TORCH_INIT_SEEDS)
+    train0, holdout0 = results[0]
+    for train_i, holdout_i in results[1:]:
+        assert np.array_equal(train_i, train0), (
+            "split_indices' train array differs across TORCH_INIT_SEED values -- the three "
+            "d=25 fits would not be comparable (D-09)."
+        )
+        assert np.array_equal(holdout_i, holdout0), (
+            "split_indices' holdout array differs across TORCH_INIT_SEED values -- the three "
+            "d=25 fits would not be comparable (D-09)."
+        )
+    assert cc.TORCH_INIT_SEED == entry_seed
+
+
+def test_torch_init_seed_is_restored_after_a_failed_fit(runner_071):
+    """T-07.1-19: when the fit callable raises, fit_field_at_seed's seed-scoping helper still
+    restores cc.TORCH_INIT_SEED to its entry value in a `finally` block -- the sealed module's
+    attribute is never left mutated however the call ends."""
+    entry_seed = cc.TORCH_INIT_SEED
+    assert entry_seed == 0
+
+    class _RaisingRunner:
+        @staticmethod
+        def fit_and_field(*args, **kwargs):
+            raise RuntimeError("simulated fit failure")
+
+    with pytest.raises(RuntimeError, match="simulated fit failure"):
+        runner_071.fit_field_at_seed(_RaisingRunner(), np.zeros((10, 3)), seed=1, n_rows=10)
+
+    assert cc.TORCH_INIT_SEED == entry_seed, (
+        "cc.TORCH_INIT_SEED was left mutated after fit_field_at_seed's callee raised -- the "
+        "`finally` restore did not run or did not restore the correct value."
+    )
+
+
+def test_fit_field_at_seed_halts_if_entry_seed_has_drifted(runner_071):
+    """fit_field_at_seed asserts cc.TORCH_INIT_SEED equals Phase 7's frozen 0 on entry -- a
+    drifted entry value halts rather than silently fitting under an unregistered seed."""
+    entry_seed = cc.TORCH_INIT_SEED
+    assert entry_seed == 0
+    cc.TORCH_INIT_SEED = 99
+    try:
+        with pytest.raises(RuntimeError, match="drifted"):
+            runner_071.fit_field_at_seed(object(), np.zeros((10, 3)), seed=1, n_rows=10)
+    finally:
+        cc.TORCH_INIT_SEED = entry_seed
+    assert cc.TORCH_INIT_SEED == entry_seed
 
 
 # ================================================================================================
@@ -822,3 +897,88 @@ def test_null_grid_record_shape():
         "real record: exactly one distinct observed value must exist per d across all three "
         "n_strata rows (D-03) -- the grid must move only the null"
     )
+
+
+# ================================================================================================
+# Plan 07.1-05, Task 1: seed record row shape (D7.1-02's TORCH_INIT_SEEDS-order contract).
+# ================================================================================================
+
+
+_SEED_ROW_REQUIRED_KEYS = {
+    "torch_init_seed",
+    "split_checksum",
+    "h_norm_distinct",
+    "partial_rho_density_controlled",
+    "partial_rho_raw",
+    "clears_either",
+    "var_explained",
+}
+
+
+def test_seed_record_row_shape():
+    """A FABRICATED three-seed set of ``row_kind: "seed"`` rows, asserting the row order is
+    the frozen ``TORCH_INIT_SEEDS`` order and that every row carries ``torch_init_seed``,
+    ``split_checksum``, ``h_norm_distinct``, ``partial_rho_density_controlled``,
+    ``partial_rho_raw``, ``clears_either`` and ``var_explained``. Runs unconditionally as a
+    sub-second unit test, with no dependency on real PU data. Also cross-checks the SAME
+    contract against the REAL on-disk record when 07.1-05's ``--mode seeds`` has already been
+    run in this checkout; that half is SKIPPED (not failed), with an explicit reason, when the
+    real record is absent -- it is gitignored per CLAUDE.md and not always present."""
+    fabricated_rows = []
+    for i, seed in enumerate(dsn.TORCH_INIT_SEEDS):
+        fabricated_rows.append(
+            {
+                "row_kind": "seed",
+                "torch_init_seed": seed,
+                "d": 25,
+                "split_checksum": "deadbeef" * 8,
+                "h_norm_distinct": 100 + i,
+                "partial_rho_density_controlled": -0.01 * (i + 1),
+                "partial_rho_raw": -0.02 * (i + 1),
+                "clears_either": i == 0,
+                "var_explained": 0.9 + 0.01 * i,
+            }
+        )
+
+    assert len(fabricated_rows) == 3
+    actual_order = [r["torch_init_seed"] for r in fabricated_rows]
+    assert actual_order == list(dsn.TORCH_INIT_SEEDS), (
+        "fabricated seed row order must match the frozen TORCH_INIT_SEEDS order"
+    )
+    for row in fabricated_rows:
+        assert _SEED_ROW_REQUIRED_KEYS.issubset(row.keys())
+
+    record_path = cache.cache_path(dsn.RECORD_STEM, "jsonl")
+    if not record_path.exists():
+        pytest.skip(
+            f"{record_path} is absent -- 07.1-05's --mode seeds has not been run in this "
+            "checkout (gitignored per CLAUDE.md); the fabricated-fixture assertions above "
+            "already cover the row-order and shape contract."
+        )
+
+    real_seed_rows = []
+    with record_path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if row.get("row_kind") == "seed":
+                real_seed_rows.append(row)
+
+    if not real_seed_rows:
+        pytest.skip(f"{record_path} carries no row_kind='seed' rows yet.")
+
+    last_commit = real_seed_rows[-1].get("preregistration_commit")
+    latest_rows = [r for r in real_seed_rows if r.get("preregistration_commit") == last_commit]
+    assert len(latest_rows) == 3, (
+        f"expected exactly 3 seed rows under the latest preregistration_commit {last_commit!r}, "
+        f"found {len(latest_rows)}"
+    )
+    real_order = [r["torch_init_seed"] for r in latest_rows]
+    assert real_order == list(dsn.TORCH_INIT_SEEDS), (
+        f"real record's seed row order {real_order} does not match the frozen TORCH_INIT_SEEDS "
+        f"order {list(dsn.TORCH_INIT_SEEDS)}"
+    )
+    for row in latest_rows:
+        assert _SEED_ROW_REQUIRED_KEYS.issubset(row.keys())
