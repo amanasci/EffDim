@@ -5,12 +5,12 @@ milestone_name: PU Manifold Curvature
 current_phase: 07.1
 current_phase_name: density-stratified-null-and-seed-stability
 status: verifying
-stopped_at: Completed 07.1-06-PLAN.md -- phase 07.1 (density-stratified-null-and-seed-stability) execution complete; all three checkpoints (07.1-04, 07.1-05, 07.1-06) advanced without human review under standing overnight authorization -- neither D7.1-01 nor D7.1-02 verdict has been read by the user
-last_updated: "2026-08-27T08:07:05.826Z"
+stopped_at: Phase 8 context gathered
+last_updated: "2026-08-27T20:42:55.820Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 07.1 execution started
 progress:
-  total_phases: 15
+  total_phases: 16
   completed_phases: 12
   total_plans: 104
   completed_plans: 98
@@ -729,12 +729,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-27T08:07:05.770Z
-Stopped at: Completed 07.1-06-PLAN.md -- phase 07.1 (density-stratified-null-and-seed-stability) execution complete; all three checkpoints (07.1-04, 07.1-05, 07.1-06) advanced without human review under standing overnight authorization -- neither D7.1-01 nor D7.1-02 verdict has been read by the user
+Last session: 2026-08-27T20:42:55.765Z
+Stopped at: Phase 8 context gathered
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: None
+Resume file: .planning/phases/08-curvature-conditioned-cka-alignment/08-CONTEXT.md
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them
