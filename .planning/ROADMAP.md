@@ -1084,3 +1084,14 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 07.1-06-PLAN.md — 07.1-FINDINGS.md and the executed notebook, with the Swiss-roll gate declared satisfied
+
+### Phase 8: Curvature-Conditioned CKA Alignment
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 7
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 8 to break down)
