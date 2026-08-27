@@ -1061,7 +1061,7 @@ verdict rule. Phase 7's CR-01/CR-02/CR-03 runner guards were hardened in-phase (
 remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in here.
 **Requirements**: D7.1-01, D7.1-02
 **Depends on:** Phase 7
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1079,7 +1079,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 07.1-05-PLAN.md — D7.1-02: three serial d=25 fits at three TORCH_INIT_SEED values and the unanimity verdict (D-09..D-13)
+- [x] 07.1-05-PLAN.md — D7.1-02: three serial d=25 fits at three TORCH_INIT_SEED values and the unanimity verdict (D-09..D-13)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 

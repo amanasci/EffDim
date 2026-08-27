@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 07.1
 current_phase_name: density-stratified-null-and-seed-stability
 status: executing
-stopped_at: Completed 07.1-04-PLAN.md (Task 3 checkpoint NOT human-reviewed -- D7.1-01 verdict pending human read)
-last_updated: "2026-08-27T05:22:57.051Z"
+stopped_at: Completed 07.1-05-PLAN.md (Task 3 checkpoint NOT human-reviewed -- D7.1-02 verdict SEED STABLE AT d=25 pending human read, alongside D7.1-01's still-pending verdict from 07.1-04)
+last_updated: "2026-08-27T07:52:15.729Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 15
   completed_phases: 11
   total_plans: 104
-  completed_plans: 96
+  completed_plans: 97
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 07.1 (density-stratified-null-and-seed-stability) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 07.1 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 93% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -461,6 +461,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 07.1 P02 | 35min | 3 tasks | 4 files |
 | Phase 07.1 P03 | 23min | 2 tasks | 3 files |
 | Phase 07.1 P04 | 12min | 3 tasks | 3 files |
+| Phase 07.1 P05 | 154min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -664,6 +665,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 07.1-02 Task 1 checkpoint auto-resolved to amend-both-with-proofs: WR-01/WR-02 amended in place under D-18 no-op proofs; WR-01's proof scoped to future call sites only, never to the frozen 07_crossmodal_curvature.jsonl (run_dsweep never calls density_diagnostics)
 - [Phase ?]: 07.1-03: density_strata + stratified_partial_null (restricted within-stratum permutation, precompute-ranks-once) added below the 07.1-01 freeze; --mode smoke tracer reproduces Phase 7's frozen d=20 partial bit-for-bit before building the new null
 - [Phase ?]: 07.1-04: Task 3's blocking human-verify checkpoint advanced without human review under the user's standing overnight 'keep working' instruction; D7.1-01 verdict SURVIVES AT SUBSET OF d is unreviewed and flagged pending human read; d=25's measured 234% margin satisfied the checkpoint's practical gate for 07.1-05 to proceed
+- [Phase ?]: 07.1-05: Task 3's blocking checkpoint was advanced without human review because the unanimous 3-of-3 D7.1-02 outcome left no characterization judgment open under the frozen unanimity rule -- not a review or sign-off.
 
 ### Pending Todos
 
@@ -722,8 +724,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-27T05:22:56.995Z
-Stopped at: Completed 07.1-04-PLAN.md (Task 3 checkpoint NOT human-reviewed -- D7.1-01 verdict pending human read)
+Last session: 2026-08-27T07:52:15.672Z
+Stopped at: Completed 07.1-05-PLAN.md (Task 3 checkpoint NOT human-reviewed -- D7.1-02 verdict SEED STABLE AT d=25 pending human read, alongside D7.1-01's still-pending verdict from 07.1-04)
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
