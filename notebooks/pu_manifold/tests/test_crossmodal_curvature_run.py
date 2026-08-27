@@ -2,7 +2,8 @@
 (`notebooks/diagnostics/07_crossmodal_curvature_run.py`).
 
 WR-04 recorded that the runner carried zero automated coverage. This file targets exactly the
-three CR-01/CR-02/CR-03 guard-strength gaps `07-REVIEW.md` found (and this commit fixes) --
+three CR-01/CR-02/CR-03 guard-strength gaps `07-REVIEW.md` found (and this commit fixes),
+plus (plan 07.1-02) `resolve_record_path` and the `is_scratch` scratch-detection guard --
 not broad runner coverage (CLAUDE.md: keep things simple first):
 
 - CR-01: `--freeze-commit` must resolve to EXACTLY `FREEZE_COMMIT_SHA`, not merely be some
@@ -11,6 +12,8 @@ not broad runner coverage (CLAUDE.md: keep things simple first):
   `--mode dsweep` uses before it can write any row.
 - CR-03: `--threads`/`--smoke-rows`/`--max-epochs` must be recognized in both `--flag value`
   and `--flag=value` argv forms.
+- WR-04 (07.1-02): `resolve_record_path`'s default and supplied-path branches, and the
+  `is_scratch` guard `run_dsweep` exercises through both argv forms it protects against.
 
 Loads no PU data, trains nothing, reads no cache. Importing the runner module pulls in torch
 (module-level `import torch`), matching this repo's existing test suite's dependency on the
@@ -159,3 +162,82 @@ def test_flag_value_from_argv_space_and_equals_forms_agree(runner):
         == runner._flag_value_from_argv("--max-epochs", equals_form)
         == "5"
     )
+
+
+# --- WR-04 (plan 07.1-02): resolve_record_path's two branches ------------------------------
+
+
+def test_resolve_record_path_defaults_to_the_cache_record_stem(runner):
+    result = runner.resolve_record_path(None)
+    expected = runner.cache.cache_path(runner.cc.RECORD_STEM, "jsonl")
+    assert result == expected
+    assert result.name == "07_crossmodal_curvature.jsonl"
+    assert runner.cache.CACHE_DIR.resolve() in result.resolve().parents
+
+
+def test_resolve_record_path_accepts_a_path_inside_the_cache(runner):
+    candidate = runner.cache.CACHE_DIR / "07.1-02-test-resolve-record-path-scratch.jsonl"
+    try:
+        result = runner.resolve_record_path(str(candidate))
+        assert result == candidate
+    finally:
+        if candidate.exists():
+            candidate.unlink()
+
+
+def test_resolve_record_path_rejects_a_traversal_path(runner, tmp_path):
+    outside = tmp_path / "escaped-record.jsonl"
+    with pytest.raises(ValueError):
+        runner.resolve_record_path(str(outside))
+    assert not outside.exists()
+
+
+# --- WR-04 (plan 07.1-02): the is_scratch guard run_dsweep's --smoke-rows/--max-epochs -----
+# --- safety check protects, exercised through the guard itself (is_scratch is a local     --
+# --- variable inside run_dsweep, not an importable symbol).                               --
+
+
+def test_scratch_guard_exits_on_smoke_rows_without_record_path(runner, monkeypatch):
+    """`--smoke-rows 100` (space form) with no `--record-path` must exit 1 before any PU data
+    is loaded -- reached via _flag_value_from_argv's space-form recognition."""
+    monkeypatch.setattr(
+        sys, "argv", ["prog", "--mode", "dsweep", "--smoke-rows", "100"]
+    )
+    args = SimpleNamespace(freeze_commit=runner.FREEZE_COMMIT_SHA, record_path=None)
+    with pytest.raises(SystemExit) as excinfo:
+        runner.run_dsweep(args)
+    assert excinfo.value.code == 1
+
+
+def test_scratch_guard_exits_on_max_epochs_equals_form_without_record_path(runner, monkeypatch):
+    """`--max-epochs=3` (equals form, the exact CR-03 shape) with no `--record-path` must also
+    exit 1 -- proves the guard fires through _flag_value_from_argv's `=`-form recognition, not
+    only the space form."""
+    monkeypatch.setattr(sys, "argv", ["prog", "--mode", "dsweep", "--max-epochs=3"])
+    args = SimpleNamespace(freeze_commit=runner.FREEZE_COMMIT_SHA, record_path=None)
+    with pytest.raises(SystemExit) as excinfo:
+        runner.run_dsweep(args)
+    assert excinfo.value.code == 1
+
+
+def test_scratch_guard_does_not_fire_on_a_production_argv(runner, monkeypatch):
+    """A production argv carrying neither --smoke-rows nor --max-epochs must get PAST the
+    is_scratch guard -- monkeypatch load_pu_pair (the first heavy call after the guard) to
+    raise a sentinel exception and assert that sentinel, not SystemExit, is what propagates.
+    No PU data is loaded and nothing is trained; the sentinel is raised before any real work."""
+    monkeypatch.setattr(
+        sys, "argv", ["prog", "--mode", "dsweep", "--freeze-commit", runner.FREEZE_COMMIT_SHA]
+    )
+
+    class _SentinelReached(Exception):
+        pass
+
+    def _fake_load_pu_pair(column_a, column_b):
+        raise _SentinelReached()
+
+    monkeypatch.setattr(runner, "load_pu_pair", _fake_load_pu_pair)
+    args = SimpleNamespace(
+        freeze_commit=runner.FREEZE_COMMIT_SHA, record_path=None, resume=False
+    )
+    with pytest.raises(_SentinelReached):
+        runner.run_dsweep(args)
