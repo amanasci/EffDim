@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 07.1
 current_phase_name: density-stratified-null-and-seed-stability
 status: executing
-stopped_at: Completed 07.1-01-PLAN.md
-last_updated: "2026-08-27T03:58:50.681Z"
+stopped_at: Completed 07.1-02-PLAN.md
+last_updated: "2026-08-27T04:21:35.358Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 15
   completed_phases: 11
   total_plans: 104
-  completed_plans: 93
+  completed_plans: 94
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 07.1 (density-stratified-null-and-seed-stability) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 07.1 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -458,6 +458,7 @@ Progress: [█████████░] 89% of planned plans (17/17; Phases 1
 | Phase 07 P04 | ~2h50min | 3 tasks | 2 files |
 | Phase 07 P05 | ~5h07m (incl. checkpoint wait) | 3 tasks | 3 files |
 | Phase 07.1 P01 | 20min | 3 tasks | 2 files |
+| Phase 07.1 P02 | 35min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -658,6 +659,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 07.1-01 Task 1 checkpoint (ratify-as-proposed): finer 9-point positive-control target grid bracketing d=20/d=32 residuals, control run in both directions gated on the negative-direction floor, TORCH_INIT_SEEDS=(0,1,2)
 - [Phase ?]: 07.1-01 Task 2 checkpoint (ratify): unanimity seed-combination rule inheriting Phase 5's don't-pool decision; PARTIAL_VERDICT_VALUES mints SURVIVES AT SUBSET OF d, distinct from Phase 7's SPLIT ACROSS d
 - [Phase ?]: 07.1-01 froze density_stratified_null.py's 30 gating constants and two verdict functions as fresh literals (D-08) -- FREEZE_COMMIT_SHA=676866657676a36abb639782fa10ecb3061fd688 -- producing no 07.1 number
+- [Phase ?]: 07.1-02 Task 1 checkpoint auto-resolved to amend-both-with-proofs: WR-01/WR-02 amended in place under D-18 no-op proofs; WR-01's proof scoped to future call sites only, never to the frozen 07_crossmodal_curvature.jsonl (run_dsweep never calls density_diagnostics)
 
 ### Pending Todos
 
@@ -716,8 +718,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-27T03:58:50.627Z
-Stopped at: Completed 07.1-01-PLAN.md
+Last session: 2026-08-27T04:21:35.302Z
+Stopped at: Completed 07.1-02-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
