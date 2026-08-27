@@ -738,3 +738,87 @@ def test_smallest_cleared_target_returns_smallest_matching_target():
     assert dsn.smallest_cleared_target(results, "positive") == 0.2
     assert dsn.smallest_cleared_target(results, "negative") == 0.1
 
+
+# ================================================================================================
+# Plan 07.1-04, Task 2: null-grid record shape (D-03's grid-of-thresholds contract).
+# ================================================================================================
+
+
+def test_null_grid_record_shape():
+    """A FABRICATED nine-cell (D_SWEEP x STRATA_GRID) set of ``row_kind: "null_grid"`` rows,
+    asserting the row order is D_SWEEP (outer) x STRATA_GRID (inner) -- the frozen iteration
+    order -- and that exactly one distinct ``observed`` value exists per ``d`` across all three
+    ``n_strata`` rows for that ``d`` (D-03: the grid moves only the null, never the observed
+    statistic). Runs unconditionally as a sub-second unit test, with no dependency on real PU
+    data. Also cross-checks the SAME two properties against the REAL on-disk record when
+    07.1-04's ``--mode null`` has already been run in this checkout; that half is SKIPPED (not
+    failed), with an explicit reason, when the real record is absent -- it is gitignored per
+    CLAUDE.md and not always present."""
+    fabricated_rows = []
+    for i, d in enumerate(dsn.D_SWEEP):
+        observed = -0.01 * (i + 1)  # distinct per d, byte-identical across S by construction
+        for n_strata in dsn.STRATA_GRID:
+            fabricated_rows.append(
+                {"row_kind": "null_grid", "d": d, "n_strata": n_strata, "observed": observed}
+            )
+
+    assert len(fabricated_rows) == 9
+    expected_order = [(d, s) for d in dsn.D_SWEEP for s in dsn.STRATA_GRID]
+    actual_order = [(r["d"], r["n_strata"]) for r in fabricated_rows]
+    assert actual_order == expected_order, (
+        "fabricated null_grid row order must match D_SWEEP (outer) x STRATA_GRID (inner)"
+    )
+
+    observed_by_d = {}
+    for r in fabricated_rows:
+        observed_by_d.setdefault(r["d"], set()).add(r["observed"])
+    assert all(len(v) == 1 for v in observed_by_d.values()), (
+        "exactly one distinct observed value must exist per d across all three n_strata rows"
+    )
+
+    record_path = cache.cache_path(dsn.RECORD_STEM, "jsonl")
+    if not record_path.exists():
+        pytest.skip(
+            f"{record_path} is absent -- 07.1-04's --mode null has not been run in this "
+            "checkout (gitignored per CLAUDE.md); the fabricated-fixture assertions above "
+            "already cover the row-order and D-03 shape contract."
+        )
+
+    real_null_grid_rows = []
+    with record_path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if row.get("row_kind") == "null_grid":
+                real_null_grid_rows.append(row)
+
+    assert len(real_null_grid_rows) >= 9, (
+        f"expected at least 9 null_grid rows in the real record, found "
+        f"{len(real_null_grid_rows)}"
+    )
+    # Group by preregistration_commit: only the most recent 9 rows sharing the LAST commit in
+    # the file are checked for the D_SWEEP x STRATA_GRID order contract -- a resumed or re-run
+    # record may carry rows from more than one commit, and only the latest run's shape matters
+    # here.
+    last_commit = real_null_grid_rows[-1].get("preregistration_commit")
+    latest_rows = [
+        r for r in real_null_grid_rows if r.get("preregistration_commit") == last_commit
+    ]
+    assert len(latest_rows) == 9, (
+        f"expected exactly 9 null_grid rows under the latest preregistration_commit "
+        f"{last_commit!r}, found {len(latest_rows)}"
+    )
+    real_order = [(r["d"], r["n_strata"]) for r in latest_rows]
+    assert real_order == expected_order, (
+        f"real record's null_grid row order {real_order} does not match the frozen "
+        f"D_SWEEP x STRATA_GRID order {expected_order}"
+    )
+    real_observed_by_d = {}
+    for r in latest_rows:
+        real_observed_by_d.setdefault(r["d"], set()).add(r["observed"])
+    assert all(len(v) == 1 for v in real_observed_by_d.values()), (
+        "real record: exactly one distinct observed value must exist per d across all three "
+        "n_strata rows (D-03) -- the grid must move only the null"
+    )

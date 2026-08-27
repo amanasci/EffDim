@@ -464,6 +464,321 @@ def run_positive_control(args: argparse.Namespace) -> str:
     return f"positive-control complete: negative={smallest_negative} positive={smallest_positive}"
 
 
+def _read_positive_control_summary(record_path: Path, preregistration_commit: str) -> Dict[str, Any]:
+    """Reads the LAST ``row_kind: "positive_control_summary"`` row in ``record_path`` whose
+    ``preregistration_commit`` matches. ``run_null`` (D7.1-01's verdict) depends on Task 1's
+    positive control having already run under the SAME freeze commit -- 07.1-04's own
+    Task-ordering precondition. Raises ``RuntimeError`` naming ``--mode positive-control`` if
+    none is found, rather than silently proceeding with an unlicensed verdict."""
+    if not record_path.exists():
+        raise RuntimeError(
+            f"run_null: {record_path} does not exist -- run `--mode positive-control` first "
+            "(07.1-04 Task 1's power requirement must be satisfied before any verdict)."
+        )
+    summary = None
+    with record_path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if (
+                row.get("row_kind") == "positive_control_summary"
+                and row.get("preregistration_commit") == preregistration_commit
+            ):
+                summary = row
+    if summary is None:
+        raise RuntimeError(
+            f"run_null: no row_kind='positive_control_summary' row found in {record_path} "
+            f"under preregistration_commit={preregistration_commit!r} -- run "
+            "`--mode positive-control` first (07.1-04 Task 1)."
+        )
+    return summary
+
+
+def run_null(args: argparse.Namespace) -> str:
+    """D7.1-01's headline stratified null across the full ``d`` x ``S`` grid (D-02, D-03), the
+    null-mean-vs-``S`` bias diagnostic (07.1-RESEARCH.md Pitfall 1 / Open Question 1), and the
+    D7.1-01 verdict (07.1-04, Task 2).
+
+    Order, and the order matters: ``assert_preregistered()``; the strict-ancestor freeze proof
+    BEFORE any 07.1 number is produced; resolve the record path and (with ``--resume``) the set
+    of ``(d, S)`` cells already recorded under a matching ``preregistration_commit``;
+    ``recompute_mknn_and_density()`` ONCE (density is ``d``-independent, D-10); then for each
+    ``d`` in ``D_SWEEP`` order, the observed partial recomputed once and D-07-asserted against
+    ``FROZEN_PARTIAL_REFERENCE``, then for each ``S`` in ``STRATA_GRID`` order a stratified null
+    at ``N_PERMUTATIONS``/``PERMUTATION_SEED``, appended as one ``row_kind: "null_grid"`` row.
+    After the full grid, prints the null-mean-vs-``S`` diagnostic table BEFORE building any
+    clearance mapping, reads Task 1's ``positive_control_summary`` row for the
+    negative-direction ``positive_control_cleared_at``, builds the per-``d`` clearance mapping
+    from ``N_STRATA_HEADLINE`` only, and calls the frozen ``dsn.apply_partial_verdict``,
+    printing the per-``d`` clearance table unconditionally (D-15).
+    """
+    dsn.assert_preregistered()
+    _strict_ancestor_or_exit(args.freeze_commit)
+
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path)
+
+    already_done_cells = set()
+    existing_null_grid_rows: Dict[Tuple[int, int], Dict[str, Any]] = {}
+    has_null_mean_vs_strata = False
+    has_verdict = False
+    if record_path.exists():
+        with record_path.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    existing = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if existing.get("preregistration_commit") != preregistration_commit:
+                    continue
+                if existing.get("row_kind") == "null_grid":
+                    key = (existing.get("d"), existing.get("n_strata"))
+                    existing_null_grid_rows[key] = existing
+                    if args.resume:
+                        already_done_cells.add(key)
+                elif existing.get("row_kind") == "null_mean_vs_strata":
+                    has_null_mean_vs_strata = True
+                elif existing.get("row_kind") == "verdict":
+                    has_verdict = True
+        if already_done_cells:
+            print(
+                "[resume] (d, S) cells already recorded under a matching preregistration_commit: "
+                f"{sorted(already_done_cells)} -- these will be skipped."
+            )
+
+    mknn_arr, density, X_hsc, X_ls, subsample_file = recompute_mknn_and_density()
+    density_p05 = float(np.percentile(density, 5))
+    density_p50 = float(np.percentile(density, 50))
+    density_p95 = float(np.percentile(density, 95))
+    density_ratio = density_p95 / density_p05 if density_p05 > 0 else float("inf")
+
+    null_results: Dict[int, Dict[int, Dict[str, Any]]] = {d: {} for d in dsn.D_SWEEP}
+    observed_by_d: Dict[int, float] = {}
+
+    for d in dsn.D_SWEEP:
+        h = load_frozen_field(d)
+        t0 = time.monotonic()
+        observed = float(cross_split_curvature.partial_spearman(h, mknn_arr, controls=density))
+        frozen_reference = dsn.FROZEN_PARTIAL_REFERENCE[d]
+        matches = bool(
+            np.isclose(
+                observed, frozen_reference,
+                rtol=dsn.PARTIAL_REFERENCE_RTOL, atol=dsn.PARTIAL_REFERENCE_ATOL,
+            )
+        )
+        print(
+            f"\n[d={d}] recomputed partial_rho_density_controlled: {observed!r} "
+            f"(wallclock={time.monotonic() - t0:.3f}s)"
+        )
+        if not matches:
+            print(
+                f"ERROR (D-07): d={d} recomputed partial {observed!r} does NOT match Phase 7's "
+                f"frozen record {frozen_reference!r} at rtol={dsn.PARTIAL_REFERENCE_RTOL}, "
+                f"atol={dsn.PARTIAL_REFERENCE_ATOL}. Halting -- this is a real finding about "
+                "the frozen field or the reload path, never a nuisance to round past.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print(f"[d={d}] matches Phase 7's frozen reference {frozen_reference!r} within tolerance.")
+        observed_by_d[d] = observed
+
+        for n_strata in dsn.STRATA_GRID:
+            key = (d, n_strata)
+            if key in already_done_cells:
+                print(f"[resume] skipping d={d}, S={n_strata} -- already recorded.")
+                existing_row = existing_null_grid_rows[key]
+                null_results[d][n_strata] = {
+                    "null_mean": existing_row["null_mean"],
+                    "null_std": existing_row["null_std"],
+                    "null_low": existing_row["null_low"],
+                    "null_high": existing_row["null_high"],
+                    "clears_positive": existing_row["clears_positive"],
+                    "clears_negative": existing_row["clears_negative"],
+                    "clears_either": existing_row["clears_either"],
+                    "direction": existing_row["direction"],
+                    "own_edge": existing_row["own_edge"],
+                    "signed_margin": existing_row["signed_margin"],
+                    "margin_fraction": existing_row["margin_fraction"],
+                }
+                continue
+
+            t0 = time.monotonic()
+            null_result = dsn.stratified_partial_null(
+                h, mknn_arr, density,
+                n_strata=n_strata, n_resamples=dsn.N_PERMUTATIONS, seed=dsn.PERMUTATION_SEED,
+                quantile_per_tail=dsn.NULL_QUANTILE_PER_TAIL,
+            )
+            t_null = time.monotonic() - t0
+
+            if null_result["observed"] != observed:
+                print(
+                    f"ERROR: d={d} S={n_strata} observed {null_result['observed']!r} differs "
+                    f"from the once-computed observed {observed!r} -- the grid must move only "
+                    "the null (D-03); the observed statistic touched the strata, which it must "
+                    "not. Halting.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+            own_edge = null_result["null_low"] if observed < 0 else null_result["null_high"]
+            signed_margin = observed - own_edge
+            band_half_width = (null_result["null_high"] - null_result["null_low"]) / 2.0
+            margin_fraction = (
+                signed_margin / band_half_width if band_half_width != 0 else None
+            )
+
+            null_results[d][n_strata] = dict(null_result)
+            null_results[d][n_strata]["own_edge"] = own_edge
+            null_results[d][n_strata]["signed_margin"] = signed_margin
+            null_results[d][n_strata]["margin_fraction"] = margin_fraction
+
+            print(
+                f"  [d={d} S={n_strata}] wallclock={t_null:.3f}s  "
+                f"null_mean={null_result['null_mean']!r}  null_low={null_result['null_low']!r}  "
+                f"null_high={null_result['null_high']!r}  clears_either={null_result['clears_either']}  "
+                f"own_edge={own_edge!r}  signed_margin={signed_margin!r}  "
+                f"margin_fraction={margin_fraction!r}"
+            )
+
+            row = {
+                "row_kind": "null_grid",
+                "d": d,
+                "n_strata": n_strata,
+                "observed": observed,
+                "null_mean": null_result["null_mean"],
+                "null_std": null_result["null_std"],
+                "null_low": null_result["null_low"],
+                "null_high": null_result["null_high"],
+                "stratum_size_min": null_result["stratum_size_min"],
+                "stratum_size_max": null_result["stratum_size_max"],
+                "clears_positive": null_result["clears_positive"],
+                "clears_negative": null_result["clears_negative"],
+                "clears_either": null_result["clears_either"],
+                "direction": null_result["direction"],
+                "own_edge": own_edge,
+                "signed_margin": signed_margin,
+                "margin_fraction": margin_fraction,
+                "n_permutations": dsn.N_PERMUTATIONS,
+                "permutation_seed": dsn.PERMUTATION_SEED,
+                "preregistration_commit": preregistration_commit,
+                "run_commit": run_commit,
+            }
+            append_record_row(row, record_path)
+
+    # --- Bias diagnostic: null_mean vs S, printed BEFORE any clearance verdict (RESEARCH Open
+    # Question 1) --------------------------------------------------------------------------
+    print(f"\n{'=' * 78}")
+    print("NULL-MEAN-vs-S DIAGNOSTIC (07.1-RESEARCH.md Pitfall 1 / Open Question 1) -- printed")
+    print("BEFORE any clearance verdict.")
+    print(f"{'=' * 78}")
+    print(
+        f"  recomputed density p05={density_p05:.4e}  p50={density_p50:.4e}  "
+        f"p95={density_p95:.4e}  ratio(p95/p05)={density_ratio:.4e}"
+    )
+
+    warning_by_d: Dict[str, str] = {}
+    null_mean_table: Dict[str, Dict[str, Any]] = {}
+    for d in dsn.D_SWEEP:
+        print(f"\n  d={d}  (observed={observed_by_d[d]!r})")
+        null_mean_table[str(d)] = {}
+        clears_by_s = {}
+        for n_strata in dsn.STRATA_GRID:
+            r = null_results[d].get(n_strata)
+            if r is None:
+                print(f"    S={n_strata}  (not available this run)")
+                continue
+            print(
+                f"    S={n_strata:>3}  null_mean={r['null_mean']:.6f}  null_std={r['null_std']:.6f}  "
+                f"clears_either={r['clears_either']}"
+            )
+            null_mean_table[str(d)][str(n_strata)] = {
+                "null_mean": r["null_mean"], "null_std": r["null_std"],
+                "clears_either": r["clears_either"],
+            }
+            clears_by_s[n_strata] = r["clears_either"]
+
+        warning = "none"
+        if 10 in clears_by_s and 50 in clears_by_s:
+            if clears_by_s[10] and not clears_by_s[50]:
+                warning = (
+                    "BIAS SIGNATURE (clears at S=10, not S=50) -- 07.1-RESEARCH.md Pitfall 1's "
+                    "positive null-mean bias, liberal on the negative tail"
+                )
+            elif clears_by_s[50] and not clears_by_s[10]:
+                warning = (
+                    "TIGHTNESS MECHANISM (clears at S=50, not S=10) -- D-02's stated "
+                    "finer-strata-narrows-the-band mechanism"
+                )
+        warning_by_d[str(d)] = warning
+        print(f"    warning sign: {warning}")
+
+    if not has_null_mean_vs_strata:
+        diag_row = {
+            "row_kind": "null_mean_vs_strata",
+            "density_p05": density_p05,
+            "density_p50": density_p50,
+            "density_p95": density_p95,
+            "density_ratio_p95_p05": density_ratio,
+            "null_mean_by_d_s": null_mean_table,
+            "warning_by_d": warning_by_d,
+            "preregistration_commit": preregistration_commit,
+            "run_commit": run_commit,
+        }
+        append_record_row(diag_row, record_path)
+
+    # --- D7.1-01 verdict: headline S only (D-02) --------------------------------------------
+    positive_control_summary = _read_positive_control_summary(record_path, preregistration_commit)
+    positive_control_cleared_at = positive_control_summary.get("smallest_cleared_target_negative")
+
+    per_d_results = {}
+    print(
+        f"\n{'=' * 78}\nPER-d CLEARANCE TABLE (N_STRATA_HEADLINE={dsn.N_STRATA_HEADLINE}, "
+        f"D-15: printed unconditionally, whichever verdict fires)\n{'=' * 78}"
+    )
+    for d in dsn.D_SWEEP:
+        r = null_results[d].get(dsn.N_STRATA_HEADLINE)
+        if r is None:
+            raise RuntimeError(
+                f"run_null: no headline S={dsn.N_STRATA_HEADLINE} result available for d={d} -- "
+                "cannot build the verdict's clearance mapping."
+            )
+        per_d_results[d] = bool(r["clears_either"])
+        print(
+            f"  d={d:>2}  observed={observed_by_d[d]!r}  own_edge={r['own_edge']!r}  "
+            f"signed_margin={r['signed_margin']!r}  margin_fraction={r['margin_fraction']!r}  "
+            f"clears_either={r['clears_either']}"
+        )
+
+    verdict = dsn.apply_partial_verdict(per_d_results, positive_control_cleared_at)
+    print(f"\nD7.1-01 VERDICT: {verdict}")
+    print(f"positive_control_cleared_at (negative direction): {positive_control_cleared_at}")
+
+    if not has_verdict:
+        verdict_row = {
+            "row_kind": "verdict",
+            "verdict": verdict,
+            "per_d_results": {str(d): v for d, v in per_d_results.items()},
+            "positive_control_cleared_at": positive_control_cleared_at,
+            "n_strata_headline": dsn.N_STRATA_HEADLINE,
+            "partial_verdict_rule_first_line": dsn.PARTIAL_VERDICT_RULE.splitlines()[0],
+            "preregistration_commit": preregistration_commit,
+            "run_commit": run_commit,
+        }
+        append_record_row(verdict_row, record_path)
+
+    print(f"\nrecord: {record_path}")
+    return verdict
+
+
 def selfcheck() -> bool:
     """No PU training, no permutation loop over full-scale data. Unlike Phase 7's selfcheck
     (pure in-memory only), this ALSO checks that the frozen artifacts this runner depends on
@@ -518,7 +833,7 @@ def selfcheck() -> bool:
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
-        "--mode", choices=["smoke", "selfcheck", "positive-control"], default="smoke"
+        "--mode", choices=["smoke", "selfcheck", "positive-control", "null"], default="smoke"
     )
     p.add_argument("--selfcheck", action="store_true")
     p.add_argument("--record-path", type=str, default=None)
@@ -555,6 +870,10 @@ def main() -> None:
 
     if args.mode == "positive-control":
         run_positive_control(args)
+        return
+
+    if args.mode == "null":
+        run_null(args)
         return
 
     run_smoke(args)
