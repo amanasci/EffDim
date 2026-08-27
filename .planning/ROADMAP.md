@@ -1061,7 +1061,7 @@ verdict rule. Phase 7's CR-01/CR-02/CR-03 runner guards were hardened in-phase (
 remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in here.
 **Requirements**: D7.1-01, D7.1-02
 **Depends on:** Phase 7
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1075,7 +1075,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07.1-04-PLAN.md — D7.1-01: the direction-matched positive control, the 3-d x 3-S null grid with its null-mean bias diagnostic, and the verdict (D-02, D-03, D-04)
+- [x] 07.1-04-PLAN.md — D7.1-01: the direction-matched positive control, the 3-d x 3-S null grid with its null-mean bias diagnostic, and the verdict (D-02, D-03, D-04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
