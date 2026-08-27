@@ -1061,7 +1061,7 @@ verdict rule. Phase 7's CR-01/CR-02/CR-03 runner guards were hardened in-phase (
 remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in here.
 **Requirements**: D7.1-01, D7.1-02
 **Depends on:** Phase 7
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1071,7 +1071,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07.1-03-PLAN.md — Tracer: the whole D7.1-01 path end to end at d=20 on real PU data, plus the null-routine test group (D-01, D-05, D-06, D-07)
+- [x] 07.1-03-PLAN.md — Tracer: the whole D7.1-01 path end to end at d=20 on real PU data, plus the null-routine test group (D-01, D-05, D-06, D-07)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
