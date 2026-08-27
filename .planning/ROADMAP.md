@@ -1087,11 +1087,22 @@ Plans:
 
 ### Phase 8: Curvature-Conditioned CKA Alignment
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 7
-**Plans:** 0 plans
+**Goal:** Add CKA as a second alignment probe and test whether Phase 7's curvature–MKNN association
+is MKNN-specific: split points by `||H||` magnitude into density-matched, equal-n subsets within
+density strata, compute unbiased-HSIC CKA on each, and test the tertile-3-minus-tertile-1 difference
+against a density-stratified permutation null — with a validation ladder and a frozen unconditional
+reporting block beside every verdict.
+**Requirements**: D8-01..D8-24 (`08-CONTEXT.md`'s locked decisions are this phase's de-facto
+requirement set — `REQUIREMENTS.md` maps no `REQ-` IDs to Phase 8, the same arrangement Phase 7 used
+with `07-CONTEXT.md` §3)
+**Depends on:** Phase 7, Phase 07.1
+**Plans:** 6 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 8 to break down)
+- [ ] 08-01-PLAN.md — Tracer: unbiased-HSIC CKA estimator end to end on synthetic pairs, D8-16's invariance ladder, every constant UNSET
+- [ ] 08-02-PLAN.md — Within-stratum tertile split, tertile-difference panel, label-permutation null, and the verdict/seed rules
+- [ ] 08-03-PLAN.md — D8-23 import-purity test, runner production data layer, and the D8-03 global sigma measurement
+- [ ] 08-04-PLAN.md — The D8-22 freeze: ratify every constant at a blocking checkpoint, then one commit fills all 45
+- [ ] 08-05-PLAN.md — Real-data run: planted-effect ladder, shuffled-`||H||` calibration, then the 18-cell sweep
+- [ ] 08-06-PLAN.md — Reporting notebook and `08-FINDINGS.md` with D8-21's frozen block and caveat-bearing verdict
