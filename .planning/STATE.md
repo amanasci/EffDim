@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 02.3
+current_phase: 07.1
 current_phase_name: INSERTED, proposed — not yet planned
 status: planning
-stopped_at: Completed 07-05-PLAN.md (phase 07 complete)
-last_updated: "2026-08-27T00:26:35.958Z"
+stopped_at: Phase 07.1 context gathered
+last_updated: "2026-08-27T02:46:41.993Z"
 last_activity: 2026-08-26
-last_activity_desc: Phase 07 complete, transitioned to Phase 02.3
+last_activity_desc: Phase 07 complete; 07.1 inserted after Phase 7
 progress:
   total_phases: 15
   completed_phases: 11
@@ -712,12 +712,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-26T21:29:16.099Z
-Stopped at: Completed 07-05-PLAN.md (phase 07 complete)
+Last session: 2026-08-27T02:46:41.937Z
+Stopped at: Phase 07.1 context gathered
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: None
+Resume file: .planning/phases/07.1-density-stratified-null-and-seed-stability/07.1-CONTEXT.md
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them
