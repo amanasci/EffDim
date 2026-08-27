@@ -7,6 +7,7 @@ requires: STRICT ancestry, not merely ``--is-ancestor``, which a commit satisfie
 
 Loads no PU data, trains nothing, reads no cache. Completes in well under 10 seconds.
 """
+import glob
 import subprocess
 import sys
 from pathlib import Path
@@ -687,6 +688,122 @@ def test_density_diagnostics_never_reaches_apply_verdict():
     params = list(inspect.signature(cc.apply_verdict).parameters)
     assert len(params) == 2
     assert not any("density" in p.lower() for p in params)
+
+
+# =============================================================================================
+# Plan 07.1-02, Task 2 -- WR-01 (07-REVIEW.md): finite/constant guards on density_diagnostics,
+# mirroring curvature_probe.permutation_null's guard clause order and message style. The
+# no-op-proof test (D-18) DEMONSTRATES the guards do not fire on Phase 7's REAL d=20/25/32
+# arrays -- it protects 07.1's own future call sites, and says nothing about the frozen
+# 07_crossmodal_curvature.jsonl's provenance, because run_dsweep (the function that produced
+# that record) never calls density_diagnostics at all (07.1-RESEARCH.md Pitfall 2).
+# =============================================================================================
+
+
+def _repo_root_for_cache() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+_PHASE7_FIELDS_NPZ = _repo_root_for_cache() / "notebooks" / ".cache" / "07_crossmodal_curvature_fields.npz"
+
+
+def _load_real_legacysurvey_ambient():
+    """The SAME subsample `load_pu_pair` (07_crossmodal_curvature_run.py) resolves -- the
+    `subsample_*.npz` carrying both `cc.PU_COLUMN_A`/`cc.PU_COLUMN_B` with the most rows, tie
+    broken lexicographically first. Reimplements only the glob-and-select, never the runner
+    module itself, so this file does not gain a torch import (the runner imports torch at
+    module scope)."""
+    cache_dir = _repo_root_for_cache() / "notebooks" / ".cache"
+    cands = sorted(glob.glob(str(cache_dir / "subsample_*.npz")))
+    best, best_n = None, -1
+    for c in cands:
+        with np.load(c) as z:
+            if (
+                cc.PU_COLUMN_A in z.files
+                and cc.PU_COLUMN_B in z.files
+                and z[cc.PU_COLUMN_A].shape[0] > best_n
+            ):
+                best, best_n = c, z[cc.PU_COLUMN_A].shape[0]
+    if best is None:
+        return None, None
+    with np.load(best) as z:
+        X_hsc = np.asarray(z[cc.PU_COLUMN_A], dtype=np.float64)
+        X_ls = np.asarray(z[cc.PU_COLUMN_B], dtype=np.float64)
+    return X_hsc, X_ls
+
+
+def test_density_diagnostics_guard_rejects_nonfinite_h():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = h.copy()
+    h[0] = np.nan
+    with pytest.raises(ValueError, match="density_diagnostics.*h"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+def test_density_diagnostics_guard_rejects_nonfinite_m():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    m = m.copy()
+    m[0] = np.inf
+    with pytest.raises(ValueError, match="density_diagnostics.*m"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+def test_density_diagnostics_guard_rejects_constant_h():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = np.full_like(h, 3.0)
+    with pytest.raises(ValueError, match="density_diagnostics.*h"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+def test_density_diagnostics_guard_rejects_constant_m():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    m = np.full_like(m, -1.0)
+    with pytest.raises(ValueError, match="density_diagnostics.*m"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+def test_density_diagnostics_guard_rejects_length_mismatch():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = h[:-1]
+    with pytest.raises(ValueError, match="density_diagnostics"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+def test_density_diagnostics_guard_does_not_fire_on_phase7_arrays():
+    """D-18 no-op proof (WR-01): calls density_diagnostics directly on Phase 7's REAL,
+    reloaded d=20/25/32 h_norm arrays (from the frozen fields npz) and the real ambient
+    embeddings/MKNN they were computed alongside. Proves the new guards do not fire on data
+    Phase 7 actually produced -- protects future call sites (07.1's own module reuses this
+    logic at far higher volume). Says NOTHING about the frozen jsonl's provenance: the sealed
+    run_dsweep production path never calls density_diagnostics (07.1-RESEARCH.md Pitfall 2), so
+    this is not a retroactive validation of that record. Skips (not fails) if either gitignored
+    cache artifact is absent, e.g. on a fresh clone."""
+    if not _PHASE7_FIELDS_NPZ.exists():
+        pytest.skip(f"{_PHASE7_FIELDS_NPZ} not present (gitignored) -- no-op proof needs it")
+    X_hsc, X_ls = _load_real_legacysurvey_ambient()
+    if X_hsc is None:
+        pytest.skip("no cached subsample_*.npz carries both PU_COLUMN_A/PU_COLUMN_B")
+
+    m = cc.per_point_mknn(X_hsc, X_ls, cc.HEADLINE_K)
+
+    with np.load(_PHASE7_FIELDS_NPZ) as z:
+        for d in (20, 25, 32):
+            h_norm = np.asarray(z[f"h_norm_{d}"], dtype=np.float64)
+            result = cc.density_diagnostics(
+                X_ls, h_norm, m, X_hsc, X_ls, cc.HEADLINE_K, cc.DENSITY_K, cc.DENSITY_FIELD_D
+            )
+            assert all(isinstance(v, float) for v in result.values()), d
+            assert all(np.isfinite(v) for v in result.values()), d
 
 
 # =============================================================================================

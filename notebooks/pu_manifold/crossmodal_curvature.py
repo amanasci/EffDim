@@ -696,6 +696,25 @@ def density_diagnostics(
     h_arr = np.asarray(h, dtype=np.float64).ravel()
     m_arr = np.asarray(m, dtype=np.float64).ravel()
 
+    # WR-01 (07-REVIEW.md): mirrors curvature_probe.permutation_null's guard clause order and
+    # message style -- non-finite on h, non-finite on m, length mismatch, then constant checks
+    # on each. Protects 07.1's own future call sites (this diagnostic is exercised thousands of
+    # times per permutation there); the sealed run_dsweep production path never calls this
+    # function at all, so this guard says nothing about the frozen jsonl's provenance.
+    if not np.all(np.isfinite(h_arr)):
+        raise ValueError("density_diagnostics: h contains a non-finite value.")
+    if not np.all(np.isfinite(m_arr)):
+        raise ValueError("density_diagnostics: m contains a non-finite value.")
+    if h_arr.shape[0] != m_arr.shape[0]:
+        raise ValueError(
+            f"density_diagnostics: h (len={h_arr.shape[0]}) and m (len={m_arr.shape[0]}) "
+            "have different lengths."
+        )
+    if np.ptp(h_arr) == 0:
+        raise ValueError("density_diagnostics: h is constant.")
+    if np.ptp(m_arr) == 0:
+        raise ValueError("density_diagnostics: m is constant.")
+
     # local_density_weights returns the per-point INVERSE local density mean-normalized to 1,
     # so 1/w is the relative density; using w directly would flip the sign of every statistic
     # below and break comparability with Phase 4's measured spearman(density, ||H||) = -0.0273.
