@@ -382,6 +382,88 @@ def run_smoke(args: argparse.Namespace) -> str:
     return "smoke tracer complete"
 
 
+def run_positive_control(args: argparse.Namespace) -> str:
+    """D-04's positive control for the stratified null (07.1-04, Task 1): plants a controlled
+    relationship on PU's own realized ``d=20`` ``||H||`` field and measures whether the
+    stratified null recovers it, in both directions, across the frozen target grid. Calls
+    ``dsn.assert_preregistered()`` first, then ``_strict_ancestor_or_exit(args.freeze_commit)``
+    BEFORE touching any field or writing any row -- the CR-02 ordering ``c92260f`` hardened into
+    Phase 7's runner for exactly this reason. Reloads ``h_norm_20`` and the recomputed MKNN and
+    density, runs ``dsn.plant_positive_control_partial`` across
+    ``POSITIVE_CONTROL_TARGET_RHOS`` x ``POSITIVE_CONTROL_DIRECTIONS``, prints one line per
+    cell, and appends one ``row_kind: "positive_control"`` row per cell plus a
+    ``row_kind: "positive_control_summary"`` row carrying the smallest cleared target per
+    direction (``None`` when nothing cleared in that direction).
+    """
+    dsn.assert_preregistered()
+    _strict_ancestor_or_exit(args.freeze_commit)
+
+    mknn_arr, density, X_hsc, X_ls, subsample_file = recompute_mknn_and_density()
+    h = load_frozen_field(20)
+    print(f"\n[load_frozen_field] d=20, {h.shape[0]} points loaded.")
+
+    print(
+        f"\nPOSITIVE CONTROL (partial statistic): {h.shape[0]} points, "
+        f"HEADLINE_K={cc.HEADLINE_K}, targets={dsn.POSITIVE_CONTROL_TARGET_RHOS}, "
+        f"directions={dsn.POSITIVE_CONTROL_DIRECTIONS}, seed={dsn.POSITIVE_CONTROL_SEED}, "
+        f"N_STRATA_HEADLINE={dsn.N_STRATA_HEADLINE}, N_PERMUTATIONS={dsn.N_PERMUTATIONS}.\n"
+    )
+
+    t0 = time.monotonic()
+    results = dsn.plant_positive_control_partial(
+        h, mknn_arr, density, cc.HEADLINE_K,
+        dsn.POSITIVE_CONTROL_TARGET_RHOS, dsn.POSITIVE_CONTROL_DIRECTIONS,
+        dsn.POSITIVE_CONTROL_SEED,
+        n_strata=dsn.N_STRATA_HEADLINE, n_resamples=dsn.N_PERMUTATIONS,
+        quantile_per_tail=dsn.NULL_QUANTILE_PER_TAIL,
+    )
+    print(f"[plant_positive_control_partial] wallclock={time.monotonic() - t0:.2f}s "
+          f"for {len(results)} cells")
+
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path)
+
+    for result in results:
+        row: Dict[str, Any] = dict(result)
+        row["row_kind"] = "positive_control"
+        row["preregistration_commit"] = preregistration_commit
+        row["run_commit"] = run_commit
+        append_record_row(row, record_path)
+        print(
+            f"  target_rho={result['target_rho']:.3f}  direction={result['direction']:>8}  "
+            f"achieved_rho={result['achieved_rho']:.4f}  slope={result['slope']:.4f}  "
+            f"bracket_exhausted={result['bracket_exhausted']}  "
+            f"clears_either={result['clears_either']}"
+        )
+
+    smallest_positive = dsn.smallest_cleared_target(results, "positive")
+    smallest_negative = dsn.smallest_cleared_target(results, "negative")
+
+    summary_row = {
+        "row_kind": "positive_control_summary",
+        "smallest_cleared_target_positive": smallest_positive,
+        "smallest_cleared_target_negative": smallest_negative,
+        "preregistration_commit": preregistration_commit,
+        "run_commit": run_commit,
+    }
+    append_record_row(summary_row, record_path)
+
+    print(f"\nsmallest_cleared_target (positive direction): {smallest_positive}")
+    print(f"smallest_cleared_target (negative direction):  {smallest_negative}")
+    if smallest_negative is None:
+        print(
+            "\nEvery residual this phase adjudicates is negative -- the positive control "
+            "recovered NOTHING in the NEGATIVE direction across the pre-registered grid. D7.1-01's "
+            "verdict is forced to UNDERPOWERED -- NO CLAIM if no d clears at N_STRATA_HEADLINE "
+            "(PARTIAL_VERDICT_RULE); no non-detection reading may be reported without this power "
+            "argument."
+        )
+
+    print(f"\nrecord: {record_path}")
+    return f"positive-control complete: negative={smallest_negative} positive={smallest_positive}"
+
+
 def selfcheck() -> bool:
     """No PU training, no permutation loop over full-scale data. Unlike Phase 7's selfcheck
     (pure in-memory only), this ALSO checks that the frozen artifacts this runner depends on
@@ -435,7 +517,9 @@ def selfcheck() -> bool:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--mode", choices=["smoke", "selfcheck"], default="smoke")
+    p.add_argument(
+        "--mode", choices=["smoke", "selfcheck", "positive-control"], default="smoke"
+    )
     p.add_argument("--selfcheck", action="store_true")
     p.add_argument("--record-path", type=str, default=None)
     p.add_argument("--threads", type=int, default=8)
@@ -468,6 +552,10 @@ def main() -> None:
     if args.selfcheck or args.mode == "selfcheck":
         ok = selfcheck()
         sys.exit(0 if ok else 1)
+
+    if args.mode == "positive-control":
+        run_positive_control(args)
+        return
 
     run_smoke(args)
 

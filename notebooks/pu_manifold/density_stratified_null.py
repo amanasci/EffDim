@@ -651,3 +651,163 @@ def stratified_partial_null(
         "clears_either": clears_either,
         "direction": direction,
     }
+
+
+# =============================================================================================
+# Compute functions (plan 07.1-04, Task 1): the stratified null's own positive control (D-04).
+# Extends crossmodal_curvature.plant_positive_control's bisection mechanism unchanged -- the
+# planting draw (_planted_array) and the distinct-value count (_relative_precision_distinct_
+# count) are REUSED from Phase 7's sealed module, never reimplemented; only the achieved
+# statistic and the null construction change, per POSITIVE_CONTROL_RULE.
+# =============================================================================================
+
+from typing import List  # noqa: E402
+
+from . import crossmodal_curvature as cc  # noqa: E402
+
+
+def plant_positive_control_partial(
+    h_real: Any,
+    m_real: Any,
+    density: Any,
+    k: int,
+    target_rhos: Any,
+    directions: Any,
+    seed: int,
+    n_strata: int,
+    n_resamples: int,
+    quantile_per_tail: float,
+) -> List[Dict[str, Any]]:
+    """D-04's positive control, extended to target ``partial_rho_density_controlled`` and
+    calibrated against :func:`stratified_partial_null` instead of Phase 7's global-pairing
+    permutation null (``POSITIVE_CONTROL_RULE``).
+
+    The planting mechanism is REUSED, not rewritten: every draw goes through
+    ``crossmodal_curvature._planted_array`` and every distinct-value count through
+    ``crossmodal_curvature._relative_precision_distinct_count``. The bisection loop keeps
+    ``plant_positive_control``'s exact shape -- ``low, high = 0.0, 2.0``, 40 halvings,
+    ``slope = high`` at the end, one final draw, the achieved value recorded verbatim, never
+    silently substituted for the target. Two things change from ``plant_positive_control``, and
+    only two: the achieved statistic is
+    ``cross_split_curvature.partial_spearman(h_eff, planted, controls=density)`` instead of a
+    raw Spearman, and the null read off the final planted array is
+    :func:`stratified_partial_null` instead of Phase 7's ``two_tailed_permutation_null``.
+
+    ``directions`` (``POSITIVE_CONTROL_DIRECTIONS``) selects ``h_eff`` per entry: ``"positive"``
+    uses ``h_real`` unchanged, ``"negative"`` uses ``-h_real`` -- the exact mirror
+    :func:`stratified_partial_null`'s own odd-under-negation identity already licenses. Planting
+    is on the RAW RANK of ``h_eff`` (RESEARCH Open Question 2's minimal-change resolution):
+    ``u = (rankdata(h_eff) - 0.5) / n`` is recomputed fresh for each direction, since
+    ``rankdata`` of a negated array is not guaranteed identical to the reversed rank of the
+    original under scipy's average-rank tie handling -- recomputing is the assumption-free
+    choice.
+
+    ``m_real`` is accepted for call-site symmetry with the runner's natural ``(h, m, density)``
+    triple and is checked for shape only -- it plays NO role in the planting or the
+    achieved-statistic computation, mirroring ``plant_positive_control``'s own signature, which
+    needs only ``h_real``: the planted array substitutes for ``m`` entirely, so a real ``m`` is
+    never consulted by the search.
+
+    A target the ``[0.0, 2.0]`` bracket cannot reach is recorded with its realized
+    ``achieved_rho`` and ``bracket_exhausted=True`` -- detected because ``high`` starts at
+    exactly ``2.0`` and is only ever reassigned to a strictly smaller ``mid`` value, so
+    ``high == 2.0`` after the loop means it was never reassigned, i.e. the achieved statistic
+    never reached ``target_rho`` even at the top of the bracket. It is not retried at a widened
+    bracket and it is not dropped.
+
+    Guards, before any bisection starts: ``h_real`` non-finite or constant raises
+    ``ValueError`` (mirrors ``plant_positive_control``'s own guard); a shape mismatch between
+    ``h_real`` and ``m_real``, or ``h_real`` shorter than ``k + 2``, also raise.
+
+    Returns one dict per ``(target_rho, direction)`` pair, in ``target_rhos`` (outer) x
+    ``directions`` (inner) order, each carrying ``target_rho``, ``direction``, ``slope``,
+    ``achieved_rho``, ``n_distinct``, ``bracket_exhausted``, ``null_low``, ``null_high``,
+    ``null_mean``, ``clears_either``, ``n_strata``, ``n_resamples``, ``seed``.
+    """
+    h = np.asarray(h_real, dtype=np.float64).ravel()
+    m_check = np.asarray(m_real, dtype=np.float64).ravel()
+    density_arr = np.asarray(density, dtype=np.float64).ravel()
+
+    if not np.all(np.isfinite(h)):
+        raise ValueError("plant_positive_control_partial: h_real contains a non-finite value.")
+    if np.ptp(h) == 0:
+        raise ValueError(
+            "plant_positive_control_partial: h_real is constant (np.ptp(h_real) == 0)."
+        )
+    if m_check.shape[0] != h.shape[0]:
+        raise ValueError(
+            f"plant_positive_control_partial: m_real has {m_check.shape[0]} rows, h_real has "
+            f"{h.shape[0]} rows -- must match."
+        )
+    if h.shape[0] < k + 2:
+        raise ValueError(
+            f"plant_positive_control_partial: h_real has {h.shape[0]} rows, fewer than "
+            f"k + 2 = {k + 2}."
+        )
+
+    n = h.shape[0]
+    results: List[Dict[str, Any]] = []
+
+    for target_rho in target_rhos:
+        for direction in directions:
+            h_eff = h if direction == "positive" else -h
+            u = (rankdata(h_eff) - 0.5) / n
+
+            low, high = 0.0, 2.0
+            for _ in range(40):
+                mid = (low + high) / 2.0
+                mid_planted = cc._planted_array(u, k, mid, seed)
+                mid_achieved = cross_split_curvature.partial_spearman(
+                    h_eff, mid_planted, controls=density_arr
+                )
+                if mid_achieved < target_rho:
+                    low = mid
+                else:
+                    high = mid
+
+            slope = high
+            bracket_exhausted = bool(high == 2.0)
+            planted = cc._planted_array(u, k, slope, seed)
+            achieved_rho = float(
+                cross_split_curvature.partial_spearman(h_eff, planted, controls=density_arr)
+            )
+            n_distinct = cc._relative_precision_distinct_count(planted)
+
+            null_result = stratified_partial_null(
+                h_eff, planted, density_arr,
+                n_strata=n_strata, n_resamples=n_resamples, seed=seed,
+                quantile_per_tail=quantile_per_tail,
+            )
+
+            results.append(
+                {
+                    "target_rho": float(target_rho),
+                    "direction": direction,
+                    "slope": float(slope),
+                    "achieved_rho": achieved_rho,
+                    "n_distinct": n_distinct,
+                    "bracket_exhausted": bracket_exhausted,
+                    "null_low": null_result["null_low"],
+                    "null_high": null_result["null_high"],
+                    "null_mean": null_result["null_mean"],
+                    "clears_either": null_result["clears_either"],
+                    "n_strata": int(n_strata),
+                    "n_resamples": int(n_resamples),
+                    "seed": int(seed),
+                }
+            )
+
+    return results
+
+
+def smallest_cleared_target(results: Any, direction: str) -> Any:
+    """The smallest-magnitude ``target_rho`` among ``results`` (as returned by
+    :func:`plant_positive_control_partial`) whose ``direction`` matches ``direction`` and whose
+    ``clears_either`` is ``True``, or ``None`` if nothing cleared in that direction.
+    ``plant_positive_control_partial`` iterates ``target_rhos`` in strictly increasing order
+    (outer loop) nested inside ``directions`` order (inner loop), so filtering by ``direction``
+    preserves ``target_rho`` order and this is simply the first matching entry, not a sort."""
+    for result in results:
+        if result["direction"] == direction and result["clears_either"]:
+            return result["target_rho"]
+    return None
