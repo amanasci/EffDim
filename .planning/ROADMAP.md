@@ -1032,3 +1032,37 @@ Plans:
 **Cross-cutting constraints:**
 
 - Importing crossmodal_curvature never mutates module-level state in any sealed module (no monkeypatching, no attribute assignment onto mknn / cae / decoder_curvature / curvature_probe / cross_split_curvature), regardless of import order.
+
+### Phase 07.1: Density-Stratified Null and Seed Stability (INSERTED)
+
+**Goal:** Settle whether Phase 7's curvature-MKNN association survives its density confound, and
+whether the one cell that does is seed-stable. Phase 7 returned `ASSOCIATION DETECTED` with
+`partial_rho_density_controlled` collapsing ~78% of the raw association at `d=20` and ~49% at
+`d=25` — and with that residual judged against a threshold built for the **raw** statistic,
+because the partial has no pre-registered null of its own.
+
+**Two deliverables:**
+
+- **D7.1-01 — a density-stratified null for the partial.** Permute MKNN *within* density strata so
+  the null preserves density structure and breaks only the curvature link, giving
+  `partial_rho_density_controlled` a legitimate threshold instead of borrowing the raw statistic's.
+  Reuses the frozen `07_crossmodal_curvature_fields.npz` — no decoder retraining. Decides whether
+  the `d=20` (-0.02419) and `d=32` (-0.02172) residuals, both sitting within ~20% of the ≈0.0205
+  null-band edge, are real.
+
+- **D7.1-02 — seed stability at `d=25`.** `d=25` is the only cell whose density-controlled residual
+  (-0.06583, ~3.2x the null-band edge) clears with room. Phase 7 ran
+  `SEED_HANDLING_RULE = "single_seed_across_d_sweep"`, an accepted limitation inherited from Phase
+  5's measured seed instability. Three seeds at `d=25` alone (~2h, versus ~7h for the full 3x3
+  grid) tests whether that one surviving result holds.
+
+**Carries forward from Phase 7:** the freeze-before-compute discipline (D7-06) and the mechanical
+verdict rule. Phase 7's CR-01/CR-02/CR-03 runner guards were hardened in-phase (`c92260f`); the
+remaining review debt (WR-01, WR-02, WR-04) is unclaimed and may be folded in here.
+**Requirements**: D7.1-01, D7.1-02
+**Depends on:** Phase 7
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.1 to break down)

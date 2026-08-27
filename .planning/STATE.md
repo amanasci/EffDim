@@ -6,11 +6,11 @@ current_phase: 02.3
 current_phase_name: INSERTED, proposed — not yet planned
 status: planning
 stopped_at: Completed 07-05-PLAN.md (phase 07 complete)
-last_updated: "2026-08-26T22:44:24.701Z"
+last_updated: "2026-08-27T00:26:35.958Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 07 complete, transitioned to Phase 02.3
 progress:
-  total_phases: 14
+  total_phases: 15
   completed_phases: 11
   total_plans: 98
   completed_plans: 92
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 07 — curvature-conditioned-crossmodal-alignment
+**Current focus:** Phase 07.1 — density-stratified-null-and-seed-stability
 
 ## Current Position
 
-Phase: 02.3 — Chart Auto-Encoder Iteration (INSERTED, proposed — not yet planned)
+Phase: 07.1 — Density-Stratified Null and Seed Stability (INSERTED, not yet planned)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-26 — Phase 07 complete, transitioned to Phase 02.3
+Last activity: 2026-08-26 — Phase 07 complete; 07.1 inserted after Phase 7
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
@@ -692,6 +692,7 @@ From `TODO.md`:
 - Phase 6 added: Point-Cloud Curvature-Conditioned Linear Decodability — re-runs the Phase 5 probe with ONLY the curvature field changed, from the three CAE decoder-side `||H||` fields to Phase 4's sealed density-corrected `centroid_mean_curvature` field at `K_FROZEN = 500` (`04_region_partition.npz['h_norm']`). Motivated by three sealed facts: Phase 4 already uses the point-cloud estimator while Phase 5 reverted to the decoder; the three decoder fields are mutually anti-correlated on rank (`-0.1402`, `+0.2019`, `-0.2725`) and directionally orthogonal (median cosine `0.0007`-`0.0039`); and running both fields over the same held-out residuals closes D4-08's twice-declined cross-estimator agreement check. Added autonomously 2026-08-24 at the developer's standing instruction; no verdict is reopened.
 - Phase 6 executed and complete 2026-08-24, autonomously: verdict `NO DETECTABLE RELATIONSHIP`, failing on criterion (a) alone (tertile CIs overlap by 0.000914) with (b) and (c) holding, and the bucket pattern NOT monotone. Protocol inheritance verified exact -- `mean_residual_overall = 0.06642936194948156`, byte-identical to Phase 5's, so both phases scored the same 3,000 residuals and the outcome is instrument-dependent. **D4-08 closed with a negative answer**: the point-cloud and decoder fields correlate at `-0.0875` / `+0.0487` / `-0.1177` -- all below |0.12| and sign-inconsistent, so they are not two measurements of one quantity. One freeze defect found and amended (`R2_MULTIOUTPUT`, 06-PREREGISTRATION-AMENDMENT-01). TWO ITEMS AWAIT DEVELOPER REVIEW, see 06-VERIFICATION.md section 4 -- chiefly a text/implementation discrepancy in criterion (c) of the VERDICT_RULE, immaterial to every verdict on the record but reaching Phase 5's SEALED rule text, so not fixed autonomously.
 - Phase 7 added 2026-08-25: Curvature-Conditioned Crossmodal Alignment. Answers the milestone's actual research question -- does PU curvature explain the weak crossmodal convergence in arXiv:2509.19453 -- which NO existing phase does (Phases 5/6 bucketed ridge residual, but the paper's probe is MKNN; Phase 4 used MKNN but on a direction axis +0.8208 correlated with density). Headline statistic is per-point `spearman(||H||_i, MKNN_i)` over 10,000 points, not tertile buckets. **All planning evidence is embedded in `07-CONTEXT.md`**, which is self-contained by design. Key measured facts: the plain-AE decoder is validated against analytic truth at d=20 (rho +0.53 to +0.99 -- quote the RANGE); reconstruction does NOT predict rho; PU's reconstruction is DIMENSION-limited with no plateau through d=48, so D7-01 sweeps d in {20,25,32}; PU beta_1 = 0 measured with validated controls at n=400 and n=800; curvature computation costs 1457s at d=20 and scales as D*d^2.
+- Phase 07.1 inserted after Phase 7: Density-stratified null for the curvature-MKNN density partial, plus seed stability at d=25 (URGENT)
 
 ## Gate Overrides
 
