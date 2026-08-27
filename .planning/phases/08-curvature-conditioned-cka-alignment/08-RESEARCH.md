@@ -905,9 +905,18 @@ recommendations under the "Claude's Discretion" heading of `08-CONTEXT.md`, not 
 decisions (D8-01..D8-24), which are treated as ratified fact per the mandatory-initial-read
 provenance rule and are not re-litigated here.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All three were decided during planning on 2026-08-27. Resolutions are recorded below and in the
+> deciding plan's `<discretion_decisions>` block; nothing here is still open.
+
 
 1. **Exact `S`-grid values and whether the `d=25` seed axis crosses every `S` or only a headline `S`.**
+   - **RESOLVED (08-02 `<discretion_decisions>`):** `S_GRID = (10, 20, 50)`, and the `d=25` seed axis
+     runs at **all three** `S` values, not a headline `S` — 18 cells. **This departs from the
+     recommendation below, deliberately:** D8-09 leaves *no* headline `S` (clearance is required at
+     every grid point), so a seed verdict taken at a single `S` would be un-evaluable under the
+     phase's own verdict rule. The cost model absorbs 18 cells comfortably.
    - What we know: 07.1 used `(10, 20, 50)`; D8-08 does not mandate reuse; `S` trades density-match
      tightness against realized `||H||` contrast, not sample size.
    - What's unclear: whether the planner should run the full cross product (3 d-values-with-one-
@@ -922,6 +931,9 @@ provenance rule and are not re-litigated here.
      unanimity rule already requires all three seeds to agree at whatever `S` they're checked at.
 
 2. **Whether `cka.py`'s tertile-split logic belongs in the estimator module or a sibling module.**
+   - **RESOLVED (08-01 `<discretion_decisions>`):** one `cka.py`, per the recommendation and
+     CLAUDE.md's "KEEP THINGS SIMPLE FIRST". The wave decomposition gained nothing from a hard
+     module boundary.
    - What we know: the estimator itself (Gram matrices, unbiased HSIC, CKA composition) is reusable
      and unit-testable in complete isolation from any PU-specific splitting logic; the split logic
      depends on `density_stratified_null.density_strata` and PU-specific field files.
@@ -934,6 +946,8 @@ provenance rule and are not re-litigated here.
      wave dependency cleaner).
 
 3. **Whether the shuffled-`||H||` calibration (D8-19) needs its own frozen `N_REPEATS` constant value
+   - **RESOLVED (08-04 `<discretion_decisions>`):** `N_REPEATS = 30` is a **frozen pre-registered
+     constant** inside the D8-22 freeze commit, not a CLI flag — per the recommendation.
    pre-registered alongside `N_PERMUTATIONS`, or can be left as a runner `--n-repeats` CLI flag.**
    - What we know: every other significance-bearing constant in this codebase (permutation count,
      seed, quantile) is a frozen pre-registered constant, never a CLI-supplied runtime value, per

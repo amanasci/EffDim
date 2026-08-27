@@ -1099,10 +1099,23 @@ with `07-CONTEXT.md` §3)
 **Plans:** 6 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 08-01-PLAN.md — Tracer: unbiased-HSIC CKA estimator end to end on synthetic pairs, D8-16's invariance ladder, every constant UNSET
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 08-02-PLAN.md — Within-stratum tertile split, tertile-difference panel, label-permutation null, and the verdict/seed rules
 - [ ] 08-03-PLAN.md — D8-23 import-purity test, runner production data layer, and the D8-03 global sigma measurement
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 08-04-PLAN.md — The D8-22 freeze: ratify every constant at a blocking checkpoint, then one commit fills all 45
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 08-05-PLAN.md — Real-data run: planted-effect ladder, shuffled-`||H||` calibration, then the 18-cell sweep
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 08-06-PLAN.md — Reporting notebook and `08-FINDINGS.md` with D8-21's frozen block and caveat-bearing verdict
