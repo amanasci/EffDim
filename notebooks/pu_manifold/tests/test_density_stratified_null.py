@@ -12,15 +12,21 @@ later without a guard entry must fail this suite), the git-ancestry proof
 (``test_freeze_commit_is_a_strict_ancestor_of_head``), and the two verdict functions' exact-key
 and structural-non-gating checks (D-14/D-15/D-16).
 """
+import glob
+import importlib.util
 import inspect
+import json
 import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from pu_manifold import cache  # noqa: E402
+from pu_manifold import cross_split_curvature  # noqa: E402
 from pu_manifold import density_stratified_null as dsn  # noqa: E402
 
 
@@ -266,3 +272,314 @@ def test_apply_seed_verdict_is_key_order_invariant():
     verdict_b = dsn.apply_seed_verdict(mapping_b, 0.02)
     verdict_c = dsn.apply_seed_verdict(mapping_c, 0.02)
     assert verdict_a == verdict_b == verdict_c == "SPLIT ACROSS SEEDS"
+
+
+# ================================================================================================
+# Plan 07.1-03, Task 2: density_strata / stratified_partial_null correctness, calibration, and
+# guard tests. Everything above this section belongs to 07.1-01's freeze-guard/verdict suite.
+# ================================================================================================
+
+_RUNNER_071_PATH = (
+    Path(__file__).resolve().parents[2] / "diagnostics" / "07.1_density_stratified_null_run.py"
+)
+
+
+@pytest.fixture(scope="module")
+def runner_071():
+    """Loads the 07.1 runner script as a module by file path -- it is not a package member (it
+    lives under `notebooks/diagnostics/`, a sibling directory to `notebooks/pu_manifold/`).
+    Matches `test_crossmodal_curvature_run.py`'s existing `runner` fixture pattern rather than
+    inventing a second one. Module-level code only sets thread-related env vars and imports
+    (pure numpy, no torch); it does not run `main()` (guarded by `if __name__ == "__main__"`),
+    so import has no side effects beyond that."""
+    spec = importlib.util.spec_from_file_location(
+        "density_stratified_null_run_under_test", _RUNNER_071_PATH
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _frozen_artifacts_available() -> bool:
+    fields_path = cache.cache_path("07_crossmodal_curvature_fields", "npz")
+    record_path = cache.cache_path("07_crossmodal_curvature", "jsonl")
+    subsample_cands = glob.glob(str(cache.CACHE_DIR / "subsample_*.npz"))
+    return fields_path.exists() and record_path.exists() and len(subsample_cands) > 0
+
+
+# --- rank-permutation equivariance (licenses the precompute-ranks-once optimization) -----------
+
+
+def test_rank_permutation_equivariance():
+    from scipy.stats import rankdata
+
+    rng = np.random.default_rng(20260827)
+    x = rng.normal(size=200)
+    # deliberate ties, so the equivariance is proven under scipy's average-rank tie handling,
+    # not only on a tie-free array.
+    x[:20] = x[0]
+    x[20:40] = x[20]
+    perm = rng.permutation(200)
+    assert np.array_equal(rankdata(x)[perm], rankdata(x[perm]))
+
+
+# --- odd-under-negation identity (licenses reading both tails off ONE null) --------------------
+
+
+def test_partial_spearman_is_exactly_odd_under_negation():
+    rng = np.random.default_rng(20260827)
+    n = 300
+    density = rng.lognormal(mean=0.0, sigma=1.0, size=n)
+    h = rng.normal(size=n) + 0.1 * np.log(density)
+    m = rng.normal(size=n) + 0.1 * np.log(density)
+    positive = cross_split_curvature.partial_spearman(h, m, controls=density)
+    negative = cross_split_curvature.partial_spearman(-h, m, controls=density)
+    assert np.isclose(negative, -positive, atol=1e-12)
+
+
+# --- D-07: recomputed partial reproduces Phase 7's frozen record at all three d ----------------
+
+
+@pytest.mark.skipif(
+    not _frozen_artifacts_available(),
+    reason="frozen Phase 7 cache artifacts (fields npz / record jsonl / subsample npz) are "
+    "absent in this checkout -- they are gitignored per CLAUDE.md and not always present.",
+)
+def test_recomputed_partial_matches_frozen_record(runner_071):
+    mknn_arr, density, X_hsc, X_ls, subsample_file = runner_071.recompute_mknn_and_density()
+
+    record_path = cache.cache_path("07_crossmodal_curvature", "jsonl")
+    frozen_by_d = {}
+    with record_path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if row.get("row_kind") == "sweep":
+                frozen_by_d[row["d"]] = row["partial_rho_density_controlled"]
+    assert set(frozen_by_d.keys()) == {20, 25, 32}
+
+    for d, frozen_value in frozen_by_d.items():
+        h = runner_071.load_frozen_field(d)
+        recomputed = cross_split_curvature.partial_spearman(h, mknn_arr, controls=density)
+        assert np.isclose(
+            recomputed, frozen_value,
+            rtol=dsn.PARTIAL_REFERENCE_RTOL, atol=dsn.PARTIAL_REFERENCE_ATOL,
+        ), f"d={d}: recomputed {recomputed!r} vs frozen record {frozen_value!r}"
+        assert np.isclose(
+            recomputed, dsn.FROZEN_PARTIAL_REFERENCE[d],
+            rtol=dsn.PARTIAL_REFERENCE_RTOL, atol=dsn.PARTIAL_REFERENCE_ATOL,
+        ), f"d={d}: recomputed {recomputed!r} vs dsn.FROZEN_PARTIAL_REFERENCE {dsn.FROZEN_PARTIAL_REFERENCE[d]!r}"
+
+
+# --- density_strata: equal-count contract, tie separation, and the 3-point floor ---------------
+
+
+def test_density_strata_are_equal_count():
+    rng = np.random.default_rng(20260827)
+
+    density = rng.uniform(size=10000)
+    strata = dsn.density_strata(density, 20)
+    counts = np.bincount(strata)
+    assert len(counts) == 20
+    assert np.all(counts == 500)
+
+    density_remainder = rng.uniform(size=10007)
+    strata_remainder = dsn.density_strata(density_remainder, 20)
+    counts_remainder = np.bincount(strata_remainder)
+    assert len(counts_remainder) == 20
+    assert np.all(counts_remainder[:19] == 500)
+    assert counts_remainder[19] == 507
+
+
+def test_density_strata_separate_tied_densities():
+    n = 1000
+    n_strata = 10
+    # A 350-point tie block (density == 0) followed by a 650-point tie block (density == 1).
+    # 350 is not a multiple of the bin size (100), so the first tie block straddles the
+    # stratum-3 boundary.
+    density = np.concatenate([np.zeros(350), np.ones(650)])
+    strata = dsn.density_strata(density, n_strata)
+
+    counts = np.bincount(strata)
+    assert len(counts) == n_strata
+    assert np.all(counts == 100)  # the declared per-stratum counts hold even under heavy ties
+
+    stratum_3_mask = strata == 3
+    stratum_3_densities = set(np.unique(density[stratum_3_mask]))
+    assert stratum_3_densities == {0.0, 1.0}, (
+        "the density==0 tie block must be separated across strata by index-order position, "
+        "not merged entirely into strata 0-2"
+    )
+    assert set(np.unique(strata[density == 0.0])) == {0, 1, 2, 3}
+
+
+def test_density_strata_raises_below_the_three_point_floor():
+    density = np.arange(20, dtype=np.float64)  # 20 // 10 == 2 < 3
+    with pytest.raises(ValueError) as excinfo:
+        dsn.density_strata(density, 10)
+    assert "3-point floor" in str(excinfo.value)
+
+
+# --- stratified_partial_null: input guards ------------------------------------------------------
+
+
+def _valid_null_fixture(n=300):
+    rng = np.random.default_rng(20260827)
+    density = rng.lognormal(mean=0.0, sigma=1.0, size=n)
+    h = rng.normal(size=n)
+    m = rng.normal(size=n)
+    return h, m, density
+
+
+@pytest.mark.parametrize(
+    "which,expected_substr",
+    [("h", "h contains"), ("m", "m contains"), ("density", "density contains")],
+)
+def test_stratified_null_rejects_nonfinite_input(which, expected_substr):
+    h, m, density = _valid_null_fixture()
+    arrs = {"h": h.copy(), "m": m.copy(), "density": density.copy()}
+    arrs[which][0] = np.nan
+    with pytest.raises(ValueError) as excinfo:
+        dsn.stratified_partial_null(
+            arrs["h"], arrs["m"], arrs["density"],
+            n_strata=5, n_resamples=10, seed=1, quantile_per_tail=0.975,
+        )
+    msg = str(excinfo.value)
+    assert msg.startswith("stratified_partial_null: ")
+    assert expected_substr in msg
+
+
+@pytest.mark.parametrize("which,expected_substr", [("h", "h is constant"), ("m", "m is constant")])
+def test_stratified_null_rejects_constant_input(which, expected_substr):
+    h, m, density = _valid_null_fixture()
+    arrs = {"h": h.copy(), "m": m.copy()}
+    arrs[which][:] = 1.0
+    with pytest.raises(ValueError) as excinfo:
+        dsn.stratified_partial_null(
+            arrs["h"], arrs["m"], density,
+            n_strata=5, n_resamples=10, seed=1, quantile_per_tail=0.975,
+        )
+    msg = str(excinfo.value)
+    assert msg.startswith("stratified_partial_null: ")
+    assert expected_substr in msg
+
+
+def test_stratified_null_rejects_length_mismatch():
+    h, m, density = _valid_null_fixture(n=300)
+    m_short = m[:299]
+    with pytest.raises(ValueError) as excinfo:
+        dsn.stratified_partial_null(
+            h, m_short, density,
+            n_strata=5, n_resamples=10, seed=1, quantile_per_tail=0.975,
+        )
+    msg = str(excinfo.value)
+    assert msg.startswith("stratified_partial_null: ")
+
+
+# --- stratified_partial_null: reproducibility and strict clearance -----------------------------
+
+
+def test_stratified_null_is_reproducible_under_a_fixed_seed():
+    h, m, density = _valid_null_fixture(n=600)
+    kwargs = dict(n_strata=6, n_resamples=200, seed=42, quantile_per_tail=0.975)
+    r1 = dsn.stratified_partial_null(h, m, density, **kwargs)
+    r2 = dsn.stratified_partial_null(h, m, density, **kwargs)
+    assert r1["null_mean"] == r2["null_mean"]
+    assert r1["null_std"] == r2["null_std"]
+    assert r1["null_low"] == r2["null_low"]
+    assert r1["null_high"] == r2["null_high"]
+
+
+def test_clearance_is_strict_at_the_band_edge():
+    """Forces observed == null_low == null_high EXACTLY, rather than hoping for a lucky
+    coincidence: h and m are STRATA-WISE CONSTANT (every point within a stratum carries the
+    same value, differing only across strata). Permuting positions among tied rank values
+    within a stratum leaves the rank vector byte-identical, so every resample's null value
+    equals the observed statistic exactly -- the same deterministic residual-Pearson algebra
+    both go through. This exercises the strict '>' / '<' clearance boundary directly."""
+    n = 500
+    n_strata = 5
+    rng = np.random.default_rng(20260827)
+    density = rng.lognormal(mean=0.0, sigma=1.0, size=n)
+    strata = dsn.density_strata(density, n_strata)
+    h = strata.astype(np.float64) + 1.0
+    m = (n_strata - strata).astype(np.float64)
+
+    result = dsn.stratified_partial_null(
+        h, m, density, n_strata=n_strata, n_resamples=50, seed=7, quantile_per_tail=0.975
+    )
+    assert result["null_std"] == 0.0
+    assert result["observed"] == result["null_low"] == result["null_high"]
+    assert result["clears_positive"] is False
+    assert result["clears_negative"] is False
+    assert result["clears_either"] is False
+    assert result["direction"] == "neither"
+
+
+# --- D7.1-01's calibration backstop: a true-null fixture should not over-reject ------------------
+
+
+def _true_null_draw(rng, n, sigma):
+    """A genuine true-null draw: h and m are each a deterministic function of density plus
+    independent noise, so h and m are conditionally independent given density -- exactly what
+    the stratified null is meant not to reject. Mirrors 07.1-RESEARCH.md's calibration fixture
+    shape (a lognormal density confound driving both variables)."""
+    density = rng.lognormal(mean=0.0, sigma=sigma, size=n)
+    log_density = np.log(density)
+    h = 0.6 * log_density + rng.normal(scale=1.0, size=n)
+    m = 0.6 * log_density + rng.normal(scale=1.0, size=n)
+    return h, m, density
+
+
+def test_null_calibration_on_true_null_fixture():
+    """On a true-null fixture carrying a real density confound, the restricted permutation
+    should not reject much more often than its nominal per-tail rate
+    (1 - NULL_QUANTILE_PER_TAIL = 0.025) at N_STRATA_HEADLINE-scale (S=20) stratification.
+    07.1-RESEARCH.md's Pitfall 1 measured this SAME mechanism over-rejecting the NEGATIVE tail
+    at coarse S (~6.3% at S=10 on a similarly-shaped fixture, this session's own reproduction);
+    this test exercises the headline-scale S=20 regime, where the same mechanism was measured
+    well-calibrated (~1-2.5% per tail)."""
+    n_draws = 200
+    n = 2000
+    n_strata = 20
+    n_resamples = 100
+    sigma = 2.0
+    rng = np.random.default_rng(20260827)
+
+    n_clears_positive = 0
+    n_clears_negative = 0
+    for _ in range(n_draws):
+        h, m, density = _true_null_draw(rng, n, sigma)
+        result = dsn.stratified_partial_null(
+            h, m, density, n_strata=n_strata, n_resamples=n_resamples,
+            seed=int(rng.integers(0, 2**31 - 1)), quantile_per_tail=dsn.NULL_QUANTILE_PER_TAIL,
+        )
+        n_clears_positive += int(result["clears_positive"])
+        n_clears_negative += int(result["clears_negative"])
+
+    rate_positive = n_clears_positive / n_draws
+    rate_negative = n_clears_negative / n_draws
+    max_rate = 0.075  # ~3x the nominal 2.5% -- generous slack for n_draws=200 binomial noise
+    assert rate_positive <= max_rate, (
+        f"positive-tail false-clear rate {rate_positive:.4f} ({n_clears_positive}/{n_draws}) "
+        f"exceeds {max_rate} -- restricted permutation may not be calibrated at "
+        "N_STRATA_HEADLINE-scale stratification"
+    )
+    assert rate_negative <= max_rate, (
+        f"negative-tail false-clear rate {rate_negative:.4f} ({n_clears_negative}/{n_draws}) "
+        f"exceeds {max_rate} -- restricted permutation may not be calibrated at "
+        "N_STRATA_HEADLINE-scale stratification"
+    )
+
+
+# --- runner: append_record_row rejects a raw numpy value ---------------------------------------
+
+
+def test_record_row_rejects_raw_numpy(runner_071, tmp_path):
+    record_path = tmp_path / "scratch.jsonl"
+    with pytest.raises(TypeError):
+        runner_071.append_record_row({"x": np.float64(1.0)}, record_path)
+    with pytest.raises(TypeError):
+        runner_071.append_record_row({"x": np.array([1, 2, 3])}, record_path)
