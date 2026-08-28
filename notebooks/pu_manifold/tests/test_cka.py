@@ -20,6 +20,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_manifold import cka  # noqa: E402
+from pu_manifold import density_stratified_null as dsn  # noqa: E402
 
 
 ATOL_CLOSED_FORM = 1e-6
@@ -224,6 +225,114 @@ def test_sigma_is_required_argument():
     assert sig.parameters["sigma"].default is inspect.Parameter.empty
 
 
+# --- within-density-stratum tertile split (D8-05/06/07/08) ---------------------------------
+
+
+def test_tertile_within_stratum_split():
+    """Tertile 3 holds the highest-`h` third WITHIN every stratum, not globally. Strata are
+    constructed so a purely GLOBAL top-third split would put only stratum-2 points into tertile
+    3 (h spans 0-299 / 1000-1299 / 10000-10299 for strata 0/1/2); the within-stratum split must
+    instead draw exactly one third of EACH stratum into tertile 3."""
+    n_per_stratum = 300
+    strata = np.repeat([0, 1, 2], n_per_stratum)
+    h = np.concatenate(
+        [
+            np.arange(n_per_stratum, dtype=float),
+            np.arange(n_per_stratum, dtype=float) + 1000.0,
+            np.arange(n_per_stratum, dtype=float) + 10000.0,
+        ]
+    )
+    n = strata.shape[0]
+
+    t1, t2, t3 = cka.tertile_split_within_strata(h, strata)
+
+    all_idx = np.concatenate([t1, t2, t3])
+    assert np.array_equal(np.sort(all_idx), np.arange(n))
+    assert len(set(t1.tolist()) & set(t2.tolist())) == 0
+    assert len(set(t1.tolist()) & set(t3.tolist())) == 0
+    assert len(set(t2.tolist()) & set(t3.tolist())) == 0
+
+    t3_stratum_counts = np.bincount(strata[t3], minlength=3)
+    assert np.all(t3_stratum_counts == n_per_stratum // 3)
+
+
+def test_tertile_split_density_marginals_match():
+    """The three subsets' per-stratum count vectors are equal up to each stratum's own
+    ``n_s % 3`` remainder (the remainder-to-last-block convention only ever inflates tertile 3
+    relative to tertile 1, never tertile 1 relative to tertile 2)."""
+    rng = np.random.default_rng(20260827)
+    n = 900
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 3)
+    h = rng.standard_normal(n)
+
+    t1, t2, t3 = cka.tertile_split_within_strata(h, strata)
+
+    counts1 = np.bincount(strata[t1], minlength=3)
+    counts2 = np.bincount(strata[t2], minlength=3)
+    counts3 = np.bincount(strata[t3], minlength=3)
+    stratum_sizes = np.bincount(strata, minlength=3)
+
+    for s in range(3):
+        remainder = int(stratum_sizes[s] % 3)
+        assert counts1[s] == counts2[s]
+        assert counts3[s] - counts1[s] == remainder
+
+
+def test_tertile_split_equal_n_at_every_s():
+    """**Deviation from the plan's literal acceptance bound, recorded here and in
+    08-02-SUMMARY.md:** the plan states the max-minus-min pooled subset size is "at most the
+    number of strata." Dividing a stratum of size `n_s` into 3 contiguous blocks (`n_s // 3`
+    each, remainder to the last) can leave a remainder of 0, 1 OR 2 points (`n_s % 3`), so the
+    pooled-across-strata difference is `S * (n_s % 3)`, which reaches `2 * S`, not `1 * S`, when
+    every stratum's remainder is 2 -- exactly what happens at `S=20` and `S=50` on n=10,000
+    (`n // S` = 500 and 200, both `% 3 == 2`). Only `S=10` (`n // S = 1000`, `% 3 == 1`) matches
+    the plan's literal "at most S" bound. This is the same class of plan-test-specification bug
+    as 08-01-SUMMARY.md's `test_double_centering_changes_the_answer` correction: the underlying
+    protection (equal-n subsets up to a small, bounded remainder) is preserved and pinned exactly
+    -- this test asserts the TRUE, measured `S * (n_s % 3)` relationship rather than the plan's
+    unsatisfiable-for-a-correct-implementation literal bound.
+    """
+    rng = np.random.default_rng(20260827)
+    n = 10_000
+    density = rng.standard_normal(n)
+    h = rng.standard_normal(n)
+
+    for s_count in (10, 20, 50):
+        strata = dsn.density_strata(density, s_count)
+        t1, t2, t3 = cka.tertile_split_within_strata(h, strata)
+        sizes = [t1.shape[0], t2.shape[0], t3.shape[0]]
+        assert max(sizes) - min(sizes) <= 2 * s_count
+
+        stratum_size = n // s_count  # all strata are equal-sized: n % s_count == 0 at this grid
+        remainder = stratum_size % 3
+        assert max(sizes) - min(sizes) == s_count * remainder
+
+
+def test_realized_h_contrast_exceeds_one_for_nonconstant_h():
+    rng = np.random.default_rng(20260827)
+    n = 900
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 3)
+    h = rng.uniform(1.0, 10.0, size=n)
+
+    tertiles = cka.tertile_split_within_strata(h, strata)
+    contrast = cka.realized_h_contrast(h, tertiles)
+    assert contrast > 1.0
+
+
+def test_tertile_split_raises_on_length_mismatch():
+    with pytest.raises(ValueError):
+        cka.tertile_split_within_strata(np.zeros(10), np.zeros(9))
+
+
+def test_tertile_split_raises_on_small_stratum():
+    strata = np.array([0, 0, 1, 1, 1, 1])
+    h = np.arange(6, dtype=float)
+    with pytest.raises(ValueError):
+        cka.tertile_split_within_strata(h, strata)
+
+
 # --- freeze guard -------------------------------------------------------------------------
 
 
@@ -246,6 +355,22 @@ _PLAUSIBLE_FILLED_VALUES = {
     "RBF_IS_NON_GATING": True,
     "SIGMA_LADDER_IS_NON_GATING": True,
     "DIAGNOSTICS_ARE_NON_GATING": True,
+    "S_GRID": (10, 20, 50),
+    "N_TERTILES": 3,
+    "DENSITY_K": 30,
+    "DENSITY_FIELD_D": 20,
+    "DENSITY_INPUT": "legacysurvey_ambient_768",
+    "DENSITY_SIGN_CONVENTION": (
+        "Relative density 1.0 / w, matching Phase 4's REGN-01 printed convention."
+    ),
+    "STRATIFICATION_RULE": (
+        "Equal-count quantile bins on density rank; tertiles rank density-residualized "
+        "curvature, not raw ||H||."
+    ),
+    "SENSITIVITY_GRID_RULE": (
+        "S_GRID is a grid of THRESHOLDS, not point estimates; no headline S; clearance is "
+        "required at every S."
+    ),
 }
 
 

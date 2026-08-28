@@ -10,15 +10,14 @@ own. D7-05/D8-23 sealed those modules as import-never-edit, and a gating constan
 ACROSS that freeze boundary would not be covered by this module's own
 ``assert_preregistered()`` or by this phase's own git-ancestry proof.
 
-**The constants below are UNSET in this commit.** Every one of the fourteen names in
-``_REQUIRED_CONSTANTS`` is declared with its UNSET sentinel (``None`` for scalars, ``()`` for
-tuples, ``""`` for rule strings) -- ``KERNELS = ()``, and so on down the block. They are filled,
-all fourteen, in ONE later commit: Phase 8's single freeze commit (D8-22), which must be a
-strict git ancestor of every commit that computes a Phase 8 number. A later edit to any of them
-after a Phase 8 number exists anywhere in the tree is a pre-registration BREACH: the only
-remedy is a fresh freeze and a fresh run, never a silent fix (mirrors D7-06's discipline,
-carried into this phase's own constants exactly as ``density_stratified_null.py`` carried it
-into 07.1's).
+**The constants below are UNSET in this commit.** Every name in ``_REQUIRED_CONSTANTS`` is
+declared with its UNSET sentinel (``None`` for scalars, ``()`` for tuples, ``""`` for rule
+strings) -- ``KERNELS = ()``, and so on down the block. They are filled, all of them, in ONE
+later commit: Phase 8's single freeze commit (D8-22), which must be a strict git ancestor of
+every commit that computes a Phase 8 number. A later edit to any of them after a Phase 8 number
+exists anywhere in the tree is a pre-registration BREACH: the only remedy is a fresh freeze and
+a fresh run, never a silent fix (mirrors D7-06's discipline, carried into this phase's own
+constants exactly as ``density_stratified_null.py`` carried it into 07.1's).
 
 **This plan (08-01) produces NO Phase 8 number.** ``--mode selfcheck`` in the accompanying
 runner drives the estimator through D8-16's invariance ladder on synthetic pairs whose CKA
@@ -49,7 +48,7 @@ this module, so no call site that only sees a subset of the full point cloud can
 a per-subset bandwidth (D8-03's named confound).
 """
 
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -115,6 +114,51 @@ DIAGNOSTICS_ARE_NON_GATING = None
 """At the freeze: ``True`` -- the D7-03 non-gating-diagnostic pattern, carried into this phase
 for every diagnostic quantity it reports beside a verdict."""
 
+# --- 08-02 additions: the within-density-stratum tertile split (D8-05/06/07/08) --------------
+
+S_GRID = ()
+"""At the freeze: the threshold grid of stratum counts ``S`` this phase's tertile split and null
+are computed at, e.g. ``(10, 20, 50)`` -- a grid of THRESHOLDS, not a headline value (D8-08). See
+``SENSITIVITY_GRID_RULE`` below for what a reader may and may not do with it."""
+
+N_TERTILES = None
+"""At the freeze: ``3`` -- the number of ``||H||``-magnitude buckets the within-stratum split
+produces (D8-05). Not a discretion value: Phase 8's whole design is built on three tertiles."""
+
+DENSITY_K = None
+"""At the freeze: the ``k`` used by ``curvature_probe.local_density_weights`` to build the
+per-point density field this phase stratifies on -- re-declared fresh, inherited unchanged from
+``crossmodal_curvature.py``'s own ``DENSITY_K = 30`` (D8-07), never imported across the freeze
+boundary."""
+
+DENSITY_FIELD_D = None
+"""At the freeze: the ambient dimension the density field is computed at -- re-declared fresh,
+inherited unchanged from ``crossmodal_curvature.py``'s own ``DENSITY_FIELD_D = 20`` (D8-07)."""
+
+DENSITY_INPUT = ""
+"""At the freeze: which modality's embedding the density field is computed over, e.g.
+``"legacysurvey_ambient_768"`` -- re-declared fresh from ``crossmodal_curvature.py``'s own
+``DENSITY_INPUT`` (D8-07)."""
+
+DENSITY_SIGN_CONVENTION = ""
+"""At the freeze: the prose rule stating D8-07's sign convention --
+``curvature_probe.local_density_weights`` returns the per-point INVERSE density ``w``,
+mean-normalized to 1; the density used throughout this phase is the RELATIVE density
+``1.0 / w``, matching Phase 4's printed convention (``region_partition_mknn_run.py`` REGN-01) so
+Phase 4 / 7 / 07.1 / 8 density numbers stay comparable rather than needing translation."""
+
+STRATIFICATION_RULE = ""
+"""At the freeze: the prose rule naming ``density_stratified_null.density_strata``'s exact
+binning convention this phase reuses (equal-count quantile bins on density RANK, stable-sort
+tie-breaking, remainder-to-last-stratum), PLUS D8-06's semantic consequence: the tertiles this
+phase computes rank DENSITY-RESIDUALIZED CURVATURE, not raw ``||H||``."""
+
+SENSITIVITY_GRID_RULE = ""
+"""At the freeze: the prose rule stating D8-08/D8-09's grid semantics -- ``S_GRID`` is a grid of
+THRESHOLDS, not point estimates; there is NO headline ``S``; clearance is required at EVERY grid
+point; an ``S``-dependent gap is self-reporting as an artifact rather than something a reader has
+to notice."""
+
 
 _REQUIRED_CONSTANTS = (
     "KERNELS",
@@ -131,6 +175,14 @@ _REQUIRED_CONSTANTS = (
     "RBF_IS_NON_GATING",
     "SIGMA_LADDER_IS_NON_GATING",
     "DIAGNOSTICS_ARE_NON_GATING",
+    "S_GRID",
+    "N_TERTILES",
+    "DENSITY_K",
+    "DENSITY_FIELD_D",
+    "DENSITY_INPUT",
+    "DENSITY_SIGN_CONVENTION",
+    "STRATIFICATION_RULE",
+    "SENSITIVITY_GRID_RULE",
 )
 """Every gating constant this module declares, in declaration order. A constant added later
 without a guard entry here fails the parametrized rejection sweep in
@@ -280,3 +332,74 @@ def cka_on_subset(K_full: np.ndarray, L_full: np.ndarray, idx: np.ndarray) -> fl
     K_sub = K_full[np.ix_(idx, idx)]
     L_sub = L_full[np.ix_(idx, idx)]
     return cka(K_sub, L_sub)
+
+
+# =============================================================================================
+# 08-02 additions: the within-density-stratum tertile split and the realized-contrast
+# diagnostic (D8-05/06/07/08). ``strata`` is always an array already produced by
+# ``density_stratified_null.density_strata(density, S)`` at some call site upstream of these
+# functions -- imported there as a pure function only; no gating value ever crosses the freeze
+# boundary. These functions never call ``density_strata`` themselves; they only ever consume the
+# stratum-id array it produces, exactly as D8-06's split is specified to be built ON TOP of it,
+# never a reimplementation of it.
+# =============================================================================================
+
+
+def tertile_split_within_strata(
+    h: np.ndarray, strata: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """D8-06's within-density-stratum ``||H||`` tertile split.
+
+    For each unique stratum id in `strata`, rank that stratum's points by `h` using a stable
+    argsort (ascending), then cut into three contiguous rank blocks of size ``n_s // 3`` with the
+    ``n_s % 3`` remainder going to the LAST (highest-``h``) block -- the same remainder-to-last
+    convention ``density_stratified_null.density_strata`` itself uses when dividing `n` points
+    into `S` strata, so the two binning rules agree rather than each inventing their own. The
+    per-stratum blocks are pooled across strata into three global index arrays, each returned
+    sorted ascending.
+
+    Because the split is computed WITHIN each stratum independently, tertile 3 holds the
+    highest-``h`` third within every stratum, never the globally highest third -- this is what
+    makes the three returned subsets' density-stratum marginals identical by construction
+    (D8-06), up to each stratum's own ``n_s % 3`` remainder.
+
+    Raises ``ValueError`` when `h` and `strata` have different lengths, when `h` contains a
+    non-finite value, or when any stratum holds fewer than 3 points (naming the offending
+    stratum and its size) -- a stratum that small cannot support a three-way split at all.
+    """
+    h = np.asarray(h, dtype=np.float64).ravel()
+    strata = np.asarray(strata).ravel()
+    if h.shape[0] != strata.shape[0]:
+        raise ValueError(
+            f"tertile_split_within_strata: h has {h.shape[0]} entries but strata has "
+            f"{strata.shape[0]}; they must be row-aligned."
+        )
+    if not np.all(np.isfinite(h)):
+        raise ValueError("tertile_split_within_strata: h contains non-finite values.")
+
+    tertile_blocks: Tuple[list, list, list] = ([], [], [])
+    for stratum_id in np.unique(strata):
+        idx = np.where(strata == stratum_id)[0]
+        n_s = idx.shape[0]
+        if n_s < 3:
+            raise ValueError(
+                f"tertile_split_within_strata: stratum {stratum_id!r} holds {n_s} point(s), "
+                "below the 3-point floor a within-stratum tertile split requires."
+            )
+        order = idx[np.argsort(h[idx], kind="stable")]
+        bin_size = n_s // 3
+        tertile_blocks[0].append(order[:bin_size])
+        tertile_blocks[1].append(order[bin_size:2 * bin_size])
+        tertile_blocks[2].append(order[2 * bin_size:])  # remainder -> last (highest-h) block
+
+    return tuple(np.sort(np.concatenate(blocks)) for blocks in tertile_blocks)
+
+
+def realized_h_contrast(h: np.ndarray, tertiles: Tuple[np.ndarray, np.ndarray, np.ndarray]) -> float:
+    """D8-21's mandatory "realized ``||H||`` contrast per `S`" row: the tertile-3 median of `h`
+    over the tertile-1 median, strictly greater than 1.0 whenever `h` is non-constant. This is
+    the number that makes D8-18's planted effect calibratable against PU's measured ~1.5x
+    spread. Reported, never gated on."""
+    h = np.asarray(h, dtype=np.float64).ravel()
+    t1, _t2, t3 = tertiles
+    return float(np.median(h[t3]) / np.median(h[t1]))
