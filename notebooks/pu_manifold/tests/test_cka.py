@@ -5,12 +5,14 @@ loads no PU data, trains nothing, and reads nothing from `notebooks/.cache/`.
 Load-bearing tests: `test_unbiased_hsic_matches_reference` (would catch a transposed Gram or a
 mis-signed correction term), `test_double_centering_changes_the_answer` (the D8-02 centering
 trap, pinned behaviorally rather than by source grep), `test_cka_on_subset_matches_direct` (the
-Gram-matrix-once identity this phase's entire runtime budget depends on), and
+Gram-matrix-once identity this phase's entire runtime budget depends on),
 `test_assert_preregistered_rejects_unset_constant` (parametrized over every
 `cka._REQUIRED_CONSTANTS` entry -- a constant added later without a guard entry fails this
-suite).
+suite), and the freeze-ancestry proof (`test_freeze_commit_is_a_strict_ancestor_of_head`),
+added by 08-04 once the freeze commit (D8-22) existed.
 """
 import inspect
+import subprocess
 import sys
 from pathlib import Path
 
@@ -27,6 +29,46 @@ ATOL_CLOSED_FORM = 1e-6
 ATOL_INDEPENDENCE = 0.05
 RTOL_REFERENCE = 1e-12
 ATOL_DTYPE = 1e-5
+
+# D8-22's freeze commit -- the commit that filled all 45 of cka.py's pre-registered constants
+# (08-04-SUMMARY.md). Every later Phase 8 number must be a strict git descendant of this commit.
+FREEZE_COMMIT_SHA = "816863cae2209261470d1d041dcc4484a3056947"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _freeze_commit_exists() -> bool:
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{FREEZE_COMMIT_SHA}^{{commit}}"],
+        cwd=_repo_root(),
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _freeze_commit_is_strict_ancestor_of_head() -> bool:
+    """True only once at least one commit exists after the freeze commit. Immediately after the
+    freeze commit itself (HEAD == freeze commit), this is False and the strict-ancestry test
+    below is skipped rather than failed -- the freeze commit being HEAD is the expected state at
+    that moment, not a defect (mirrors `test_density_stratified_null.py`'s own precedent)."""
+    if not _freeze_commit_exists():
+        return False
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", FREEZE_COMMIT_SHA, "HEAD"],
+        cwd=_repo_root(),
+    )
+    if is_ancestor.returncode != 0:
+        return False
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{FREEZE_COMMIT_SHA}..HEAD"],
+        cwd=_repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return int(count_result.stdout.strip()) >= 1
 
 
 def _random_orthogonal(p, rng):
@@ -518,14 +560,20 @@ def test_middle_tertile_does_not_gate():
     panel = cka.tertile_gap_panel(K_full, L_full, tertiles)
 
     gap = panel["linear"]["gap"]
-    thresholds_by_s = {10: (gap - 1.0, gap + 1.0)}  # deliberately does not clear
-    result_before = cka.per_d_verdict({10: gap}, thresholds_by_s, rule="rule naming S_GRID")
+    # S_GRID is frozen to (10, 20, 50) as of the 08-04 freeze commit; per_d_verdict's coverage
+    # guard requires gaps_by_s/thresholds_by_s to cover every S in it, so this structural test
+    # (proving the middle tertile is never read) supplies the same synthetic gap at all three S
+    # values rather than the single arbitrary key it used pre-freeze.
+    gaps_by_s = {s: gap for s in cka.S_GRID}
+    thresholds_by_s = {s: (gap - 1.0, gap + 1.0) for s in cka.S_GRID}  # deliberately does not clear
+    result_before = cka.per_d_verdict(gaps_by_s, thresholds_by_s, rule="rule naming S_GRID")
 
     # Sabotage the middle tertile's reported CKA. gap = cka_t3 - cka_t1 never reads cka_t2, so
     # re-deriving gaps_by_s from the sabotaged panel -- and the resulting verdict -- must be
     # byte-identical to before the sabotage.
     panel["linear"]["cka_t2"] = float("nan")
-    result_after = cka.per_d_verdict({10: panel["linear"]["gap"]}, thresholds_by_s, rule="rule naming S_GRID")
+    gaps_by_s_after = {s: panel["linear"]["gap"] for s in cka.S_GRID}
+    result_after = cka.per_d_verdict(gaps_by_s_after, thresholds_by_s, rule="rule naming S_GRID")
 
     assert result_before == result_after
 
@@ -679,6 +727,26 @@ _PLAUSIBLE_FILLED_VALUES = {
     ),
     "D32_IS_NON_GATING": True,
     "VALIDATION_LADDER_IS_NON_GATING": True,
+    "N_REPEATS": 30,
+    "NEGATIVE_CONTROL_FIELD": "h_norm_25",
+    "PLANTED_EFFECT_GRID": (0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50),
+    "PLANTED_EFFECT_SEED": 20260827,
+    "RECORD_STEM": "08_cka_alignment",
+    "REPORTING_BLOCK_ROWS": (
+        "d32_gap",
+        "shuffled_h_false_positive_rate",
+        "planted_effect_detection_floor",
+        "realized_h_contrast_per_s",
+        "sigma_rungs",
+    ),
+    "REPORTING_BLOCK_RULE": (
+        "08-FINDINGS.md prints all five REPORTING_BLOCK_ROWS regardless of outcome, beside the "
+        "headline, never in an appendix."
+    ),
+    "VERDICT_SENTENCE_RULE": (
+        "The verdict sentence cannot be written without d=32's gap and the shuffled-||H|| "
+        "false-positive rate in the same sentence."
+    ),
 }
 
 
@@ -688,14 +756,113 @@ def test_assert_preregistered_passes_when_all_constants_set(monkeypatch):
     cka.assert_preregistered()
 
 
+# The UNSET sentinel `assert_preregistered` treats as "not filled", keyed by the value TYPE each
+# `_PLAUSIBLE_FILLED_VALUES` entry carries -- `None` has no single UNSET counterpart of its own
+# (a bare `None` already IS one of the three UNSET sentinels), so bool/int/float constants use
+# `None` as their UNSET value.
+_UNSET_SENTINEL_FOR_TYPE = {
+    tuple: (),
+    str: "",
+}
+
+
+def _unset_value_for(name: str):
+    """The UNSET sentinel matching `name`'s plausible-filled-value type: `()` for tuples, `""`
+    for strings, `None` for everything else (bool/int/float) -- the three sentinels
+    `cka.assert_preregistered`'s generic UNSET check recognizes."""
+    plausible = _PLAUSIBLE_FILLED_VALUES[name]
+    return _UNSET_SENTINEL_FOR_TYPE.get(type(plausible), None)
+
+
 @pytest.mark.parametrize("name", cka._REQUIRED_CONSTANTS)
 def test_assert_preregistered_rejects_unset_constant(name, monkeypatch):
     """For each name in `_REQUIRED_CONSTANTS`, monkeypatch every OTHER required constant to a
-    plausible filled value and leave the one under test at its real (UNSET) module value, then
-    assert `assert_preregistered()` raises `RuntimeError` naming it. This is the mechanism that
-    makes a constant added later without a guard entry fail this suite."""
+    plausible filled value, EXPLICITLY monkeypatch the one under test to its UNSET sentinel (not
+    its real, now-frozen module value -- 08-04 filled all 45 constants for real, so relying on
+    the module's own state would no longer exercise the UNSET branch), then assert
+    `assert_preregistered()` raises `RuntimeError` naming it. This is the mechanism that makes a
+    constant added later without a guard entry fail this suite."""
     for other_name, filled_value in _PLAUSIBLE_FILLED_VALUES.items():
         if other_name != name:
             monkeypatch.setattr(cka, other_name, filled_value)
+    monkeypatch.setattr(cka, name, _unset_value_for(name))
     with pytest.raises(RuntimeError, match=name):
         cka.assert_preregistered()
+
+
+# --- 08-04: the freeze commit itself, its ancestry proof, and the two exact-content guards ----
+
+
+def test_assert_preregistered_passes():
+    """After the 08-04 freeze commit, `assert_preregistered()` returns without raising against
+    the REAL, unmodified module state -- no monkeypatching. This is distinct from
+    `test_assert_preregistered_passes_when_all_constants_set` above (which proves the guard's
+    generic UNSET sweep is satisfiable in principle, using synthetic plausible values); this test
+    proves the actual frozen constants in this file satisfy it."""
+    cka.assert_preregistered()
+    assert len(cka._REQUIRED_CONSTANTS) == 45
+
+
+def test_freeze_commit_exists():
+    assert _freeze_commit_exists(), (
+        f"FREEZE_COMMIT_SHA={FREEZE_COMMIT_SHA!r} does not exist as a commit in this checkout's "
+        "history."
+    )
+
+
+@pytest.mark.skipif(
+    not _freeze_commit_is_strict_ancestor_of_head(),
+    reason=(
+        "freeze commit is not (yet) a STRICT ancestor of HEAD -- either it is absent from this "
+        "checkout's history (e.g. a shallow clone), or HEAD IS the freeze commit itself (the "
+        "expected state immediately after the freeze, before this test file's own commit "
+        "lands). 08-05 onward re-runs the same ancestry check unconditionally at the moment a "
+        "Phase 8 number is produced, which is where it actually bites."
+    ),
+)
+def test_freeze_commit_is_a_strict_ancestor_of_head():
+    """The precision requirement: a commit is its own ancestor, so `--is-ancestor` alone would
+    pass even if a Phase 8 number were produced in the freeze commit itself. `git rev-list
+    --count <freeze>..HEAD` must also be at least 1."""
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", FREEZE_COMMIT_SHA, "HEAD"],
+        cwd=_repo_root(),
+    )
+    assert is_ancestor.returncode == 0, "freeze commit is not an ancestor of HEAD at all"
+
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{FREEZE_COMMIT_SHA}..HEAD"],
+        cwd=_repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    strict_distance = int(count_result.stdout.strip())
+    assert strict_distance >= 1, (
+        "freeze commit is not a STRICT ancestor of HEAD -- HEAD IS the freeze commit "
+        "(strict_distance == 0), which would mean no number-producing commit exists yet"
+    )
+
+
+def test_seed_handling_rule_is_exact(monkeypatch):
+    """D8-15/T-08-09: `SEED_HANDLING_RULE` is guarded by EXACT STRING EQUALITY, not truthiness --
+    monkeypatching it to any OTHER non-empty string (not just an UNSET one) must still make
+    `assert_preregistered` raise, so a future edit reintroducing seed pooling under a
+    differently-worded rule string fails loudly rather than passing because the string happens
+    to be non-empty."""
+    monkeypatch.setattr(cka, "SEED_HANDLING_RULE", "pool_all_seeds_into_one_field")
+    with pytest.raises(RuntimeError, match="SEED_HANDLING_RULE"):
+        cka.assert_preregistered()
+
+
+def test_reporting_block_rows_are_complete():
+    """D8-21: `REPORTING_BLOCK_ROWS` names exactly the five required row identifiers, in order --
+    a row silently dropped by a later edit would shrink the tuple below five without necessarily
+    tripping any UNSET check."""
+    assert cka.REPORTING_BLOCK_ROWS == (
+        "d32_gap",
+        "shuffled_h_false_positive_rate",
+        "planted_effect_detection_floor",
+        "realized_h_contrast_per_s",
+        "sigma_rungs",
+    )

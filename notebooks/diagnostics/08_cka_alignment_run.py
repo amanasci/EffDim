@@ -14,12 +14,12 @@ are pre-registration INPUTS under D8-03, frozen as literals by 08-04, not Phase 
 does NOT call `cka.assert_preregistered()` for the same reason `--mode selfcheck` does not.
 
 `--mode sweep`, `--mode positive-control` and `--mode negative-control` (all 08-05) are
-production modes: each first calls `_strict_ancestor_or_exit`, which requires `--freeze-commit`
-to resolve to EXACTLY this module's own `FREEZE_COMMIT_SHA` and be a STRICT git ancestor of HEAD
-(D8-22). `FREEZE_COMMIT_SHA` is still `""` in this commit -- 08-04 is the single commit that
-wires the real SHA -- so every call to any of these three modes exits 1 today, regardless of
-what `--freeze-commit` names; their actual sweep/control logic is not yet implemented and lands
-in 08-05.
+production modes: each first calls `cka.assert_preregistered()` (refusing to run against a
+drifted or incomplete freeze) and then `_strict_ancestor_or_exit`, which requires
+`--freeze-commit` to resolve to EXACTLY this module's own `FREEZE_COMMIT_SHA` and be a STRICT
+git ancestor of HEAD (D8-22). `FREEZE_COMMIT_SHA` was wired to the real freeze commit by 08-04;
+their actual sweep/control logic is not yet implemented and lands in 08-05, so today these three
+modes pass both pre-flight checks and then exit 2 naming the plan that implements them.
 
 Usage:
     python notebooks/diagnostics/08_cka_alignment_run.py --mode selfcheck --record-path notebooks/.cache/08_scratch_tracer.jsonl
@@ -81,11 +81,12 @@ from pu_manifold import cache  # noqa: E402
 from pu_manifold import cka  # noqa: E402
 
 
-# Modes not yet implemented by any Phase 8 plan through 08-03: the plan that will implement each.
-# "sweep"/"positive-control"/"negative-control" ARE dispatched by this plan (they call
-# `_strict_ancestor_or_exit` first, per D8-22), but their actual sweep/control logic still lands
-# in 08-05 -- while `FREEZE_COMMIT_SHA` is `""`, every call to one of them exits 1 at the
-# ancestor gate before reaching any "not implemented" branch.
+# Modes not yet implemented by any Phase 8 plan through 08-04: the plan that will implement each.
+# "sweep"/"positive-control"/"negative-control" ARE dispatched by this module (they call
+# `cka.assert_preregistered()` then `_strict_ancestor_or_exit`, per D8-22), but their actual
+# sweep/control logic still lands in 08-05 -- both pre-flight checks now pass against the real
+# freeze commit, so a correctly-invoked call reaches the "not implemented" branch below instead
+# of failing at either gate.
 NOT_YET_IMPLEMENTED_MODES: Dict[str, str] = {
     "sweep": "08-05",
     "positive-control": "08-05",
@@ -94,15 +95,11 @@ NOT_YET_IMPLEMENTED_MODES: Dict[str, str] = {
 
 PRODUCTION_MODES_REQUIRING_FREEZE = ("sweep", "positive-control", "negative-control")
 
-# 08-04 wires the real freeze commit SHA (D8-22). Empty in this commit: `_strict_ancestor_or_exit`
-# below refuses EVERY `--freeze-commit` value, including a correct-looking SHA, until then.
-FREEZE_COMMIT_SHA = ""
-
-# 08-04 wires the real record stem (D8-22). Empty in this commit -- `resolve_record_path`'s
-# default branch composes `cache.cache_path(RECORD_STEM, "jsonl")` from it, but every mode this
-# plan implements (`selfcheck`, `sigma`) REQUIRES `--record-path` explicitly and never reaches
-# this default branch; it exists only so 08-05's production modes have somewhere to land.
-RECORD_STEM = ""
+# D8-22's freeze commit: the commit that filled every constant in cka.py's frozen block (37
+# constants through 08-03, plus the eight control/reporting constants born already-frozen at
+# 08-04, 45 total). Every Phase 8 number must be a STRICT git descendant of this commit --
+# `_strict_ancestor_or_exit` below enforces this exactly.
+FREEZE_COMMIT_SHA = "816863cae2209261470d1d041dcc4484a3056947"
 
 # D8-16's invariance ladder is run at these fixed literals -- declared at the call site, per the
 # plan's own instruction, NOT as pre-registered constants in `cka.py` (tolerances gate nothing;
@@ -143,11 +140,11 @@ def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
     AND a STRICT one (`git rev-list --count <freeze>..HEAD >= 1` -- a commit is its own ancestor,
     so `--is-ancestor` alone would pass even for a number produced in the freeze commit itself).
 
-    `FREEZE_COMMIT_SHA` is `""` in this commit, so `resolved_commit != FREEZE_COMMIT_SHA` is
-    true for every possible `--freeze-commit` value -- this function exits 1 unconditionally
-    until 08-04 wires the real SHA. Called by `sweep`/`positive-control`/`negative-control`
-    before any of their logic runs; `selfcheck` and `sigma` never call this -- both print a
-    banner stating they are pre-freeze exercises producing no verdict number instead.
+    `FREEZE_COMMIT_SHA` was wired to the real 08-04 freeze commit's SHA, so a correct
+    `--freeze-commit` value now passes. Called by `sweep`/`positive-control`/`negative-control`
+    SECOND, after `cka.assert_preregistered()` has already confirmed no constant is UNSET or
+    drifted; `selfcheck` and `sigma` never call either -- both print a banner stating they are
+    pre-freeze exercises producing no verdict number instead.
     """
     if not freeze_commit:
         print(
@@ -166,9 +163,7 @@ def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
         print(
             f"ERROR (D8-22): --freeze-commit {freeze_commit} (resolves to {resolved_commit}) "
             f"does not equal the known freeze commit FREEZE_COMMIT_SHA={FREEZE_COMMIT_SHA!r}. "
-            "FREEZE_COMMIT_SHA is still empty in this commit -- 08-04 is the single commit that "
-            "wires the real SHA (D8-22) -- so no --freeze-commit value can pass yet. Refusing "
-            "to stamp a Phase 8 number with the wrong preregistration_commit.",
+            "Refusing to stamp a Phase 8 number with the wrong preregistration_commit.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -202,13 +197,14 @@ def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
 
 
 def resolve_record_path(record_path_arg: Optional[str]) -> Path:
-    """Defaults to `cache.cache_path(RECORD_STEM, "jsonl")` once `RECORD_STEM` is frozen (08-04);
-    a supplied value is passed through `cache._assert_inside_cache` before it is ever opened, so
-    a traversal path raises rather than writes -- copying 07.1's `resolve_record_path` shape.
-    Every mode this plan implements (`selfcheck`, `sigma`) requires `--record-path` explicitly at
-    its own call site and never reaches this default branch."""
+    """Defaults to `cache.cache_path(cka.RECORD_STEM, "jsonl")` -- `cka.RECORD_STEM` was frozen
+    to `"08_cka_alignment"` by 08-04; a supplied value is passed through
+    `cache._assert_inside_cache` before it is ever opened, so a traversal path raises rather than
+    writes -- copying 07.1's `resolve_record_path` shape. `selfcheck` and `sigma` both require
+    `--record-path` explicitly at their own call site and never reach this default branch; it is
+    08-05's production modes that land on it."""
     if record_path_arg is None:
-        return cache.cache_path(RECORD_STEM, "jsonl")
+        return cache.cache_path(cka.RECORD_STEM, "jsonl")
     candidate = Path(record_path_arg)
     cache._assert_inside_cache(candidate)
     return candidate
@@ -698,13 +694,16 @@ def main() -> None:
     args = build_arg_parser().parse_args()
 
     if args.mode in PRODUCTION_MODES_REQUIRING_FREEZE:
-        # D8-22: every production mode calls the strict-ancestor gate FIRST. While
-        # FREEZE_COMMIT_SHA is "" (08-04 has not landed), this always exits 1 -- so the
-        # NOT_YET_IMPLEMENTED_MODES branch below is presently unreachable for these three modes,
-        # kept only for 08-05 to remove once it wires the real sweep/control logic.
+        # D8-22: every production mode calls cka.assert_preregistered() FIRST (refusing to run
+        # against an UNSET or drifted constant) and the strict-ancestor gate SECOND -- so no
+        # number can be produced by a tree whose constants drifted or whose freeze proof is
+        # missing. Both pre-flight checks now pass against the real 08-04 freeze commit; the
+        # NOT_YET_IMPLEMENTED_MODES branch below still fires because 08-05 has not yet landed
+        # sweep/positive-control/negative-control's actual logic.
+        cka.assert_preregistered()
         _strict_ancestor_or_exit(args.freeze_commit)
         print(
-            f"ERROR: --mode {args.mode} is not implemented in this plan (08-03); it lands in "
+            f"ERROR: --mode {args.mode} is not implemented yet; it lands in "
             f"plan {NOT_YET_IMPLEMENTED_MODES[args.mode]}.",
             file=sys.stderr,
         )
