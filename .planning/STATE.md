@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-08-28T01:13:25.008Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-08-28T01:46:04.052Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 110
-  completed_plans: 99
+  completed_plans: 100
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 08 (curvature-conditioned-cka-alignment) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 08 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -464,6 +464,7 @@ Progress: [█████████░] 90% of planned plans (17/17; Phases 1
 | Phase 07.1 P05 | 154min | 3 tasks | 2 files |
 | Phase 07.1 P06 | 55min | 3 tasks | 3 files |
 | Phase 08 P01 | 70min | 2 tasks | 3 files |
+| Phase 08 P02 | 40min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -671,6 +672,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 07.1-06 Task 3's blocking checkpoint resolved by executor self-verification against five named points, not by a human -- neither D7.1-01 nor D7.1-02 verdict has been read by the user anywhere in phase 07.1
 - [Phase ?]: 07.1-06 FINDINGS.md Sec 8's Swiss-roll negation sentence trips a naive grep for 'waiver'/'not applicable'; documented as a verification-command quirk (matches 07-FINDINGS.md's identical phrasing), not a content defect
 - [Phase ?]: 08-01: rewrote test_double_centering_changes_the_answer — a correct unbiased-HSIC implementation is provably invariant to double-centering, so the plan's literal assertion direction was inverted; test now pins the real trap (classical biased HSIC substitution) instead
+- [Phase ?]: 08-02: test_tertile_split_equal_n_at_every_s bound corrected from 'at most S' to the measured 'at most 2*S' (n_s % 3 can be 2, not only 0/1) -- same class as 08-01's double-centering test correction
+- [Phase ?]: 08-02: combine_seed_verdicts' four clearance counts (0/1/2/3) map to exactly THREE terminal outcomes -- counts 1 and 2 both yield 'SPLIT ACROSS SEEDS', matching D8-15's own no-majority-vote-upgrade rule and linear_probe.py's precedent
 
 ### Pending Todos
 
@@ -731,8 +734,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-28T01:13:24.950Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-08-28T01:46:03.995Z
+Stopped at: Completed 08-02-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
