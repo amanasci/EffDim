@@ -69,7 +69,7 @@ import subprocess  # noqa: E402
 import time  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
-from typing import Any, Callable, Dict, Optional, Tuple  # noqa: E402
+from typing import Any, Callable, Dict, List, Optional, Tuple  # noqa: E402
 
 NOTEBOOK_ROOT = Path(__file__).resolve().parents[1]
 if str(NOTEBOOK_ROOT) not in sys.path:
@@ -79,19 +79,15 @@ import numpy as np  # noqa: E402
 
 from pu_manifold import cache  # noqa: E402
 from pu_manifold import cka  # noqa: E402
+from pu_manifold import curvature_probe  # noqa: E402
+from pu_manifold import density_stratified_null as dsn  # noqa: E402
 
 
-# Modes not yet implemented by any Phase 8 plan through 08-04: the plan that will implement each.
-# "sweep"/"positive-control"/"negative-control" ARE dispatched by this module (they call
-# `cka.assert_preregistered()` then `_strict_ancestor_or_exit`, per D8-22), but their actual
-# sweep/control logic still lands in 08-05 -- both pre-flight checks now pass against the real
-# freeze commit, so a correctly-invoked call reaches the "not implemented" branch below instead
-# of failing at either gate.
-NOT_YET_IMPLEMENTED_MODES: Dict[str, str] = {
-    "sweep": "08-05",
-    "positive-control": "08-05",
-    "negative-control": "08-05",
-}
+# All three production modes are implemented by this plan (08-05): `run_positive_control`
+# (Task 1, D8-18), `run_negative_control` (Task 2, D8-19), `run_sweep` (Task 3, D8-09/13/15).
+# Kept as an empty dict (rather than deleted) so `main()`'s dispatch shape below does not need to
+# change if a future plan ever adds a new not-yet-implemented mode.
+NOT_YET_IMPLEMENTED_MODES: Dict[str, str] = {}
 
 PRODUCTION_MODES_REQUIRING_FREEZE = ("sweep", "positive-control", "negative-control")
 
@@ -668,6 +664,615 @@ def run_selfcheck(args: argparse.Namespace) -> bool:
     return all_passed
 
 
+# =============================================================================================
+# 08-05: the three production modes (D8-09/13/15/18/19). Every one of these calls
+# cka.assert_preregistered() then _strict_ancestor_or_exit BEFORE this point (main()'s dispatch,
+# below) -- no function in this section re-checks the freeze, matching 07.1's own runner
+# discipline (the gate is checked once, at the CLI dispatch boundary).
+#
+# MODALITY_A ("hsc") is held fixed throughout -- its Gram matrices are built once and never
+# rebuilt. MODALITY_B ("legacysurvey") is the modality D8-18's planted-effect ladder degrades;
+# it is also the modality D8-06/D8-07's density field and every D8-14 curvature field are
+# computed over (DENSITY_INPUT = "legacysurvey_ambient_768"), so a single load_pu_pair() call
+# and a single compute_density() call serve every mode below.
+# =============================================================================================
+
+MODALITY_A = "hsc"
+MODALITY_B = "legacysurvey"
+
+# D8-14: which `d` (and, for the seed axis, which TORCH_INIT_SEED) each frozen field name
+# belongs to -- re-declared here as a runner-local literal (never crossing the freeze boundary
+# into cka.py, which declares no per-field-name mapping of its own).
+FIELD_D_AND_SEED: Dict[str, Tuple[int, Optional[int]]] = {
+    "h_norm_20": (20, None),
+    "h_norm_25": (25, None),
+    "h_norm_32": (32, None),
+    "h_norm_25_seed0": (25, 0),
+    "h_norm_25_seed1": (25, 1),
+    "h_norm_25_seed2": (25, 2),
+}
+
+
+def compute_density(X_ls: np.ndarray) -> np.ndarray:
+    """D8-07: the relative density `1.0 / w` (`DENSITY_SIGN_CONVENTION`), computed ONCE per
+    process on the `legacysurvey` ambient cloud via `curvature_probe.local_density_weights` at
+    `cka.DENSITY_K` / `cka.DENSITY_FIELD_D`, and reused across every `d`, seed and `S` -- density
+    is a property of the ambient cloud and is `d`-independent (mirrors
+    `07.1_density_stratified_null_run.py`'s own `recompute_mknn_and_density`). Prints p05/p50/p95,
+    matching 07.1's own printed diagnostic."""
+    w = curvature_probe.local_density_weights(X_ls, cka.DENSITY_K, cka.DENSITY_FIELD_D)
+    density = 1.0 / w
+    print(
+        f"[compute_density] DENSITY_K={cka.DENSITY_K}  DENSITY_FIELD_D={cka.DENSITY_FIELD_D}  "
+        f"p05={np.percentile(density, 5):.4e}  p50={np.percentile(density, 50):.4e}  "
+        f"p95={np.percentile(density, 95):.4e}"
+    )
+    return density
+
+
+def _sigma_multiplier_for_kernel_name(kernel_name: str) -> Optional[float]:
+    """Inverse of `_rbf_kernel_name`: `"rbf_sigma"` -> `1.0`, `"rbf_0.5sigma"` -> `0.5`,
+    `"rbf_2sigma"` -> `2.0`; `"linear"` (or any name not produced by `_rbf_kernel_name`) -> `None`
+    -- D8-04's sigma ladder has no multiplier for the linear kernel."""
+    for multiplier in cka.SIGMA_MULTIPLIERS:
+        if _rbf_kernel_name(multiplier) == kernel_name:
+            return float(multiplier)
+    return None
+
+
+def run_cell(
+    h: np.ndarray,
+    density: np.ndarray,
+    K_full: Dict[str, np.ndarray],
+    L_full: Dict[str, np.ndarray],
+    s_strata: int,
+    n_permutations: int,
+    seed: int,
+) -> Dict[str, Any]:
+    """The unit every production mode reuses (D8-06/07/08/09/10/11): builds `density_strata(
+    density, s_strata)`, splits with `cka.tertile_split_within_strata`, computes
+    `cka.tertile_gap_panel` for every kernel present in `K_full`/`L_full` (all four kernel
+    variants in production), computes `cka.realized_h_contrast`, runs
+    `cka.stratified_tertile_label_null` over `cka.NULL_KERNELS` ONLY, and derives the two-tailed
+    thresholds via `cka.null_threshold(..., cka.NULL_QUANTILE_PER_TAIL)`.
+
+    Never rebuilds a Gram matrix and never recomputes a bandwidth -- every kernel value comes
+    from indexing into the caller's already-built `K_full`/`L_full` (via `cka.tertile_gap_panel`
+    / `cka.stratified_tertile_label_null`'s own `cka_on_subset` calls).
+
+    Returns a dict: `per_kernel` (one flat dict of plain Python scalars per kernel name in
+    `K_full`, carrying `cka_t1`/`cka_t2`/`cka_t3`/`gap`, plus `null_lo`/`null_hi`/`cleared` for
+    kernels in `cka.NULL_KERNELS` and `None` for the two non-null diagnostic rungs),
+    `realized_h_contrast`, and the three subset sizes `n_t1`/`n_t2`/`n_t3`.
+    """
+    strata = dsn.density_strata(density, s_strata)
+    tertiles = cka.tertile_split_within_strata(h, strata)
+    panel = cka.tertile_gap_panel(K_full, L_full, tertiles)
+    contrast = cka.realized_h_contrast(h, tertiles)
+    n_t1, n_t2, n_t3 = (int(t.shape[0]) for t in tertiles)
+
+    K_null = {name: K_full[name] for name in cka.NULL_KERNELS}
+    L_null = {name: L_full[name] for name in cka.NULL_KERNELS}
+    null_by_kernel = cka.stratified_tertile_label_null(
+        h, strata, K_null, L_null, n_permutations, seed
+    )
+
+    per_kernel: Dict[str, Dict[str, Any]] = {}
+    for name, values in panel.items():
+        row: Dict[str, Any] = {
+            "cka_t1": float(values["cka_t1"]),
+            "cka_t2": float(values["cka_t2"]),
+            "cka_t3": float(values["cka_t3"]),
+            "gap": float(values["gap"]),
+            "null_lo": None,
+            "null_hi": None,
+            "cleared": None,
+        }
+        if name in cka.NULL_KERNELS:
+            null_lo, null_hi = cka.null_threshold(
+                null_by_kernel[name], cka.NULL_QUANTILE_PER_TAIL
+            )
+            gap = values["gap"]
+            row["null_lo"] = float(null_lo)
+            row["null_hi"] = float(null_hi)
+            row["cleared"] = bool(gap > null_hi or gap < null_lo)
+        per_kernel[name] = row
+
+    return {
+        "per_kernel": per_kernel,
+        "realized_h_contrast": float(contrast),
+        "n_t1": n_t1,
+        "n_t2": n_t2,
+        "n_t3": n_t3,
+    }
+
+
+def plant_alignment_degradation(
+    X_b: np.ndarray, tertile_hi_idx: np.ndarray, magnitude: float, rng: np.random.Generator
+) -> np.ndarray:
+    """D8-18's graded alignment-degradation injection: returns a COPY of modality-B's matrix in
+    which a `magnitude` fraction of the rows indexed by `tertile_hi_idx` (the high-``||H||``
+    tertile) have had their crossmodal pairing destroyed by permuting those rows AMONG
+    THEMSELVES. Preserves modality-B's marginal distribution exactly (every value present before
+    is present after, just reassigned among the chosen rows) and preserves every subset size, so
+    the injected effect is an alignment degradation, never a distributional one.
+
+    `magnitude=0.0` selects zero rows and returns a byte-identical copy -- the no-injection
+    anchor (`PLANTED_EFFECT_GRID`'s first rung) that must NOT clear the null.
+    """
+    X_degraded = np.array(X_b, copy=True)
+    tertile_hi_idx = np.asarray(tertile_hi_idx)
+    n_hi = tertile_hi_idx.shape[0]
+    n_destroy = int(round(magnitude * n_hi))
+    if n_destroy >= 2:
+        destroy_idx = rng.choice(tertile_hi_idx, size=n_destroy, replace=False)
+        permuted = rng.permutation(destroy_idx)
+        X_degraded[destroy_idx] = X_b[permuted]
+    return X_degraded
+
+
+def run_positive_control(args: argparse.Namespace) -> bool:
+    """D8-18's planted-effect ladder on real PU geometry (Task 1): keeps PU's actual ``||H||``
+    field, actual density strata and actual subset sizes throughout; only the crossmodal pairing
+    of a `PLANTED_EFFECT_GRID` fraction of the high-``||H||`` tertile's rows in modality B
+    (`legacysurvey`) is destroyed. Modality A's (`hsc`) Gram matrices are built once and never
+    rebuilt; modality B's Gram matrices are rebuilt from the degraded embeddings at every
+    (`S`, magnitude) cell -- the density/`||H||`-based tertile split itself never changes, since
+    it depends only on `h` and `density`, both computed once, before any injection.
+
+    Field: `cka.NEGATIVE_CONTROL_FIELD` (`"h_norm_25"`) -- the same field the negative control
+    uses, so the two controls are read against one another without a field confound.
+
+    Reports, per `S`, the smallest magnitude (of the kernels in `cka.NULL_KERNELS`) whose gap
+    clears the null -- `detection_floor`, a power curve, not a single pass/fail. Prints the
+    decision rule BEFORE the first measured number: the `magnitude=0.0` rung is the no-injection
+    anchor and must NOT clear; if it does, this prints `POSITIVE CONTROL INVALID` (still exits 0)
+    rather than silently working around it.
+    """
+    record_path = resolve_record_path(args.record_path)
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+
+    print(
+        f"\n{'=' * 78}\n"
+        "D8-18 POSITIVE CONTROL -- DECISION RULE (stated before any measured number, per the "
+        "estimator-validation protocol):\n"
+        "  1. The magnitude=0.0 rung is the NO-INJECTION ANCHOR and must NOT clear the null at "
+        "any S. A 0.0 rung that clears invalidates this control -- it will be reported as "
+        "POSITIVE CONTROL INVALID, not worked around.\n"
+        "  2. For every other magnitude, the smallest magnitude whose gap clears its null is "
+        "reported as detection_floor, per S, per kernel in NULL_KERNELS -- a power curve, not a "
+        "single pass/fail.\n"
+        f"  PLANTED_EFFECT_GRID={cka.PLANTED_EFFECT_GRID}  S_GRID={cka.S_GRID}  "
+        f"NULL_KERNELS={cka.NULL_KERNELS}  field={cka.NEGATIVE_CONTROL_FIELD!r}\n"
+        f"{'=' * 78}\n"
+    )
+
+    X_hsc, X_ls, subsample_path = load_pu_pair(MODALITY_A, MODALITY_B)
+    fields = load_frozen_fields()
+    h = fields[cka.NEGATIVE_CONTROL_FIELD]
+    density = compute_density(X_ls)
+
+    # Modality A's own four kernel variants only -- built directly (not via build_gram_matrices,
+    # which always builds BOTH modalities together) so this mode never pays for a modality-B
+    # Gram build it would immediately discard. Modality A's Gram matrices never change for the
+    # rest of this function; only modality B's are rebuilt, once per (S, magnitude) cell, from
+    # the degraded embeddings.
+    grams_a: Dict[str, np.ndarray] = {"linear": cka.linear_gram(X_hsc, np.dtype(cka.GRAM_DTYPE))}
+    for multiplier in cka.SIGMA_MULTIPLIERS:
+        grams_a[_rbf_kernel_name(multiplier)] = cka.rbf_gram(
+            X_hsc, cka.SIGMA_HSC * multiplier, np.dtype(cka.GRAM_DTYPE)
+        )
+    sigma_b = cka.SIGMA_LEGACYSURVEY
+
+    rng = np.random.default_rng(cka.PLANTED_EFFECT_SEED)
+
+    all_valid = True
+    detection_floor_by_s: Dict[int, Dict[str, Optional[float]]] = {}
+    t_start_all = time.monotonic()
+
+    for s_strata in cka.S_GRID:
+        strata = dsn.density_strata(density, s_strata)
+        tertiles = cka.tertile_split_within_strata(h, strata)
+        tertile_hi_idx = tertiles[2]
+
+        cleared_at: Dict[str, Optional[float]] = {name: None for name in cka.NULL_KERNELS}
+        for magnitude in cka.PLANTED_EFFECT_GRID:
+            t_start = time.monotonic()
+            X_b_degraded = plant_alignment_degradation(X_ls, tertile_hi_idx, magnitude, rng)
+            grams_b_degraded = {
+                "linear": cka.linear_gram(X_b_degraded, np.dtype(cka.GRAM_DTYPE)),
+            }
+            for multiplier in cka.SIGMA_MULTIPLIERS:
+                grams_b_degraded[_rbf_kernel_name(multiplier)] = cka.rbf_gram(
+                    X_b_degraded, sigma_b * multiplier, np.dtype(cka.GRAM_DTYPE)
+                )
+
+            cell = run_cell(
+                h, density, grams_a, grams_b_degraded, s_strata, cka.N_PERMUTATIONS,
+                cka.PERMUTATION_SEED,
+            )
+            wallclock_s = time.monotonic() - t_start
+            timestamp = datetime.now(timezone.utc).isoformat()
+
+            for kernel_name, kernel_row in cell["per_kernel"].items():
+                cleared = kernel_row["cleared"]
+                if magnitude == 0.0 and cleared:
+                    all_valid = False
+                if (
+                    kernel_name in cka.NULL_KERNELS
+                    and cleared
+                    and cleared_at[kernel_name] is None
+                ):
+                    cleared_at[kernel_name] = float(magnitude)
+                row = {
+                    "mode": "positive-control",
+                    "field": cka.NEGATIVE_CONTROL_FIELD,
+                    "s_strata": int(s_strata),
+                    "kernel": kernel_name,
+                    "sigma_multiplier": _sigma_multiplier_for_kernel_name(kernel_name),
+                    "planted_magnitude": float(magnitude),
+                    "cka_t1": kernel_row["cka_t1"],
+                    "cka_t2": kernel_row["cka_t2"],
+                    "cka_t3": kernel_row["cka_t3"],
+                    "gap": kernel_row["gap"],
+                    "null_lo": kernel_row["null_lo"],
+                    "null_hi": kernel_row["null_hi"],
+                    "cleared": kernel_row["cleared"],
+                    "n_t1": cell["n_t1"],
+                    "n_t2": cell["n_t2"],
+                    "n_t3": cell["n_t3"],
+                    "realized_h_contrast": cell["realized_h_contrast"],
+                    "n_permutations": int(cka.N_PERMUTATIONS),
+                    "permutation_seed": int(cka.PERMUTATION_SEED),
+                    "preregistration_commit": preregistration_commit,
+                    "wallclock_s": float(wallclock_s),
+                    "timestamp": timestamp,
+                }
+                append_record_row(row, record_path)
+
+            print(
+                f"[positive-control] S={s_strata} magnitude={magnitude} wallclock_s="
+                f"{wallclock_s:.2f} elapsed_total_min={(time.monotonic() - t_start_all) / 60.0:.1f}"
+            )
+
+        detection_floor_by_s[s_strata] = cleared_at
+        for kernel_name, floor in cleared_at.items():
+            print(
+                f"detection_floor S={s_strata} kernel={kernel_name} value={floor} "
+                f"({'DETECTED within grid' if floor is not None else 'NOT DETECTED within PLANTED_EFFECT_GRID'})"
+            )
+            append_record_row(
+                {
+                    "mode": "positive-control",
+                    "row_kind": "detection_floor_summary",
+                    "field": cka.NEGATIVE_CONTROL_FIELD,
+                    "s_strata": int(s_strata),
+                    "kernel": kernel_name,
+                    "detection_floor": floor,
+                    "preregistration_commit": preregistration_commit,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                record_path,
+            )
+
+    if not all_valid:
+        print(
+            "\nPOSITIVE CONTROL INVALID: the magnitude=0.0 no-injection anchor cleared its null "
+            "at at least one (S, kernel) cell. This invalidates the detection-floor reading above "
+            "-- reported as such, not worked around.\n"
+        )
+    else:
+        print("\nPOSITIVE CONTROL: the magnitude=0.0 anchor did not clear at any (S, kernel) cell.\n")
+
+    print("POSITIVE CONTROL COMPLETE")
+    return True
+
+
+def shuffle_h_field(h: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """D8-19's negative control: a GLOBAL permutation of the ``||H||`` field `h` -- the marginal
+    preserved exactly, point correspondence destroyed entirely. Deliberately NOT a within-stratum
+    shuffle (that would leave the density-conditioning link partially intact): the point is to
+    break the curvature-to-point link completely and see whether the split-plus-null machinery
+    still manufactures a gap."""
+    return rng.permutation(np.asarray(h, dtype=np.float64))
+
+
+def run_negative_control(args: argparse.Namespace) -> bool:
+    """D8-19's shuffled-``||H||`` end-to-end calibration run (Task 2): for each `S` in
+    `cka.S_GRID`, runs `cka.N_REPEATS` independent repeats. Each repeat draws a global shuffle of
+    `cka.NEGATIVE_CONTROL_FIELD` from a single RNG seeded at `cka.PERMUTATION_SEED`, then runs the
+    ENTIRE pipeline (`run_cell` -- within-stratum splitting AND the full `cka.N_PERMUTATIONS`-draw
+    permutation null) exactly as the sweep will. Reports, per `S` per kernel in
+    `cka.NULL_KERNELS`, the fraction of repeats whose gap cleared its null (`false_positive_rate`)
+    beside the nominal rate implied by `cka.NULL_QUANTILE_PER_TAIL`.
+
+    `cka.N_REPEATS`, `cka.N_PERMUTATIONS` and `cka.S_GRID` are all frozen constants read directly
+    off `cka` -- there is no CLI-flag override of N_REPEATS anywhere in this function,
+    because reducing any of them after seeing an inconvenient rate is exactly the post-hoc move
+    D8-22 exists to prevent.
+    """
+    record_path = resolve_record_path(args.record_path)
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+
+    X_hsc, X_ls, subsample_path = load_pu_pair(MODALITY_A, MODALITY_B)
+    fields = load_frozen_fields()
+    h = fields[cka.NEGATIVE_CONTROL_FIELD]
+    density = compute_density(X_ls)
+
+    grams_a, grams_b = build_gram_matrices(
+        X_hsc, X_ls, cka.SIGMA_HSC, cka.SIGMA_LEGACYSURVEY, cka.SIGMA_MULTIPLIERS,
+        np.dtype(cka.GRAM_DTYPE),
+    )
+
+    rng = np.random.default_rng(cka.PERMUTATION_SEED)
+    nominal_rate = 2.0 * (1.0 - cka.NULL_QUANTILE_PER_TAIL)
+
+    print(
+        f"\n{'=' * 78}\n"
+        "D8-19 NEGATIVE CONTROL: cka.N_REPEATS repeats of the ENTIRE pipeline (within-stratum "
+        "split + full cka.N_PERMUTATIONS-draw null) per S in cka.S_GRID -- "
+        f"{cka.N_REPEATS} x {len(cka.S_GRID)} = {cka.N_REPEATS * len(cka.S_GRID)} full null "
+        "computations total. Per RESEARCH.md's cost model this was estimated at 1-2 hours; a "
+        "measured empirical timing during this plan's own execution (see 08-05-SUMMARY.md) may "
+        "differ substantially. N_REPEATS/N_PERMUTATIONS/S_GRID are frozen constants and are never "
+        "reduced here to finish faster -- if this run must be interrupted, the completed S values "
+        "are recorded and the remainder is reported as not-run, never extrapolated.\n"
+        f"nominal_two_tailed_false_positive_rate={nominal_rate}\n"
+        f"{'=' * 78}\n"
+    )
+
+    for s_strata in cka.S_GRID:
+        cleared_counts: Dict[str, int] = {name: 0 for name in cka.NULL_KERNELS}
+        t_start_s = time.monotonic()
+        for repeat_index in range(cka.N_REPEATS):
+            h_shuffled = shuffle_h_field(h, rng)
+            cell = run_cell(
+                h_shuffled, density, grams_a, grams_b, s_strata, cka.N_PERMUTATIONS,
+                cka.PERMUTATION_SEED,
+            )
+            timestamp = datetime.now(timezone.utc).isoformat()
+            for kernel_name in cka.NULL_KERNELS:
+                kernel_row = cell["per_kernel"][kernel_name]
+                if kernel_row["cleared"]:
+                    cleared_counts[kernel_name] += 1
+                append_record_row(
+                    {
+                        "mode": "negative-control",
+                        "field": cka.NEGATIVE_CONTROL_FIELD,
+                        "s_strata": int(s_strata),
+                        "kernel": kernel_name,
+                        "repeat_index": int(repeat_index),
+                        "cka_t1": kernel_row["cka_t1"],
+                        "cka_t2": kernel_row["cka_t2"],
+                        "cka_t3": kernel_row["cka_t3"],
+                        "gap": kernel_row["gap"],
+                        "null_lo": kernel_row["null_lo"],
+                        "null_hi": kernel_row["null_hi"],
+                        "cleared": kernel_row["cleared"],
+                        "n_t1": cell["n_t1"],
+                        "n_t2": cell["n_t2"],
+                        "n_t3": cell["n_t3"],
+                        "realized_h_contrast": cell["realized_h_contrast"],
+                        "n_permutations": int(cka.N_PERMUTATIONS),
+                        "permutation_seed": int(cka.PERMUTATION_SEED),
+                        "preregistration_commit": preregistration_commit,
+                        "timestamp": timestamp,
+                    },
+                    record_path,
+                )
+            elapsed_s_min = (time.monotonic() - t_start_s) / 60.0
+            print(
+                f"[negative-control] S={s_strata} repeat={repeat_index + 1}/{cka.N_REPEATS} "
+                f"elapsed_this_S_min={elapsed_s_min:.1f}"
+            )
+
+        wallclock_s_min = (time.monotonic() - t_start_s) / 60.0
+        for kernel_name in cka.NULL_KERNELS:
+            rate = cleared_counts[kernel_name] / float(cka.N_REPEATS)
+            print(
+                f"false_positive_rate S={s_strata} kernel={kernel_name} rate={rate} "
+                f"nominal={nominal_rate} n_repeats={cka.N_REPEATS} wallclock_min={wallclock_s_min:.1f}"
+            )
+            append_record_row(
+                {
+                    "mode": "negative-control",
+                    "row_kind": "summary",
+                    "field": cka.NEGATIVE_CONTROL_FIELD,
+                    "s_strata": int(s_strata),
+                    "kernel": kernel_name,
+                    "false_positive_rate": float(rate),
+                    "nominal_rate": float(nominal_rate),
+                    "n_repeats": int(cka.N_REPEATS),
+                    "preregistration_commit": preregistration_commit,
+                    "wallclock_s": float(wallclock_s_min * 60.0),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                record_path,
+            )
+
+    print("NEGATIVE CONTROL COMPLETE")
+    return True
+
+
+def run_sweep(args: argparse.Namespace) -> bool:
+    """D8-09/13/15's 18-cell sweep (Task 3): six fields (`h_norm_20`, `h_norm_25`, `h_norm_32`,
+    `h_norm_25_seed0/1/2`) crossed with `cka.S_GRID`. Reports the full four-kernel panel per cell;
+    verdicts are read off the LINEAR kernel (D8-01's headline). `per_d_verdict` is called with
+    ONLY each `d`'s own per-`S` gaps/thresholds -- a null at one `d` never voids another and no
+    pooled headline is invented (D8-13). The `d=25` seed axis calls `per_d_verdict` once per seed
+    on that seed's own three-`S` results, then combines the three with `cka.combine_seed_verdicts`
+    -- the three seed fields are never pooled into one (D8-15), proven at the top of this function
+    by a self-check that `cka.pooled_field_guard` refuses a 3-field pooling attempt.
+    """
+    record_path = resolve_record_path(args.record_path)
+    preregistration_commit = _git_rev_parse(args.freeze_commit)
+
+    seed_field_names = tuple(
+        name for name, (d, seed) in FIELD_D_AND_SEED.items() if seed is not None
+    )
+    try:
+        cka.pooled_field_guard(seed_field_names)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError(
+            "run_sweep: cka.pooled_field_guard did not raise for a 3-field pooling attempt -- "
+            "the never-pool-seeds guard (05-03-DECISION.md, D8-15) is not doing its job."
+        )
+    print(
+        "[pooled_field_guard] confirmed: pooling the three d=25 seed fields into one raises "
+        "RuntimeError -- proceeding with each seed's OWN within-stratum split and OWN verdict, "
+        "never pooled into one (D8-15).\n"
+    )
+
+    X_hsc, X_ls, subsample_path = load_pu_pair(MODALITY_A, MODALITY_B)
+    fields = load_frozen_fields()
+    density = compute_density(X_ls)
+
+    grams_a, grams_b = build_gram_matrices(
+        X_hsc, X_ls, cka.SIGMA_HSC, cka.SIGMA_LEGACYSURVEY, cka.SIGMA_MULTIPLIERS,
+        np.dtype(cka.GRAM_DTYPE),
+    )
+
+    gaps_by_field_s: Dict[str, Dict[int, float]] = {}
+    thresholds_by_field_s: Dict[str, Dict[int, Tuple[float, float]]] = {}
+
+    t_start_all = time.monotonic()
+    for field_name, (d_value, seed_value) in FIELD_D_AND_SEED.items():
+        h = fields[field_name]
+        gaps_by_s: Dict[int, float] = {}
+        thresholds_by_s: Dict[int, Tuple[float, float]] = {}
+        for s_strata in cka.S_GRID:
+            t_start = time.monotonic()
+            cell = run_cell(
+                h, density, grams_a, grams_b, s_strata, cka.N_PERMUTATIONS, cka.PERMUTATION_SEED
+            )
+            wallclock_s = time.monotonic() - t_start
+            timestamp = datetime.now(timezone.utc).isoformat()
+
+            for kernel_name, kernel_row in cell["per_kernel"].items():
+                append_record_row(
+                    {
+                        "mode": "sweep",
+                        "field": field_name,
+                        "d": int(d_value),
+                        "seed": None if seed_value is None else int(seed_value),
+                        "s_strata": int(s_strata),
+                        "kernel": kernel_name,
+                        "sigma_multiplier": _sigma_multiplier_for_kernel_name(kernel_name),
+                        "cka_t1": kernel_row["cka_t1"],
+                        "cka_t2": kernel_row["cka_t2"],
+                        "cka_t3": kernel_row["cka_t3"],
+                        "gap": kernel_row["gap"],
+                        "null_lo": kernel_row["null_lo"],
+                        "null_hi": kernel_row["null_hi"],
+                        "cleared": kernel_row["cleared"],
+                        "n_t1": cell["n_t1"],
+                        "n_t2": cell["n_t2"],
+                        "n_t3": cell["n_t3"],
+                        "realized_h_contrast": cell["realized_h_contrast"],
+                        "n_permutations": int(cka.N_PERMUTATIONS),
+                        "permutation_seed": int(cka.PERMUTATION_SEED),
+                        "preregistration_commit": preregistration_commit,
+                        "wallclock_s": float(wallclock_s),
+                        "timestamp": timestamp,
+                    },
+                    record_path,
+                )
+
+            gaps_by_s[s_strata] = cell["per_kernel"]["linear"]["gap"]
+            thresholds_by_s[s_strata] = (
+                cell["per_kernel"]["linear"]["null_lo"], cell["per_kernel"]["linear"]["null_hi"]
+            )
+            print(
+                f"[sweep] field={field_name} d={d_value} seed={seed_value} S={s_strata} "
+                f"gap={gaps_by_s[s_strata]:.6f} realized_h_contrast="
+                f"{cell['realized_h_contrast']:.6f} wallclock_s={wallclock_s:.2f} "
+                f"elapsed_total_min={(time.monotonic() - t_start_all) / 60.0:.1f}"
+            )
+
+        gaps_by_field_s[field_name] = gaps_by_s
+        thresholds_by_field_s[field_name] = thresholds_by_s
+
+    # --- per-d verdicts, independent (D8-13) -------------------------------------------------
+    per_d_verdicts: Dict[int, Dict[str, Any]] = {}
+    print("\n" + "=" * 78 + "\nPER-D TABLE (07.1's own per-d clearance table shape)\n" + "=" * 78)
+    for field_name, d_value in (("h_norm_20", 20), ("h_norm_25", 25), ("h_norm_32", 32)):
+        verdict = cka.per_d_verdict(
+            gaps_by_field_s[field_name], thresholds_by_field_s[field_name], cka.VERDICT_RULE
+        )
+        per_d_verdicts[d_value] = verdict
+        s_clearances = {s: verdict["per_s"][s]["clears"] for s in cka.S_GRID}
+        print(f"d={d_value:<3} verdict={verdict['verdict']:<20} per_S_clears={s_clearances}")
+        append_record_row(
+            {
+                "mode": "sweep",
+                "row_kind": "per_d_verdict",
+                "field": field_name,
+                "d": int(d_value),
+                "per_d_verdict": verdict["verdict"],
+                "n_s_cleared": verdict["n_s_cleared"],
+                "per_s": {
+                    str(s): {
+                        "gap": entry["gap"], "null_low": entry["null_low"],
+                        "null_high": entry["null_high"], "clears": entry["clears"],
+                    }
+                    for s, entry in verdict["per_s"].items()
+                },
+                "preregistration_commit": preregistration_commit,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            record_path,
+        )
+
+    d32_gaps = ", ".join(f"S={s}:{gaps_by_field_s['h_norm_32'][s]:.6f}" for s in cka.S_GRID)
+    print(f"\nd=32 GAP (D8-12 + D8-21, printed prominently, not only as a table row): {d32_gaps}\n")
+
+    # --- d=25 seed axis: per-seed verdicts, unanimous-or-nothing combination (D8-15) ---------
+    per_seed_verdicts: Dict[int, str] = {}
+    for field_name, seed_value in (
+        ("h_norm_25_seed0", 0), ("h_norm_25_seed1", 1), ("h_norm_25_seed2", 2)
+    ):
+        verdict = cka.per_d_verdict(
+            gaps_by_field_s[field_name], thresholds_by_field_s[field_name], cka.VERDICT_RULE
+        )
+        per_seed_verdicts[seed_value] = verdict["verdict"]
+        print(f"seed={seed_value} verdict={verdict['verdict']}")
+        append_record_row(
+            {
+                "mode": "sweep",
+                "row_kind": "per_d_verdict",
+                "field": field_name,
+                "d": 25,
+                "seed": int(seed_value),
+                "per_d_verdict": verdict["verdict"],
+                "n_s_cleared": verdict["n_s_cleared"],
+                "preregistration_commit": preregistration_commit,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            record_path,
+        )
+
+    seed_combined = cka.combine_seed_verdicts(per_seed_verdicts, cka.SEED_VERDICT_COMBINATION_RULE)
+    print(f"seed_combined_verdict={seed_combined['phase_verdict']}  (n_cleared={seed_combined['n_cleared']}/3)")
+    append_record_row(
+        {
+            "mode": "sweep",
+            "row_kind": "seed_combined_verdict",
+            "seed_combined_verdict": seed_combined["phase_verdict"],
+            "n_cleared": seed_combined["n_cleared"],
+            "n_seeds": seed_combined["n_seeds"],
+            "per_seed_verdicts": {str(k): v for k, v in seed_combined["per_seed_verdicts"].items()},
+            "preregistration_commit": preregistration_commit,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+        record_path,
+    )
+
+    print("SWEEP COMPLETE")
+    return True
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
@@ -697,17 +1302,29 @@ def main() -> None:
         # D8-22: every production mode calls cka.assert_preregistered() FIRST (refusing to run
         # against an UNSET or drifted constant) and the strict-ancestor gate SECOND -- so no
         # number can be produced by a tree whose constants drifted or whose freeze proof is
-        # missing. Both pre-flight checks now pass against the real 08-04 freeze commit; the
-        # NOT_YET_IMPLEMENTED_MODES branch below still fires because 08-05 has not yet landed
-        # sweep/positive-control/negative-control's actual logic.
+        # missing. Both pre-flight checks now pass against the real 08-04 freeze commit.
         cka.assert_preregistered()
         _strict_ancestor_or_exit(args.freeze_commit)
-        print(
-            f"ERROR: --mode {args.mode} is not implemented yet; it lands in "
-            f"plan {NOT_YET_IMPLEMENTED_MODES[args.mode]}.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+
+        if args.mode in NOT_YET_IMPLEMENTED_MODES:
+            print(
+                f"ERROR: --mode {args.mode} is not implemented yet; it lands in "
+                f"plan {NOT_YET_IMPLEMENTED_MODES[args.mode]}.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        if args.mode == "positive-control":
+            ok = run_positive_control(args)
+            sys.exit(0 if ok else 1)
+
+        if args.mode == "negative-control":
+            ok = run_negative_control(args)
+            sys.exit(0 if ok else 1)
+
+        if args.mode == "sweep":
+            ok = run_sweep(args)
+            sys.exit(0 if ok else 1)
 
     if args.mode == "selfcheck":
         ok = run_selfcheck(args)
