@@ -198,6 +198,54 @@ MIDDLE_TERTILE_IS_NON_GATING = None
 """At the freeze: ``True`` -- the middle tertile's CKA is a shape diagnostic printed beside the
 verdict and is never read by any verdict function (D8-10)."""
 
+# --- 08-02 additions: verdict rules -- clearance at every S, per-d independence, seed
+# unanimity, and the four non-gating declarations (D8-09/12/13/15, D8-20) --------------------
+
+D_SWEEP = ()
+"""At the freeze: the ``d`` values this phase's verdict sweeps, e.g. ``(20, 25, 32)`` --
+re-declared fresh from ``crossmodal_curvature.py``'s own ``D_SWEEP``, never imported across the
+freeze boundary."""
+
+SEED_FIELD_D = None
+"""At the freeze: the single ``d`` value the ``TORCH_INIT_SEEDS`` axis is measured at, e.g.
+``25`` -- the only ``d`` with three existing seed fields to reuse (D8-14); no decoder is ever
+retrained."""
+
+TORCH_INIT_SEEDS = ()
+"""At the freeze: the three decoder-initialization seeds the seed-stability verdict is measured
+across, e.g. ``(0, 1, 2)`` -- 07.1's own three existing ``d=25`` seed fields, never retrained."""
+
+VERDICT_RULE = ""
+"""At the freeze: the prose rule stating D8-09 in full -- there is NO headline ``S``; the
+verdict fires only if the gap clears its two-tailed null at EVERY point in ``S_GRID``; relaxing
+this after seeing an ``S``-dependent result is exactly the post-hoc retuning the ``k*=15`` and
+``02.2`` pre-registrations exist to prevent. Must NAME ``S_GRID`` (checked below by
+``assert_preregistered``, mirroring ``linear_probe.assert_preregistered``'s own
+``VERDICT_RULE`` / ``N_BUCKETS`` naming check)."""
+
+SEED_HANDLING_RULE = ""
+"""At the freeze: the exact ratified string ``"no_pooling_per_seed_verdicts"``, carrying
+``05-03-DECISION.md``'s one-way no-pooling constraint verbatim (D8-15). Checked by EXACT STRING
+EQUALITY below, not truthiness, mirroring ``linear_probe.py``'s own guard -- a future edit that
+assigns any other non-empty string (re-entering the pooled design ``05-03-DECISION.md``
+rejected) must fail this guard rather than pass it."""
+
+SEED_VERDICT_COMBINATION_RULE = ""
+"""At the freeze: the prose rule stating :func:`combine_seed_verdicts`' unanimous-3-of-3-or-
+nothing combination -- three clearances ``"CLEARS IN ALL THREE SEEDS"``, zero ``"NO CLEARANCE
+IN ANY SEED"``, one or two the terminal ``"SPLIT ACROSS SEEDS"`` -- never upgraded by majority
+vote (D8-15)."""
+
+D32_IS_NON_GATING = None
+"""At the freeze: ``True`` -- ``d=32`` is a REPORTED DIAGNOSTIC that gates nothing and is NOT a
+hard invalidator (D8-12); a hard-invalidator reading was offered and explicitly declined by the
+developer on 2026-08-27."""
+
+VALIDATION_LADDER_IS_NON_GATING = None
+"""At the freeze: ``True`` -- all three validation-ladder rungs (D8-16/18/19) run and are
+reported beside the verdict, and none of them gates it (D8-20); a hard-gate ordering was offered
+and explicitly declined by the developer on 2026-08-27."""
+
 
 _REQUIRED_CONSTANTS = (
     "KERNELS",
@@ -229,6 +277,14 @@ _REQUIRED_CONSTANTS = (
     "TERTILE_STATISTIC_RULE",
     "NULL_CONSTRUCTION_RULE",
     "MIDDLE_TERTILE_IS_NON_GATING",
+    "D_SWEEP",
+    "SEED_FIELD_D",
+    "TORCH_INIT_SEEDS",
+    "VERDICT_RULE",
+    "SEED_HANDLING_RULE",
+    "SEED_VERDICT_COMBINATION_RULE",
+    "D32_IS_NON_GATING",
+    "VALIDATION_LADDER_IS_NON_GATING",
 )
 """Every gating constant this module declares, in declaration order. A constant added later
 without a guard entry here fails the parametrized rejection sweep in
@@ -262,6 +318,27 @@ def assert_preregistered() -> None:
                 "Phase 8 number exists is a pre-registration breach -- the only remedy is a "
                 "fresh freeze and a fresh run."
             )
+
+    # T-08-09 (D8-15): SEED_HANDLING_RULE must equal the exact ratified value, not merely be a
+    # non-empty string, so a future edit reintroducing seed pooling under a differently worded
+    # rule string still fails loudly -- linear_probe.py's own precedent (SEED_HANDLING_RULE !=
+    # "no_pooling_per_seed_verdicts"). Reached only once the generic loop above has already
+    # confirmed SEED_HANDLING_RULE is non-empty.
+    if SEED_HANDLING_RULE != "no_pooling_per_seed_verdicts":
+        raise RuntimeError(
+            f"assert_preregistered: SEED_HANDLING_RULE={SEED_HANDLING_RULE!r} does not equal "
+            '"no_pooling_per_seed_verdicts" -- the ratified no-pooling decision '
+            "(05-03-DECISION.md, carried by D8-15)."
+        )
+
+    # T-08-10 (D8-09): VERDICT_RULE must NAME S_GRID, so a future edit relaxing the
+    # clearance-at-every-S requirement to a subset check is caught even though the string
+    # remains non-empty -- mirrors linear_probe.assert_preregistered's own VERDICT_RULE /
+    # N_BUCKETS naming check.
+    if "S_GRID" not in VERDICT_RULE:
+        raise RuntimeError(
+            f"assert_preregistered: VERDICT_RULE={VERDICT_RULE!r} does not name S_GRID."
+        )
 
 
 # =============================================================================================
@@ -557,3 +634,129 @@ def null_threshold(null_array: np.ndarray, quantile_per_tail: float) -> Tuple[fl
     low = float(np.quantile(null_array, 1.0 - quantile_per_tail))
     high = float(np.quantile(null_array, quantile_per_tail))
     return low, high
+
+
+# =============================================================================================
+# 08-02 additions: verdict rules -- clearance at every S (D8-09), independent per-d reporting
+# (D8-13), unanimous-or-nothing seed combination (D8-15), and the pooled-field guard the
+# never-pool-seeds ratification requires (05-03-DECISION.md).
+# =============================================================================================
+
+_PER_D_VERDICT_VALUES = ("CLEARS AT EVERY S", "DOES NOT CLEAR")
+"""The two terminal outcome strings :func:`per_d_verdict` can produce -- the only values
+:func:`combine_seed_verdicts` accepts as a per-seed input."""
+
+
+def per_d_verdict(gaps_by_s: Dict[Any, float], thresholds_by_s: Dict[Any, Tuple[float, float]], rule: str) -> Dict[str, Any]:
+    """D8-09's clearance-at-every-``S`` verdict, reported independently per ``d`` (D8-13) --
+    this function reads only the gap/threshold values it is handed for ONE ``d``/seed cell and
+    never touches another cell's inputs.
+
+    `gaps_by_s` maps each ``S`` in the grid to its observed ``CKA(tertile 3) - CKA(tertile 1)``
+    gap; `thresholds_by_s` maps the same ``S`` values to the ``(null_low, null_high)`` pair
+    :func:`null_threshold` returns. The middle tertile's CKA is never read here -- it is not a
+    parameter of this function at all.
+
+    Clearance at one ``S`` is two-tailed: ``gap > null_high`` OR ``gap < null_low``. The verdict
+    fires (``"CLEARS AT EVERY S"``) only when EVERY ``S`` clears; a single non-clearing ``S``
+    yields ``"DOES NOT CLEAR"`` -- there is no headline ``S`` to average over or defer to.
+
+    Raises ``RuntimeError`` when `rule` is empty -- this cannot run before the pre-registration
+    freeze, mirroring :func:`combine_seed_verdicts`'s own guard. Raises ``ValueError`` when
+    `gaps_by_s` and `thresholds_by_s` do not share exactly the same ``S`` key set, or when
+    `S_GRID` is frozen (non-empty) and either mapping is missing a value in it.
+
+    Returns a dict with ``verdict`` (the terminal outcome string), ``per_s`` (a mapping from
+    each ``S`` to its ``gap``, ``null_low``, ``null_high`` and boolean ``clears``), and
+    ``n_s_cleared`` -- so a reader can see exactly which ``S`` failed, not only the terminal
+    string.
+    """
+    if not isinstance(rule, str) or not rule.strip():
+        raise RuntimeError(
+            "per_d_verdict: rule is empty; cannot run before the pre-registration freeze."
+        )
+    if set(gaps_by_s.keys()) != set(thresholds_by_s.keys()):
+        raise ValueError(
+            f"per_d_verdict: gaps_by_s keys {sorted(gaps_by_s)} and thresholds_by_s keys "
+            f"{sorted(thresholds_by_s)} differ; both must cover exactly the same S grid."
+        )
+    if S_GRID and not set(S_GRID).issubset(gaps_by_s.keys()):
+        raise ValueError(
+            f"per_d_verdict: gaps_by_s keys {sorted(gaps_by_s)} do not cover every S in the "
+            f"frozen S_GRID={S_GRID!r}."
+        )
+
+    per_s: Dict[Any, Dict[str, Any]] = {}
+    for s_value, gap in gaps_by_s.items():
+        null_low, null_high = thresholds_by_s[s_value]
+        clears = bool(gap > null_high or gap < null_low)
+        per_s[s_value] = {
+            "gap": gap,
+            "null_low": null_low,
+            "null_high": null_high,
+            "clears": clears,
+        }
+    n_s_cleared = sum(1 for entry in per_s.values() if entry["clears"])
+    verdict = _PER_D_VERDICT_VALUES[0] if n_s_cleared == len(per_s) else _PER_D_VERDICT_VALUES[1]
+    return {"verdict": verdict, "per_s": per_s, "n_s_cleared": n_s_cleared}
+
+
+def combine_seed_verdicts(per_seed_verdicts: Dict[int, str], rule: str) -> Dict[str, Any]:
+    """D8-15's unanimous-3-of-3-or-nothing seed combination, copying ``linear_probe.py`` lines
+    831-887's shape exactly: three clearances -> ``"CLEARS IN ALL THREE SEEDS"``, zero ->
+    ``"NO CLEARANCE IN ANY SEED"``, one or two -> the terminal, non-supportive ``"SPLIT ACROSS
+    SEEDS"`` -- never upgraded by majority vote.
+
+    `per_seed_verdicts` maps seed int to that seed's :func:`per_d_verdict` terminal string, each
+    one of :data:`_PER_D_VERDICT_VALUES`. Raises ``RuntimeError`` when `rule` is empty (cannot
+    run before the freeze). Raises ``ValueError`` unless `per_seed_verdicts` holds exactly three
+    entries (naming the count actually supplied), and ``ValueError`` when any value is not a
+    member of :data:`_PER_D_VERDICT_VALUES`.
+    """
+    if not isinstance(rule, str) or not rule.strip():
+        raise RuntimeError(
+            "combine_seed_verdicts: rule is empty; cannot run before the pre-registration "
+            "freeze."
+        )
+    if not isinstance(per_seed_verdicts, dict) or len(per_seed_verdicts) != 3:
+        n_seeds = len(per_seed_verdicts) if isinstance(per_seed_verdicts, dict) else None
+        raise ValueError(
+            "combine_seed_verdicts: per_seed_verdicts must hold exactly three seeds, got "
+            f"{n_seeds if n_seeds is not None else per_seed_verdicts!r}."
+        )
+    for seed, verdict in per_seed_verdicts.items():
+        if verdict not in _PER_D_VERDICT_VALUES:
+            raise ValueError(
+                f"combine_seed_verdicts: per-seed verdict for seed {seed} is {verdict!r}, not "
+                f"one of {_PER_D_VERDICT_VALUES}."
+            )
+
+    sorted_seeds = sorted(per_seed_verdicts.keys())
+    n_cleared = sum(1 for s in sorted_seeds if per_seed_verdicts[s] == _PER_D_VERDICT_VALUES[0])
+    if n_cleared == 3:
+        phase_verdict = "CLEARS IN ALL THREE SEEDS"
+    elif n_cleared == 0:
+        phase_verdict = "NO CLEARANCE IN ANY SEED"
+    else:
+        phase_verdict = "SPLIT ACROSS SEEDS"
+
+    return {
+        "phase_verdict": phase_verdict,
+        "n_cleared": n_cleared,
+        "n_seeds": len(sorted_seeds),
+        "per_seed_verdicts": {s: per_seed_verdicts[s] for s in sorted_seeds},
+        "rule": rule,
+    }
+
+
+def pooled_field_guard(fields: Any) -> None:
+    """Raises ``RuntimeError`` naming ``05-03-DECISION.md`` and D8-15 whenever `fields` names
+    more than one seed field to be combined into a single pooled field. Seeds are NEVER pooled:
+    each seed gets its own within-stratum tertile split and its own verdict. Exists so any
+    future pooled-mode equivalent fails at the FIRST call rather than silently averaging."""
+    if len(fields) > 1:
+        raise RuntimeError(
+            "pooled_field_guard: received more than one seed field to combine into a single "
+            "pooled field. Seeds are NEVER pooled (05-03-DECISION.md, carried by D8-15) -- each "
+            "seed gets its own within-stratum tertile split and its own verdict."
+        )

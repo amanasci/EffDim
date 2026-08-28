@@ -478,6 +478,143 @@ def test_null_threshold_is_two_tailed():
     np.testing.assert_allclose(high, np.quantile(null_array, 0.975))
 
 
+# --- verdict rules: clearance at every S, per-d independence, seed unanimity (D8-09/12/13/15) -
+
+
+def test_per_d_verdict_requires_rule():
+    with pytest.raises(RuntimeError):
+        cka.per_d_verdict({10: 0.1}, {10: (-0.05, 0.05)}, rule="")
+
+
+def test_per_d_verdict_raises_on_key_mismatch():
+    with pytest.raises(ValueError):
+        cka.per_d_verdict({10: 0.1, 20: 0.1}, {10: (-0.05, 0.05)}, rule="rule naming S_GRID")
+
+
+def test_verdict_requires_clearance_at_every_s():
+    thresholds_by_s = {10: (-0.05, 0.05), 20: (-0.05, 0.05), 50: (-0.05, 0.05)}
+
+    # Two of three S values clear; the third does not -> DOES NOT CLEAR, n_s_cleared == 2.
+    gaps_two_of_three = {10: 0.2, 20: 0.2, 50: 0.01}
+    result = cka.per_d_verdict(gaps_two_of_three, thresholds_by_s, rule="rule naming S_GRID")
+    assert result["verdict"] == "DOES NOT CLEAR"
+    assert result["n_s_cleared"] == 2
+
+    # All three S clear -> CLEARS AT EVERY S.
+    gaps_all_three = {10: 0.2, 20: 0.2, 50: 0.2}
+    result_all = cka.per_d_verdict(gaps_all_three, thresholds_by_s, rule="rule naming S_GRID")
+    assert result_all["verdict"] == "CLEARS AT EVERY S"
+    assert result_all["n_s_cleared"] == 3
+
+
+def test_middle_tertile_does_not_gate():
+    rng = np.random.default_rng(20260827)
+    n = 300
+    K_full, L_full = _synthetic_grams(rng, n)
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 3)
+    h = rng.standard_normal(n)
+    tertiles = cka.tertile_split_within_strata(h, strata)
+    panel = cka.tertile_gap_panel(K_full, L_full, tertiles)
+
+    gap = panel["linear"]["gap"]
+    thresholds_by_s = {10: (gap - 1.0, gap + 1.0)}  # deliberately does not clear
+    result_before = cka.per_d_verdict({10: gap}, thresholds_by_s, rule="rule naming S_GRID")
+
+    # Sabotage the middle tertile's reported CKA. gap = cka_t3 - cka_t1 never reads cka_t2, so
+    # re-deriving gaps_by_s from the sabotaged panel -- and the resulting verdict -- must be
+    # byte-identical to before the sabotage.
+    panel["linear"]["cka_t2"] = float("nan")
+    result_after = cka.per_d_verdict({10: panel["linear"]["gap"]}, thresholds_by_s, rule="rule naming S_GRID")
+
+    assert result_before == result_after
+
+
+def test_per_d_verdicts_are_independent():
+    """A null at one d does not silently void another, and no pooled headline is invented
+    (07.1's D-14 pattern, D8-13)."""
+    thresholds_by_s = {10: (-0.05, 0.05), 20: (-0.05, 0.05), 50: (-0.05, 0.05)}
+    gaps_d20 = {10: 0.2, 20: 0.2, 50: 0.2}
+    gaps_d32 = {10: 0.0, 20: 0.0, 50: 0.0}
+    gaps_d20_before = dict(gaps_d20)
+
+    result_d32 = cka.per_d_verdict(gaps_d32, thresholds_by_s, rule="rule naming S_GRID")
+    assert gaps_d20 == gaps_d20_before  # computing d=32's verdict did not mutate d=20's inputs
+
+    result_d20 = cka.per_d_verdict(gaps_d20, thresholds_by_s, rule="rule naming S_GRID")
+    assert result_d20["verdict"] == "CLEARS AT EVERY S"
+    assert result_d32["verdict"] == "DOES NOT CLEAR"
+
+
+def test_combine_seed_verdicts_requires_exactly_three():
+    """**Deviation from the plan's literal "four distinct outcome strings" phrasing, recorded
+    here and in 08-02-SUMMARY.md:** the plan's own must_haves truth for this function states
+    "returns a terminal split outcome for one or two clearances WITHOUT UPGRADING BY MAJORITY
+    VOTE" -- so a count of 1 and a count of 2 clearances must map to the SAME
+    "SPLIT ACROSS SEEDS" outcome, not two different strings (upgrading 2-of-3 to a more
+    favorable fourth string would BE the majority-vote upgrade D8-15 forbids). This mirrors
+    linear_probe.combine_seed_verdicts' own three-outcome shape exactly. This test asserts the
+    TRUE, ratified 3-outcome mapping across all four clearance counts (0, 1, 2, 3) -- the same
+    class of plan-test-specification correction as 08-01-SUMMARY.md's
+    test_double_centering_changes_the_answer.
+    """
+    clears, does_not = "CLEARS AT EVERY S", "DOES NOT CLEAR"
+    rule = "rule naming SPLIT ACROSS SEEDS"
+
+    with pytest.raises(ValueError):
+        cka.combine_seed_verdicts({0: clears, 1: clears}, rule)
+    with pytest.raises(ValueError):
+        cka.combine_seed_verdicts({0: clears, 1: clears, 2: clears, 3: clears}, rule)
+
+    r0 = cka.combine_seed_verdicts({0: does_not, 1: does_not, 2: does_not}, rule)
+    r1 = cka.combine_seed_verdicts({0: clears, 1: does_not, 2: does_not}, rule)
+    r2 = cka.combine_seed_verdicts({0: clears, 1: clears, 2: does_not}, rule)
+    r3 = cka.combine_seed_verdicts({0: clears, 1: clears, 2: clears}, rule)
+
+    assert r0["phase_verdict"] == "NO CLEARANCE IN ANY SEED"
+    assert r1["phase_verdict"] == "SPLIT ACROSS SEEDS"
+    assert r2["phase_verdict"] == "SPLIT ACROSS SEEDS"
+    assert r3["phase_verdict"] == "CLEARS IN ALL THREE SEEDS"
+
+
+def test_combine_seed_verdicts_requires_rule():
+    with pytest.raises(RuntimeError):
+        cka.combine_seed_verdicts(
+            {0: "CLEARS AT EVERY S", 1: "CLEARS AT EVERY S", 2: "CLEARS AT EVERY S"}, ""
+        )
+
+
+def test_combine_seed_verdicts_rejects_invalid_verdict_value():
+    with pytest.raises(ValueError):
+        cka.combine_seed_verdicts({0: "CLEARS AT EVERY S", 1: "MAYBE", 2: "DOES NOT CLEAR"}, "rule")
+
+
+def test_seed_pooling_raises():
+    with pytest.raises(RuntimeError, match="05-03-DECISION"):
+        cka.pooled_field_guard(["seed0", "seed1"])
+    cka.pooled_field_guard(["seed0"])  # exactly one field never raises
+
+
+def test_assert_preregistered_rejects_wrong_seed_handling_rule(monkeypatch):
+    """D8-15/T-08-09: SEED_HANDLING_RULE is guarded by EXACT STRING EQUALITY, not truthiness --
+    a non-empty string other than the ratified value must still fail."""
+    for name, value in _PLAUSIBLE_FILLED_VALUES.items():
+        monkeypatch.setattr(cka, name, value)
+    monkeypatch.setattr(cka, "SEED_HANDLING_RULE", "pool_all_seeds_into_one_field")
+    with pytest.raises(RuntimeError, match="SEED_HANDLING_RULE"):
+        cka.assert_preregistered()
+
+
+def test_assert_preregistered_rejects_verdict_rule_missing_s_grid(monkeypatch):
+    """D8-09/T-08-10: VERDICT_RULE must NAME S_GRID -- a non-empty string that omits it must
+    still fail."""
+    for name, value in _PLAUSIBLE_FILLED_VALUES.items():
+        monkeypatch.setattr(cka, name, value)
+    monkeypatch.setattr(cka, "VERDICT_RULE", "clearance is required at every threshold point")
+    with pytest.raises(RuntimeError, match="VERDICT_RULE"):
+        cka.assert_preregistered()
+
+
 # --- freeze guard -------------------------------------------------------------------------
 
 
@@ -529,6 +666,19 @@ _PLAUSIBLE_FILLED_VALUES = {
         "row-pairing shuffle; not a bootstrap CI."
     ),
     "MIDDLE_TERTILE_IS_NON_GATING": True,
+    "D_SWEEP": (20, 25, 32),
+    "SEED_FIELD_D": 25,
+    "TORCH_INIT_SEEDS": (0, 1, 2),
+    "VERDICT_RULE": (
+        "Clearance is required at every S in S_GRID; there is no headline S."
+    ),
+    "SEED_HANDLING_RULE": "no_pooling_per_seed_verdicts",
+    "SEED_VERDICT_COMBINATION_RULE": (
+        "Unanimous 3-of-3 -> CLEARS IN ALL THREE SEEDS; zero -> NO CLEARANCE IN ANY SEED; one "
+        "or two -> the terminal SPLIT ACROSS SEEDS, never upgraded by majority vote."
+    ),
+    "D32_IS_NON_GATING": True,
+    "VALIDATION_LADDER_IS_NON_GATING": True,
 }
 
 
