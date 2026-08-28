@@ -333,6 +333,151 @@ def test_tertile_split_raises_on_small_stratum():
         cka.tertile_split_within_strata(h, strata)
 
 
+# --- tertile-difference panel and the within-stratum label-permutation null (D8-10/D8-11) --
+
+
+def _synthetic_grams(rng, n, p=16):
+    """A cheap pair of linear Gram matrices for the null tests below -- built BEFORE any test
+    disables the Gram builders, so the resulting K_full/L_full dicts are the caller's only
+    reference to the underlying feature matrices."""
+    Z1 = rng.standard_normal((n, p))
+    Z2 = rng.standard_normal((n, p))
+    K_full = {"linear": cka.linear_gram(Z1, np.float64)}
+    L_full = {"linear": cka.linear_gram(Z2, np.float64)}
+    return K_full, L_full
+
+
+def test_tertile_gap_panel_returns_gap_per_kernel():
+    rng = np.random.default_rng(20260827)
+    n = 300
+    K_full, L_full = _synthetic_grams(rng, n)
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 3)
+    h = rng.standard_normal(n)
+    tertiles = cka.tertile_split_within_strata(h, strata)
+
+    panel = cka.tertile_gap_panel(K_full, L_full, tertiles)
+    assert set(panel.keys()) == {"linear"}
+    row = panel["linear"]
+    assert set(row.keys()) == {"cka_t1", "cka_t2", "cka_t3", "gap"}
+    np.testing.assert_allclose(row["gap"], row["cka_t3"] - row["cka_t1"])
+
+
+def test_tertile_gap_panel_raises_on_key_mismatch():
+    rng = np.random.default_rng(20260827)
+    n = 300
+    K_full, _ = _synthetic_grams(rng, n)
+    _, L_full = _synthetic_grams(rng, n)
+    L_full["extra"] = L_full.pop("linear")
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 3)
+    h = rng.standard_normal(n)
+    tertiles = cka.tertile_split_within_strata(h, strata)
+
+    with pytest.raises(ValueError):
+        cka.tertile_gap_panel(K_full, L_full, tertiles)
+
+
+def test_stratified_tertile_null_preserves_sizes():
+    rng = np.random.default_rng(20260827)
+    n = 600
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 6)
+    h = rng.standard_normal(n)
+    K_full, L_full = _synthetic_grams(rng, n)
+
+    observed_tertiles = cka.tertile_split_within_strata(h, strata)
+    observed_sizes = tuple(t.shape[0] for t in observed_tertiles)
+
+    n_resamples = 25
+    null = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples, seed=1)
+    assert set(null.keys()) == {"linear"}
+    assert null["linear"].shape == (n_resamples,)
+
+    # Re-derive every resample's permuted tertile sizes from the SAME seed and draw order the
+    # function itself uses, and confirm all three sizes equal the observed split's sizes
+    # exactly, elementwise, for all 25 resamples.
+    rng2 = np.random.default_rng(1)
+    strat_indices = [np.where(strata == s)[0] for s in np.unique(strata)]
+    for _ in range(n_resamples):
+        h_perm = h.copy()
+        for idx in strat_indices:
+            h_perm[idx] = h[rng2.permutation(idx)]
+        permuted_tertiles = cka.tertile_split_within_strata(h_perm, strata)
+        permuted_sizes = tuple(t.shape[0] for t in permuted_tertiles)
+        assert permuted_sizes == observed_sizes
+
+
+def test_null_panel_has_one_array_per_kernel():
+    rng = np.random.default_rng(20260827)
+    n = 600
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 6)
+    h = rng.standard_normal(n)
+
+    Z1 = rng.standard_normal((n, 16))
+    Z2 = rng.standard_normal((n, 16))
+    sigma = cka.median_pairwise_distance(Z1)
+    K_full = {
+        "linear": cka.linear_gram(Z1, np.float64),
+        "rbf": cka.rbf_gram(Z1, sigma, np.float64),
+    }
+    L_full = {
+        "linear": cka.linear_gram(Z2, np.float64),
+        "rbf": cka.rbf_gram(Z2, sigma, np.float64),
+    }
+
+    null = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples=25, seed=2)
+    assert set(null.keys()) == {"linear", "rbf"}
+    for arr in null.values():
+        assert arr.shape == (25,)
+
+
+def test_null_is_seed_reproducible():
+    rng = np.random.default_rng(20260827)
+    n = 600
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 6)
+    h = rng.standard_normal(n)
+    K_full, L_full = _synthetic_grams(rng, n)
+
+    null_a = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples=25, seed=42)
+    null_b = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples=25, seed=42)
+    null_c = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples=25, seed=43)
+
+    assert np.array_equal(null_a["linear"], null_b["linear"])
+    assert not np.array_equal(null_a["linear"], null_c["linear"])
+
+
+def test_null_does_not_rebuild_grams(monkeypatch):
+    """Passes Gram matrices built BEFORE the Gram builders are disabled below, proving
+    `stratified_tertile_label_null`'s resample loop cannot be re-deriving them: if the loop
+    called `linear_gram`/`rbf_gram` at all, this test would raise."""
+    rng = np.random.default_rng(20260827)
+    n = 600
+    density = rng.standard_normal(n)
+    strata = dsn.density_strata(density, 6)
+    h = rng.standard_normal(n)
+    K_full, L_full = _synthetic_grams(rng, n)
+
+    def _raise(*args, **kwargs):
+        raise AssertionError("a Gram builder was called inside the null's resample loop")
+
+    monkeypatch.setattr(cka, "linear_gram", _raise)
+    monkeypatch.setattr(cka, "rbf_gram", _raise)
+
+    null = cka.stratified_tertile_label_null(h, strata, K_full, L_full, n_resamples=25, seed=7)
+    assert null["linear"].shape == (25,)
+
+
+def test_null_threshold_is_two_tailed():
+    null_array = np.arange(100, dtype=float)  # 0..99
+    low, high = cka.null_threshold(null_array, quantile_per_tail=0.975)
+    assert low < high
+    np.testing.assert_allclose(low, np.quantile(null_array, 0.025))
+    np.testing.assert_allclose(high, np.quantile(null_array, 0.975))
+
+
 # --- freeze guard -------------------------------------------------------------------------
 
 
@@ -371,6 +516,19 @@ _PLAUSIBLE_FILLED_VALUES = {
         "S_GRID is a grid of THRESHOLDS, not point estimates; no headline S; clearance is "
         "required at every S."
     ),
+    "N_PERMUTATIONS": 1000,
+    "PERMUTATION_SEED": 20260827,
+    "NULL_QUANTILE_PER_TAIL": 0.975,
+    "NULL_KERNELS": ("linear", "rbf_sigma"),
+    "TERTILE_STATISTIC_RULE": (
+        "CKA(tertile 3) - CKA(tertile 1); the middle tertile is a shape diagnostic and gates "
+        "nothing."
+    ),
+    "NULL_CONSTRUCTION_RULE": (
+        "Permutes ||H|| tertile labels within density strata; not mknn.permutation_null's "
+        "row-pairing shuffle; not a bootstrap CI."
+    ),
+    "MIDDLE_TERTILE_IS_NON_GATING": True,
 }
 
 

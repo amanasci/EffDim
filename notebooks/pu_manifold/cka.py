@@ -159,6 +159,45 @@ THRESHOLDS, not point estimates; there is NO headline ``S``; clearance is requir
 point; an ``S``-dependent gap is self-reporting as an artifact rather than something a reader has
 to notice."""
 
+# --- 08-02 additions: the tertile-difference panel and its within-stratum label-permutation
+# null (D8-10/D8-11) --------------------------------------------------------------------------
+
+N_PERMUTATIONS = None
+"""At the freeze: the number of resamples the D8-11 stratified label-permutation null draws,
+e.g. ``1000`` (Phase 7/07.1's own convention)."""
+
+PERMUTATION_SEED = None
+"""At the freeze: the RNG seed for the D8-11 null -- a fresh date-stamped literal, re-declared
+across the freeze boundary rather than imported (07.1's ``PERMUTATION_SEED`` idiom)."""
+
+NULL_QUANTILE_PER_TAIL = None
+"""At the freeze: the two-tailed empirical quantile the null threshold is read at, e.g.
+``0.975`` (Phase 7's own two-tailed permutation-wrapper convention)."""
+
+NULL_KERNELS = ()
+"""At the freeze: which kernel(s) the D8-11 permutation null is computed for, e.g.
+``("linear", "rbf_sigma")`` -- not necessarily every entry of ``KERNELS``, since a null computed
+on a non-gating diagnostic kernel would gate nothing."""
+
+TERTILE_STATISTIC_RULE = ""
+"""At the freeze: the prose rule stating D8-10's statistic is ``CKA(tertile 3) - CKA(tertile
+1)``; the middle tertile is printed beside it as a shape diagnostic and gates nothing; monotone-
+trend and Phase-6-style compound criteria were considered and rejected -- Phase 6 died on a
+monotonicity criterion while its other two criteria held, and at three buckets a trend statistic
+is near-powerless."""
+
+NULL_CONSTRUCTION_RULE = ""
+"""At the freeze: the prose rule stating D8-11's null permutes ``||H||`` tertile LABELS within
+density strata and recomputes the entire three-subset panel, preserving density structure and
+subset sizes exactly while breaking only the curvature link; it is explicitly NOT
+``mknn.permutation_null``'s row-pairing shuffle (which nulls alignment itself, a question Phase 7
+already settled) and NOT a bootstrap CI (whose bias on a nonlinear whole-subset statistic is
+uncharacterized and has no precedent in this record)."""
+
+MIDDLE_TERTILE_IS_NON_GATING = None
+"""At the freeze: ``True`` -- the middle tertile's CKA is a shape diagnostic printed beside the
+verdict and is never read by any verdict function (D8-10)."""
+
 
 _REQUIRED_CONSTANTS = (
     "KERNELS",
@@ -183,6 +222,13 @@ _REQUIRED_CONSTANTS = (
     "DENSITY_SIGN_CONVENTION",
     "STRATIFICATION_RULE",
     "SENSITIVITY_GRID_RULE",
+    "N_PERMUTATIONS",
+    "PERMUTATION_SEED",
+    "NULL_QUANTILE_PER_TAIL",
+    "NULL_KERNELS",
+    "TERTILE_STATISTIC_RULE",
+    "NULL_CONSTRUCTION_RULE",
+    "MIDDLE_TERTILE_IS_NON_GATING",
 )
 """Every gating constant this module declares, in declaration order. A constant added later
 without a guard entry here fails the parametrized rejection sweep in
@@ -403,3 +449,111 @@ def realized_h_contrast(h: np.ndarray, tertiles: Tuple[np.ndarray, np.ndarray, n
     h = np.asarray(h, dtype=np.float64).ravel()
     t1, _t2, t3 = tertiles
     return float(np.median(h[t3]) / np.median(h[t1]))
+
+
+# =============================================================================================
+# 08-02 additions: the tertile-difference panel and its within-stratum label-permutation null
+# (D8-10/D8-11). Every kernel-recomputation call site below reads ONLY already-built Gram
+# matrices via cka_on_subset's np.ix_ submatrix path -- no linear_gram/rbf_gram call happens
+# inside stratified_tertile_label_null's resample loop (RESEARCH.md Pitfall 3).
+# =============================================================================================
+
+
+def tertile_gap_panel(
+    K_full: Dict[str, np.ndarray], L_full: Dict[str, np.ndarray],
+    tertiles: Tuple[np.ndarray, np.ndarray, np.ndarray],
+) -> Dict[str, Dict[str, float]]:
+    """D8-10's tertile-difference panel: for every kernel present in both `K_full` and `L_full`
+    (already-built full ``(n, n)`` Gram matrices), computes CKA on all three tertiles plus the
+    tertile-3-minus-tertile-1 gap. The middle tertile's CKA is present in the returned panel
+    (a shape diagnostic) but is not consumed by any verdict function below.
+
+    Raises ``ValueError`` when `K_full` and `L_full` do not share exactly the same kernel-name
+    key set.
+    """
+    if set(K_full.keys()) != set(L_full.keys()):
+        raise ValueError(
+            f"tertile_gap_panel: K_full keys {sorted(K_full)} and L_full keys {sorted(L_full)} "
+            "differ; both dicts must be keyed by the same kernel names."
+        )
+    t1, t2, t3 = tertiles
+    panel: Dict[str, Dict[str, float]] = {}
+    for name in K_full:
+        K, L = K_full[name], L_full[name]
+        cka_t1 = cka_on_subset(K, L, t1)
+        cka_t2 = cka_on_subset(K, L, t2)
+        cka_t3 = cka_on_subset(K, L, t3)
+        panel[name] = {
+            "cka_t1": cka_t1,
+            "cka_t2": cka_t2,
+            "cka_t3": cka_t3,
+            "gap": cka_t3 - cka_t1,
+        }
+    return panel
+
+
+def stratified_tertile_label_null(
+    h: np.ndarray, strata: np.ndarray, K_full: Dict[str, np.ndarray], L_full: Dict[str, np.ndarray],
+    n_resamples: int, seed: int,
+) -> Dict[str, np.ndarray]:
+    """D8-11's within-stratum ``||H||`` tertile-label permutation null.
+
+    Permutes ``||H||`` LABELS within each density stratum -- preserving density structure and
+    every tertile's size exactly, breaking only the curvature link -- then recomputes the entire
+    three-subset panel and records ``CKA(tertile 3) - CKA(tertile 1)`` per kernel, for
+    `n_resamples` resamples. This is NOT ``mknn.permutation_null``'s row-pairing shuffle (that
+    nulls global alignment, a question Phase 7 already settled) and never rebuilds a Gram matrix
+    -- every kernel value below comes from :func:`cka_on_subset` indexing into the caller's
+    already-built `K_full`/`L_full`.
+
+    All `n_resamples` within-stratum permutation index sets are precomputed from a single
+    ``np.random.default_rng(seed)`` BEFORE entering the recomputation loop (mirroring
+    ``density_stratified_null.stratified_partial_null``'s own precompute-outside-the-loop
+    optimization), so the loop body performs no further RNG calls -- pure array indexing plus
+    HSIC arithmetic. Two calls at the same `seed` reproduce the same null arrays exactly; a
+    different `seed` gives different arrays.
+
+    Returns one ``float64`` array of length `n_resamples` per kernel name present in `K_full`.
+    """
+    h = np.asarray(h, dtype=np.float64).ravel()
+    strata = np.asarray(strata).ravel()
+    if h.shape[0] != strata.shape[0]:
+        raise ValueError(
+            f"stratified_tertile_label_null: h has {h.shape[0]} entries but strata has "
+            f"{strata.shape[0]}; they must be row-aligned."
+        )
+
+    rng = np.random.default_rng(seed)
+    strat_indices = [np.where(strata == s)[0] for s in np.unique(strata)]
+
+    # Precompute every resample's within-stratum permutation BEFORE the recomputation loop, so
+    # the loop below draws no further randomness (RESEARCH.md's precompute-outside-the-loop
+    # optimization, applied at the label-permutation level).
+    precomputed_perms = [
+        [rng.permutation(idx) for idx in strat_indices] for _ in range(n_resamples)
+    ]
+
+    null_by_kernel: Dict[str, np.ndarray] = {
+        name: np.empty(n_resamples, dtype=np.float64) for name in K_full
+    }
+    for b in range(n_resamples):
+        h_perm = h.copy()
+        for idx, perm in zip(strat_indices, precomputed_perms[b]):
+            h_perm[idx] = h[perm]
+        tertiles = tertile_split_within_strata(h_perm, strata)
+        for name in K_full:
+            c3 = cka_on_subset(K_full[name], L_full[name], tertiles[2])
+            c1 = cka_on_subset(K_full[name], L_full[name], tertiles[0])
+            null_by_kernel[name][b] = c3 - c1
+    return null_by_kernel
+
+
+def null_threshold(null_array: np.ndarray, quantile_per_tail: float) -> Tuple[float, float]:
+    """The two-tailed empirical thresholds off one null array: ``(1 - quantile_per_tail)`` and
+    ``quantile_per_tail``. Two-tailed is inherited from Phase 7's own two-tailed permutation
+    wrapper -- a negative gap (CKA higher in the LOW-``||H||`` tertile) is a real possible
+    finding here, not a nuisance to discard by a one-tailed test."""
+    null_array = np.asarray(null_array, dtype=np.float64)
+    low = float(np.quantile(null_array, 1.0 - quantile_per_tail))
+    high = float(np.quantile(null_array, quantile_per_tail))
+    return low, high
