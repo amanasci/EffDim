@@ -1096,7 +1096,7 @@ reporting block beside every verdict.
 requirement set — `REQUIREMENTS.md` maps no `REQ-` IDs to Phase 8, the same arrangement Phase 7 used
 with `07-CONTEXT.md` §3)
 **Depends on:** Phase 7, Phase 07.1
-**Plans:** 2/6 plans executed
+**Plans:** 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1106,7 +1106,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 08-02-PLAN.md — Within-stratum tertile split, tertile-difference panel, label-permutation null, and the verdict/seed rules
-- [ ] 08-03-PLAN.md — D8-23 import-purity test, runner production data layer, and the D8-03 global sigma measurement
+- [x] 08-03-PLAN.md — D8-23 import-purity test, runner production data layer, and the D8-03 global sigma measurement
 
 **Wave 3** *(blocked on Wave 2 completion)*
 

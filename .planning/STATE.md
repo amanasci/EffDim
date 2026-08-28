@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-08-28T01:46:04.052Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-08-28T02:17:00.501Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 110
-  completed_plans: 100
+  completed_plans: 101
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 08 (curvature-conditioned-cka-alignment) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 08 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -465,6 +465,7 @@ Progress: [█████████░] 91% of planned plans (17/17; Phases 1
 | Phase 07.1 P06 | 55min | 3 tasks | 3 files |
 | Phase 08 P01 | 70min | 2 tasks | 3 files |
 | Phase 08 P02 | 40min | 3 tasks | 2 files |
+| Phase 08 P03 | 1h5m | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -674,6 +675,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 08-01: rewrote test_double_centering_changes_the_answer — a correct unbiased-HSIC implementation is provably invariant to double-centering, so the plan's literal assertion direction was inverted; test now pins the real trap (classical biased HSIC substitution) instead
 - [Phase ?]: 08-02: test_tertile_split_equal_n_at_every_s bound corrected from 'at most S' to the measured 'at most 2*S' (n_s % 3 can be 2, not only 0/1) -- same class as 08-01's double-centering test correction
 - [Phase ?]: 08-02: combine_seed_verdicts' four clearance counts (0/1/2/3) map to exactly THREE terminal outcomes -- counts 1 and 2 both yield 'SPLIT ACROSS SEEDS', matching D8-15's own no-majority-vote-upgrade rule and linear_probe.py's precedent
+- [Phase ?]: 08-03: import-purity comparison target is a cka-free baseline across four subprocess-isolated orders (D8-23), not a literal per-order before/after snapshot -- the plan's literal wording does not extend to interleaved orders where a module isn't yet imported
+- [Phase ?]: 08-03: measured D8-03 sigma inputs at full precision -- sigma_hsc=0.6420152563705613, sigma_legacysurvey=0.5696337821442163, peak_rss_mb=5182.74, disk fallback not taken -- ready for 08-04's freeze
 
 ### Pending Todos
 
@@ -734,8 +737,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-28T01:46:03.995Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-08-28T02:17:00.444Z
+Stopped at: Completed 08-03-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
