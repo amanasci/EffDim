@@ -10,19 +10,24 @@ own. D7-05/D8-23 sealed those modules as import-never-edit, and a gating constan
 ACROSS that freeze boundary would not be covered by this module's own
 ``assert_preregistered()`` or by this phase's own git-ancestry proof.
 
-**The constants below are UNSET in this commit.** Every name in ``_REQUIRED_CONSTANTS`` is
-declared with its UNSET sentinel (``None`` for scalars, ``()`` for tuples, ``""`` for rule
-strings) -- ``KERNELS = ()``, and so on down the block. They are filled, all of them, in ONE
-later commit: Phase 8's single freeze commit (D8-22), which must be a strict git ancestor of
-every commit that computes a Phase 8 number. A later edit to any of them after a Phase 8 number
-exists anywhere in the tree is a pre-registration BREACH: the only remedy is a fresh freeze and
-a fresh run, never a silent fix (mirrors D7-06's discipline, carried into this phase's own
-constants exactly as ``density_stratified_null.py`` carried it into 07.1's).
+**THIS COMMIT IS THE FREEZE COMMIT (D8-22).** Every one of the 45 constants named in
+``_REQUIRED_CONSTANTS`` is filled below, together, in this single commit, ratified by the
+developer directly in
+``.planning/phases/08-curvature-conditioned-cka-alignment/08-04-DECISION.md`` (not by a standing
+authorization). This commit must be a strict git ancestor of every commit that computes a Phase 8
+number -- ``08_cka_alignment_run.py``'s ``_strict_ancestor_or_exit`` and
+``tests/test_cka.py``'s ancestry test both pin this commit's SHA once it exists. **A later edit
+to any of these 45 constants after a Phase 8 number exists anywhere in the tree is a
+pre-registration BREACH: the only remedy is a fresh freeze and a fresh run, never a silent fix**
+(mirrors D7-06's discipline, carried into this phase's own constants exactly as
+``density_stratified_null.py`` carried it into 07.1's, and the discipline `02.2`'s sealed FAIL
+and `06-PREREGISTRATION-AMENDMENT-01` both establish the cost of skipping).
 
-**This plan (08-01) produces NO Phase 8 number.** ``--mode selfcheck`` in the accompanying
-runner drives the estimator through D8-16's invariance ladder on synthetic pairs whose CKA
-answer is known in closed form -- it never calls :func:`assert_preregistered`, because it opens
-no PU file and computes no number this phase will ever claim.
+**This plan (08-04) produces NO Phase 8 number itself.** ``--mode selfcheck`` and ``--mode
+sigma`` in the accompanying runner never call :func:`assert_preregistered`, for the same reasons
+recorded at 08-01/08-03: the former is a pure in-memory known-answer check, the latter measures
+pre-registration INPUTS, not Phase 8 results. This commit only fills the constants that make
+every later production run (08-05 onward) computable and provable.
 
 **Supersession, not an edit.** ``crossmodal_curvature.py`` line 109 freezes
 ``ALIGNMENT_METRIC = "mknn"`` under D7-07 ("CKA is out of scope and not implemented anywhere in
@@ -54,197 +59,330 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
 # =============================================================================================
-# Frozen constants block -- ALL FOURTEEN UNSET IN THIS COMMIT. Filled, together, in the single
-# 08-04 freeze commit (D8-22). Never filled piecemeal, never filled here.
+# Frozen constants block -- ALL 45 FILLED IN THIS COMMIT (D8-22, the freeze commit). Ratified by
+# the developer directly in 08-04-DECISION.md. Never filled piecemeal, never edited after this
+# commit once a Phase 8 number exists -- see module docstring.
 # =============================================================================================
 
-KERNELS = ()
-"""At the freeze: the tuple of kernel names this phase computes CKA for, e.g.
-``("linear", "rbf")`` (D8-01)."""
+KERNELS = ("linear", "rbf")
+"""D8-01: linear CKA carries the headline verdict; RBF CKA is reported as robustness and gates
+nothing (see ``RBF_IS_NON_GATING``)."""
 
-SIGMA_MULTIPLIERS = ()
-"""At the freeze: the RBF bandwidth sensitivity ladder, e.g. ``(0.5, 1.0, 2.0)`` (D8-04)."""
+SIGMA_MULTIPLIERS = (0.5, 1.0, 2.0)
+"""D8-04: the RBF bandwidth sensitivity ladder. ``sigma`` (the ``1.0`` rung) carries the
+headline; ``0.5x`` and ``2x`` are reported beside it as diagnostics that gate nothing (see
+``SIGMA_LADDER_IS_NON_GATING``)."""
 
-SIGMA_HSC = None
-"""At the freeze: the frozen RBF bandwidth for the HSC modality -- the median pairwise Euclidean
-distance over all 10,000 HSC points, computed once, before any subset exists (D8-03)."""
+SIGMA_HSC = 0.6420152563705613
+"""D8-03: the frozen RBF bandwidth for the HSC modality -- the median pairwise Euclidean
+distance over all 10,000 HSC points, measured by ``--mode sigma`` (08-03) before any subset
+existed, quoted at full precision from ``08-03-SUMMARY.md``."""
 
-SIGMA_LEGACYSURVEY = None
-"""At the freeze: the frozen RBF bandwidth for the Legacy Survey modality, computed the same
-way, independently, over all 10,000 Legacy Survey points (D8-03)."""
+SIGMA_LEGACYSURVEY = 0.5696337821442163
+"""D8-03: the frozen RBF bandwidth for the Legacy Survey modality, computed the same way,
+independently, over all 10,000 Legacy Survey points, quoted at full precision from
+``08-03-SUMMARY.md``."""
 
-GRAM_DTYPE = ""
-"""At the freeze: the storage dtype for the precomputed Gram matrices, e.g. ``"float32"``
-(discretion decision, RESEARCH.md A3's memory argument)."""
+GRAM_DTYPE = "float32"
+"""The storage dtype for the precomputed Gram matrices (discretion decision, RESEARCH.md A3's
+memory argument; ``08-01``'s ``test_gram_dtype_agreement`` measured float32/float64 CKA agreement
+at 1.71e-11 absolute at n=3000, well inside the 1e-5 acceptance bound)."""
 
-HSIC_ESTIMATOR_RULE = ""
-"""At the freeze: the prose rule naming the Song et al. (2012) unbiased-HSIC form and the
-double-centering trap it must never fall into (D8-02)."""
+HSIC_ESTIMATOR_RULE = (
+    "The Song et al. (2012) unbiased HSIC form is computed on raw, zero-diagonal Gram matrices "
+    "and must never be double-centered: the 1/(n(n-3)) correction terms already perform the "
+    "debiasing, and applying them to a pre-centered matrix silently reproduces the biased "
+    "estimator under the unbiased one's name (D8-02)."
+)
+"""D8-02: names the Song et al. (2012) unbiased-HSIC form and the double-centering trap it must
+never fall into. Behaviorally pinned by
+``tests/test_cka.py::test_double_centering_changes_the_answer``."""
 
-SIGMA_FREEZE_RULE = ""
-"""At the freeze: the prose rule stating sigma is computed once, globally, per modality, before
-any subset exists, and reused unchanged for every subset/d/seed/S (D8-03)."""
+SIGMA_FREEZE_RULE = (
+    "sigma is the median pairwise Euclidean distance over all 10,000 points, computed once per "
+    "modality, before any subset exists, and reused unchanged for every subset, every d, every "
+    "seed and every S (D8-03). A per-subset median is rejected: the high-||H|| subset is "
+    "measurably denser at d=20/25 (spearman(density, ||H||) = +0.4281 and +0.3150), so a "
+    "per-subset bandwidth would shrink for density reasons and make the RBF gap a density "
+    "artifact by construction -- the exact confound this phase is built to exclude. sigma is a "
+    "pre-registration constant under D7-06's freeze-before-any-number discipline: changing it "
+    "after any Phase 8 number exists requires a new pre-registration and a full re-run, as "
+    "02.2's sealed FAIL and 06-PREREGISTRATION-AMENDMENT-01 both establish."
+)
+"""D8-03: sigma is computed once, globally, per modality, before any subset exists, and reused
+unchanged for every subset/d/seed/S, including the measured density-curvature correlations that
+make a per-subset median a confound by construction."""
 
-ALIGNMENT_METRIC = ""
-"""At the freeze: this phase's own alignment-metric name, e.g. ``"cka"`` -- Phase 8's own
-checkable fact, distinct from and not overwriting ``crossmodal_curvature.ALIGNMENT_METRIC``."""
+ALIGNMENT_METRIC = "cka"
+"""Phase 8's own alignment-metric name -- a positive, checkable fact distinct from and not
+overwriting ``crossmodal_curvature.ALIGNMENT_METRIC`` (see ``SUPERSEDES``/``SUPERSESSION_RULE``
+below)."""
 
-SUPERSEDES = ()
-"""At the freeze: names the sealed constant this phase supersedes by decision --
-``crossmodal_curvature.ALIGNMENT_METRIC`` -- as a positive, checkable fact (see module
-docstring's "Supersession, not an edit" section)."""
+SUPERSEDES = ("crossmodal_curvature.ALIGNMENT_METRIC",)
+"""Names the sealed constant this phase supersedes by decision -- as a positive, checkable fact
+(see module docstring's "Supersession, not an edit" section). ``crossmodal_curvature.py`` is
+never edited."""
 
-SUPERSESSION_RULE = ""
-"""At the freeze: the prose rule stating that Phase 8 supersedes D7-07's CKA-out-of-scope
-decision by phase decision, never by editing the sealed module."""
+SUPERSESSION_RULE = (
+    "Phase 8 supersedes D7-07's CKA-out-of-scope scope decision by PHASE DECISION, taken by the "
+    "developer on 2026-08-27 and recorded in 08-CONTEXT.md -- never by editing "
+    "crossmodal_curvature.py. crossmodal_curvature.ALIGNMENT_METRIC = 'mknn' remains true of "
+    "Phase 7's own record rows and is not reinterpreted; SUPERSEDES names it as a positive, "
+    "checkable fact of this supersession, not an edit to the sealed module."
+)
+"""States that Phase 8 supersedes D7-07's CKA-out-of-scope decision by phase decision, never by
+editing the sealed module."""
 
-SWISS_ROLL_APPLICABILITY_RULE = ""
-"""At the freeze: the prose rule recording D8-17's declaration that the CLAUDE.md Swiss roll
-standing rule is NOT APPLICABLE to Phase 8, on purpose (see module docstring)."""
+SWISS_ROLL_APPLICABILITY_RULE = (
+    "The CLAUDE.md Swiss roll standing rule is declared NOT APPLICABLE to Phase 8, on purpose "
+    "(D8-17). CKA is not a manifold or representation-learning model -- it has no decoder and no "
+    "representation map; it is a statistic computed over two representations that already exist. "
+    "The rule's purpose (telling a broken implementation apart from a real FAIL on data with no "
+    "known answer) is served instead by D8-16's invariance ladder, whose answers are known in "
+    "closed form. A Swiss roll option was presented and not chosen -- this is a deliberate "
+    "declaration recorded so the gate is satisfied by decision rather than by omission."
+)
+"""Records D8-17's declaration that the CLAUDE.md Swiss roll standing rule is NOT APPLICABLE to
+Phase 8, on purpose (see module docstring)."""
 
-RBF_IS_NON_GATING = None
-"""At the freeze: ``True`` -- RBF CKA is reported as robustness and gates nothing; linear CKA
-alone carries the headline verdict (D8-01)."""
+RBF_IS_NON_GATING = True
+"""D8-01: RBF CKA is reported as robustness and gates nothing; linear CKA alone carries the
+headline verdict."""
 
-SIGMA_LADDER_IS_NON_GATING = None
-"""At the freeze: ``True`` -- the 0.5x/2x sigma sensitivity rungs are diagnostics only and gate
-nothing; only the ``sigma`` rung itself feeds the headline (D8-04)."""
+SIGMA_LADDER_IS_NON_GATING = True
+"""D8-04: the 0.5x/2x sigma sensitivity rungs are diagnostics only and gate nothing; only the
+``sigma`` rung itself feeds the headline."""
 
-DIAGNOSTICS_ARE_NON_GATING = None
-"""At the freeze: ``True`` -- the D7-03 non-gating-diagnostic pattern, carried into this phase
-for every diagnostic quantity it reports beside a verdict."""
+DIAGNOSTICS_ARE_NON_GATING = True
+"""The D7-03 non-gating-diagnostic pattern, carried into this phase for every diagnostic
+quantity it reports beside a verdict."""
 
 # --- 08-02 additions: the within-density-stratum tertile split (D8-05/06/07/08) --------------
 
-S_GRID = ()
-"""At the freeze: the threshold grid of stratum counts ``S`` this phase's tertile split and null
-are computed at, e.g. ``(10, 20, 50)`` -- a grid of THRESHOLDS, not a headline value (D8-08). See
-``SENSITIVITY_GRID_RULE`` below for what a reader may and may not do with it."""
+S_GRID = (10, 20, 50)
+"""D8-08: the threshold grid of stratum counts ``S`` this phase's tertile split and null are
+computed at -- a grid of THRESHOLDS, not a headline value. See ``SENSITIVITY_GRID_RULE`` below
+for what a reader may and may not do with it."""
 
-N_TERTILES = None
-"""At the freeze: ``3`` -- the number of ``||H||``-magnitude buckets the within-stratum split
-produces (D8-05). Not a discretion value: Phase 8's whole design is built on three tertiles."""
+N_TERTILES = 3
+"""D8-05: the number of ``||H||``-magnitude buckets the within-stratum split produces. Not a
+discretion value: Phase 8's whole design is built on three tertiles."""
 
-DENSITY_K = None
-"""At the freeze: the ``k`` used by ``curvature_probe.local_density_weights`` to build the
-per-point density field this phase stratifies on -- re-declared fresh, inherited unchanged from
-``crossmodal_curvature.py``'s own ``DENSITY_K = 30`` (D8-07), never imported across the freeze
+DENSITY_K = 30
+"""D8-07: the ``k`` used by ``curvature_probe.local_density_weights`` to build the per-point
+density field this phase stratifies on -- re-declared fresh, inherited unchanged from
+``crossmodal_curvature.py``'s own ``DENSITY_K = 30``, never imported across the freeze
 boundary."""
 
-DENSITY_FIELD_D = None
-"""At the freeze: the ambient dimension the density field is computed at -- re-declared fresh,
-inherited unchanged from ``crossmodal_curvature.py``'s own ``DENSITY_FIELD_D = 20`` (D8-07)."""
+DENSITY_FIELD_D = 20
+"""D8-07: the ambient dimension the density field is computed at -- re-declared fresh, inherited
+unchanged from ``crossmodal_curvature.py``'s own ``DENSITY_FIELD_D = 20``."""
 
-DENSITY_INPUT = ""
-"""At the freeze: which modality's embedding the density field is computed over, e.g.
-``"legacysurvey_ambient_768"`` -- re-declared fresh from ``crossmodal_curvature.py``'s own
-``DENSITY_INPUT`` (D8-07)."""
+DENSITY_INPUT = "legacysurvey_ambient_768"
+"""D8-07: which modality's embedding the density field is computed over -- re-declared fresh
+from ``crossmodal_curvature.py``'s own ``DENSITY_INPUT``."""
 
-DENSITY_SIGN_CONVENTION = ""
-"""At the freeze: the prose rule stating D8-07's sign convention --
-``curvature_probe.local_density_weights`` returns the per-point INVERSE density ``w``,
-mean-normalized to 1; the density used throughout this phase is the RELATIVE density
-``1.0 / w``, matching Phase 4's printed convention (``region_partition_mknn_run.py`` REGN-01) so
-Phase 4 / 7 / 07.1 / 8 density numbers stay comparable rather than needing translation."""
+DENSITY_SIGN_CONVENTION = (
+    "curvature_probe.local_density_weights returns the per-point INVERSE density w, "
+    "mean-normalized to 1. The density used throughout this phase is the RELATIVE density "
+    "1.0 / w, matching Phase 4's printed convention (region_partition_mknn_run.py REGN-01) so "
+    "Phase 4 / 7 / 07.1 / 8 density numbers stay comparable rather than needing translation "
+    "(D8-07)."
+)
+"""D8-07's sign convention: the density used throughout this phase is the RELATIVE density
+``1.0 / w``, matching Phase 4's printed convention."""
 
-STRATIFICATION_RULE = ""
-"""At the freeze: the prose rule naming ``density_stratified_null.density_strata``'s exact
-binning convention this phase reuses (equal-count quantile bins on density RANK, stable-sort
-tie-breaking, remainder-to-last-stratum), PLUS D8-06's semantic consequence: the tertiles this
-phase computes rank DENSITY-RESIDUALIZED CURVATURE, not raw ``||H||``."""
+STRATIFICATION_RULE = (
+    "Strata are density_stratified_null.density_strata's equal-count quantile bins on density "
+    "RANK, reused unchanged (D8-06); the within-stratum tertile split "
+    "(tertile_split_within_strata) is built on top of that stratification, never a "
+    "reimplementation of it. Because the tertile split is computed WITHIN each stratum, the "
+    "three tertiles' density marginals are identical by construction (up to each stratum's own "
+    "remainder), and equal-n falls out for free. This means the tertiles rank "
+    "DENSITY-RESIDUALIZED CURVATURE, not raw ||H|| -- a semantic consequence that must be stated "
+    "explicitly in 08-FINDINGS.md, not buried."
+)
+"""Names ``density_stratified_null.density_strata``'s exact binning convention this phase
+reuses, PLUS D8-06's semantic consequence: the tertiles this phase computes rank
+DENSITY-RESIDUALIZED CURVATURE, not raw ``||H||``."""
 
-SENSITIVITY_GRID_RULE = ""
-"""At the freeze: the prose rule stating D8-08/D8-09's grid semantics -- ``S_GRID`` is a grid of
-THRESHOLDS, not point estimates; there is NO headline ``S``; clearance is required at EVERY grid
-point; an ``S``-dependent gap is self-reporting as an artifact rather than something a reader has
-to notice."""
+SENSITIVITY_GRID_RULE = (
+    "S_GRID is a grid of THRESHOLDS, not point estimates (07.1's SENSITIVITY_GRID_RULE "
+    "pattern). S does not buy sample size -- pooled subset size is ~3,333 per tertile at any S; "
+    "S instead trades density-match tightness against realized ||H|| contrast, because "
+    "within-stratum tertiles are computed on n/S points. A reading at one S may qualify a "
+    "reading at another but never overturns or escalates it; the only verdict-bearing use of "
+    "this grid is D8-09's clearance-at-every-S requirement."
+)
+"""States D8-08/D8-09's grid semantics -- ``S_GRID`` is a grid of THRESHOLDS, not point
+estimates; there is NO headline ``S``; clearance is required at EVERY grid point; an
+``S``-dependent gap is self-reporting as an artifact rather than something a reader has to
+notice."""
 
 # --- 08-02 additions: the tertile-difference panel and its within-stratum label-permutation
 # null (D8-10/D8-11) --------------------------------------------------------------------------
 
-N_PERMUTATIONS = None
-"""At the freeze: the number of resamples the D8-11 stratified label-permutation null draws,
-e.g. ``1000`` (Phase 7/07.1's own convention)."""
+N_PERMUTATIONS = 1000
+"""D8-11: the number of resamples the stratified label-permutation null draws (Phase 7/07.1's
+own convention)."""
 
-PERMUTATION_SEED = None
-"""At the freeze: the RNG seed for the D8-11 null -- a fresh date-stamped literal, re-declared
-across the freeze boundary rather than imported (07.1's ``PERMUTATION_SEED`` idiom)."""
+PERMUTATION_SEED = 20260827
+"""D8-11: the RNG seed for the null -- a fresh date-stamped literal, re-declared across the
+freeze boundary rather than imported (07.1's ``PERMUTATION_SEED`` idiom)."""
 
-NULL_QUANTILE_PER_TAIL = None
-"""At the freeze: the two-tailed empirical quantile the null threshold is read at, e.g.
-``0.975`` (Phase 7's own two-tailed permutation-wrapper convention)."""
+NULL_QUANTILE_PER_TAIL = 0.975
+"""D8-11: the two-tailed empirical quantile the null threshold is read at (Phase 7's own
+two-tailed permutation-wrapper convention)."""
 
-NULL_KERNELS = ()
-"""At the freeze: which kernel(s) the D8-11 permutation null is computed for, e.g.
-``("linear", "rbf_sigma")`` -- not necessarily every entry of ``KERNELS``, since a null computed
-on a non-gating diagnostic kernel would gate nothing."""
+NULL_KERNELS = ("linear", "rbf_sigma")
+"""D8-11: which kernel(s) the permutation null is computed for -- not necessarily every entry of
+``KERNELS``, since a null computed on a non-gating diagnostic kernel would gate nothing."""
 
-TERTILE_STATISTIC_RULE = ""
-"""At the freeze: the prose rule stating D8-10's statistic is ``CKA(tertile 3) - CKA(tertile
-1)``; the middle tertile is printed beside it as a shape diagnostic and gates nothing; monotone-
-trend and Phase-6-style compound criteria were considered and rejected -- Phase 6 died on a
-monotonicity criterion while its other two criteria held, and at three buckets a trend statistic
-is near-powerless."""
+TERTILE_STATISTIC_RULE = (
+    "The statistic is CKA(tertile 3) minus CKA(tertile 1); the middle tertile is printed beside "
+    "it as a shape diagnostic and gates nothing (MIDDLE_TERTILE_IS_NON_GATING = True). "
+    "Monotone-trend and Phase-6-style compound criteria were both considered and rejected: "
+    "Phase 6 died on a monotonicity criterion while its other two criteria held, and at three "
+    "buckets a trend statistic is near-powerless (D8-10)."
+)
+"""States D8-10's statistic is ``CKA(tertile 3) - CKA(tertile 1)``; the middle tertile is
+printed beside it as a shape diagnostic and gates nothing; monotone-trend and Phase-6-style
+compound criteria were considered and rejected -- Phase 6 died on a monotonicity criterion while
+its other two criteria held, and at three buckets a trend statistic is near-powerless."""
 
-NULL_CONSTRUCTION_RULE = ""
-"""At the freeze: the prose rule stating D8-11's null permutes ``||H||`` tertile LABELS within
-density strata and recomputes the entire three-subset panel, preserving density structure and
-subset sizes exactly while breaking only the curvature link; it is explicitly NOT
-``mknn.permutation_null``'s row-pairing shuffle (which nulls alignment itself, a question Phase 7
-already settled) and NOT a bootstrap CI (whose bias on a nonlinear whole-subset statistic is
-uncharacterized and has no precedent in this record)."""
+NULL_CONSTRUCTION_RULE = (
+    "The null permutes ||H|| tertile LABELS within density strata, then recomputes the entire "
+    "three-subset CKA panel -- preserving density structure and subset sizes exactly, breaking "
+    "only the curvature link (D8-11). This is NOT mknn.permutation_null's "
+    "permutation_type='pairings' row-pairing shuffle, which nulls alignment itself (a question "
+    "Phase 7 already settled), not whether alignment differs by curvature. It is also NOT a "
+    "bootstrap CI on the difference: CKA is a nonlinear function of the whole subset, its "
+    "bootstrap bias is uncharacterized, and this record has no precedent for it."
+)
+"""States D8-11's null permutes ``||H||`` tertile LABELS within density strata and recomputes
+the entire three-subset panel, preserving density structure and subset sizes exactly while
+breaking only the curvature link; it is explicitly NOT ``mknn.permutation_null``'s row-pairing
+shuffle (which nulls alignment itself, a question Phase 7 already settled) and NOT a bootstrap CI
+(whose bias on a nonlinear whole-subset statistic is uncharacterized and has no precedent in this
+record)."""
 
-MIDDLE_TERTILE_IS_NON_GATING = None
-"""At the freeze: ``True`` -- the middle tertile's CKA is a shape diagnostic printed beside the
-verdict and is never read by any verdict function (D8-10)."""
+MIDDLE_TERTILE_IS_NON_GATING = True
+"""D8-10: the middle tertile's CKA is a shape diagnostic printed beside the verdict and is never
+read by any verdict function."""
 
 # --- 08-02 additions: verdict rules -- clearance at every S, per-d independence, seed
 # unanimity, and the four non-gating declarations (D8-09/12/13/15, D8-20) --------------------
 
-D_SWEEP = ()
-"""At the freeze: the ``d`` values this phase's verdict sweeps, e.g. ``(20, 25, 32)`` --
-re-declared fresh from ``crossmodal_curvature.py``'s own ``D_SWEEP``, never imported across the
-freeze boundary."""
+D_SWEEP = (20, 25, 32)
+"""D8-13/D8-14: the ``d`` values this phase's verdict sweeps -- re-declared fresh from
+``crossmodal_curvature.py``'s own ``D_SWEEP``, never imported across the freeze boundary."""
 
-SEED_FIELD_D = None
-"""At the freeze: the single ``d`` value the ``TORCH_INIT_SEEDS`` axis is measured at, e.g.
-``25`` -- the only ``d`` with three existing seed fields to reuse (D8-14); no decoder is ever
-retrained."""
+SEED_FIELD_D = 25
+"""D8-14: the single ``d`` value the ``TORCH_INIT_SEEDS`` axis is measured at -- the only ``d``
+with three existing seed fields to reuse; no decoder is ever retrained."""
 
-TORCH_INIT_SEEDS = ()
-"""At the freeze: the three decoder-initialization seeds the seed-stability verdict is measured
-across, e.g. ``(0, 1, 2)`` -- 07.1's own three existing ``d=25`` seed fields, never retrained."""
+TORCH_INIT_SEEDS = (0, 1, 2)
+"""D8-14: the three decoder-initialization seeds the seed-stability verdict is measured across --
+07.1's own three existing ``d=25`` seed fields, never retrained. Reported at all three ``S``
+values (18 cells total: 3 fields x 6 seed/d cells at all three S -- the resolution of
+``08-RESEARCH.md`` Open Question 1, departing from its single-headline-``S`` recommendation
+because D8-09 leaves no headline ``S`` to restrict to)."""
 
-VERDICT_RULE = ""
-"""At the freeze: the prose rule stating D8-09 in full -- there is NO headline ``S``; the
-verdict fires only if the gap clears its two-tailed null at EVERY point in ``S_GRID``; relaxing
-this after seeing an ``S``-dependent result is exactly the post-hoc retuning the ``k*=15`` and
-``02.2`` pre-registrations exist to prevent. Must NAME ``S_GRID`` (checked below by
-``assert_preregistered``, mirroring ``linear_probe.assert_preregistered``'s own
-``VERDICT_RULE`` / ``N_BUCKETS`` naming check)."""
+VERDICT_RULE = (
+    "There is NO headline S in S_GRID; the verdict fires only if the curvature-CKA gap clears "
+    "its two-tailed null at EVERY grid point in S_GRID. Relaxing this after seeing an "
+    "S-dependent result is exactly the post-hoc retuning the k*=15 and 02.2 pre-registrations "
+    "exist to prevent; an S-dependent gap is self-reporting as an artifact rather than something "
+    "a reader has to notice."
+)
+"""States D8-09 in full -- there is NO headline ``S``; the verdict fires only if the gap clears
+its two-tailed null at EVERY point in ``S_GRID``; relaxing this after seeing an ``S``-dependent
+result is exactly the post-hoc retuning the ``k*=15`` and ``02.2`` pre-registrations exist to
+prevent. Names ``S_GRID`` (checked below by ``assert_preregistered``, mirroring
+``linear_probe.assert_preregistered``'s own ``VERDICT_RULE`` / ``N_BUCKETS`` naming check)."""
 
-SEED_HANDLING_RULE = ""
-"""At the freeze: the exact ratified string ``"no_pooling_per_seed_verdicts"``, carrying
-``05-03-DECISION.md``'s one-way no-pooling constraint verbatim (D8-15). Checked by EXACT STRING
-EQUALITY below, not truthiness, mirroring ``linear_probe.py``'s own guard -- a future edit that
-assigns any other non-empty string (re-entering the pooled design ``05-03-DECISION.md``
-rejected) must fail this guard rather than pass it."""
+SEED_HANDLING_RULE = "no_pooling_per_seed_verdicts"
+"""D8-15: the exact ratified string, carrying ``05-03-DECISION.md``'s one-way no-pooling
+constraint verbatim. Checked by EXACT STRING EQUALITY below, not truthiness, mirroring
+``linear_probe.py``'s own guard -- a future edit that assigns any other non-empty string
+(re-entering the pooled design ``05-03-DECISION.md`` rejected) must fail this guard rather than
+pass it."""
 
-SEED_VERDICT_COMBINATION_RULE = ""
-"""At the freeze: the prose rule stating :func:`combine_seed_verdicts`' unanimous-3-of-3-or-
-nothing combination -- three clearances ``"CLEARS IN ALL THREE SEEDS"``, zero ``"NO CLEARANCE
-IN ANY SEED"``, one or two the terminal ``"SPLIT ACROSS SEEDS"`` -- never upgraded by majority
-vote (D8-15)."""
+SEED_VERDICT_COMBINATION_RULE = (
+    "Unanimous 3-of-3 clearance -> 'CLEARS IN ALL THREE SEEDS'; zero clearances -> 'NO "
+    "CLEARANCE IN ANY SEED'; one or two clearances -> the terminal, non-supportive 'SPLIT ACROSS "
+    "SEEDS', never upgraded by majority vote (D8-15, carrying 05-03-DECISION.md's ratified "
+    "never-pool constraint)."
+)
+"""States :func:`combine_seed_verdicts`' unanimous-3-of-3-or-nothing combination -- three
+clearances ``"CLEARS IN ALL THREE SEEDS"``, zero ``"NO CLEARANCE IN ANY SEED"``, one or two the
+terminal ``"SPLIT ACROSS SEEDS"`` -- never upgraded by majority vote."""
 
-D32_IS_NON_GATING = None
-"""At the freeze: ``True`` -- ``d=32`` is a REPORTED DIAGNOSTIC that gates nothing and is NOT a
-hard invalidator (D8-12); a hard-invalidator reading was offered and explicitly declined by the
-developer on 2026-08-27."""
+D32_IS_NON_GATING = True
+"""D8-12: ``d=32`` is a REPORTED DIAGNOSTIC that gates nothing and is NOT a hard invalidator; a
+hard-invalidator reading was offered and explicitly declined by the developer on 2026-08-27."""
 
-VALIDATION_LADDER_IS_NON_GATING = None
-"""At the freeze: ``True`` -- all three validation-ladder rungs (D8-16/18/19) run and are
-reported beside the verdict, and none of them gates it (D8-20); a hard-gate ordering was offered
-and explicitly declined by the developer on 2026-08-27."""
+VALIDATION_LADDER_IS_NON_GATING = True
+"""D8-20: all three validation-ladder rungs (D8-16/18/19) run and are reported beside the
+verdict, and none of them gates it; a hard-gate ordering was offered and explicitly declined by
+the developer on 2026-08-27."""
+
+# --- 08-04 additions: control and reporting constants (D8-18/19/21), born already-frozen -- ---
+# nothing before this freeze commit reads them; D8-22 only requires that they be committed in
+# the single freeze commit that precedes every Phase 8 number (08-04-PLAN.md
+# <artifacts_this_phase_produces>).
+
+N_REPEATS = 30
+"""D8-19: the number of shuffled-``||H||`` end-to-end calibration repeats defining the
+false-positive rate. Frozen rather than left as a ``--n-repeats`` flag, because it determines the
+precision of a number D8-21 makes mandatory -- a post-hoc ``--n-repeats 3`` could shrink an
+inconvenient rate. Run at all three ``S`` (90 full null computations total)."""
+
+NEGATIVE_CONTROL_FIELD = "h_norm_25"
+"""D8-19: the frozen curvature field whose ``||H||`` values are shuffled across points (marginal
+preserved, point correspondence destroyed) to measure the negative-control false-positive
+rate."""
+
+PLANTED_EFFECT_GRID = (0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50)
+"""D8-18: the fraction of the high-``||H||`` tertile's rows in one modality whose crossmodal
+pairing is destroyed, swept to read a detection floor at PU's realized ~1.5x dynamic range rather
+than at Phase 6's ~20x."""
+
+PLANTED_EFFECT_SEED = 20260827
+"""D8-18: the RNG seed for the planted-effect ladder's row-destruction draws."""
+
+RECORD_STEM = "08_cka_alignment"
+"""D8-22: the frozen record stem 08-05 onward's production modes append their JSONL rows to,
+via ``cache.cache_path(RECORD_STEM, "jsonl")``. No file at this stem exists before this freeze
+commit -- ``notebooks/.cache/08_cka_alignment.jsonl`` is created only when a production mode
+first runs, never during this plan."""
+
+REPORTING_BLOCK_ROWS = (
+    "d32_gap",
+    "shuffled_h_false_positive_rate",
+    "planted_effect_detection_floor",
+    "realized_h_contrast_per_s",
+    "sigma_rungs",
+)
+"""D8-21: the exact set of five rows ``08-FINDINGS.md`` must print regardless of outcome, each
+beside the headline and not in an appendix."""
+
+REPORTING_BLOCK_RULE = (
+    "08-FINDINGS.md prints all five REPORTING_BLOCK_ROWS regardless of outcome, each beside the "
+    "headline and not in an appendix -- 07.1's D-15 (per-d table reported unconditionally) is "
+    "the precedent (D8-21)."
+)
+"""States that ``08-FINDINGS.md`` prints all five ``REPORTING_BLOCK_ROWS`` unconditionally,
+beside the headline, never in an appendix."""
+
+VERDICT_SENTENCE_RULE = (
+    "The verdict sentence in 08-FINDINGS.md cannot be written without stating d=32's gap and "
+    "the shuffled-||H|| false-positive rate in the same sentence -- this makes it structurally "
+    "impossible to quote a headline without its caveat, the failure mode by which Phase 4's "
+    "number escaped its confound (D8-21)."
+)
+"""States that the verdict sentence cannot be written without the ``d=32`` gap and the
+shuffled-``||H||`` false-positive rate in the same sentence."""
 
 
 _REQUIRED_CONSTANTS = (
@@ -285,9 +423,19 @@ _REQUIRED_CONSTANTS = (
     "SEED_VERDICT_COMBINATION_RULE",
     "D32_IS_NON_GATING",
     "VALIDATION_LADDER_IS_NON_GATING",
+    "N_REPEATS",
+    "NEGATIVE_CONTROL_FIELD",
+    "PLANTED_EFFECT_GRID",
+    "PLANTED_EFFECT_SEED",
+    "RECORD_STEM",
+    "REPORTING_BLOCK_ROWS",
+    "REPORTING_BLOCK_RULE",
+    "VERDICT_SENTENCE_RULE",
 )
-"""Every gating constant this module declares, in declaration order. A constant added later
-without a guard entry here fails the parametrized rejection sweep in
+"""Every gating constant this module declares, in declaration order -- 45 total after the 08-04
+freeze commit (37 declared through 08-03 plus the eight control/reporting constants born
+already-frozen here per 08-04-DECISION.md's guard-coverage fix). A constant added later without
+a guard entry here fails the parametrized rejection sweep in
 ``tests/test_cka.py::test_assert_preregistered_rejects_unset_constant`` -- that is the mechanism
 this tuple exists to serve."""
 
@@ -298,9 +446,9 @@ def assert_preregistered() -> None:
     One check per name in :data:`_REQUIRED_CONSTANTS`, in declaration order, raising
     ``RuntimeError`` on the FIRST failure. A value is UNSET if it is ``None``, an empty tuple,
     or an empty-or-whitespace-only string -- the three UNSET sentinels this module's own
-    constants block uses. In THIS commit every one of the fourteen constants is UNSET, so this
-    function raises on ``KERNELS`` (the first name in declaration order) -- that is the intended
-    state; the 08-04 freeze commit is the single commit that fills all fourteen at once.
+    constants block used before the 08-04 freeze. As of the 08-04 freeze commit, all 45
+    constants are filled and this function returns without raising; a later edit that reverts
+    any one of them to an UNSET sentinel is caught by this same generic sweep.
     """
     g = globals()
     for name in _REQUIRED_CONSTANTS:
