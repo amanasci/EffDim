@@ -341,6 +341,218 @@ def load_frozen_fields() -> Dict[str, np.ndarray]:
     return fields
 
 
+# --- Task 3: --mode sigma -- the two D8-03 frozen global RBF bandwidths and the ------------------
+# Gram-matrix-once proof (D8-04's 0.5x/1x/2x sensitivity ladder). ------------------------------
+
+# Discretion decision (08-03-PLAN.md's <discretion_decisions>, ratified at the freeze as
+# cka.GRAM_DTYPE): float32 halves eight (10000, 10000) float64 matrices' ~6.4 GB to ~3.2 GB;
+# 08-01's test_gram_dtype_agreement is the evidence the choice does not move CKA beyond 1e-5.
+# `cka.GRAM_DTYPE` itself is still UNSET (""), so this is a runner-local literal, not a read
+# across the freeze boundary.
+SIGMA_GRAM_DTYPE = np.float32
+SIGMA_MULTIPLIERS = (0.5, 1.0, 2.0)
+
+# T-08-07 mitigation: if currently AVAILABLE physical memory is below this many MB, run_sigma
+# takes the one-at-a-time disk-cache fallback instead of holding all eight Gram matrices in
+# memory simultaneously (RESEARCH.md's ~3.2 GB float32 / ~6.4 GB float64 estimate for all eight;
+# 6 GB leaves comfortable headroom either way). Never silently changes SIGMA_GRAM_DTYPE.
+FALLBACK_THRESHOLD_MB = 6144.0
+
+
+def _available_memory_mb() -> float:
+    """Best-effort estimate of currently available physical memory, in MB, via POSIX
+    `os.sysconf` -- no extra dependency (`psutil` is not part of this project's notebook
+    requirements). Returns `-1.0` (treated as "unknown, assume scarce") if the platform does not
+    expose these sysconf names."""
+    try:
+        pages = os.sysconf("SC_AVPHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        return (pages * page_size) / (1024.0 * 1024.0)
+    except (ValueError, OSError, AttributeError):
+        return -1.0
+
+
+def _peak_rss_mb() -> float:
+    """The process's peak resident set size, in MB, read from `resource.getrusage` -- the same
+    idiom `geometry_probes_run.py` / `ph_budget_calibration_run.py` already use elsewhere in this
+    tree (`ru_maxrss` is reported in KB on Linux)."""
+    import resource
+
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+
+
+def _rbf_kernel_name(multiplier: float) -> str:
+    """`"rbf_sigma"` at multiplier 1.0 (the headline rung); `"rbf_{multiplier}sigma"` otherwise
+    (e.g. `"rbf_0.5sigma"`, `"rbf_2sigma"` at the diagnostic rungs, D8-04)."""
+    if multiplier == 1.0:
+        return "rbf_sigma"
+    return f"rbf_{multiplier:g}sigma"
+
+
+def build_gram_matrices(
+    X_hsc: np.ndarray,
+    X_ls: np.ndarray,
+    sigma_hsc: float,
+    sigma_ls: float,
+    multipliers: Tuple[float, ...],
+    dtype: Any,
+    on_build: Optional[Callable[[str, str, float], None]] = None,
+) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    """D8-03/D8-04's eight Gram matrices, each built EXACTLY ONCE over all 10,000 points of its
+    own modality and stored at `dtype` -- the Gram-matrix-once architecture 08-05's sweep, null
+    and controls all sub-index (`cka.cka_on_subset`), never rebuild.
+
+    Returns `(grams_hsc, grams_ls)`, each a dict keyed by kernel name --
+    `"linear"`, `"rbf_0.5sigma"`, `"rbf_sigma"`, `"rbf_2sigma"` at the default `multipliers`.
+    The RBF bandwidth for a modality is that modality's OWN frozen scalar (`sigma_hsc` /
+    `sigma_ls`) times the multiplier -- HSC and Legacy Survey never share a scale, because they
+    are different spaces with no reason to (D8-03). Accepts no subset index at all, so no call
+    site can pass one and manufacture a per-subset bandwidth.
+
+    `on_build`, if given, is called as `on_build(modality_name, kernel_name, wallclock_s)`
+    immediately after each individual matrix finishes building -- optional instrumentation hook
+    for a caller that wants per-matrix timing (`run_sigma` uses this to print and record each
+    build); never required for correctness, and this function computes nothing from its return
+    value.
+    """
+
+    def _one_modality(modality_name: str, X: np.ndarray, sigma: float) -> Dict[str, np.ndarray]:
+        grams: Dict[str, np.ndarray] = {}
+        t0 = time.monotonic()
+        grams["linear"] = cka.linear_gram(X, dtype)
+        if on_build is not None:
+            on_build(modality_name, "linear", time.monotonic() - t0)
+        for multiplier in multipliers:
+            name = _rbf_kernel_name(multiplier)
+            t0 = time.monotonic()
+            grams[name] = cka.rbf_gram(X, sigma * multiplier, dtype)
+            if on_build is not None:
+                on_build(modality_name, name, time.monotonic() - t0)
+        return grams
+
+    grams_hsc = _one_modality("hsc", X_hsc, sigma_hsc)
+    grams_ls = _one_modality("legacysurvey", X_ls, sigma_ls)
+    return grams_hsc, grams_ls
+
+
+def run_sigma(args: argparse.Namespace) -> bool:
+    """D8-03's pre-freeze measurement mode: measures the two global RBF bandwidths (the median
+    pairwise Euclidean distance per modality, over ALL 10,000 points, before any subset exists)
+    and proves the Gram-matrix-once architecture by building all eight Gram matrices once at the
+    0.5x/1x/2x sigma ladder (D8-04), reporting each build's wallclock, dtype and the process peak
+    RSS. Computes NO CKA value, constructs NO density stratum and constructs NO tertile -- those
+    all depend on constants that are still UNSET (D8-22); this mode's two sigma outputs are
+    pre-registration INPUTS, not Phase 8 results, so it does NOT call
+    `cka.assert_preregistered()` -- the same discipline `--mode selfcheck` follows.
+
+    REQUIRES `--record-path` and refuses to default onto any frozen record path (there is no
+    frozen Phase 8 record yet). Appends one JSONL row per (modality, kernel) -- eight rows total
+    -- to the scratch record, every value cast to a plain Python scalar before
+    `append_record_row` ever sees it.
+
+    If currently available physical memory is below `FALLBACK_THRESHOLD_MB`, falls back to
+    building and releasing one Gram matrix at a time, caching each to `notebooks/.cache/` as a
+    `.npy` through `cache.cache_path` rather than holding all eight simultaneously -- and records
+    in both the JSONL rows and the printed summary that the fallback was taken. Never silently
+    changes `SIGMA_GRAM_DTYPE`.
+    """
+    if not args.record_path:
+        print(
+            "ERROR: --mode sigma requires --record-path -- this is a PRE-FREEZE MEASUREMENT, "
+            "not a deliverable, and refuses to default onto any frozen record path.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    record_path = resolve_record_path(args.record_path)
+
+    available_mb = _available_memory_mb()
+    disk_fallback_taken = available_mb >= 0.0 and available_mb < FALLBACK_THRESHOLD_MB
+
+    print(
+        f"\n{'=' * 78}\n"
+        "THIS IS A PRE-FREEZE MEASUREMENT, NOT A DELIVERABLE. Every Phase 8 gating constant in "
+        "cka.py is UNSET (see cka.assert_preregistered). The two sigma values below are "
+        "PRE-REGISTRATION INPUTS under D8-03 -- 08-04 freezes them as SIGMA_HSC / "
+        f"SIGMA_LEGACYSURVEY, computed once over all 10,000 points, before any subset exists. "
+        f"This mode computes no CKA value and constructs no subset. Writing to {record_path}.\n"
+        f"available_memory_mb={available_mb:.1f} fallback_threshold_mb={FALLBACK_THRESHOLD_MB:.1f} "
+        f"disk_fallback_taken={disk_fallback_taken}\n"
+        f"{'=' * 78}\n"
+    )
+
+    X_hsc, X_ls, subsample_path = load_pu_pair("hsc", "legacysurvey")
+    n_points, n_features = X_hsc.shape
+
+    sigma_hsc = cka.median_pairwise_distance(X_hsc)
+    sigma_ls = cka.median_pairwise_distance(X_ls)
+    print(f"sigma_median_pairwise modality=hsc value={sigma_hsc!r}")
+    print(f"sigma_median_pairwise modality=legacysurvey value={sigma_ls!r}")
+
+    sigma_by_modality = {"hsc": sigma_hsc, "legacysurvey": sigma_ls}
+    build_records = []
+
+    def _on_build(modality: str, kernel: str, wallclock_s: float) -> None:
+        print(
+            f"gram_build modality={modality} kernel={kernel} wallclock_s={wallclock_s:.6f} "
+            f"dtype={np.dtype(SIGMA_GRAM_DTYPE).name}"
+        )
+        build_records.append((modality, kernel, wallclock_s))
+
+    if disk_fallback_taken:
+        # One rung at a time: build, save to notebooks/.cache/ as .npy, then release the array
+        # before building the next one, so peak RSS never holds more than one (10000, 10000)
+        # matrix at once. SIGMA_GRAM_DTYPE is unchanged either way.
+        def _build_and_release(modality_name: str, X: np.ndarray, sigma: float) -> None:
+            kernel_and_builder = [("linear", lambda: cka.linear_gram(X, SIGMA_GRAM_DTYPE))]
+            for multiplier in SIGMA_MULTIPLIERS:
+                name = _rbf_kernel_name(multiplier)
+                kernel_and_builder.append(
+                    (name, lambda m=multiplier: cka.rbf_gram(X, sigma * m, SIGMA_GRAM_DTYPE))
+                )
+            for kernel_name, builder in kernel_and_builder:
+                t0 = time.monotonic()
+                matrix = builder()
+                wallclock_s = time.monotonic() - t0
+                _on_build(modality_name, kernel_name, wallclock_s)
+                npy_path = cache.cache_path(
+                    f"08_scratch_gram_{modality_name}_{kernel_name}", "npy"
+                )
+                np.save(npy_path, matrix)
+                del matrix
+
+        _build_and_release("hsc", X_hsc, sigma_hsc)
+        _build_and_release("legacysurvey", X_ls, sigma_ls)
+    else:
+        build_gram_matrices(
+            X_hsc, X_ls, sigma_hsc, sigma_ls, SIGMA_MULTIPLIERS, SIGMA_GRAM_DTYPE,
+            on_build=_on_build,
+        )
+
+    peak_rss_mb = _peak_rss_mb()
+    print(f"peak_rss_mb={peak_rss_mb:.2f}")
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    for modality, kernel, wallclock_s in build_records:
+        row = {
+            "mode": "sigma",
+            "modality": modality,
+            "sigma_median_pairwise": float(sigma_by_modality[modality]),
+            "n_points": int(n_points),
+            "n_features": int(n_features),
+            "subsample_file": str(subsample_path),
+            "gram_kernel": kernel,
+            "gram_build_s": float(wallclock_s),
+            "gram_dtype": np.dtype(SIGMA_GRAM_DTYPE).name,
+            "peak_rss_mb": float(peak_rss_mb),
+            "disk_fallback_taken": bool(disk_fallback_taken),
+            "timestamp": timestamp,
+        }
+        append_record_row(row, record_path)
+
+    print("SIGMA MEASUREMENT COMPLETE (pre-freeze; no verdict, no CKA value, no subset)")
+    return True
+
+
 def _random_orthogonal(p: int, rng: np.random.Generator) -> np.ndarray:
     """A random p x p orthogonal matrix via QR decomposition of a random Gaussian matrix."""
     a = rng.standard_normal((p, p))
