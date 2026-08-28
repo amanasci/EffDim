@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 07.1
-current_phase_name: density-stratified-null-and-seed-stability
+current_phase: 08
+current_phase_name: curvature-conditioned-cka-alignment
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-08-27T21:32:01.547Z"
-last_activity: 2026-08-26
-last_activity_desc: Phase 07.1 execution started
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-08-28T01:13:25.008Z"
+last_activity: 2026-08-27
+last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 110
-  completed_plans: 98
+  completed_plans: 99
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 07.1 — density-stratified-null-and-seed-stability
+**Current focus:** Phase 08 — curvature-conditioned-cka-alignment
 
 ## Current Position
 
-Phase: 07.1 (density-stratified-null-and-seed-stability) — EXECUTING
-Plan: 6 of 6
+Phase: 08 (curvature-conditioned-cka-alignment) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-08-26 — Phase 07.1 execution started
+Last activity: 2026-08-27 — Phase 08 execution started
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 94% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 90% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -463,6 +463,7 @@ Progress: [█████████░] 94% of planned plans (17/17; Phases 1
 | Phase 07.1 P04 | 12min | 3 tasks | 3 files |
 | Phase 07.1 P05 | 154min | 3 tasks | 2 files |
 | Phase 07.1 P06 | 55min | 3 tasks | 3 files |
+| Phase 08 P01 | 70min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -669,6 +670,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 07.1-05: Task 3's blocking checkpoint was advanced without human review because the unanimous 3-of-3 D7.1-02 outcome left no characterization judgment open under the frozen unanimity rule -- not a review or sign-off.
 - [Phase ?]: 07.1-06 Task 3's blocking checkpoint resolved by executor self-verification against five named points, not by a human -- neither D7.1-01 nor D7.1-02 verdict has been read by the user anywhere in phase 07.1
 - [Phase ?]: 07.1-06 FINDINGS.md Sec 8's Swiss-roll negation sentence trips a naive grep for 'waiver'/'not applicable'; documented as a verification-command quirk (matches 07-FINDINGS.md's identical phrasing), not a content defect
+- [Phase ?]: 08-01: rewrote test_double_centering_changes_the_answer — a correct unbiased-HSIC implementation is provably invariant to double-centering, so the plan's literal assertion direction was inverted; test now pins the real trap (classical biased HSIC substitution) instead
 
 ### Pending Todos
 
@@ -729,12 +731,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-27T20:42:55.765Z
-Stopped at: Phase 8 context gathered
+Last session: 2026-08-28T01:13:24.950Z
+Stopped at: Completed 08-01-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: .planning/phases/08-curvature-conditioned-cka-alignment/08-CONTEXT.md
+Resume file: None
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them

@@ -1096,12 +1096,12 @@ reporting block beside every verdict.
 requirement set — `REQUIREMENTS.md` maps no `REQ-` IDs to Phase 8, the same arrangement Phase 7 used
 with `07-CONTEXT.md` §3)
 **Depends on:** Phase 7, Phase 07.1
-**Plans:** 6 plans
+**Plans:** 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Tracer: unbiased-HSIC CKA estimator end to end on synthetic pairs, D8-16's invariance ladder, every constant UNSET
+- [x] 08-01-PLAN.md — Tracer: unbiased-HSIC CKA estimator end to end on synthetic pairs, D8-16's invariance ladder, every constant UNSET
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
