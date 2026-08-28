@@ -4,9 +4,9 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
-status: executing
-stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-08-28T03:26:34.213Z"
+status: blocked
+stopped_at: "BLOCKED on 08-05: runtime-cost discovery (~276h required); see 08-05-SUMMARY.md for developer decision"
+last_updated: "2026-08-28T04:14:26.769Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 08 execution started
 progress:
@@ -23,14 +23,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 08 — curvature-conditioned-cka-alignment
+**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (BLOCKED at plan 05)
 
 ## Current Position
 
-Phase: 08 (curvature-conditioned-cka-alignment) — EXECUTING
-Plan: 5 of 6
-Status: Ready to execute
-Last activity: 2026-08-27 — Phase 08 execution started
+Phase: 08 (curvature-conditioned-cka-alignment) — BLOCKED
+Plan: 5 of 6 (implemented, NOT complete -- production runs not executed; see 08-05-SUMMARY.md)
+Status: Blocked on developer decision (measured ~276h compute requirement vs. the 1-2h budgeted)
+Last activity: 2026-08-28 — 08-05: implemented all three production modes, verified correctness
+at small scale and against real PU data at reduced scope, measured the real per-cell null cost
+directly (~2.14h/cell), and halted before running any mode to completion at the frozen
+production scale (129 required full-null computations x ~2.14h = ~276h total). No Phase 8
+production row exists (`notebooks/.cache/08_cka_alignment.jsonl` does not exist). `cka.py`
+untouched, byte-identical to the D8-22 freeze commit. Full test suite unaffected (761 passed, 1
+skipped). See `08-05-SUMMARY.md` for the full measurement and the two developer-decision paths
+forward (run unattended over multiple real days, or issue a fresh cost-aware pre-registration).
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
@@ -695,6 +702,7 @@ From `TODO.md`:
 - Plan 02.4-03's three named Swiss roll limitations (RESOLVED as blockers -- Task 4 approved 2026-08-07, but carried forward as facts 02.4-04 must inherit): absolute topological correlation r=0.680 remains below the originally-set 0.8 bound despite beating the matched baseline; the lambda selection rule ("<=10% reconstruction degradation") is mis-specified for a method that trades reconstruction for topology by design and bound at the grid floor on both the broken and corrected loss -- documented in 02.4-03-SUMMARY.md, not fixed; loss_x_to_z/loss_z_to_x are measured under a different normalization than training optimizes and are not clean evidence on their own -- the scale-free correlation r is the trustworthy number. See `02.4-03-SUMMARY.md` § Known Limitations for full detail.
 - Phase 02.5 blocked at plan 02.5-07's Task 3 blocking checkpoint (stage-1 GO/NO-GO): CURVATURE_VERDICT=FAIL (marginal, seed-sensitive) on the base cell. Per 02.5-PREREGISTRATION.md Section 10, the phase halts for a user decision with no auto-fallback. Plans 02.5-08 through 02.5-13 do not execute until this checkpoint is resolved.
 - 02.5-09 Task 3 blocking checkpoint:human-verify OPEN -- a human must read the chart-decoder curvature read-out and plots and judge whether curvature through a trained chart decoder recovers a known answer. Plans 02.5-10..13 do not proceed until resolved.
+- 08-05 BLOCKED: production runs (positive-control/negative-control/sweep) require ~276h compute (measured), not the 1-2h budgeted -- developer decision needed (run unattended over days, or fresh cost-aware pre-registration). See 08-05-SUMMARY.md.
 
 ### Quick Tasks Completed
 
@@ -739,12 +747,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-28T03:26:34.156Z
-Stopped at: Completed 08-04-PLAN.md
+Last session: 2026-08-28T04:14:26.712Z
+Stopped at: BLOCKED on 08-05: runtime-cost discovery (~276h required); see 08-05-SUMMARY.md for developer decision
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: None
+Resume file: .planning/phases/08-curvature-conditioned-cka-alignment/08-05-SUMMARY.md
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them
