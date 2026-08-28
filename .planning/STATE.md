@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-08-28T02:17:00.501Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-08-28T03:26:34.213Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 110
-  completed_plans: 101
+  completed_plans: 102
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 08 (curvature-conditioned-cka-alignment) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 08 execution started
 
@@ -364,7 +364,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 93% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -466,6 +466,7 @@ Progress: [█████████░] 92% of planned plans (17/17; Phases 1
 | Phase 08 P01 | 70min | 2 tasks | 3 files |
 | Phase 08 P02 | 40min | 3 tasks | 2 files |
 | Phase 08 P03 | 1h5m | 3 tasks | 2 files |
+| Phase 08 P04 | 1h20m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -677,6 +678,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 08-02: combine_seed_verdicts' four clearance counts (0/1/2/3) map to exactly THREE terminal outcomes -- counts 1 and 2 both yield 'SPLIT ACROSS SEEDS', matching D8-15's own no-majority-vote-upgrade rule and linear_probe.py's precedent
 - [Phase ?]: 08-03: import-purity comparison target is a cka-free baseline across four subprocess-isolated orders (D8-23), not a literal per-order before/after snapshot -- the plan's literal wording does not extend to interleaved orders where a module isn't yet imported
 - [Phase ?]: 08-03: measured D8-03 sigma inputs at full precision -- sigma_hsc=0.6420152563705613, sigma_legacysurvey=0.5696337821442163, peak_rss_mb=5182.74, disk fallback not taken -- ready for 08-04's freeze
+- [Phase ?]: Developer ratified every Phase 8 pre-registered constant plus a 37->45 guard-coverage fix at the D8-22 freeze checkpoint (08-04-DECISION.md); the freeze commit 816863c fills all 45 constants in cka.py alone.
 
 ### Pending Todos
 
@@ -737,8 +739,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-08-28T02:17:00.444Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-08-28T03:26:34.156Z
+Stopped at: Completed 08-04-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

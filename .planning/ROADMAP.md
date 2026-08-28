@@ -1096,7 +1096,7 @@ reporting block beside every verdict.
 requirement set — `REQUIREMENTS.md` maps no `REQ-` IDs to Phase 8, the same arrangement Phase 7 used
 with `07-CONTEXT.md` §3)
 **Depends on:** Phase 7, Phase 07.1
-**Plans:** 3/6 plans executed
+**Plans:** 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -1110,7 +1110,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 08-04-PLAN.md — The D8-22 freeze: ratify every constant at a blocking checkpoint, then one commit fills all 45
+- [x] 08-04-PLAN.md — The D8-22 freeze: ratify every constant at a blocking checkpoint, then one commit fills all 45
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
