@@ -4,11 +4,11 @@ milestone: v1.1
 milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
-status: blocked
-stopped_at: "BLOCKED on 08-05: runtime-cost discovery (~276h required); see 08-05-SUMMARY.md for developer decision"
-last_updated: "2026-08-28T04:14:26.769Z"
-last_activity: 2026-08-27
-last_activity_desc: Phase 08 execution started
+status: in_progress
+stopped_at: "08-05 UNBLOCKED: cost-aware re-freeze applied (08-PREREGISTRATION-AMENDMENT-01.md); new freeze f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea wired and verified. 08-05's three production modes are ready to re-run against it -- no production mode was executed by this amendment."
+last_updated: "2026-08-28T13:00:00.000Z"
+last_activity: 2026-08-28
+last_activity_desc: Phase 08 cost-aware pre-registration amendment applied
 progress:
   total_phases: 16
   completed_phases: 12
@@ -23,21 +23,28 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (BLOCKED at plan 05)
+**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (UNBLOCKED at plan 05, cost-aware re-freeze applied; production modes not yet run)
 
 ## Current Position
 
-Phase: 08 (curvature-conditioned-cka-alignment) — BLOCKED
-Plan: 5 of 6 (implemented, NOT complete -- production runs not executed; see 08-05-SUMMARY.md)
-Status: Blocked on developer decision (measured ~276h compute requirement vs. the 1-2h budgeted)
-Last activity: 2026-08-28 — 08-05: implemented all three production modes, verified correctness
-at small scale and against real PU data at reduced scope, measured the real per-cell null cost
-directly (~2.14h/cell), and halted before running any mode to completion at the frozen
-production scale (129 required full-null computations x ~2.14h = ~276h total). No Phase 8
-production row exists (`notebooks/.cache/08_cka_alignment.jsonl` does not exist). `cka.py`
-untouched, byte-identical to the D8-22 freeze commit. Full test suite unaffected (761 passed, 1
-skipped). See `08-05-SUMMARY.md` for the full measurement and the two developer-decision paths
-forward (run unattended over multiple real days, or issue a fresh cost-aware pre-registration).
+Phase: 08 (curvature-conditioned-cka-alignment) — UNBLOCKED, ready to resume plan 05
+Plan: 5 of 6 (implemented at 08-05; production runs not yet executed against the amended freeze)
+Status: Cost-aware pre-registration amendment applied 2026-08-28
+(`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
+on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
+`PLANTED_EFFECT_GRID` 7->5 rungs (rung choice flagged as the orchestrator's judgment call, not
+the developer's), plus a measured value-preserving `unbiased_hsic` `term1` fix (~5.9e-6 relative
+diff, 2.376x faster on the whole call). New freeze commit
+`f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea` supersedes `816863cae2209261470d1d041dcc4484a3056947`
+in full; `S_GRID` and all other 42 constants are unchanged. `assert_preregistered()` passes; all
+45 constants remain guarded. The new SHA is wired identically into
+`08_cka_alignment_run.py`/`test_cka.py`; the old SHA is now correctly rejected by the
+strict-ancestor gate. Recomputed budget: **~28.25h**, down from ~276h. No Phase 8 production row
+exists (`notebooks/.cache/08_cka_alignment.jsonl` still does not exist) and **no production mode
+was executed by this amendment** -- 08-05's three modes are next to run, against the new freeze.
+Full `notebooks/pu_manifold/tests/` suite green (761 passed, 1 skipped) both before and after.
+Last activity: 2026-08-28 — 08-PREREGISTRATION-AMENDMENT-01 applied; see that document and
+`08-05-SUMMARY.md` for the full measurement and decision record.
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
 wave 3 is cleared. The one-way "do not pool" ratification (`05-03-DECISION.md`) is now carried by
