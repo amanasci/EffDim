@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 6
+open_count: 7
 waived_count: 0
 fixed_count: 1
-total_count: 7
-last_updated: 2026-08-24T22:02:10.831Z
+total_count: 8
+last_updated: 2026-08-28T04:15:20.602Z
 ---
 
 # Broken Windows Ledger
@@ -22,6 +22,7 @@ last_updated: 2026-08-24T22:02:10.831Z
 | 5 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-SCREENING-RULE-AMENDMENT-01.md |  | SC-5's D-02 live prediction (roll ambient beta_1=1 -> Euclidean-only spurious cycle) was never exercised through decide()'s abstain path; condition (b) fired first in every measured run. Untested under the amended gating_dispersion gate. | open |  | 2026-08-12T13:55:51.767Z |  |
 | 6 | 02.7 | deviation | .planning/phases/02.7-manifold-template-inference-front-end-inserted/02.7-10-PLAN.md |  | 02.7-10 Task 2/3 not executed by explicit user scope decision -- no benchmark cell scored, no 02.7-BENCHMARK-RESULTS.md, blocking checkpoint not reached. Runner built/tested/committed only (ac6a3fd). | open |  | 2026-08-12T14:21:05.897Z |  |
 | 7 | 05 | deviation | notebooks/.cache/05_curvature_buckets_seed20260814.npz |  | Seed 20260814's full-field bucket counts [3334,2956,3710] (spread 754) diverge from the 'near-exactly balanced' assumption in 05-03's action text, due to a genuine 2,102-point exact-duplicate block at the field's maximum value; D5-07 tie rule applied correctly, not a code bug -- see 05-03-SUMMARY.md Findings | open |  | 2026-08-24T22:02:10.831Z |  |
+| 8 | 08 | unrun-verify | notebooks/diagnostics/08_cka_alignment_run.py |  | 08-05 Tasks 1-3 (positive-control/negative-control/sweep) implemented but not run to completion: measured ~276h compute required (vs. 1-2h budgeted). No Phase 8 production row exists. See 08-05-SUMMARY.md. | open |  | 2026-08-28T04:15:20.602Z |  |
 
 ````json
 [
@@ -107,6 +108,18 @@ last_updated: 2026-08-24T22:02:10.831Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-24T22:02:10.831Z",
+    "resolved_at": null
+  },
+  {
+    "id": 8,
+    "kind": "unrun-verify",
+    "phase": "08",
+    "file": "notebooks/diagnostics/08_cka_alignment_run.py",
+    "line": null,
+    "description": "08-05 Tasks 1-3 (positive-control/negative-control/sweep) implemented but not run to completion: measured ~276h compute required (vs. 1-2h budgeted). No Phase 8 production row exists. See 08-05-SUMMARY.md.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-28T04:15:20.602Z",
     "resolved_at": null
   }
 ]
