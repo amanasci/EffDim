@@ -10,12 +10,18 @@ own. D7-05/D8-23 sealed those modules as import-never-edit, and a gating constan
 ACROSS that freeze boundary would not be covered by this module's own
 ``assert_preregistered()`` or by this phase's own git-ancestry proof.
 
-**THIS COMMIT IS THE FREEZE COMMIT (D8-22).** Every one of the 45 constants named in
-``_REQUIRED_CONSTANTS`` is filled below, together, in this single commit, ratified by the
-developer directly in
-``.planning/phases/08-curvature-conditioned-cka-alignment/08-04-DECISION.md`` (not by a standing
-authorization). This commit must be a strict git ancestor of every commit that computes a Phase 8
-number -- ``08_cka_alignment_run.py``'s ``_strict_ancestor_or_exit`` and
+**THIS COMMIT IS THE FREEZE COMMIT (D8-22), SUPERSEDING 816863cae2209261470d1d041dcc4484a3056947
+PER `08-PREREGISTRATION-AMENDMENT-01.md`.** Every one of the 45 constants named in
+``_REQUIRED_CONSTANTS`` is filled below, together, in this single commit. The original freeze
+(816863c) was ratified by the developer directly in
+``.planning/phases/08-curvature-conditioned-cka-alignment/08-04-DECISION.md``. **No Phase 8
+number ever existed under that freeze** -- 08-05 measured its production cost at ~276h before any
+run started and halted without writing a row -- so this amendment is a fresh pre-registration, not
+a retrofit to a result anyone has seen; see `08-PREREGISTRATION-AMENDMENT-01.md` for the
+developer's verbatim cost-aware decision (2026-08-28) and the full rationale for each of the four
+changes it makes (``N_PERMUTATIONS``, ``N_REPEATS``, ``PLANTED_EFFECT_GRID``, and
+``unbiased_hsic``'s ``term1`` form). This commit must be a strict git ancestor of every commit
+that computes a Phase 8 number -- ``08_cka_alignment_run.py``'s ``_strict_ancestor_or_exit`` and
 ``tests/test_cka.py``'s ancestry test both pin this commit's SHA once it exists. **A later edit
 to any of these 45 constants after a Phase 8 number exists anywhere in the tree is a
 pre-registration BREACH: the only remedy is a fresh freeze and a fresh run, never a silent fix**
@@ -222,9 +228,13 @@ notice."""
 # --- 08-02 additions: the tertile-difference panel and its within-stratum label-permutation
 # null (D8-10/D8-11) --------------------------------------------------------------------------
 
-N_PERMUTATIONS = 1000
-"""D8-11: the number of resamples the stratified label-permutation null draws (Phase 7/07.1's
-own convention)."""
+N_PERMUTATIONS = 500
+"""D8-11, AMENDED 2026-08-28 (`08-PREREGISTRATION-AMENDMENT-01.md`, superseding 816863c's
+``1000``). 08-05 measured one full null at this constant's original value costing ~2.14h at PU's
+real ~3,333-point pooled tertile size -- 129 required full-null computations would have cost
+~276h. Halved to 500 by the developer's direct decision on the orchestrator's measured cost table:
+12.5 permutations per null tail still keeps clearance verdicts meaningful. No Phase 8 number ever
+existed under the ``1000`` value this replaces."""
 
 PERMUTATION_SEED = 20260827
 """D8-11: the RNG seed for the null -- a fresh date-stamped literal, re-declared across the
@@ -332,21 +342,30 @@ the developer on 2026-08-27."""
 # the single freeze commit that precedes every Phase 8 number (08-04-PLAN.md
 # <artifacts_this_phase_produces>).
 
-N_REPEATS = 30
-"""D8-19: the number of shuffled-``||H||`` end-to-end calibration repeats defining the
+N_REPEATS = 10
+"""D8-19, AMENDED 2026-08-28 (`08-PREREGISTRATION-AMENDMENT-01.md`, superseding 816863c's
+``30``). The number of shuffled-``||H||`` end-to-end calibration repeats defining the
 false-positive rate. Frozen rather than left as a ``--n-repeats`` flag, because it determines the
 precision of a number D8-21 makes mandatory -- a post-hoc ``--n-repeats 3`` could shrink an
-inconvenient rate. Run at all three ``S`` (90 full null computations total)."""
+inconvenient rate. Reduced from 30 to 10 by the developer's direct cost-aware decision: the
+false-positive rate stays readable at 1/10 granularity. Run at all three ``S`` (30 full null
+computations total, down from 90)."""
 
 NEGATIVE_CONTROL_FIELD = "h_norm_25"
 """D8-19: the frozen curvature field whose ``||H||`` values are shuffled across points (marginal
 preserved, point correspondence destroyed) to measure the negative-control false-positive
 rate."""
 
-PLANTED_EFFECT_GRID = (0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50)
-"""D8-18: the fraction of the high-``||H||`` tertile's rows in one modality whose crossmodal
-pairing is destroyed, swept to read a detection floor at PU's realized ~1.5x dynamic range rather
-than at Phase 6's ~20x."""
+PLANTED_EFFECT_GRID = (0.0, 0.05, 0.10, 0.20, 0.50)
+"""D8-18, AMENDED 2026-08-28 (`08-PREREGISTRATION-AMENDMENT-01.md`, superseding 816863c's
+7-rung ``(0.0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50)`` grid). The fraction of the high-``||H||``
+tertile's rows in one modality whose crossmodal pairing is destroyed, swept to read a detection
+floor at PU's realized ~1.5x dynamic range rather than at Phase 6's ~20x. Reduced to 5 rungs as a
+cost-aware measure: keeps the ``0.0`` null rung, keeps low/mid resolution where PU's realized
+~1.5x dynamic range makes the detection floor actually live, keeps ``0.50`` as the strong anchor
+proving the test CAN detect an effect; drops ``0.02`` (below any plausible floor) and ``0.35``
+(redundant between ``0.20`` and ``0.50``). **This specific rung choice was an orchestrator
+judgment call, not named by the developer** -- see the amendment document."""
 
 PLANTED_EFFECT_SEED = 20260827
 """D8-18: the RNG seed for the planted-effect ladder's row-destruction draws."""
@@ -539,7 +558,13 @@ def unbiased_hsic(K: np.ndarray, L: np.ndarray) -> float:
         raise ValueError(f"unbiased_hsic: n={n} must exceed 3 (Song et al. 2012 floor).")
     Kt, Lt = _zero_diag(K), _zero_diag(L)
     ones = np.ones(n)
-    term1 = np.trace(Kt @ Lt)
+    # AMENDED 2026-08-28 (`08-PREREGISTRATION-AMENDMENT-01.md`): term1 was
+    # `np.trace(Kt @ Lt)`, an O(n^3) dense matrix product computed only to extract a trace.
+    # `np.sum(Kt * Lt.T)` is mathematically identical (both equal sum_ij Kt[i,j] * Lt[j,i]) and
+    # O(n^2). Measured at n=3333, float32: term1 alone ~7.1x faster, the whole unbiased_hsic
+    # call ~2.4x faster, relative difference ~5.9e-6 (well inside the 1e-5 acceptance bound) --
+    # NOT bit-identical, recorded honestly in the amendment rather than claimed as a pure no-op.
+    term1 = np.sum(Kt * Lt.T)
     term2 = (ones @ Kt @ ones) * (ones @ Lt @ ones) / ((n - 1) * (n - 2))
     term3 = (2.0 / (n - 2)) * (ones @ Kt @ Lt @ ones)
     return float((term1 + term2 - term3) / (n * (n - 3)))
