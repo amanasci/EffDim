@@ -93,9 +93,13 @@ PRODUCTION_MODES_REQUIRING_FREEZE = ("sweep", "positive-control", "negative-cont
 
 # D8-22's freeze commit: the commit that filled every constant in cka.py's frozen block (37
 # constants through 08-03, plus the eight control/reporting constants born already-frozen at
-# 08-04, 45 total). Every Phase 8 number must be a STRICT git descendant of this commit --
+# 08-04, 45 total). AMENDED 2026-08-28 (08-PREREGISTRATION-AMENDMENT-01.md): this SHA now names
+# the cost-aware re-freeze that superseded 08-04's original freeze (short SHA 816863c) --
+# N_PERMUTATIONS/N_REPEATS/PLANTED_EFFECT_GRID reduced and unbiased_hsic's term1 fixed, all other
+# 42 constants unchanged. No Phase 8 number ever existed under the superseded freeze. Every
+# Phase 8 number must be a STRICT git descendant of this (the amended) commit --
 # `_strict_ancestor_or_exit` below enforces this exactly.
-FREEZE_COMMIT_SHA = "816863cae2209261470d1d041dcc4484a3056947"
+FREEZE_COMMIT_SHA = "f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea"
 
 # D8-16's invariance ladder is run at these fixed literals -- declared at the call site, per the
 # plan's own instruction, NOT as pre-registered constants in `cka.py` (tolerances gate nothing;

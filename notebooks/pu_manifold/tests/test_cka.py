@@ -30,9 +30,12 @@ ATOL_INDEPENDENCE = 0.05
 RTOL_REFERENCE = 1e-12
 ATOL_DTYPE = 1e-5
 
-# D8-22's freeze commit -- the commit that filled all 45 of cka.py's pre-registered constants
-# (08-04-SUMMARY.md). Every later Phase 8 number must be a strict git descendant of this commit.
-FREEZE_COMMIT_SHA = "816863cae2209261470d1d041dcc4484a3056947"
+# D8-22's freeze commit -- the commit that filled all 45 of cka.py's pre-registered constants.
+# AMENDED 2026-08-28 (08-PREREGISTRATION-AMENDMENT-01.md): this SHA now names the cost-aware
+# re-freeze that superseded 08-04-SUMMARY.md's original freeze (short SHA 816863c). No Phase 8
+# number ever existed under the superseded freeze. Every later Phase 8 number must be a strict
+# git descendant of this (the amended) commit.
+FREEZE_COMMIT_SHA = "f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea"
 
 
 def _repo_root() -> Path:
