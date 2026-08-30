@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: in_progress
-stopped_at: "08-05 UNBLOCKED: cost-aware re-freeze applied (08-PREREGISTRATION-AMENDMENT-01.md); new freeze f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea wired and verified. 08-05's three production modes are ready to re-run against it -- no production mode was executed by this amendment."
-last_updated: "2026-08-28T13:00:00.000Z"
-last_activity: 2026-08-28
-last_activity_desc: Phase 08 cost-aware pre-registration amendment applied
+stopped_at: "08-05 production runs COMPLETE against freeze f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea -- all three modes executed by the developer 2026-08-29/30, 211 rows in notebooks/.cache/08_cka_alignment.jsonl (66 positive-control, 66 negative-control, 79 sweep), every row carrying that SHA. Sweep: d=20 and d=25 CLEAR AT EVERY S, d=32 DOES NOT CLEAR, 3/3 seeds clear at d=25. Negative control: 1 clearance in 60 cells (0.017 vs nominal 0.05). Positive control: POSITIVE CONTROL INVALID -- the magnitude=0.0 no-injection anchor cleared at all six (S, kernel) cells, so D8-18's detection-floor power curve does not exist and Phase 8 has no power estimate. New plan 08-07 (post-freeze diagnostics + the reporting correction) inserted at wave 5; 08-06 re-waved to 6 and now depends on it."
+last_updated: "2026-08-30T00:00:00.000Z"
+last_activity: 2026-08-30
+last_activity_desc: Phase 08 production runs complete; plan 08-07 added for post-freeze diagnostics
 progress:
   total_phases: 16
   completed_phases: 12
-  total_plans: 110
-  completed_plans: 102
+  total_plans: 111
+  completed_plans: 103
 ---
 
 # Project State
@@ -23,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (UNBLOCKED at plan 05, cost-aware re-freeze applied; production modes not yet run)
+**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (production runs complete; 08-07 diagnostics then 08-06 write-up remain)
 
 ## Current Position
 
-Phase: 08 (curvature-conditioned-cka-alignment) — UNBLOCKED, ready to resume plan 05
-Plan: 5 of 6 (implemented at 08-05; production runs not yet executed against the amended freeze)
+Phase: 08 (curvature-conditioned-cka-alignment) — production runs complete, 2 plans remain
+Plan: 5 of 7 complete (08-07 inserted 2026-08-30; 08-06 re-waved to 6, now depends on 08-07)
 Status: Cost-aware pre-registration amendment applied 2026-08-28
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
