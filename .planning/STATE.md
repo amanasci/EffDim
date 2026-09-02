@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: in_progress
-stopped_at: "08-05 production runs COMPLETE against freeze f023c8fa7ee1dc2a021e998c99a65e65f6bc7eea -- all three modes executed by the developer 2026-08-29/30, 211 rows in notebooks/.cache/08_cka_alignment.jsonl (66 positive-control, 66 negative-control, 79 sweep), every row carrying that SHA. Sweep: d=20 and d=25 CLEAR AT EVERY S, d=32 DOES NOT CLEAR, 3/3 seeds clear at d=25. Negative control: 1 clearance in 60 cells (0.017 vs nominal 0.05). Positive control: POSITIVE CONTROL INVALID -- the magnitude=0.0 no-injection anchor cleared at all six (S, kernel) cells, so D8-18's detection-floor power curve does not exist and Phase 8 has no power estimate. New plan 08-07 (post-freeze diagnostics + the reporting correction) inserted at wave 5; 08-06 re-waved to 6 and now depends on it."
-last_updated: "2026-08-30T00:00:00.000Z"
-last_activity: 2026-08-30
-last_activity_desc: Phase 08 production runs complete; plan 08-07 added for post-freeze diagnostics
+stopped_at: "08-07 COMPLETE (commits 294c5dd, 4c378a1, 532f34a, ac891a5, 817fe92). Four diagnostics run, all non-gating, 08_cka_alignment.jsonl untouched at 66/66/79. (1) Density: the ambient-contamination hypothesis is REJECTED -- spearman(geodesic/ambient radius ratio, ||H||) = +0.023/+0.024/+0.013, and the geodesic partial is LARGER, so ambient is the conservative control. (2) Radial: the unit-sphere premise holds exactly (H_rad within 3.5% of -d), but substituting the tangential field COLLAPSES d=25's partial 2.8x (-0.0659 to -0.0233) and FLIPS d=32's sign (-0.0269 to +0.0564) while leaving raw rho unmoved; spearman(||H||,||H_tan||) = 0.961/0.918/0.888, so the pre-registered near-1 rule passed a result the partial says it should not have. (3) Fidelity: measured at d=25, span (0.17,0.97) vs d=20's (0.53,0.98) -- ceiling intact, floor down 3x, all in cubic/D=768. d=32 HALTED on its pre-registered stop condition: D=(28,768) is a hard literal and graph fixtures need D>=d+1, capping the small-ambient arm at d=27. (4) p-values: only d=25 survives density control (p<5e-5 at S=10/20/50); d=20 p~0.06, d=32 p~0.10-0.17. Task 5 checkpoint answered 2026-09-02: (a) keep ambient, (b) one-paragraph limitation, (c) treat as a fixture-design finding, (d) positive-control invalidity INTO the verdict sentence -- all RATIFIED and recorded verbatim in 08-DIAGNOSTICS.md section 5; (e) p-value reporting NOT RATIFIED and deliberately NOT encoded as an 08-06 must_have. 08-06-PLAN.md must_haves amended for (c) and (d). NEXT: 08-06 (wave 6) -- the reporting notebook, 08-FINDINGS.md and 08-VALIDATION.md."
+last_updated: "2026-09-02T00:00:00.000Z"
+last_activity: 2026-09-02
+last_activity_desc: Plan 08-07 complete -- four diagnostics run, Task 5 checkpoint ratified; only 08-06 remains
 progress:
   total_phases: 16
   completed_phases: 12
   total_plans: 111
-  completed_plans: 103
+  completed_plans: 104
 ---
 
 # Project State
@@ -23,12 +23,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (production runs complete; 08-07 diagnostics then 08-06 write-up remain)
+**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (08-07 diagnostics complete and ratified; 08-06 write-up is all that remains)
 
 ## Current Position
 
-Phase: 08 (curvature-conditioned-cka-alignment) — production runs complete, 2 plans remain
-Plan: 5 of 7 complete (08-07 inserted 2026-08-30; 08-06 re-waved to 6, now depends on 08-07)
+Phase: 08 (curvature-conditioned-cka-alignment) — 08-07 complete and ratified, 1 plan remains
+Plan: 6 of 7 complete (08-07 done 2026-09-02, Task 3 partial by ratified decision; 08-06 at wave 6 is unblocked)
 Status: Cost-aware pre-registration amendment applied 2026-08-28
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
