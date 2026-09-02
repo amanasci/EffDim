@@ -749,7 +749,17 @@ def plant_curvature_positive_control(
     Returns the planted array, the achieved controlled partial, and the slope. The null
     validation is the caller's job and must be :func:`permutation_fwer`'s Freedman-Lane
     construction -- ``crossmodal_curvature.two_tailed_permutation_null`` is the wrong null for
-    this phase."""
+    this phase.
+
+    Direction note (a real adaptation, not present in the sealed mechanism): the sealed
+    ``plant_positive_control`` always bisects assuming ``spearmanr(h_real, planted)`` INCREASES
+    with slope, which holds unconditionally there because the achieved statistic is measured
+    against ``h_real`` itself. Here the achieved statistic is measured against ``y`` (e.g. the
+    local out-of-fold R2), so whether ``controlled_partial(planted, y, Z)`` increases or
+    decreases with slope depends on the empirical sign of the ``h_real``-``y`` relationship --
+    for this phase's own negative-association hypothesis (D9-09), it decreases. The direction is
+    therefore measured once (achieved at slope 0.0 vs slope 2.0) before bisecting, rather than
+    assumed fixed."""
     from scipy.stats import rankdata
 
     h = np.asarray(h_real, dtype=np.float64).ravel()
@@ -762,7 +772,12 @@ def plant_curvature_positive_control(
     u = (rankdata(h) - 0.5) / n
     lo_val, hi_val = float(np.min(h)), float(np.max(h))
     spread = hi_val - lo_val
-    _discretization = 1000
+    # A small discretization (mirroring the sealed mechanism's own k-sized binomial trial count,
+    # rather than an arbitrary fine-grained one) keeps controlled_partial(planted, y, Z) a
+    # smooth, near-monotonic function of slope across the whole [0.0, 2.0] bracket; a much finer
+    # discretization saturates the achieved statistic within the first few percent of the
+    # bracket, making bisection unable to resolve intermediate targets.
+    _discretization = 10
 
     def _planted(slope: float) -> np.ndarray:
         p = np.clip(0.5 + slope * (u - 0.5), 0.0, 1.0)
@@ -770,15 +785,25 @@ def plant_curvature_positive_control(
         j = rng_.binomial(_discretization, p)
         return lo_val + spread * (j / float(_discretization))
 
+    achieved_at_low = controlled_partial(_planted(0.0), y, Z)
+    achieved_at_high = controlled_partial(_planted(2.0), y, Z)
+    increasing = achieved_at_high >= achieved_at_low
+
     low, high = 0.0, 2.0
     for _ in range(n_bisect):
         mid = (low + high) / 2.0
         mid_planted = _planted(mid)
         mid_achieved = controlled_partial(mid_planted, y, Z)
-        if mid_achieved < target_rho:
-            low = mid
+        if increasing:
+            if mid_achieved < target_rho:
+                low = mid
+            else:
+                high = mid
         else:
-            high = mid
+            if mid_achieved > target_rho:
+                low = mid
+            else:
+                high = mid
 
     slope = high
     planted = _planted(slope)
