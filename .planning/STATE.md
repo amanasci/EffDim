@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PU Manifold Curvature
-current_phase: 08
-current_phase_name: curvature-conditioned-cka-alignment
-status: in_progress
-stopped_at: Phase 9 planned (10 plans, 9 waves); Phase 8 plan 08-06 still open
-last_updated: "2026-09-02T18:30:00.000Z"
-last_activity: 2026-08-28
-last_activity_desc: 08-PREREGISTRATION-AMENDMENT-01 applied; see that document and
+current_phase: 09
+current_phase_name: curvature-conditioned-label-decodability-physics-replication
+status: executing
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-09-02T19:55:38.938Z"
+last_activity: 2026-09-02
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 17
   completed_phases: 12
   total_plans: 121
-  completed_plans: 103
+  completed_plans: 104
 ---
 
 # Project State
@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** One call over an (n_samples, n_features) array returns a comparable panel of effective dimensionality estimates.
-**Current focus:** Phase 08 — curvature-conditioned-cka-alignment (08-07 diagnostics complete and ratified; 08-06 write-up is all that remains)
+**Current focus:** Phase 09 — curvature-conditioned-label-decodability-physics-replication
 
 ## Current Position
 
@@ -35,9 +35,9 @@ developer ruling in 09-04 before the 09-05 freeze. **Execution will NOT run on t
 machine**: 09-06 is the hand-off to an SSH remote or the colleague's compute (undecided), and
 09-07/08/09 are `checkpoint:human-action` host runs. Not yet executed. Phase 8 remains open below.
 
-Phase: 08 (curvature-conditioned-cka-alignment) — 08-07 complete and ratified, 1 plan remains
-Plan: 6 of 7 complete (08-07 done 2026-09-02, Task 3 partial by ratified decision; 08-06 at wave 6 is unblocked)
-Status: Cost-aware pre-registration amendment applied 2026-08-28
+Phase: 09 (curvature-conditioned-label-decodability-physics-replication) — EXECUTING
+Plan: 2 of 10
+Status: Ready to execute
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
 `PLANTED_EFFECT_GRID` 7->5 rungs (rung choice flagged as the orchestrator's judgment call, not
@@ -51,7 +51,7 @@ strict-ancestor gate. Recomputed budget: **~28.25h**, down from ~276h. No Phase 
 exists (`notebooks/.cache/08_cka_alignment.jsonl` still does not exist) and **no production mode
 was executed by this amendment** -- 08-05's three modes are next to run, against the new freeze.
 Full `notebooks/pu_manifold/tests/` suite green (761 passed, 1 skipped) both before and after.
-Last activity: 2026-08-28 — 08-PREREGISTRATION-AMENDMENT-01 applied; see that document and
+Last activity: 2026-09-02 — Phase 09 execution started
 `08-05-SUMMARY.md` for the full measurement and decision record.
 
 **Waves 3-6 replanned 2026-08-24 (`63c94c7`), plan-checker PASSED with 0 blockers.** The halt at
@@ -386,7 +386,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 93% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 86% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -489,6 +489,7 @@ Progress: [█████████░] 93% of planned plans (17/17; Phases 1
 | Phase 08 P02 | 40min | 3 tasks | 2 files |
 | Phase 08 P03 | 1h5m | 3 tasks | 2 files |
 | Phase 08 P04 | 1h20m | 3 tasks | 4 files |
+| Phase 09 P01 | 55min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -701,6 +702,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 08-03: import-purity comparison target is a cka-free baseline across four subprocess-isolated orders (D8-23), not a literal per-order before/after snapshot -- the plan's literal wording does not extend to interleaved orders where a module isn't yet imported
 - [Phase ?]: 08-03: measured D8-03 sigma inputs at full precision -- sigma_hsc=0.6420152563705613, sigma_legacysurvey=0.5696337821442163, peak_rss_mb=5182.74, disk fallback not taken -- ready for 08-04's freeze
 - [Phase ?]: Developer ratified every Phase 8 pre-registered constant plus a 37->45 guard-coverage fix at the D8-22 freeze checkpoint (08-04-DECISION.md); the freeze commit 816863c fills all 45 constants in cka.py alone.
+- [Phase ?]: 09-01: sklearn==1.9.0 RidgeCV single-candidate-alpha defect worked around via a duplicate-valued two-entry alpha_grid, verified bit-identical to a true single-alpha fit; linear_probe.py not edited
+- [Phase ?]: 09-01: plant_curvature_positive_control's bisection direction measured empirically (not assumed increasing) since the retargeted controlled-partial statistic can decrease with slope under this phase's own negative-association hypothesis
 
 ### Pending Todos
 
@@ -763,12 +766,12 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-09-02T16:06:15.493Z
-Stopped at: Phase 9 planned — 10 plans in 9 waves, checker PASSED; execution runs on a remote/colleague host, not this machine (09-CONTEXT.md Specifics, 09-06-PLAN.md)
+Last session: 2026-09-02T19:55:38.878Z
+Stopped at: Completed 09-01-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
-Resume file: .planning/phases/09-curvature-conditioned-label-decodability-physics-replication/09-CONTEXT.md
+Resume file: None
 
 **Phase 4 is UNBLOCKED FOR PLANNING as of 2026-08-23.** D-11 ("Phase 4 stays blocked, no route
 out proposed") is **discharged**: four decisions now define the route out, and two of them
