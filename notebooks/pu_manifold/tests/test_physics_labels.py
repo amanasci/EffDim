@@ -9,17 +9,37 @@ known-aligned and known-offset cases, including the D9-08 SEARCH branch's input)
 sweep).
 """
 
+import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pu_manifold import physics_labels as pl  # noqa: E402
+
+_RUNNER_PATH = (
+    Path(__file__).resolve().parents[2] / "diagnostics" / "09_row_alignment_proof_run.py"
+)
+
+
+@pytest.fixture(scope="module")
+def runner():
+    """Loads `09_row_alignment_proof_run.py` as a module by file path -- it is not a package
+    member (`notebooks/diagnostics/` is a plain directory, not a `pu_manifold` package member,
+    and its module name starts with a digit), mirroring
+    `test_crossmodal_curvature_run.py`'s own precedent."""
+    spec = importlib.util.spec_from_file_location("row_alignment_proof_run_under_test", _RUNNER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _small_oof(X: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -202,3 +222,198 @@ def test_assert_preregistered_rejects_unset_constant(name):
         mp.setattr(pl, name, _unset_value(name))
         with pytest.raises(RuntimeError, match=re.escape(name)):
             pl.assert_preregistered()
+
+
+# --- Loaders (Task 1): _shard_url, load_label_table, label_missingness_report ------------------
+#
+# Every test here stubs the parquet read -- monkeypatching the SAME `pyarrow.parquet` module
+# object `physics_labels` resolves via its own lazy `import pyarrow.parquet as pq` (module
+# caching in sys.modules means patching `pq.read_table`/`pq.read_schema` here is visible to
+# physics_labels's own lazy import) -- and monkeypatches the UNSET label-source constants to
+# plausible filled values, so no test performs a live network read and the loaders are
+# exercisable without a freeze.
+
+
+def _set_label_source_constants(monkeypatch, n_shards=2, repo="Smith42/galaxies", revision="v2.0", split="test"):
+    monkeypatch.setattr(pl, "LABEL_REPO", repo)
+    monkeypatch.setattr(pl, "LABEL_REVISION", revision)
+    monkeypatch.setattr(pl, "LABEL_SPLIT", split)
+    monkeypatch.setattr(pl, "LABEL_N_SHARDS", n_shards)
+
+
+def test_shard_url_pins_revision(monkeypatch):
+    _set_label_source_constants(monkeypatch, n_shards=16, repo="Smith42/galaxies", revision="v2.0", split="test")
+
+    for index in range(16):
+        url = pl._shard_url(index)
+        assert url == f"hf://datasets/Smith42/galaxies@v2.0/data/test-{index:05d}-of-00016.parquet"
+        assert "v2.0" in url
+
+    with pytest.raises(ValueError, match="outside range"):
+        pl._shard_url(-1)
+    with pytest.raises(ValueError, match="outside range"):
+        pl._shard_url(16)
+
+
+def test_shard_url_raises_when_shard_count_is_unset():
+    # LABEL_N_SHARDS is UNSET (None) at module scope by default in this test process (no
+    # monkeypatch applied) -- _shard_url must not raise TypeError from range(None); it must
+    # raise ValueError.
+    with pytest.raises(ValueError, match="outside range"):
+        pl._shard_url(0)
+
+
+def test_load_label_table_raises_on_missing_column(monkeypatch):
+    _set_label_source_constants(monkeypatch, n_shards=1)
+    stub_table = pa.Table.from_pydict({"dr8_id": ["a", "b"], "mag_r_desi": [1.0, 2.0]})
+
+    monkeypatch.setattr(pq, "read_schema", lambda url: stub_table.schema)
+    monkeypatch.setattr(pq, "read_table", lambda url, columns=None: stub_table.select(columns))
+
+    with pytest.raises(KeyError) as excinfo:
+        pl.load_label_table(["mag_r_desi", "not_a_real_column"], expected_rows=2)
+    message = str(excinfo.value)
+    assert "not_a_real_column" in message
+    assert "Smith42/galaxies" in message
+    assert "v2.0" in message
+
+
+def test_load_label_table_raises_on_row_count_mismatch(monkeypatch):
+    _set_label_source_constants(monkeypatch, n_shards=2)
+    tables_by_shard = {
+        0: pa.Table.from_pydict({"mag_r_desi": [1.0, 2.0, 3.0]}),
+        1: pa.Table.from_pydict({"mag_r_desi": [4.0, 5.0]}),
+    }
+
+    def fake_read_schema(url):
+        return tables_by_shard[0].schema
+
+    def fake_read_table(url, columns=None):
+        for index, table in tables_by_shard.items():
+            if f"{index:05d}-of-" in url:
+                return table.select(columns) if columns else table
+        raise AssertionError(f"unexpected url {url!r}")
+
+    monkeypatch.setattr(pq, "read_schema", fake_read_schema)
+    monkeypatch.setattr(pq, "read_table", fake_read_table)
+
+    with pytest.raises(ValueError) as excinfo:
+        pl.load_label_table(["mag_r_desi"], expected_rows=10)
+    message = str(excinfo.value)
+    assert "5" in message
+    assert "10" in message
+
+
+def test_load_label_table_raises_on_empty_read(monkeypatch):
+    _set_label_source_constants(monkeypatch, n_shards=1)
+    empty_table = pa.Table.from_pydict({"mag_r_desi": pa.array([], type=pa.float64())})
+
+    monkeypatch.setattr(pq, "read_schema", lambda url: empty_table.schema)
+    monkeypatch.setattr(pq, "read_table", lambda url, columns=None: empty_table.select(columns))
+
+    with pytest.raises(ValueError, match="zero rows"):
+        pl.load_label_table(["mag_r_desi"], expected_rows=5)
+
+
+def test_load_label_table_concatenates_shards_in_ascending_order(monkeypatch):
+    _set_label_source_constants(monkeypatch, n_shards=2)
+    tables_by_shard = {
+        0: pa.Table.from_pydict({"mag_r_desi": [1.0, 2.0]}),
+        1: pa.Table.from_pydict({"mag_r_desi": [3.0, 4.0]}),
+    }
+
+    def fake_read_schema(url):
+        return tables_by_shard[0].schema
+
+    def fake_read_table(url, columns=None):
+        for index, table in tables_by_shard.items():
+            if f"{index:05d}-of-" in url:
+                return table.select(columns) if columns else table
+        raise AssertionError(f"unexpected url {url!r}")
+
+    monkeypatch.setattr(pq, "read_schema", fake_read_schema)
+    monkeypatch.setattr(pq, "read_table", fake_read_table)
+
+    frame = pl.load_label_table(["mag_r_desi"], expected_rows=4)
+    assert list(frame["mag_r_desi"]) == [1.0, 2.0, 3.0, 4.0]
+
+
+# --- label_missingness_report -------------------------------------------------------------------
+
+
+def test_missingness_report_counts_sentinels_separately():
+    table = pd.DataFrame({"mag_r_desi": [1.0, -99.0, 2.5, np.nan, -99.0, 3.0, np.inf]})
+    column_map = {"mag_r": "mag_r_desi"}
+
+    report = pl.label_missingness_report(table, column_map, sentinels=(-99.0,))
+    stats = report["mag_r"]
+
+    assert stats["raw_column"] == "mag_r_desi"
+    assert stats["n_total"] == 7
+    assert stats["n_finite_raw"] == 5  # 1.0, -99.0, 2.5, -99.0, 3.0 are all finite BEFORE masking
+    assert stats["n_sentinel"] == 2
+    assert stats["n_finite_masked"] == 3  # only 1.0, 2.5, 3.0 survive sentinel masking
+    assert stats["fraction_finite"] == pytest.approx(3 / 7)
+
+
+def test_missingness_report_all_sentinel_column():
+    table = pd.DataFrame({"stellar_mass_raw": [-99.0, -99.0, -99.0]})
+    column_map = {"stellar_mass": "stellar_mass_raw"}
+
+    report = pl.label_missingness_report(table, column_map, sentinels=(-99.0,))
+    stats = report["stellar_mass"]
+
+    assert stats["n_total"] == 3
+    assert stats["n_sentinel"] == 3
+    assert stats["n_finite_masked"] == 0  # reports zero rather than raising
+
+
+def test_missingness_report_raises_on_missing_column():
+    table = pd.DataFrame({"mag_r_desi": [1.0, 2.0]})
+    column_map = {"mag_r": "not_present"}
+    with pytest.raises(KeyError):
+        pl.label_missingness_report(table, column_map, sentinels=(-99.0,))
+
+
+# --- Runner (Task 2): --mode manifest writes dataset metadata only, no statistic ---------------
+
+
+def test_manifest_mode_writes_no_statistic_key(runner, monkeypatch, tmp_path):
+    """Behavioural pin on the metadata-only rule (D9-18): monkeypatch the loaders to return
+    small stub arrays, run the manifest code path against a temporary record path inside a
+    temporary output root, and assert every written row parses as JSON and carries no key
+    named `r2`, `rho` or `p`. Holds even if the code is refactored, unlike a source grep."""
+    monkeypatch.setattr(runner.pcp, "resolve_output_root", lambda: tmp_path)
+
+    def fake_load_physics_embeddings(**kwargs):
+        return {
+            "X": np.zeros((5, 3)), "row_norm": np.ones(5), "n_rows": 5, "n_features": 3,
+            "source_url": "stub://embeddings", "normalization": "stub",
+        }
+
+    def fake_load_label_table(columns, expected_rows=None):
+        return pd.DataFrame({name: [1.0, 2.0, -99.0, np.nan, 3.0] for name in columns})
+
+    monkeypatch.setattr(runner.pl, "load_physics_embeddings", fake_load_physics_embeddings)
+    monkeypatch.setattr(runner.pl, "load_label_table", fake_load_label_table)
+
+    record_path = tmp_path / "09_data_manifest_stub.jsonl"
+    args = runner.build_arg_parser().parse_args(
+        [
+            "--mode", "manifest",
+            "--candidate-columns", "col_a", "col_b",
+            "--record-path", str(record_path),
+        ]
+    )
+
+    ok = runner.run_manifest(args)
+    assert ok is True
+
+    lines = record_path.read_text().strip().splitlines()
+    assert len(lines) > 0
+    for line in lines:
+        row = json.loads(line)
+        assert "r2" not in row
+        assert "rho" not in row
+        assert "p" not in row
+        assert "passed" not in row
