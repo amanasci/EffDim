@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 2/10 plans executed
+**Plans:** 3/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1176,7 +1176,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 09-03-PLAN.md — Revision-pinned column-projected loaders for both HF datasets and the row-alignment proof runner
+- [x] 09-03-PLAN.md — Revision-pinned column-projected loaders for both HF datasets and the row-alignment proof runner
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
