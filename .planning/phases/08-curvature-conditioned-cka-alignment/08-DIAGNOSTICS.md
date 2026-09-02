@@ -1,8 +1,9 @@
 # 08-DIAGNOSTICS — post-freeze diagnostics for Phase 8
 
 **Plan:** 08-07 · **Status:** Tasks 1, 2 and 4 complete. Task 3 PARTIAL — `d=25` measured,
-`d=32` halted on the pre-registered stop condition (§3). Task 5 checkpoint NOT YET PRESENTED;
-all five decisions stand at `NOT RATIFIED`.
+`d=32` halted on the pre-registered stop condition (§3). Task 5 checkpoint PRESENTED and
+answered 2026-09-02: (a)-(d) RATIFIED, (e) NOT RATIFIED (not put to the developer). §5 carries
+each answer verbatim.
 
 Every number in this document is **non-gating**. No verdict in `notebooks/.cache/08_cka_alignment.jsonl`
 was recomputed, revised or reinterpreted; no row was appended to it (verified: 66 positive-control,
@@ -146,18 +147,25 @@ Two readings are available and this document does not choose between them:
    median of -19.77.
 
 **Verdict impact: changes no verdict**, because this runner gates nothing and every Phase 7, 07.1
-and 8 verdict was computed on the frozen `||H||` field, which is untouched. But it bears directly on
-what those verdicts *mean*, which is a different question and the one the checkpoint answers.
+and 8 verdict was computed on the frozen `||H||` field, which is untouched. But it bears on what
+those verdicts *mean*, which is a different question and the one the checkpoint answered.
 
-**Escalation, per plan 08-07's own terms.** The plan states that if the decomposition shows the
-`||H||` field means something different from what Phases 7 and 8 assumed, "that is a finding large
-enough to warrant its own phase — **not** something to absorb into Phase 8's write-up." The `d=25`
-collapse and the `d=32` sign flip meet that description. Option (b)-as-its-own-phase is live.
+**Developer ruling, 2026-09-02 — "One-paragraph limitation".** Verbatim: *apply the pre-registered
+rule as written: rank correlation 0.89-0.96 is near 1, so treat the radial term as a constant offset
+and note it as a limitation in 08-FINDINGS.* The executor had recommended computing the tangential
+partial's permutation p first and flagged that the pre-registered rule missed the partial's
+behaviour; the developer chose the rule as written, and that is the decision on the record.
 
-**What would sharpen the decision, not yet run:** an exact permutation p for
-`partial_htan_mknn` at `d=25` under the same within-density-stratum null §4 used. The Task 4 runner
-can be pointed at the tangential field. That is scope beyond 08-07 as written and is not being taken
-unilaterally — it is put to the developer at the checkpoint.
+**What the limitation paragraph in `08-FINDINGS.md` must therefore contain.** Not "the radial term
+is a constant offset that changes nothing" — the measurements do not support that sentence. It must
+carry the numbers as measured: `spearman(||H||, ||H_tan||)` = 0.961 / 0.918 / 0.888, the `d=25`
+partial's 2.8x collapse from -0.0659 to -0.0233 under substitution, and the `d=32` sign inversion
+from -0.0269 to +0.0564. The ruling settles how much weight the finding carries in the write-up. It
+does not license omitting it.
+
+**Not run, and available if the reading is revisited:** an exact permutation p for
+`partial_htan_mknn` at `d=25` under the same within-density-stratum null §4 used. That is the number
+separating "collapsed to noise" from "collapsed but still significant", and it remains unmeasured.
 
 ## 3. Per-`d` instrument fidelity — PARTIAL, `d=32` HALTED
 
@@ -230,6 +238,19 @@ grid. That would touch no fixture, no seed and no existing number, but it is sti
 route around a pre-registered stop, so it is **put to the developer at the checkpoint rather than
 taken here**.
 
+**Developer ruling, 2026-09-02 — "Treat as a fixture-design finding".** Verbatim: *record that the
+sweep's D grid cannot represent d>27 as a finding in its own right, defer any d=32 fidelity
+measurement to a later phase that redesigns the fixtures.* The `D=768`-only run at `d=32` was
+offered and declined. `d=32` therefore has **no instrument-fidelity measurement**, and
+`08-FINDINGS.md` must report it as instrument-uninformative rather than as a geometry result.
+
+**The fixture-design finding, stated for the later phase that will act on it.** The sweep's ambient
+grid is the hard literal `(28, 768)`. A `d`-dimensional graph fixture from
+`varying_ii_controls.FAMILIES` has local width `m = d + 1` and `synthetic_controls.rotate_and_pad`
+requires `D >= m`, so the `D=28` arm is structurally capped at `d=27`. Any future sweep intending to
+cover `d > 27` must either raise the small-ambient `D` or drop that arm — and raising it changes
+what the sealed `d=20` numbers mean, which is why this was not done here.
+
 **Consequence for the `d=32` reading, unchanged by this plan.** Phase 7 (after density control) and
 Phase 8 both lose the signal at `d=32`, and a dying instrument and a vanishing effect remain
 indistinguishable there. §1 adds one relevant fact: at `d=32` `rho(density, ||H||)` is +0.0118 with
@@ -292,7 +313,9 @@ clearance — and the two agree. `d=20`'s partial sits just outside 0.05 at ever
 
 The raw p-values are **not the claim**. At `n = 10,000` a raw `|rho|` of 0.11 is trivially
 significant, and a tiny raw p is not the confidence that carries the milestone. The load-bearing
-numbers are the partial's p under the stratified null and Phase 8's independent CKA clearance.
+numbers are the partial's p under the stratified null and Phase 8's independent CKA clearance. Because it is unratified it was **not** added to
+`08-06-PLAN.md`'s `must_haves`, so `08-06` currently carries no binding requirement that a p accompany
+every quoted rho. Ratifying (e) is the way to make it one.
 
 **Verdict impact: changes no verdict.** Every row carries `gates_nothing: true`.
 
@@ -300,13 +323,39 @@ numbers are the partial's p under the stratified null and Phase 8's independent 
 
 ## 5. Developer checkpoint (Task 5)
 
-**NOT YET PRESENTED.** Decisions (a) through (e) are pending the completion of §2 and §3.
+Presented 2026-09-02. Four decisions answered by the developer and recorded verbatim below. One,
+(e), was not put to the developer and stands `NOT RATIFIED`.
 
-- (a) density control — **NOT RATIFIED**
-- (b) radial decomposition — **NOT RATIFIED**
-- (c) per-`d` instrument fidelity — **NOT RATIFIED**
-- (d) the invalid positive control's place in the verdict sentence — **NOT RATIFIED**
-- (e) p-value reporting discipline — **NOT RATIFIED**
+**(a) Density control — RATIFIED, "Keep ambient".** Verbatim: *MKNN and CKA are both computed in
+ambient 768-D space, so ambient density is the matched and more conservative covariate. Taking the
+geodesic number would be choosing the control that flatters the result.* `DENSITY_INPUT` unchanged;
+no D8-22 breach; no re-run.
 
-A standing "keep working" instruction is not an answer to this checkpoint and must not be recorded
+**(b) Radial decomposition — RATIFIED, "One-paragraph limitation".** Verbatim: *apply the
+pre-registered rule as written: rank correlation 0.89-0.96 is near 1, so treat the radial term as a
+constant offset and note it as a limitation in 08-FINDINGS. Accepts that the rule missed the
+partial's behaviour.* No new phase is opened. See §2 for what that paragraph must contain — the
+ruling governs the weight, not the omission, of the measured collapse and sign flip. The executor's
+recommendation had been to compute the tangential partial's permutation p first; that number remains
+unmeasured.
+
+**(c) Per-`d` instrument fidelity — RATIFIED, "Treat as a fixture-design finding".** Verbatim:
+*record that the sweep's D grid cannot represent d>27 as a finding in its own right, defer any d=32
+fidelity measurement to a later phase that redesigns the fixtures.* `INSTRUMENT_FIDELITY_RANGE`
+unchanged at (0.53, 0.99). `d=25` fidelity is measured and reported beside it. `d=32` has no fidelity
+measurement and must be reported as instrument-uninformative.
+
+**(d) The invalid positive control — RATIFIED, option 1, "Into the verdict sentence".** Verbatim:
+*add it alongside the other two and amend 08-06's must_haves. The negative control gives a
+false-positive rate (1/60 cells, 0.017), not a power estimate; a verdict carrying the first while
+omitting the second reads stronger than the evidence supports.* `08-06-PLAN.md`'s `must_haves` were
+amended accordingly before `08-06` executes.
+
+**(e) P-value reporting — NOT RATIFIED.** Not put to the developer at this checkpoint. The proposal
+standing for confirmation: `08-FINDINGS.md` reports a p beside every rho it quotes, and never quotes
+a raw p without the density caveat in the same sentence, because at `n = 10,000` a raw `|rho|` of
+0.11 is trivially significant and the load-bearing numbers are the partial's p under the stratified
+null and Phase 8's independent CKA clearance.
+
+A standing "keep working" instruction is not an answer to this checkpoint and has not been recorded
 as one.
