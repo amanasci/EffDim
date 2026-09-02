@@ -24,15 +24,21 @@ freeze and a full re-run, never a silent fix.
 
 This module never imports the sibling Phase 9 statistics module (the two modules stay acyclic
 by dependency injection: :func:`alignment_r2_curve` takes the out-of-fold estimator as a
-callable parameter rather than importing one), never imports ``torch``, and performs no network
-access or parquet read of its own -- callers wire this module's pure functions to whatever
-loader 09-03 adds.
+callable parameter rather than importing one) and never imports ``torch``. This commit (09-03)
+adds the module's own parquet-reading loaders (:func:`load_physics_embeddings`,
+:func:`load_label_table`, :func:`label_missingness_report`): every value they read is either
+overridden explicitly by the caller (the pre-freeze ``--mode manifest`` path) or resolved from
+the still-UNSET constants above, so none of the three can run to completion until the freeze
+fills the constants they depend on and no override is supplied.
 """
 
 import os
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+
+from . import cache
+from . import subsample
 
 # =============================================================================================
 # Constants -- ALL UNSET in this commit. Filled only by Phase 9's single freeze commit (09-05).
@@ -58,7 +64,8 @@ EMBEDDING_NORMALIZATION = ""
 """Rule string stating whether/how the embedding matrix is normalized before any statistic."""
 
 LABEL_REPO = None
-"""HuggingFace repo id for the label catalog, e.g. "Smith42/galaxies"."""
+"""HuggingFace repo id for the label catalog, e.g. "Smith42/galaxies" -- always read at
+LABEL_REVISION (e.g. "v2.0"), never at this repo's default revision."""
 
 LABEL_REVISION = None
 """The pinned revision string (e.g. "v2.0") -- the default branch/revision silently lacks every
@@ -417,3 +424,262 @@ def alignment_verdict(curve: List[Dict[str, Any]], margin: float) -> Dict[str, A
         "passed": bool(passed),
         "clearing_alignments": clearing_alignments,
     }
+
+
+# =============================================================================================
+# Loaders -- real HuggingFace reads. Every pre-registered value below (the parquet path/column
+# for the embeddings side; the repo/revision/split/shard-count for the label side) defaults to
+# reading the module-level UNSET constant, and every one of these three functions therefore
+# cannot run to completion before the 09-05 freeze fills them, UNLESS the caller supplies an
+# explicit override -- the pre-freeze `--mode manifest` path 09_row_alignment_proof_run.py adds.
+# =============================================================================================
+
+# Environment variable this module temporarily exports resolve_hf_cache_dir()'s resolved value
+# into, for the duration of a read only, and only when not already set -- huggingface_hub's
+# `hf://` filesystem handler consults HF_HOME directly; HF_CACHE_ENV_VARS may name a different
+# variable (e.g. HF_DATASETS_CACHE) that resolve_hf_cache_dir checks first.
+_HF_HOME_ENV_VAR = "HF_HOME"
+
+
+def _require_label_source_constants() -> None:
+    """Raise ``RuntimeError`` naming the first UNSET label-source constant among
+    ``LABEL_REPO``, ``LABEL_REVISION``, ``LABEL_SPLIT`` and ``LABEL_N_SHARDS`` --
+    :func:`load_label_table` and :func:`_shard_url` cannot resolve a shard URL before the
+    freeze fills these (D9-18)."""
+    for name in ("LABEL_REPO", "LABEL_REVISION", "LABEL_SPLIT", "LABEL_N_SHARDS"):
+        value = globals()[name]
+        if _is_unset(value):
+            raise RuntimeError(
+                f"_require_label_source_constants: {name}={value!r} is UNSET. No Physics "
+                "number may be computed before the freeze (D9-18); see assert_preregistered."
+            )
+
+
+def _shard_url(index: int) -> str:
+    """``hf://datasets/{LABEL_REPO}@{LABEL_REVISION}/data/{LABEL_SPLIT}-{index:05d}-of-
+    {LABEL_N_SHARDS:05d}.parquet`` -- the revision lives in the URL fragment, not a keyword
+    that a future caller could omit (RESEARCH.md Pitfall 1). Raises ``ValueError`` naming the
+    index and the (possibly UNSET) shard count when ``index`` is outside
+    ``range(LABEL_N_SHARDS)``, including when ``LABEL_N_SHARDS`` itself is UNSET."""
+    n_shards = LABEL_N_SHARDS
+    if n_shards is None or index not in range(n_shards):
+        raise ValueError(
+            f"_shard_url: index={index} is outside range(LABEL_N_SHARDS={n_shards!r})."
+        )
+    return (
+        f"hf://datasets/{LABEL_REPO}@{LABEL_REVISION}/data/"
+        f"{LABEL_SPLIT}-{index:05d}-of-{n_shards:05d}.parquet"
+    )
+
+
+class _hf_cache_env_override:
+    """Context manager: exports :func:`resolve_hf_cache_dir`'s resolved value into
+    :data:`_HF_HOME_ENV_VAR` for the duration of a read, ONLY when that variable is not
+    already set in the environment -- an execution host that has already set ``HF_HOME`` (or
+    any other :data:`HF_CACHE_ENV_VARS` entry the library itself consults) is never
+    overridden. Restores the prior (absent) state on exit, never leaving a stray env var set
+    across calls."""
+
+    def __enter__(self) -> None:
+        self._did_set = False
+        resolved = resolve_hf_cache_dir()
+        if resolved is not None and _HF_HOME_ENV_VAR not in os.environ:
+            os.environ[_HF_HOME_ENV_VAR] = resolved
+            self._did_set = True
+        return None
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._did_set:
+            os.environ.pop(_HF_HOME_ENV_VAR, None)
+
+
+def load_physics_embeddings(
+    parquet_path: Optional[str] = None,
+    column: Optional[str] = None,
+    expected_rows: Optional[int] = None,
+    normalize: bool = True,
+) -> Dict[str, Any]:
+    """Column-projected read of the Physics ViT-B embeddings parquet. ``parquet_path``,
+    ``column`` and ``expected_rows`` each default to ``None`` meaning "read the frozen
+    constant" (``PHYSICS_PARQUET_PATH``, ``PHYSICS_COLUMN``, ``EXPECTED_N_PHYSICS_ROWS``); an
+    explicit value overrides it -- the override path is what lets ``--mode manifest`` run
+    before the freeze without weakening any post-freeze call site, which passes nothing and
+    therefore gets the frozen values. Raises ``RuntimeError`` naming the UNSET constant(s) when
+    no override is supplied and the frozen value is still UNSET.
+
+    Reads with ``pyarrow.parquet.read_table(path, columns=[column])``, converts to a float64
+    ``(n, 768)`` array, raises ``ValueError`` when the table has zero rows or the width is not
+    768, then calls :func:`assert_expected_rows` against the resolved expected row count. When
+    ``normalize`` is true the array is passed through ``subsample.l2_normalize`` and the raw
+    (pre-normalization) row norms are returned alongside it, so the sphere premise the radial
+    curvature decomposition rests on can be checked numerically later; ``EMBEDDING_NORMALIZATION``
+    is recorded in the returned dict as provenance regardless.
+
+    Caches the result under ``cache.npz_cache`` keyed on a cfg dict carrying the resolved URL,
+    column name, expected row count and normalisation, so a re-run on the execution host does
+    not re-download and a changed upstream file (a different resolved cfg) misses the cache
+    rather than silently reusing a stale array.
+
+    Returns ``{"X", "row_norm", "n_rows", "n_features", "source_url", "normalization"}``.
+    """
+    resolved_path = parquet_path if parquet_path is not None else PHYSICS_PARQUET_PATH
+    resolved_column = column if column is not None else PHYSICS_COLUMN
+    resolved_expected_rows = expected_rows if expected_rows is not None else EXPECTED_N_PHYSICS_ROWS
+    if resolved_path is None or resolved_column is None or resolved_expected_rows is None:
+        raise RuntimeError(
+            "load_physics_embeddings: PHYSICS_PARQUET_PATH/PHYSICS_COLUMN/"
+            "EXPECTED_N_PHYSICS_ROWS is UNSET and no override was supplied for it. No Physics "
+            "number may be computed before the freeze (D9-18); see assert_preregistered."
+        )
+
+    normalization = EMBEDDING_NORMALIZATION if normalize else "none (normalize=False)"
+    cfg = {
+        "source_url": resolved_path,
+        "column": resolved_column,
+        "expected_rows": int(resolved_expected_rows),
+        "normalize": bool(normalize),
+        "normalization": normalization,
+    }
+
+    def _compute() -> Dict[str, np.ndarray]:
+        import pyarrow.parquet as pq
+
+        with _hf_cache_env_override():
+            table = pq.read_table(resolved_path, columns=[resolved_column])
+        n_rows = table.num_rows
+        if n_rows == 0:
+            raise ValueError(
+                f"load_physics_embeddings: read of {resolved_path!r} returned zero rows."
+            )
+        assert_expected_rows(n_rows, resolved_expected_rows, "physics embeddings")
+
+        raw = np.asarray(table.column(resolved_column).to_pylist(), dtype=np.float64)
+        if raw.ndim != 2 or raw.shape[1] != 768:
+            raise ValueError(
+                f"load_physics_embeddings: expected width 768, got shape {raw.shape} from "
+                f"column {resolved_column!r} of {resolved_path!r}."
+            )
+
+        if normalize:
+            X, row_norm = subsample.l2_normalize(raw)
+        else:
+            X = raw
+            row_norm = np.linalg.norm(raw, axis=1)
+        return {"X": X, "row_norm": row_norm}
+
+    stem = f"physics_embeddings_{cache.config_key(cfg)}"
+    arrays = cache.npz_cache(stem, cfg, _compute)
+
+    return {
+        "X": arrays["X"],
+        "row_norm": arrays["row_norm"],
+        "n_rows": int(arrays["X"].shape[0]),
+        "n_features": int(arrays["X"].shape[1]),
+        "source_url": resolved_path,
+        "normalization": normalization,
+    }
+
+
+def load_label_table(columns: Any, expected_rows: Optional[int] = None) -> Any:
+    """Column-projected, revision-pinned read of ``LABEL_REPO@LABEL_REVISION``'s
+    ``LABEL_SPLIT`` shards, concatenated in ascending shard-index order (the entire basis of
+    the positional row-index join with the embeddings side --
+    :data:`LABEL_SHARD_ORDER_RULE`). ``expected_rows`` defaults to ``None`` meaning
+    ``EXPECTED_N_PHYSICS_ROWS``, overridable for the same pre-freeze reason
+    :func:`load_physics_embeddings` documents. Raises ``RuntimeError`` naming the first UNSET
+    label-source constant (:func:`_require_label_source_constants`) when the repo/revision/
+    split/shard-count are not yet frozen.
+
+    Before the first shard read, verifies shard 0's schema contains every requested column and
+    raises ``KeyError`` naming the missing column(s), the repository and the revision when it
+    does not -- so a future ``v3.0`` fails loudly instead of silently returning an empty label
+    set. After concatenation, raises ``ValueError`` on a zero-row result and calls
+    :func:`assert_expected_rows` against the resolved expected row count.
+
+    Honours :func:`resolve_hf_cache_dir` by exporting its resolved value into the environment
+    for the duration of the read only if not already set (:class:`_hf_cache_env_override`),
+    never overriding a value the execution host chose.
+
+    Returns a ``pandas.DataFrame``.
+    """
+    _require_label_source_constants()
+    resolved_expected_rows = expected_rows if expected_rows is not None else EXPECTED_N_PHYSICS_ROWS
+    if resolved_expected_rows is None:
+        raise RuntimeError(
+            "load_label_table: expected_rows was not supplied and EXPECTED_N_PHYSICS_ROWS is "
+            "UNSET. No Physics number may be computed before the freeze (D9-18); see "
+            "assert_preregistered."
+        )
+
+    column_list = list(columns)
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    tables = []
+    with _hf_cache_env_override():
+        for index in range(LABEL_N_SHARDS):
+            url = _shard_url(index)
+            if index == 0:
+                schema_names = set(pq.read_schema(url).names)
+                missing = [c for c in column_list if c not in schema_names]
+                if missing:
+                    raise KeyError(
+                        f"load_label_table: column(s) {missing!r} are absent from "
+                        f"{LABEL_REPO!r} at revision={LABEL_REVISION!r} (checked shard 0's "
+                        f"schema: {url!r})."
+                    )
+            tables.append(pq.read_table(url, columns=column_list))
+
+    full_table = pa.concat_tables(tables)
+    frame = full_table.to_pandas()
+
+    n_rows = len(frame)
+    if n_rows == 0:
+        raise ValueError(
+            f"load_label_table: concatenated read of {LABEL_N_SHARDS} shards from "
+            f"{LABEL_REPO!r}@{LABEL_REVISION!r} returned zero rows."
+        )
+    assert_expected_rows(n_rows, resolved_expected_rows, "label table")
+    return frame
+
+
+def label_missingness_report(
+    table: Any, column_map: Dict[str, str], sentinels: Any
+) -> Dict[str, Dict[str, Any]]:
+    """Counts only: no mean, no variance, no correlation, no regression (D9-18's manifest-mode
+    prohibition -- this is the evidence 09-04's blocking checkpoint reads, and dataset metadata
+    is not a Physics number).
+
+    For every canonical name in ``column_map``, resolves the raw column (raising ``KeyError``
+    naming the canonical name and the raw column when it is absent from ``table``), and reports
+    ``{"raw_column", "n_total", "n_finite_raw", "n_sentinel", "n_finite_masked",
+    "fraction_finite"}``. ``n_finite_raw`` counts finite entries BEFORE sentinel masking;
+    ``n_sentinel`` counts entries equal to any of ``sentinels``; ``n_finite_masked`` counts
+    finite entries after :func:`mask_sentinels`. A column that is entirely sentinel reports
+    ``n_finite_masked == 0`` rather than raising, so the manifest can record the fact."""
+    sentinel_list = list(sentinels)
+    sentinel_arr = np.asarray(sentinel_list, dtype=np.float64) if sentinel_list else None
+
+    report: Dict[str, Dict[str, Any]] = {}
+    for canonical_name, raw_column in column_map.items():
+        columns = getattr(table, "columns", None)
+        has_column = (raw_column in columns) if columns is not None else (raw_column in table)
+        if not has_column:
+            raise KeyError(
+                f"label_missingness_report: canonical name={canonical_name!r} resolves to raw "
+                f"column={raw_column!r}, which is absent from the table."
+            )
+        values = np.asarray(table[raw_column], dtype=np.float64)
+        n_total = int(values.shape[0])
+        n_finite_raw = int(np.sum(np.isfinite(values)))
+        n_sentinel = int(np.sum(np.isin(values, sentinel_arr))) if sentinel_arr is not None else 0
+        n_finite_masked = int(np.sum(np.isfinite(mask_sentinels(values, sentinels))))
+        report[canonical_name] = {
+            "raw_column": raw_column,
+            "n_total": n_total,
+            "n_finite_raw": n_finite_raw,
+            "n_sentinel": n_sentinel,
+            "n_finite_masked": n_finite_masked,
+            "fraction_finite": (n_finite_masked / n_total) if n_total > 0 else 0.0,
+        }
+    return report
