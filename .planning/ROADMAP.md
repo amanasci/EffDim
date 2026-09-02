@@ -1136,20 +1136,25 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
   `mag_r` primary; `photo_z`, `smooth_fraction`, `stellar_mass` secondary). pu-embeddings carries no
   ids, so row alignment must be PROVEN inside the phase (his own audit rule: equal row count is not the
   proof). No proof, no Physics number.
+
 - **Outcome.** One global 5-fold out-of-fold ridge probe embedding -> label, frozen, scored locally
   (R^2, MSE, SST) inside k-NN neighbourhoods of anchors; denominator check (SST) and direct-error check
   (MSE) beside R^2 exactly as his `METHODS_FOR_PAPER.md` §9-§11.
+
 - **Controls.** log kNN radius, local label variance, evaluation count; rank-partial Spearman AND
   Phase 07.1's within-density-stratum permutation null; Freedman–Lane FWER across `d`. Both nulls
   reported unconditionally.
+
 - **Radial term.** Report `||H||` and the sphere-tangential `||H_tan||` side by side. His estimator
   removes the sphere-radial component by construction; `08-DIAGNOSTICS.md` §2 measured our `d=25`
   partial collapsing 2.8x under the same substitution. A replication that ignores this is not a
   replication.
+
 - **Gates before any real number.** Planted-effect positive control at the realized `||H||` dynamic
   range, shuffled-label calibration, constants frozen in committed source before any Physics number
   exists (D7-06 / D8-22 pattern). Fit-quality read-out (`var_explained`, `cond(g)`) at every `d`,
   since the instrument was validated at `d=20` on 10,000 Legacy rows, not on Physics rows.
+
 - **Reference material on his branch.** Per-anchor table
   `paper/curvature_neurreps/audit_outputs/multilabel_chart_screen/mag_r_desi/global_anchor_metrics.csv`
   (512 anchors: `K_H_cross`, `log_knn_radius`, `r2_G`, `mse_G`); methods
@@ -1164,14 +1169,39 @@ arrangement Phases 7 and 8 used)
 **Plans:** 10 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 09-01-PLAN.md — Tracer: the whole statistical path end to end on synthetic data, every gating constant UNSET
 - [ ] 09-02-PLAN.md — Instrument fidelity at `d=16` on the analytic fixtures, plus the phase's API-coverage declaration
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 09-03-PLAN.md — Revision-pinned column-projected loaders for both HF datasets and the row-alignment proof runner
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 09-04-PLAN.md — Full-scale data manifest, and the blocking ruling on the raw-column mapping, sentinels and alignment margin
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 09-05-PLAN.md — The freeze: every constant filled in one commit, `09-PREREGISTRATION.md`, SHA wired and proved from a fresh clone
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 09-06-PLAN.md — Execution-host hand-off: artifact bundling, per-thread cost model, runbook, and a green smoke run on the host
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 09-07-PLAN.md — The row-alignment proof on the execution host, and the ruling on its outcome (D9-08 adoption branch included)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [ ] 09-08-PLAN.md — Wave A: the four-`d` sweep, the positive control, the shuffled-label calibration and the verdict print
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [ ] 09-09-PLAN.md — Wave B: three seeds at every fired `d`, combined by the frozen unanimity rule, never pooled
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [ ] 09-10-PLAN.md — Reporting notebook, `09-FINDINGS.md` with the caveat-bearing verdict and its accepted gaps, ROADMAP and STATE

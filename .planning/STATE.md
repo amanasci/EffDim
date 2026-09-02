@@ -5,14 +5,14 @@ milestone_name: PU Manifold Curvature
 current_phase: 08
 current_phase_name: curvature-conditioned-cka-alignment
 status: in_progress
-stopped_at: Phase 9 context gathered
-last_updated: "2026-09-02T16:06:15.551Z"
+stopped_at: Phase 9 planned (10 plans, 9 waves); Phase 8 plan 08-06 still open
+last_updated: "2026-09-02T18:30:00.000Z"
 last_activity: 2026-08-28
 last_activity_desc: 08-PREREGISTRATION-AMENDMENT-01 applied; see that document and
 progress:
   total_phases: 17
   completed_phases: 12
-  total_plans: 111
+  total_plans: 121
   completed_plans: 103
 ---
 
@@ -26,6 +26,14 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 **Current focus:** Phase 08 — curvature-conditioned-cka-alignment (08-07 diagnostics complete and ratified; 08-06 write-up is all that remains)
 
 ## Current Position
+
+**Phase 9 PLANNED 2026-09-02** (`09-01`..`09-10-PLAN.md`, 9 waves, plan-checker VERIFICATION
+PASSED, 0 blockers). Research corrected two data assumptions CONTEXT.md did not anticipate
+(`Smith42/galaxies` labels exist only at HF revision `v2.0`; raw `mag_r` is ~93% missing and
+`mag_r_desi` is the colleague's own column) — both are frozen constants routed through a blocking
+developer ruling in 09-04 before the 09-05 freeze. **Execution will NOT run on the developer's
+machine**: 09-06 is the hand-off to an SSH remote or the colleague's compute (undecided), and
+09-07/08/09 are `checkpoint:human-action` host runs. Not yet executed. Phase 8 remains open below.
 
 Phase: 08 (curvature-conditioned-cka-alignment) — 08-07 complete and ratified, 1 plan remains
 Plan: 6 of 7 complete (08-07 done 2026-09-02, Task 3 partial by ratified decision; 08-06 at wave 6 is unblocked)
@@ -742,6 +750,7 @@ From `TODO.md`:
 |-------|------|---------|--------------------|----------|
 | 05 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap.** The handler extracts `- **D-NN:**` bullets; `05-CONTEXT.md` names its decisions `D5-01`..`D5-13`, so it parsed 0 of 13. Coverage verified two independent ways: (a) gsd-plan-checker's own decision table, (b) direct grep — the union of the six plans' `requirements` frontmatter is exactly D5-01..D5-13, and every decision resolves to at least one implementing task. User approved proceeding 2026-08-24. **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 5.** | 2026-08-24 |
 | 07 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap** — the same cause recorded for Phase 5 above. The handler extracts `- **D-NN:**` bullets; `07-CONTEXT.md` names its decisions `D7-01`..`D7-07`, so it parsed 0 of 7 and returned `total: 0`, `uncovered: []` — it found no dropped decision, it found no decision at all. Coverage verified two independent ways: (a) gsd-plan-checker's own decision table (7/7, VERIFICATION PASSED, 0 blockers), (b) direct grep — the union of the five plans' `requirements` frontmatter is exactly D7-01..D7-07. User approved proceeding 2026-08-25. **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 7.** | 2026-08-25 |
+| 09 | Decision coverage (plan) | `passed: false`, reason `could-not-parse` | **Parser format mismatch, not a coverage gap** — same cause as Phases 5 and 7. `09-CONTEXT.md` names its decisions `D9-01`..`D9-18`; the handler parsed 0 of 18 (`total: 0`, `uncovered: []`). Coverage verified two independent ways: (a) gsd-plan-checker's decision table (18/18, VERIFICATION PASSED, 0 blockers, each ID implemented by a task), (b) direct grep — the union of the ten plans' `requirements` frontmatter is exactly D9-01..D9-18. **Proceeded by the orchestrator under autonomous operation on this precedent; the developer has NOT reviewed or approved this override** (the same gate-through-precedent pattern as `standing-authorization-is-not-a-user-response`). **verify-phase should re-check coverage directly rather than trusting this gate's verdict for Phase 9.** Also recorded: the `plan:post` gap-analysis advisory reports all 18 D9 IDs "missing from REQUIREMENTS.md" — by design, the D9 set lives in CONTEXT.md (the Phase 7/8 arrangement); and the UI safety gate fired on the tokens `component` / `screen` in the Phase 9 ROADMAP prose (no UI exists; planned as `--skip-ui`, as Phases 7, 07.1, 8 were). | 2026-09-02 |
 
 ## Deferred Items
 
@@ -755,7 +764,7 @@ From `TODO.md`:
 ## Session Continuity
 
 Last session: 2026-09-02T16:06:15.493Z
-Stopped at: Phase 9 context gathered
+Stopped at: Phase 9 planned — 10 plans in 9 waves, checker PASSED; execution runs on a remote/colleague host, not this machine (09-CONTEXT.md Specifics, 09-06-PLAN.md)
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

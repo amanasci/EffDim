@@ -264,6 +264,13 @@ and 8 used.
   two `y` vectors looked like a sign flip).
 - **`rho(K_H, log_knn_radius) = +0.765`** on his table; radius control is doing most of the work
   (`-0.412 → -0.246` with radius alone). Expect the same on ours.
+- **Execution host (added 2026-09-02, plan-phase):** Phase 9 will NOT execute on the developer's
+  local machine. Compute is either an SSH remote server or the colleague's box (his call which);
+  undecided at planning time. Runners, data download, cache paths, the freeze-SHA ancestry gate,
+  and the returned artifacts must therefore work from a fresh clone on a machine we do not
+  control: no hard-coded local paths, HF cache and `notebooks/.cache/` locations configurable,
+  outputs bundled for transfer back, cost stated per-thread not "on this machine". Smoke mode
+  may still run locally; no real number does.
 
 </specifics>
 
