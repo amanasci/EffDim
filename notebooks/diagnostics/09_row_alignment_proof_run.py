@@ -233,7 +233,7 @@ def append_record_row(row: Dict[str, Any], record_path: Path) -> None:
 
 
 def _read_last_verdict_row(record_path: Path) -> Dict[str, Any]:
-    """Scans `record_path` for the LAST row carrying `record_kind == "verdict"` -- the one
+    """Scans `record_path` for the LAST row carrying `row_kind == "verdict"` -- the one
     `--mode proof` appended. Raises when the file is absent or no verdict row is found."""
     if not record_path.exists():
         raise FileNotFoundError(f"_read_last_verdict_row: no record found at {record_path}.")
@@ -244,7 +244,7 @@ def _read_last_verdict_row(record_path: Path) -> Dict[str, Any]:
             if not line:
                 continue
             row = json.loads(line)
-            if row.get("record_kind") == "verdict":
+            if row.get("row_kind") == "verdict":
                 last_verdict = row
     if last_verdict is None:
         raise ValueError(f"_read_last_verdict_row: no verdict row found in {record_path}.")
@@ -385,6 +385,16 @@ def run_manifest(args: argparse.Namespace) -> bool:
         )
         sys.exit(2)
 
+    # --candidate-columns is nargs="+", but 09-04's own documented invocation passes it as ONE
+    # comma-separated token (`--candidate-columns a,b,c`) rather than space-separated
+    # (`--candidate-columns a b c`) -- accept both by splitting every token on "," and dropping
+    # empties, so a single comma-joined argv token explodes into the same list a space-separated
+    # invocation would produce.
+    candidate_columns: List[str] = []
+    for token in args.candidate_columns:
+        candidate_columns.extend(part for part in token.split(",") if part)
+    args.candidate_columns = candidate_columns
+
     print(
         "\n" + "=" * 78 +
         "\nPRE-FREEZE EVIDENCE RUN -- dataset metadata only. Computes NO Physics number (no "
@@ -429,7 +439,7 @@ def run_manifest(args: argparse.Namespace) -> bool:
         row = dict(stats)
         row.update(
             {
-                "mode": "manifest", "record_kind": "column", "canonical_name": name,
+                "mode": "manifest", "row_kind": "column", "canonical_name": name,
                 "run_commit": run_commit, "timestamp_utc": timestamp,
             }
         )
@@ -437,7 +447,7 @@ def run_manifest(args: argparse.Namespace) -> bool:
 
     summary_row = {
         "mode": "manifest",
-        "record_kind": "summary",
+        "row_kind": "summary",
         "n_rows_embeddings": embeddings["n_rows"],
         "n_rows_labels": int(len(labels)),
         "n_features": embeddings["n_features"],
@@ -502,7 +512,7 @@ def run_proof(args: argparse.Namespace) -> int:
         row_full = dict(row)
         row_full.update(
             {
-                "mode": "proof", "record_kind": "curve", "run_commit": run_commit,
+                "mode": "proof", "row_kind": "curve", "run_commit": run_commit,
                 "freeze_commit": freeze_commit, "timestamp_utc": timestamp,
             }
         )
@@ -512,7 +522,7 @@ def run_proof(args: argparse.Namespace) -> int:
     verdict_row = dict(verdict)
     verdict_row.update(
         {
-            "mode": "proof", "record_kind": "verdict", "margin": pl.ALIGNMENT_MARGIN_R2,
+            "mode": "proof", "row_kind": "verdict", "margin": pl.ALIGNMENT_MARGIN_R2,
             "run_commit": run_commit, "freeze_commit": freeze_commit, "timestamp_utc": timestamp,
         }
     )
@@ -562,7 +572,7 @@ def run_search(args: argparse.Namespace) -> int:
         print("NO ALIGNMENT FOUND -- halting.")
 
     row = {
-        "mode": "search", "record_kind": "search_classification",
+        "mode": "search", "row_kind": "search_classification",
         "clearing_alignments": clearing, "classification": classification,
         "run_commit": _git_rev_parse("HEAD") or "UNKNOWN",
         "freeze_commit": _git_rev_parse(args.freeze_commit) or args.freeze_commit,
