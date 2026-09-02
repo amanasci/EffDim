@@ -79,25 +79,84 @@ comparable — in exchange for a control the evidence says is no better.
 **Runner:** `notebooks/diagnostics/08_radial_curvature_decomposition_run.py` · **Cache:**
 `notebooks/.cache/08_radial_curvature_decomposition.jsonl`
 
-**STATUS: RUNNING.** Numbers pending. This section is a placeholder and must be filled before the
-Task 5 checkpoint is presented.
-
 ### The claim under test
 
 `subsample.l2_normalize` puts every row on the unit sphere — verified, `norm min/med/max =
-1.000000 / 1.000000 / 1.000000` for both modalities. For an exact `d`-dimensional submanifold of the
-unit sphere, the mean curvature vector under this milestone's `H = tr_g(II)` convention has a radial
-component of exactly `-d`, pointing at the origin. That term carries no information about the
-manifold's own shape but enters `‖H‖` in full.
+1.000000 / 1.000000 / 1.000000`. For an exact `d`-dimensional submanifold of the unit sphere, the
+mean curvature vector under this milestone's `H = tr_g(II)` convention has a radial component of
+exactly `-d`, pointing at the origin. That term carries no information about the manifold's own
+shape but enters `||H||` in full.
 
-Frozen `‖H‖` medians are 37.19 / 41.41 / 47.03 at `d` = 20 / 25 / 32. Removing a radial term of
-magnitude `d` in quadrature leaves 31.36 / 33.02 / 34.46 — a spread of 10% where the raw field's is
-26%. If that arithmetic holds, the `‖H‖` field is largely a constant plus a small residual, which
-would explain both PU's ~1.5 p95/p05 spread and Phase 8's `realized_h_contrast` of 1.16.
+### Was the premise sound
 
-The decision-relevant number is `spearman(‖H‖, ‖H_tan‖)`.
+Yes, and precisely so. The decoder image sits on the sphere to within half a percent
+(`||F(z)||` p50 = 0.9933 / 0.9956 / 0.9957), and the measured radial component lands within 3.5% of
+the exact `-d` at every `d`. The re-fit reproduces the frozen field almost exactly
+(`spearman(refit ||H||, frozen) >= 0.9994`, `var_explained` 0.98192 / 0.98433 / 0.98647 against
+Phase 7's 0.98194 / 0.98432 / 0.98647), so nothing below is re-fit noise.
 
----
+| `d` | `||F(z)||` p50 | `H_rad` med | exact `-d` | ratio | `||H||` med | `||H_tan||` med | spread `||H||` | spread `||H_tan||` | `rho(||H||,||H_tan||)` | refit-vs-frozen |
+|----|----|----|----|----|----|----|----|----|----|----|
+| 20 | 0.993341 | -19.7660 | -20 | 0.9883 | 37.2332 | 31.3674 | 1.4116 | 1.5028 | **0.960736** | 0.9994 |
+| 25 | 0.995561 | -25.5600 | -25 | 1.0224 | 41.4236 | 32.3893 | 1.3111 | 1.3782 | **0.917973** | 0.9999 |
+| 32 | 0.995686 | -33.1042 | -32 | 1.0345 | 46.9977 | 33.2195 | 1.2267 | 1.2691 | **0.887753** | 0.9995 |
+
+The pre-plan arithmetic predicted `||H_tan||` medians of 31.36 / 33.02 / 34.46 from
+`sqrt(||H||^2 - d^2)`. Measured: 31.37 / 32.39 / 33.22. The `d=20` prediction is exact; the two
+larger `d` come in slightly low, consistent with `H_rad` exceeding `-d` there.
+
+### What changes when the tangential field is substituted
+
+| `d` | `rho(||H||,MKNN)` | `rho(||H_tan||,MKNN)` | partial `||H||` | partial `||H_tan||` | change in the partial |
+|----|----|----|----|----|----|
+| 20 | -0.111430 | -0.140801 | -0.022580 | -0.025253 | **strengthens 1.12x** |
+| 25 | -0.127416 | -0.127796 | -0.065909 | -0.023256 | **collapses 2.8x** |
+| 32 | -0.029793 | +0.017495 | -0.026858 | +0.056385 | **sign flips** |
+
+### Reading — this one does not resolve cleanly, and the checkpoint must decide it
+
+**`spearman(||H||, ||H_tan||)` is 0.961 / 0.918 / 0.888 — high, and high is not sufficient.** Plan
+08-07 named this quantity as "the single most decision-relevant number in this task", with the rule
+that a value near 1 makes the radial term a constant offset and the whole matter a one-paragraph
+limitation. **That rule would have passed this result, and the partial says it should not.** The
+rank correlation is the wrong sufficient statistic: three fields that agree on 90+% of the ranking
+can still disagree about a partial correlation of magnitude 0.02-0.07, because that partial lives
+in exactly the residual the two fields do not share.
+
+What the second table shows is that substituting the tangential field does something **different at
+every `d`**, and the differences are not small relative to the effects being measured:
+
+- At `d=20` the partial strengthens slightly. Both values are non-significant (§4: p ~ 0.06).
+- At `d=25` — **the only `d` that survives density control, and the number §4 puts at p < 5e-5** —
+  the partial collapses from -0.0659 to -0.0233, into the same range as the two `d` that fail. The
+  raw `rho` meanwhile does not move at all (-0.1274 to -0.1278), so this is specific to the
+  density-controlled statistic.
+- At `d=32` the partial inverts sign, from -0.0269 to +0.0564, and the tangential value is larger
+  in magnitude than any raw partial on the record.
+
+Two readings are available and this document does not choose between them:
+
+1. The surviving `d=25` signal is carried substantially by the radial component — a term fixed by
+   the sphere embedding at `-d`, carrying no information about the manifold's own shape. On this
+   reading the milestone's one surviving result is materially an artifact of L2 normalization.
+2. `H_rad`'s deviation from exactly `-d` encodes something real — local intrinsic dimension, or
+   decoder image fidelity — that the tangential projection discards along with the constant. Note
+   `H_rad` is not constant: its p05/p95 at `d=20` is -23.74 / -16.60, a range of 7.1 around a
+   median of -19.77.
+
+**Verdict impact: changes no verdict**, because this runner gates nothing and every Phase 7, 07.1
+and 8 verdict was computed on the frozen `||H||` field, which is untouched. But it bears directly on
+what those verdicts *mean*, which is a different question and the one the checkpoint answers.
+
+**Escalation, per plan 08-07's own terms.** The plan states that if the decomposition shows the
+`||H||` field means something different from what Phases 7 and 8 assumed, "that is a finding large
+enough to warrant its own phase — **not** something to absorb into Phase 8's write-up." The `d=25`
+collapse and the `d=32` sign flip meet that description. Option (b)-as-its-own-phase is live.
+
+**What would sharpen the decision, not yet run:** an exact permutation p for
+`partial_htan_mknn` at `d=25` under the same within-density-stratum null §4 used. The Task 4 runner
+can be pointed at the tangential field. That is scope beyond 08-07 as written and is not being taken
+unilaterally — it is put to the developer at the checkpoint.
 
 ## 3. Per-`d` instrument fidelity
 
