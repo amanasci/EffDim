@@ -1,7 +1,8 @@
 # 08-DIAGNOSTICS — post-freeze diagnostics for Phase 8
 
-**Plan:** 08-07 · **Status:** Tasks 1 and 4 complete; Tasks 2 and 3 in progress; Task 5 checkpoint
-NOT YET PRESENTED.
+**Plan:** 08-07 · **Status:** Tasks 1, 2 and 4 complete. Task 3 PARTIAL — `d=25` measured,
+`d=32` halted on the pre-registered stop condition (§3). Task 5 checkpoint NOT YET PRESENTED;
+all five decisions stand at `NOT RATIFIED`.
 
 Every number in this document is **non-gating**. No verdict in `notebooks/.cache/08_cka_alignment.jsonl`
 was recomputed, revised or reinterpreted; no row was appended to it (verified: 66 positive-control,
@@ -158,24 +159,83 @@ collapse and the `d=32` sign flip meet that description. Option (b)-as-its-own-p
 can be pointed at the tangential field. That is scope beyond 08-07 as written and is not being taken
 unilaterally — it is put to the developer at the checkpoint.
 
-## 3. Per-`d` instrument fidelity
+## 3. Per-`d` instrument fidelity — PARTIAL, `d=32` HALTED
 
-**Runner:** `notebooks/diagnostics/07_instrument_fixture_sweep_run.py --d {25,32}` · **Cache:**
-`notebooks/.cache/07_plain_decoder_sweep.jsonl`
-
-**STATUS: RUNNING.** Numbers pending. This section is a placeholder and must be filled before the
-Task 5 checkpoint is presented.
+**Runner:** `notebooks/diagnostics/07_instrument_fixture_sweep_run.py --d 25` · **Cache:**
+`notebooks/.cache/07_plain_decoder_sweep.jsonl` (pre-merge copy kept at `.jsonl.pre0807`)
 
 `INSTRUMENT_FIDELITY_RANGE = (0.53, 0.99)` is frozen and **does not change**. It was measured on
-analytic fixtures at `d=20` only. The new `d=25` and `d=32` numbers are reported *beside* it, never
-merged into it.
+analytic fixtures at `d=20` only. The `d=25` numbers below are reported *beside* it, never merged
+into it.
 
-**Provenance, stated explicitly so the three are not presented as one sweep:** the `d=20` rows were
-measured in Phase 7 (`notebooks/.cache/07_plain_decoder_sweep.jsonl`, 2026-08-25). The `d=25` and
-`d=32` rows were measured by plan 08-07 on 2026-09-01, using the same script with an additive `--d`
-argument that leaves the default at 20 and alters no fixture, seed, epoch count or `D`.
+**Provenance, stated so the rows are not presented as one sweep.** The four `d=20` rows were
+measured in Phase 7 on 2026-08-25 and are byte-identical after the merge (asserted before and after
+writing). The four `d=25` rows were measured by plan 08-07 on 2026-09-02, by the same script with an
+additive `--d` argument — the diff removes 3 lines, all displaced by the argparse insertion, and
+`--d` defaults to 20 so a bare invocation reproduces the sealed behaviour. No fixture, seed, epoch
+count, `D` or `K` was altered.
 
----
+### Decoder-arm Spearman against analytic `H`
+
+| fixture | `D` | `d=20` | `d=25` | change |
+|----|----|----|----|----|
+| cubic | 28  | +0.8688 | +0.7760 | -0.093 |
+| cubic | 768 | +0.5253 | **+0.1713** | **-0.354** |
+| ridge | 28  | +0.9823 | +0.9637 | -0.019 |
+| ridge | 768 | +0.9745 | +0.9698 | -0.005 |
+
+Supporting columns at `d=25`: reconstruction 99.92 / 99.64 / 99.92 / 99.78%; `cond(g)` median
+2.76 / 8.38 / 2.23 / 3.18; decoder magnitude ratio 1.05 / 1.46 / 0.96 / 0.99; the point-cloud arm
+on the identical clouds reads +0.5894 (cubic) and +0.3676 (ridge). The decoder arm beats the
+point-cloud arm on rank in 3 of 4 cells, as at `d=20`.
+
+### Reading
+
+**Fidelity spans (0.53, 0.98) at `d=20` and (0.17, 0.97) at `d=25`.** The ceiling is intact — `ridge`
+at `D=768`, the cell closest to PU's actual ambient dimension on the better-behaved surface, reads
++0.9698 against +0.9745, a change of half a percent. The floor drops by a factor of three, and the
+entire drop is one cell: `cubic` at `D=768`, where `cond(g)` also rises from 7.79 to 8.38 and the
+magnitude ratio degrades from 1.46.
+
+So this is **not** "the instrument dies at `d=25`". It is that the instrument's *worst case* at the
+ambient dimension PU occupies gets substantially worse with `d`, while its best case does not. The
+two fixtures already disagreed by 0.45 at `d=20`, and nothing on the record says which of them the
+real PU manifold resembles. That was the point of running two.
+
+**Verdict impact: changes no verdict.** `INSTRUMENT_FIDELITY_RANGE` is untouched, and this sweep
+gates nothing.
+
+### `d=32` HALTED — the pre-registered stop condition fired
+
+`--d 32` aborts on its first cell:
+
+```
+ValueError: rotate_and_pad: D=28 must be >= local width m=33
+```
+
+`D` is the hard-coded literal tuple `(28, 768)` at line 62 of the sweep. A `d`-dimensional graph
+fixture has local width `m = d + 1`, so the `D=28` arm admits at most `d=27`. It was chosen at
+`d=20`, where `m=21`, as the small-ambient cell. It cannot represent `d=32` at all.
+
+Task 3's action states: *"If a fixture generator turns out to be hard-coded to `d=20`, stop and
+report it at the checkpoint rather than generalizing it. Rewriting a fixture to admit a new `d`
+changes what the `d=20` numbers mean and would put the existing `INSTRUMENT_FIDELITY_RANGE` in
+question — a much larger act than this task, and not one to take unilaterally."* **That condition
+fired and the run was stopped. No fixture, no `D` grid and no guard was modified.**
+
+Note what remains available: the `D=768` cell at `d=32` is not blocked — 768 >= 33 comfortably — and
+it is the cell that matters, since PU's ambient dimension is 768. The script aborts on `cubic D=28`
+before reaching it, so nothing was produced. Obtaining it needs a way to run a subset of the `D`
+grid. That would touch no fixture, no seed and no existing number, but it is still a change made to
+route around a pre-registered stop, so it is **put to the developer at the checkpoint rather than
+taken here**.
+
+**Consequence for the `d=32` reading, unchanged by this plan.** Phase 7 (after density control) and
+Phase 8 both lose the signal at `d=32`, and a dying instrument and a vanishing effect remain
+indistinguishable there. §1 adds one relevant fact: at `d=32` `rho(density, ||H||)` is +0.0118 with
+p = 0.121, so there is no density-curvature coupling to control for and the `d=32` null is about the
+effect rather than about the control. That is suggestive, not a substitute for the fixture
+measurement.
 
 ## 4. Exact permutation p-values
 

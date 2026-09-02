@@ -13,8 +13,16 @@ So: {cubic, ridge} x {D=28, D=768}, everything else fixed. The point-cloud arm i
 every cell rather than quoted, so both instruments are always measured on the identical cloud.
 
 NOT a reproduction of any sealed cell.
+
+Plan 08-07 Task 3 added `--d` and `--out`, additively and nothing else. `INSTRUMENT_FIDELITY_RANGE`
+was measured on this script's `d=20` cells alone, and both Phase 7 (after density control) and
+Phase 8 lose their signal at `d=32` -- so a dying instrument and a vanishing effect are not
+distinguishable there without the same fixtures at the same `d`. `--d` defaults to 20, so an
+invocation with no flag reproduces the sealed behaviour exactly. `K = 231` is NOT rescaled with
+`d`: it is the sealed point-cloud neighbour count, and the decoder arm -- the one this sweep is
+read for -- does not use it.
 """
-import json, sys, time
+import argparse, json, sys, time
 from pathlib import Path
 
 NB = Path("/home/akagi/Documents/Projects/EffDim/notebooks")
@@ -27,9 +35,16 @@ from scipy.stats import spearmanr
 from pu_manifold import cae, curvature_probe, decoder_curvature
 from pu_manifold import varying_ii_controls as vic
 
-DIM, N, SEED, K = 20, 5000, 20260816, 231
+_ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+_ap.add_argument("--d", type=int, default=20,
+                 help="latent/intrinsic dimension (default 20, the sealed Phase 7 value)")
+_ap.add_argument("--out", default=None,
+                 help="output path (default: plain_decoder_sweep.jsonl beside this script)")
+_args = _ap.parse_args()
+
+DIM, N, SEED, K = _args.d, 5000, 20260816, 231
 EPOCHS, TARGET_REL = 400, 0.002
-OUT = Path(__file__).with_name("plain_decoder_sweep.jsonl")
+OUT = Path(_args.out) if _args.out else Path(__file__).with_name("plain_decoder_sweep.jsonl")
 
 
 def axes(H_est, H_true):
