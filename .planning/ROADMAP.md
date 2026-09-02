@@ -1166,13 +1166,13 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 1/10 plans executed
+**Plans:** 2/10 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 09-01-PLAN.md — Tracer: the whole statistical path end to end on synthetic data, every gating constant UNSET
-- [ ] 09-02-PLAN.md — Instrument fidelity at `d=16` on the analytic fixtures, plus the phase's API-coverage declaration
+- [x] 09-02-PLAN.md — Instrument fidelity at `d=16` on the analytic fixtures, plus the phase's API-coverage declaration
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

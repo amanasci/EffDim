@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 09
 current_phase_name: curvature-conditioned-label-decodability-physics-replication
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-09-02T19:55:38.938Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-09-02T20:36:38.848Z"
 last_activity: 2026-09-02
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 17
   completed_phases: 12
   total_plans: 121
-  completed_plans: 104
+  completed_plans: 105
 ---
 
 # Project State
@@ -36,7 +36,7 @@ machine**: 09-06 is the hand-off to an SSH remote or the colleague's compute (un
 09-07/08/09 are `checkpoint:human-action` host runs. Not yet executed. Phase 8 remains open below.
 
 Phase: 09 (curvature-conditioned-label-decodability-physics-replication) — EXECUTING
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
@@ -386,7 +386,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 86% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 87% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -490,6 +490,7 @@ Progress: [█████████░] 86% of planned plans (17/17; Phases 1
 | Phase 08 P03 | 1h5m | 3 tasks | 2 files |
 | Phase 08 P04 | 1h20m | 3 tasks | 4 files |
 | Phase 09 P01 | 55min | 3 tasks | 6 files |
+| Phase 09 P02 | 38min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -704,6 +705,7 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: Developer ratified every Phase 8 pre-registered constant plus a 37->45 guard-coverage fix at the D8-22 freeze checkpoint (08-04-DECISION.md); the freeze commit 816863c fills all 45 constants in cka.py alone.
 - [Phase ?]: 09-01: sklearn==1.9.0 RidgeCV single-candidate-alpha defect worked around via a duplicate-valued two-entry alpha_grid, verified bit-identical to a true single-alpha fit; linear_probe.py not edited
 - [Phase ?]: 09-01: plant_curvature_positive_control's bisection direction measured empirically (not assumed increasing) since the retargeted controlled-partial statistic can decrease with slope under this phase's own negative-association hypothesis
+- [Phase ?]: Phase 9: measured INSTRUMENT_FIDELITY_RANGE_D16 = (0.8376, 0.9882) on analytic fixtures before the Physics run (09-02); d=32 fixture fidelity remains explicitly unmeasurable (rotate_and_pad requires D>=33, small-ambient arm capped at D=28)
 
 ### Pending Todos
 
@@ -766,8 +768,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-09-02T19:55:38.878Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-09-02T20:36:38.788Z
+Stopped at: Completed 09-02-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
