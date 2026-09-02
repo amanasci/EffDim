@@ -1,0 +1,5 @@
+model,raw,controlled,n,p_raw,p_ctl,vif_max,controls
+model_A_baseline,0.07590734112678957,0.15334238492921803,512,0.0861867068843841,0.0004979157881532145,,"['log_knn_radius', 'local_label_variance', 'local_evaluation_count']"
+model_B_AH,0.07590734112678957,0.15557846170792278,512,0.0861867068843841,0.0004104509862917163,,"['log_knn_radius', 'local_label_variance', 'local_evaluation_count', 'A_H_G']"
+model_C_AB,0.07590734112678957,0.1554482846671473,512,0.0861867068843841,0.0004151225003876993,,"['log_knn_radius', 'local_label_variance', 'local_evaluation_count', 'A_B_G']"
+model_D_both,0.07590734112678957,0.15537327193554662,512,0.0861867068843841,0.0004178368325848469,,"['log_knn_radius', 'local_label_variance', 'local_evaluation_count', 'A_H_G', 'A_B_G']"

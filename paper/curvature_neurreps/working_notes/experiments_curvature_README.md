@@ -13,11 +13,9 @@ Answer (current): **yes, at a finite neighbourhood scale and across an evaluated
 | `../geometry/` | Experiment packages, runners, and shared atlas code |
 | `../alignment/` | Global probe / curvature alignment controls ($A_H$, $A_B$) |
 | `paper_working/` | Claim audits, inventories, figure scripts |
-| `../../submissions/neurreps_2026/` | NeurReps extended abstract |
-| `../../submissions/ml4ps_2026/` | ML4PS 2026 research-track paper (current scientific framing) |
-| `../../paper/curvature_neurreps/` | Notes + copied audit tables |
+| `../../submissions/neurreps_2026/` | NeurRePS extended abstract package |
 | `../../outputs/geometry/` | Run artifacts (reports committed; large caches gitignored) |
-| `../../paper/` | Earlier unrelated LaTeX drafts (not the ML4PS tree) |
+| `../../paper/` | Earlier LaTeX drafts |
 
 ## Experiment packages (`experiments/geometry/`)
 
@@ -35,9 +33,6 @@ Answer (current): **yes, at a finite neighbourhood scale and across an evaluated
 | `physics_local_probe_adaptation_audit/` | Final bounded audit (paired $\Delta\rho$, alignment, shuffle) |
 | `physics_order_stratified_geometry/` | Order-stratified geometry controls |
 | `physics_implicit_normal_inverse/` | Sphere-normal inverse / confirmatory geometry |
-| `physics_quadratic_label_chart_alignment/` | Held-out L vs UQ vs \(B^S\) on \(r\)-band magnitude |
-| `physics_quadratic_label_chart_alignment_audit/` | Rank, Haar nulls, nested shuffles |
-| `physics_multilabel_chart_screen/` | Secondary labels (`photo_z`, `smooth_fraction`, `stellar_mass`) |
 
 ## Key frozen result ($k{=}2048$, $n{=}512$ anchors)
 

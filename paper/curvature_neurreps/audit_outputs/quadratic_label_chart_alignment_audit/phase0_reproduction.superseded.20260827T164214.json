@@ -1,0 +1,156 @@
+{
+  "ok": true,
+  "original_label": "quadratic_chart_link_unresolved",
+  "original_label_unchanged": true,
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "seconds": 159.53816390037537,
+  "obs": {
+    "median_delta_Q": 0.02058161760162215,
+    "rho_KH_delta_Q": 0.111248619551161,
+    "median_delta_BS": 0.0196061373526189,
+    "frac_UQ_captured_by_BS": 0.9376366120634971,
+    "median_delta_FQ": 0.01969503096329365,
+    "A_B_median": 2.4271836244410787,
+    "A_B_null_median": 0.9783494151098924,
+    "gamma_fold_cosine_median": 0.9243428097633843,
+    "rho_r2": -0.2404841119636992,
+    "rho_mse": 0.22704789227635297,
+    "rho_dmse": 0.15334238492921803,
+    "rho_dmse_adj": 0.20518047401609046,
+    "shuffle_dQ": -7.561259848029579,
+    "label": "quadratic_chart_link_unresolved",
+    "n_anchors": 512,
+    "frac_positive_delta_Q": 1.0
+  },
+  "expected": {
+    "median_delta_Q": 0.020581617601622228,
+    "rho_KH_delta_Q": 0.111248619551161,
+    "median_delta_BS": 0.01960613735261897,
+    "frac_UQ_captured_by_BS": 0.9376366120634971,
+    "median_delta_FQ": 0.019695030963293697,
+    "A_B_median": 2.4271836244410787,
+    "A_B_null_median": 0.9783494151098924,
+    "gamma_fold_cosine_median": 0.9243428097633845,
+    "rho_r2": -0.24,
+    "rho_mse": 0.227,
+    "rho_dmse": 0.153,
+    "rho_dmse_adj": 0.20518047401609046,
+    "shuffle_dQ": -7.561259848029579,
+    "label": "quadratic_chart_link_unresolved"
+  },
+  "checks": {
+    "median_delta_Q": {
+      "expected": 0.020581617601622228,
+      "observed": 0.02058161760162215,
+      "atol": 0.001,
+      "ok": true
+    },
+    "rho_KH_delta_Q": {
+      "expected": 0.111248619551161,
+      "observed": 0.111248619551161,
+      "atol": 0.002,
+      "ok": true
+    },
+    "median_delta_BS": {
+      "expected": 0.01960613735261897,
+      "observed": 0.0196061373526189,
+      "atol": 0.001,
+      "ok": true
+    },
+    "frac_UQ_captured_by_BS": {
+      "expected": 0.9376366120634971,
+      "observed": 0.9376366120634971,
+      "atol": 0.01,
+      "ok": true
+    },
+    "median_delta_FQ": {
+      "expected": 0.019695030963293697,
+      "observed": 0.01969503096329365,
+      "atol": 0.001,
+      "ok": true
+    },
+    "A_B_median": {
+      "expected": 2.4271836244410787,
+      "observed": 2.4271836244410787,
+      "atol": 0.05,
+      "ok": true
+    },
+    "A_B_null_median": {
+      "expected": 0.9783494151098924,
+      "observed": 0.9783494151098924,
+      "atol": 0.05,
+      "ok": true
+    },
+    "gamma_fold_cosine_median": {
+      "expected": 0.9243428097633845,
+      "observed": 0.9243428097633843,
+      "atol": 0.02,
+      "ok": true
+    },
+    "rho_r2": {
+      "expected": -0.24,
+      "observed": -0.2404841119636992,
+      "atol": 0.008,
+      "ok": true
+    },
+    "rho_mse": {
+      "expected": 0.227,
+      "observed": 0.22704789227635297,
+      "atol": 0.008,
+      "ok": true
+    },
+    "rho_dmse": {
+      "expected": 0.153,
+      "observed": 0.15334238492921803,
+      "atol": 0.008,
+      "ok": true
+    },
+    "rho_dmse_adj": {
+      "expected": 0.20518047401609046,
+      "observed": 0.20518047401609046,
+      "atol": 0.01,
+      "ok": true
+    },
+    "shuffle_dQ": {
+      "expected": -7.561259848029579,
+      "observed": -7.561259848029579,
+      "atol": 0.5,
+      "ok": true
+    },
+    "label": {
+      "expected": "quadratic_chart_link_unresolved",
+      "observed": "quadratic_chart_link_unresolved",
+      "ok": true
+    }
+  },
+  "synth_gates": {
+    "linear_uq_near_zero": true,
+    "aligned_uq_positive": true,
+    "aligned_bs_positive": true,
+    "orth_bs_weak": true,
+    "shuffle_small": false
+  },
+  "synth_deltas": {
+    "linear_dQ": -0.012288741446326926,
+    "aligned_dUQ": 30.999727567643944,
+    "aligned_dBS": 35.89922243909601,
+    "orth_dUQ": 20.421523516977572,
+    "orth_dBS": -0.1888982269164785,
+    "shuffle_dQ": -7.561259848029579
+  },
+  "secondary_json": {
+    "median_delta_BS": 0.01960613735261897,
+    "mean_delta_BS": 0.022563024718249936,
+    "median_delta_FQ": 0.019695030963293697,
+    "mean_delta_FQ": 0.022621311346970922,
+    "median_delta_normal": 0.01871031339968044,
+    "mean_delta_normal": 0.02144571435649039,
+    "frac_UQ_captured_by_BS": 0.9376366120634971,
+    "rho_KH_delta_BS": 0.1566640452443895,
+    "rho_KH_delta_FQ": 0.15770716030944942,
+    "rho_KH_dMSE_GP": 0.15334238492921803,
+    "rho_KH_dMSE_GP_adj_deltaQ": 0.20518047401609046
+  },
+  "blocker": null
+}

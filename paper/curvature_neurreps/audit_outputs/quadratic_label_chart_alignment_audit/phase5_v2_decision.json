@@ -1,0 +1,16 @@
+{
+  "v2_rerun": true,
+  "reasons": [
+    "nested_cv_selects_max_quadratic_penalty_on_null_or_real_shuffle"
+  ],
+  "estimator_defects_documented": {
+    "uq_contains_exact_L": false,
+    "synthetic_uses_different_estimator": true,
+    "fold_leakage": false,
+    "inconsistent_scaling": false,
+    "mismatched_linear_grids": false
+  },
+  "rationale": "A v2 rerun is required only if fitted predictions change. Absence of \u03b1_Q=\u221e is a real hyperparameter-family defect for null calibration, but original ViT-B \u0394_Q is positive at every anchor, so adding the nested-null candidate would not replace UQ with L on the scientific data. The original |\u0394_Q| synthetic gate is a semantic error, not an estimator error.",
+  "original_label_unchanged": "quadratic_chart_link_unresolved",
+  "frac_real_shuffle_at_max_aq": 0.9947916666666666
+}

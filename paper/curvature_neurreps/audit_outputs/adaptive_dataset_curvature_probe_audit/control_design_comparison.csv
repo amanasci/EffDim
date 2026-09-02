@@ -1,0 +1,7 @@
+design,control,n,mean,std,missing_filled_with_zero,rank_transform,residualization_order,standardization,nonlinear_terms,strata,y
+frozen_discovery,log_knn_radius,512,-0.5689493132106171,0.19358634824380508,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,local_r2
+frozen_discovery,local_label_variance,512,0.484300215271932,0.2043552482731809,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,local_r2
+frozen_discovery,local_evaluation_count,512,2048.0,0.0,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,local_r2
+harmonized_catalog,log_knn_radius,512,-0.08280094297784285,0.1617020526625506,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,catalog_mag_r_desi
+harmonized_catalog,local_label_variance,512,0.484300215271932,0.2043552482731809,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,catalog_mag_r_desi
+harmonized_catalog,local_evaluation_count,512,2048.0,0.0,True,yes (partial Spearman residualizes ranked Z),"rank(x), rank(y), rank(Z); OLS residual; Spearman of residuals",none beyond ranking,none,none,catalog_mag_r_desi

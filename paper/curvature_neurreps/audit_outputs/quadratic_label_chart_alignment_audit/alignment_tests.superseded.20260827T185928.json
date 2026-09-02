@@ -1,0 +1,73 @@
+{
+  "stability_threshold": 0.5,
+  "frac_stable": 1.0,
+  "haar_all": {
+    "observed_median": 1.8500348027752604,
+    "null_median": 0.9775239794218542,
+    "null_mean": 0.9934414065485943,
+    "ci95_lo": 1.2144469859974216,
+    "ci95_hi": 3.0725813779320137,
+    "p_mc": 0.024390243902439025,
+    "n_null": 40,
+    "n_obs": 8
+  },
+  "haar_stable": {
+    "observed_median": 1.8500348027752604,
+    "null_median": 0.9775239794218542,
+    "null_mean": 0.9934414065485943,
+    "ci95_lo": 1.2144469859974216,
+    "ci95_hi": 3.0725813779320137,
+    "p_mc": 0.024390243902439025,
+    "n_null": 40,
+    "n_obs": 8
+  },
+  "isotropic_all": {
+    "observed_median": 1.8500348027752604,
+    "null_median": 0.9885523160158153,
+    "null_mean": 0.9830682884617004,
+    "ci95_lo": 1.2144469859974216,
+    "ci95_hi": 3.0725813779320137,
+    "p_mc": 0.024390243902439025,
+    "n_null": 40,
+    "n_obs": 8
+  },
+  "matched_anchor_spectrum": {
+    "observed_median": 1.8500348027752604,
+    "null_median": 0.9673966069773674,
+    "null_mean": 0.9729532878531048,
+    "ci95_lo": 1.2144469859974216,
+    "ci95_hi": 3.0725813779320137,
+    "p_mc": 0.024390243902439025,
+    "n_null": 40,
+    "n_obs": 8
+  },
+  "matched_note": "Cross-anchor pairing of \u03b3_i with B_j is not a co-oriented chart comparison; Haar (spectrum-preserving, orientation-destroying) is the primary null. Matched permutation is secondary.",
+  "split_half": {
+    "spearman_A_B": NaN,
+    "median_A_minus_B": -0.05922392420021372,
+    "median_A": 1.7261878320328403,
+    "median_B": 1.5278332005445434,
+    "haar_A": {
+      "observed_median": 1.7261878320328403,
+      "null_median": 0.9775239794218542,
+      "null_mean": 0.9934414065485943,
+      "ci95_lo": 1.0252479811820003,
+      "ci95_hi": 2.4742344317371274,
+      "p_mc": 0.024390243902439025,
+      "n_null": 40,
+      "n_obs": 8
+    },
+    "haar_B": {
+      "observed_median": 1.5278332005445434,
+      "null_median": 0.9775239794218542,
+      "null_mean": 0.9934414065485943,
+      "ci95_lo": 1.091435395412096,
+      "ci95_hi": 2.633614126798336,
+      "p_mc": 0.024390243902439025,
+      "n_null": 40,
+      "n_obs": 8
+    },
+    "both_exceed_haar": true
+  },
+  "survives_spectrum_preserving": true
+}

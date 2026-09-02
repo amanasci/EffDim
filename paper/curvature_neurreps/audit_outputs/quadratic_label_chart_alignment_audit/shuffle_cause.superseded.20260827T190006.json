@@ -1,0 +1,38 @@
+{
+  "original_shuffle_dQ": -7.561259848029579,
+  "synth_path": "fixed_alpha_UQ_aq=100_no_infinity",
+  "uq_contains_L": false,
+  "quad_grid": [
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0,
+    10000.0
+  ],
+  "lin_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0
+  ],
+  "synth_battery": {
+    "shuffle_no_positive_gain": true,
+    "shuffle_well_calibrated": false,
+    "median_delta_Q": -9.662043544902922,
+    "frac_positive": 0.0,
+    "n": 5,
+    "mad": 1.5146509738323743
+  },
+  "real_nested_battery": {
+    "shuffle_no_positive_gain": true,
+    "shuffle_well_calibrated": true,
+    "median_delta_Q": -0.000387385584676353,
+    "frac_positive": 0.08333333333333333,
+    "n": 12,
+    "mad": 0.0002858107189603054
+  },
+  "explanation": "The original synthetic UQ path uses a finite quadratic penalty (\u03b1_Q=100) and cannot omit the quadratic block. Shuffled labels therefore let extra quadratic capacity overfit noise (train MSE drops, held-out MSE rises), producing large negative \u0394_Q. This is null miscalibration, not a false-positive quadratic recovery. False-positive safety uses the one-sided test \u0394_Q>0, not |\u0394_Q|."
+}

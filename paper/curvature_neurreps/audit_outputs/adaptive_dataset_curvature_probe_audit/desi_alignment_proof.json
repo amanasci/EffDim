@@ -1,0 +1,30 @@
+{
+  "status": "desi_label_alignment_unresolved",
+  "proved": false,
+  "embedding_n": 20465,
+  "catalog_n": 20465,
+  "embedding_columns": [
+    "vit_base_hsc",
+    "vit_base_desi"
+  ],
+  "shared_metadata": [],
+  "manifest_hits": [
+    {
+      "path": "data_hf/desi/README.md",
+      "exists": false
+    },
+    {
+      "path": "data_hf/desi/manifest.json",
+      "exists": false
+    },
+    {
+      "path": "outputs/sae_shared_basis/paper_table2_official/hf_cache/UniverseTBD__desi_hsc_embeddings",
+      "exists": true
+    }
+  ],
+  "scientific_use": "retain DESI geometry; do not report DESI curvature\u2013label associations as scientific results",
+  "hashes": {
+    "embedding": "9a33e229b8087d17",
+    "labels": "4acc932647d8fc40"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "scientific_complete": false,
+  "audit_label": "probe_label_alignment_failure",
+  "previous_label_suspended": "dataset_specific_curvature_probe_associations",
+  "root_causes": [
+    "probe_label_alignment_failure",
+    "control_specification_change",
+    "inference_or_summary_bug",
+    "desi_alignment_unproven",
+    "multiple_testing_calibration_problem"
+  ],
+  "discovery_kh_identical": true,
+  "probe_quantity_mismatch": true,
+  "desi_alignment": "desi_label_alignment_unresolved",
+  "scale_analysis": "deferred",
+  "wrote_scientific_COMPLETE": false,
+  "n_perm": 10000,
+  "seconds": 4160.99743103981,
+  "n_tests": 18
+}

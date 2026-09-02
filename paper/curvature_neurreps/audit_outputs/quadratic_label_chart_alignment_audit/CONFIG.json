@@ -1,0 +1,9 @@
+{
+  "output_dir": "outputs/geometry/physics_quadratic_label_chart_alignment_audit",
+  "seed": 0,
+  "smoke": false,
+  "force": true,
+  "skip_truncated": false,
+  "skip_haar": false,
+  "n_anchors_override": null
+}

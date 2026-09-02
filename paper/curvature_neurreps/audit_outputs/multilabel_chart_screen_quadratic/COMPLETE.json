@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "parity": {
+    "ok": true,
+    "rho_ctl_r2_G": -0.2404841119636992,
+    "rho_ctl_mse_G": 0.22704789227635297,
+    "expected_r2": -0.24,
+    "expected_mse": 0.227
+  },
+  "n_labels": 4,
+  "seconds": 53770.89371299744,
+  "smoke": false
+}

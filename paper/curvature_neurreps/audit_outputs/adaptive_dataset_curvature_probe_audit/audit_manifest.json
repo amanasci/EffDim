@@ -1,0 +1,21 @@
+{
+  "protocol": "adaptive_dataset_curvature_probe_audit_v1",
+  "read_only": [
+    "outputs/geometry/physics_adaptive_dataset_curvature_probe",
+    "outputs/geometry/physics_curvature_probe_rank_sweep",
+    "outputs/geometry/physics_nested_dimension_curvature",
+    "outputs/geometry/physics_multimodel_graph_prior_quadratic",
+    "outputs/geometry/physics_quadratic_predictive_dimension"
+  ],
+  "write_only": "outputs/geometry/physics_adaptive_dataset_curvature_probe_audit",
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "smoke": false,
+  "git": {
+    "commit": "6672072c5ca76b43df1ec7bd8c75d6596771c9f4",
+    "short": "6672072",
+    "branch": "main",
+    "dirty": true,
+    "status_short": "## main...origin/main"
+  }
+}

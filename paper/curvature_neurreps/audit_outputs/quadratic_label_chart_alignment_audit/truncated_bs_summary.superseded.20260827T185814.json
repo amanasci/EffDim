@@ -1,0 +1,34 @@
+{
+  "e90": {
+    "median_r": 70.5,
+    "median_delta": 0.023018267777323242,
+    "median_frac_UQ": 0.9308045803115425,
+    "median_edf": 44.150823009895774,
+    "median_f_reachable": 0.7340292623997745,
+    "rho_KH": NaN
+  },
+  "e95": {
+    "median_r": 90.0,
+    "median_delta": 0.024478271016843967,
+    "median_frac_UQ": 0.9490448601049226,
+    "median_edf": 46.49151533709201,
+    "median_f_reachable": 0.8338806754003582,
+    "rho_KH": NaN
+  },
+  "e99": {
+    "median_r": 119.0,
+    "median_delta": 0.024991811436933326,
+    "median_frac_UQ": 0.9585741062287596,
+    "median_edf": 48.22299450820938,
+    "median_f_reachable": 0.9293412326348052,
+    "rho_KH": NaN
+  },
+  "original_rule": {
+    "median_r": 48.0,
+    "median_delta": 0.02169054140410151,
+    "median_frac_UQ": 0.8993278623528203,
+    "median_edf": 39.62791272279026,
+    "median_f_reachable": 0.6161123442001146,
+    "rho_KH": NaN
+  }
+}

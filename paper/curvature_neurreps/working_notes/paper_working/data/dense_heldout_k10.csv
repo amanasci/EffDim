@@ -1,0 +1,17 @@
+family,size_name,paper_model,approx_params_m,mknn
+astropt,15m,AstroPTv2 Small,15.0,0.0065913945682026
+astropt,95m,AstroPTv2 Base,95.0,0.0097955447055233
+astropt,850m,AstroPTv2 Large,850.0,0.0108025633201098
+convnext,nano,ConvNeXtv2 Nano,15.0,0.0092462618248397
+convnext,tiny,ConvNeXtv2 Tiny,28.0,0.0084833689350015
+convnext,base,ConvNeXtv2 Base,89.0,0.0102532804394263
+convnext,large,ConvNeXtv2 Large,198.0,0.0124504119621605
+dinov2,small,DINOv2 Small,22.0,0.0121147390906316
+dinov2,base,DINOv2 Base,86.0,0.0093988404028074
+dinov2,large,DINOv2 Large,300.0,0.0113518462007934
+dinov2,giant,DINOv2 Giant,1100.0,0.0115654562099481
+ijepa,huge,IJEPA Huge,630.0,0.0107415318889227
+ijepa,giant,IJEPA Giant,1000.0,0.0175770521818736
+vit,base,ViT Base,86.0,0.0071101617332926
+vit,large,ViT Large,307.0,0.0136710405859017
+vit,huge,ViT Huge,632.0,0.0144644491913335

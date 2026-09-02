@@ -1,0 +1,14 @@
+{
+  "output_dir": "outputs/geometry/physics_multilabel_chart_screen_quadratic",
+  "smoke": false,
+  "force": true,
+  "seed": 0,
+  "n_anchors_override": null,
+  "labels": [
+    "mag_r_desi",
+    "photo_z",
+    "smooth_fraction",
+    "stellar_mass"
+  ],
+  "skip_quadratic": false
+}

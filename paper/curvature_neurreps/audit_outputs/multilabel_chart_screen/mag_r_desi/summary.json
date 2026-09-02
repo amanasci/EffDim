@@ -1,0 +1,23 @@
+{
+  "field": "mag_r_desi",
+  "family": "photometric_magnitude",
+  "role": "confirmatory_parity",
+  "display": "apparent r-band magnitude",
+  "n_anchors": 512,
+  "n_skipped_sparse": 0,
+  "rho_ctl_r2_G": -0.2404841119636992,
+  "rho_raw_r2_G": -0.41243045899566266,
+  "p_ctl_r2_G": 9.999000099990002e-05,
+  "rho_ctl_mse_G": 0.22704789227635297,
+  "rho_raw_mse_G": 0.35598565835250223,
+  "p_ctl_mse_G": 9.999000099990002e-05,
+  "median_delta_Q": null,
+  "delta_Q_ci_lo": null,
+  "delta_Q_ci_hi": null,
+  "frac_positive_delta_Q": null,
+  "p_mc_median_delta_Q": null,
+  "rho_KH_delta_Q": null,
+  "rho_KH_delta_Q_p_mc": null,
+  "A_B_median": null,
+  "gamma_fold_cosine_median": null
+}

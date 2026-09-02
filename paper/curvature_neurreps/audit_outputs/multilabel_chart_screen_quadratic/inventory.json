@@ -1,0 +1,42 @@
+{
+  "eligible": [
+    {
+      "field": "mag_r_desi",
+      "family": "photometric_magnitude",
+      "role": "confirmatory_parity",
+      "display": "apparent r-band magnitude"
+    },
+    {
+      "field": "photo_z",
+      "family": "photometric_redshift",
+      "role": "secondary_screen",
+      "display": "photometric redshift"
+    },
+    {
+      "field": "smooth_fraction",
+      "family": "morphology",
+      "role": "secondary_screen",
+      "display": "smooth fraction"
+    },
+    {
+      "field": "stellar_mass",
+      "family": "stellar_population_proxy",
+      "role": "secondary_screen",
+      "display": "catalog stellar-mass proxy"
+    }
+  ],
+  "excluded": [
+    {
+      "field": "sfr",
+      "reason": "underpowered (\u224845 labelled anchors; n<64 rule)"
+    },
+    {
+      "field": "desi_spec_z",
+      "reason": "object-level identity join unproven"
+    },
+    {
+      "field": "desi_mag_r",
+      "reason": "object-level identity join unproven"
+    }
+  ]
+}

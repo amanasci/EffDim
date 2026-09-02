@@ -1,0 +1,90 @@
+{
+  "qlca_dir": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment",
+  "files": {
+    "decision.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/decision.json",
+      "exists": true,
+      "sha16": "eef821efb95fe9ed",
+      "bytes": 562
+    },
+    "summary.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/summary.json",
+      "exists": true,
+      "sha16": "c708d4f2ba3dae0c",
+      "bytes": 261
+    },
+    "parity.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/parity.json",
+      "exists": true,
+      "sha16": "da2d3212ff6ff5fb",
+      "bytes": 748
+    },
+    "primary_inference.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/primary_inference.json",
+      "exists": true,
+      "sha16": "b421381d6304d739",
+      "bytes": 557
+    },
+    "secondary_inference.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/secondary_inference.json",
+      "exists": true,
+      "sha16": "a8c94cf17c6eb423",
+      "bytes": 484
+    },
+    "alignment_summary.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/alignment_summary.json",
+      "exists": true,
+      "sha16": "717571ac8d65ab43",
+      "bytes": 152
+    },
+    "synthetic_results.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/synthetic_results.json",
+      "exists": true,
+      "sha16": "d7495122f0e4267e",
+      "bytes": 599
+    },
+    "reuse_manifest.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/reuse_manifest.json",
+      "exists": true,
+      "sha16": "c5ea44780a28ee0e",
+      "bytes": 2892
+    },
+    "CONFIG.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/CONFIG.json",
+      "exists": true,
+      "sha16": "493fc5d3f2e3829a",
+      "bytes": 212
+    },
+    "COMPLETE.json": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/COMPLETE.json",
+      "exists": true,
+      "sha16": "78a00ba43cfe7c63",
+      "bytes": 182
+    },
+    "anchor_risks.csv": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/anchor_risks.csv",
+      "exists": true,
+      "sha16": "1ca838b13e974077",
+      "bytes": 239742
+    },
+    "chart_alignment.csv": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/chart_alignment.csv",
+      "exists": true,
+      "sha16": "da90273b43700e3e",
+      "bytes": 50296
+    },
+    "METHODS.md": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/METHODS.md",
+      "exists": true,
+      "sha16": "59ebf4b6dd3fbb77",
+      "bytes": 388
+    },
+    "REPORT.md": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/REPORT.md",
+      "exists": true,
+      "sha16": "1d97a6a1240b4512",
+      "bytes": 555
+    }
+  },
+  "missing": []
+}

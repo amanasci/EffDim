@@ -1,0 +1,167 @@
+\begin{thebibliography}{17}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Assran et~al.(2023)Assran, Duval, Misra, Bojanowski, Vincent, Rabbat,
+  LeCun, and Ballas]{assran2023ijepa}
+Mahmoud Assran, Quentin Duval, Ishan Misra, Piotr Bojanowski, Pascal Vincent,
+  Michael Rabbat, Yann LeCun, and Nicolas Ballas.
+\newblock Self-supervised learning from images with a joint-embedding
+  predictive architecture.
+\newblock In \emph{Proceedings of the {IEEE/CVF} Conference on Computer Vision
+  and Pattern Recognition ({CVPR})}, pages 15619--15629, 2023.
+\newblock \doi{10.1109/CVPR52729.2023.01499}.
+
+\bibitem[Dey et~al.(2019)Dey, Schlegel, Lang, Blum, Burleigh, Fan, Findlay,
+  Finkbeiner, Herrera, Juneau, et~al.]{dey2019legacy}
+Arjun Dey, David~J. Schlegel, Dustin Lang, Robert Blum, Kaylan Burleigh,
+  Xiaohui Fan, Joseph~R. Findlay, Doug Finkbeiner, David Herrera, St{\'e}phanie
+  Juneau, et~al.
+\newblock Overview of the {DESI} legacy imaging surveys.
+\newblock \emph{The Astronomical Journal}, 157\penalty0 (5):\penalty0 168,
+  2019.
+\newblock \doi{10.3847/1538-3881/ab089d}.
+
+\bibitem[Dosovitskiy et~al.(2021)Dosovitskiy, Beyer, Kolesnikov, Weissenborn,
+  Zhai, Unterthiner, Dehghani, Minderer, Heigold, Gelly, Uszkoreit, and
+  Houlsby]{dosovitskiy2021vit}
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn,
+  Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg
+  Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby.
+\newblock An image is worth 16x16 words: Transformers for image recognition at
+  scale.
+\newblock In \emph{International Conference on Learning Representations}, 2021.
+
+\bibitem[Fel et~al.(2026)Fel, Kowal, Jacobs, Hazra, Bhalla, Sharkey, Bushnaq,
+  Grant, Haklay, Icard, Rager, Pearce, Wurgaft, Swann, Doshi, Boppana, Tigges,
+  Cammarata, Serre, Shyam, Lewis, McGrath, Merullo, Lubana, and
+  Geiger]{fel2026bsf}
+Thomas Fel, Matthew Kowal, Mozes Jacobs, Dron Hazra, Usha Bhalla, Lee Sharkey,
+  Lucius Bushnaq, Satchel Grant, Tal Haklay, Thomas Icard, Can Rager, Michael
+  Pearce, Daniel Wurgaft, Aiden Swann, Fenil Doshi, Siddharth Boppana, Curt
+  Tigges, Nick Cammarata, Thomas Serre, Vasudev Shyam, Owen Lewis, Thomas
+  McGrath, Jack Merullo, Ekdeep~Singh Lubana, and Atticus Geiger.
+\newblock Structuring sparsity: Block-sparse featurizers capture visual concept
+  manifolds.
+\newblock \emph{arXiv preprint arXiv:2606.25234}, 2026.
+
+\bibitem[Finzi et~al.(2026)Finzi, Qiu, Jiang, Izmailov, Kolter, and
+  Wilson]{finzi2026epiplexity}
+Marc Finzi, Shikai Qiu, Yiding Jiang, Pavel Izmailov, J.~Zico Kolter, and
+  Andrew~Gordon Wilson.
+\newblock From entropy to epiplexity: Rethinking information for
+  computationally bounded intelligence.
+\newblock \emph{arXiv preprint arXiv:2601.03220}, 2026.
+
+\bibitem[Gao et~al.(2025)Gao, {Dupr{\'e} la Tour}, Tillman, Goh, Troll,
+  Radford, Sutskever, Leike, and Wu]{gao2025sae}
+Leo Gao, Tom {Dupr{\'e} la Tour}, Henk Tillman, Gabriel Goh, Rajan Troll, Alec
+  Radford, Ilya Sutskever, Jan Leike, and Jeffrey Wu.
+\newblock Scaling and evaluating sparse autoencoders.
+\newblock In \emph{International Conference on Learning Representations}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2406.04093}.
+
+\bibitem[Gr{\"o}ger et~al.(2026)Gr{\"o}ger, Wen, and
+  Brbi{\'c}]{groger2026aristotelian}
+Fabian Gr{\"o}ger, Shuo Wen, and Maria Brbi{\'c}.
+\newblock Revisiting the {Platonic} representation hypothesis: An
+  {Aristotelian} view.
+\newblock \emph{arXiv preprint arXiv:2602.14486}, 2026.
+
+\bibitem[Huh et~al.(2024)Huh, Cheung, Wang, and Isola]{huh2024platonic}
+Minyoung Huh, Brian Cheung, Tongzhou Wang, and Phillip Isola.
+\newblock Position: The {Platonic} representation hypothesis.
+\newblock In Ruslan Salakhutdinov, Zico Kolter, Katherine Heller, Adrian
+  Weller, Nuria Oliver, Jonathan Scarlett, and Felix Berkenkamp, editors,
+  \emph{Proceedings of the 41st International Conference on Machine Learning},
+  volume 235 of \emph{Proceedings of Machine Learning Research}, pages
+  20617--20642. PMLR, 2024.
+\newblock URL \url{https://proceedings.mlr.press/v235/huh24a.html}.
+
+\bibitem[Jha et~al.(2025)Jha, Zhang, Shmatikov, and Morris]{jha2025vec2vec}
+Rishi Jha, Collin Zhang, Vitaly Shmatikov, and John~X. Morris.
+\newblock Harnessing the universal geometry of embeddings.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2025.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper_files/paper/2025/hash/4175dee33d6145cb8f0323703d138a53-Abstract-Conference.html}.
+
+\bibitem[Lan et~al.(2024)Lan, Torr, Meek, Khakzar, Krueger, and
+  Barez]{lan2024saeuniversality}
+Michael Lan, Philip Torr, Austin Meek, Ashkan Khakzar, David Krueger, and Fazl
+  Barez.
+\newblock Quantifying feature space universality across large language models
+  via sparse autoencoders.
+\newblock \emph{arXiv preprint arXiv:2410.06981}, 2024.
+
+\bibitem[Miyazaki et~al.(2018)Miyazaki, Komiyama, Kawanomoto, Fujimori, Hamana,
+  Hayashi, Heiguchi, Hattori, Huang, Imanishi, et~al.]{miyazaki2018hsc}
+Satoshi Miyazaki, Yutaka Komiyama, Satoshi Kawanomoto, Yukiko Fujimori, Takashi
+  Hamana, Hisanori Hayashi, Hiroki Heiguchi, Takashi Hattori, Shiang-Yu Huang,
+  Masatoshi Imanishi, et~al.
+\newblock Hyper {Suprime-Cam}: System design and verification of image quality.
+\newblock \emph{Publications of the Astronomical Society of Japan}, 70\penalty0
+  (SP1):\penalty0 S1, 2018.
+\newblock \doi{10.1093/pasj/psx063}.
+
+\bibitem[Oquab et~al.(2024)Oquab, Darcet, Moutakanni, Vo, Szafraniec, Khalidov,
+  Fernandez, Haziza, Massa, El-Nouby, Assran, Ballas, Galuba, Howes, Huang, Li,
+  Misra, Rabbat, Sharma, Synnaeve, Xu, J{\'e}gou, Mairal, Labatut, Joulin, and
+  Bojanowski]{oquab2024dinov2}
+Maxime Oquab, Timoth{\'e}e Darcet, Th{\'e}o Moutakanni, Huy~V. Vo, Marc
+  Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa,
+  Alaaeldin El-Nouby, Mahmoud Assran, Nicolas Ballas, Wojciech Galuba, Russell
+  Howes, Po-Yao Huang, Shang-Wen Li, Ishan Misra, Michael Rabbat, Vasu Sharma,
+  Gabriel Synnaeve, Hu~Xu, Herv{\'e} J{\'e}gou, Julien Mairal, Patrick Labatut,
+  Armand Joulin, and Piotr Bojanowski.
+\newblock {DINOv2}: Learning robust visual features without supervision.
+\newblock \emph{Transactions on Machine Learning Research}, 2024.
+
+\bibitem[Radford et~al.(2021)Radford, Kim, Hallacy, Ramesh, Goh, Agarwal,
+  Sastry, Askell, Mishkin, Clark, Krueger, and Sutskever]{radford2021clip}
+Alec Radford, Jong~Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh,
+  Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark,
+  Gretchen Krueger, and Ilya Sutskever.
+\newblock Learning transferable visual models from natural language
+  supervision.
+\newblock In Marina Meila and Tong Zhang, editors, \emph{Proceedings of the
+  38th International Conference on Machine Learning}, volume 139 of
+  \emph{Proceedings of Machine Learning Research}, pages 8748--8763. PMLR,
+  2021.
+\newblock URL \url{https://proceedings.mlr.press/v139/radford21a.html}.
+
+\bibitem[Sim{\'e}oni et~al.(2025)Sim{\'e}oni, Vo, Seitzer, Baldassarre, Oquab,
+  et~al.]{simeoni2025dinov3}
+Oriane Sim{\'e}oni, Huy~V. Vo, Maximilian Seitzer, Federico Baldassarre, Maxime
+  Oquab, et~al.
+\newblock {DINOv3}.
+\newblock \emph{arXiv preprint arXiv:2508.10104}, 2025.
+
+\bibitem[Smith et~al.(2024)Smith, Roberts, Angeloudi, and
+  Huertas-Company]{smith2024astropt}
+Michael~J. Smith, Ryan~J. Roberts, Eirini Angeloudi, and Marc Huertas-Company.
+\newblock {AstroPT}: Scaling large observation models for astronomy.
+\newblock In \emph{ICML 2024 AI for Science Workshop}, 2024.
+
+\bibitem[{UniverseTBD} et~al.(2025){UniverseTBD}, Duraphe, Smith, Sourav, and
+  Wu]{duraphe2025platonicuniverse}
+{UniverseTBD}, Kshitij Duraphe, Michael~J. Smith, Shashwat Sourav, and John~F.
+  Wu.
+\newblock The {Platonic} universe: Do foundation models see the same sky?
+\newblock \emph{arXiv preprint arXiv:2509.19453}, 2025.
+\newblock \doi{10.48550/arXiv.2509.19453}.
+\newblock Accepted to the NeurIPS 2025 Workshop on Machine Learning and the
+  Physical Sciences.
+
+\bibitem[Woo et~al.(2023)Woo, Debnath, Hu, Chen, Liu, Kweon, and
+  Xie]{woo2023convnextv2}
+Sanghyun Woo, Shoubhik Debnath, Ronghang Hu, Xinlei Chen, Zhuang Liu, In~So
+  Kweon, and Saining Xie.
+\newblock {ConvNeXt} {V2}: Co-designing and scaling {ConvNets} with masked
+  autoencoders.
+\newblock In \emph{Proceedings of the {IEEE/CVF} Conference on Computer Vision
+  and Pattern Recognition ({CVPR})}, pages 16133--16142, 2023.
+
+\end{thebibliography}

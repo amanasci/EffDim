@@ -1,0 +1,35 @@
+{
+  "label": "curvature_predicts_relative_local_adaptation",
+  "manuscript": {
+    "action": "include_as_exploratory_appendix",
+    "paragraph": "Patch-specific probes were worse than the frozen global probe on average, but K_H^cross was positively associated with the relative MSE improvement of patch over global probes. We interpret this as relative adaptation in high-curvature regions rather than uniformly superior local decodability."
+  },
+  "mean_dMSE_GP": -0.1011990469212172,
+  "delta_rho_mse_GP": {
+    "name": "delta_rho_MSE_GP",
+    "y_a": "mse_G",
+    "y_b": "mse_P",
+    "rho_a": 0.22704789227635297,
+    "rho_b": 0.17477573070804867,
+    "delta_rho": 0.052272161568304304,
+    "ci95_lo": -0.00018859676990487097,
+    "ci95_hi": 0.1123187176190151,
+    "p_boot_positive": 0.9746,
+    "p_mc_two_sided": 0.5523447655234477
+  },
+  "interaction": {
+    "ok": true,
+    "beta_KH": 0.18617282432979795,
+    "beta_interaction": -0.0002328971585013606,
+    "n": 384
+  },
+  "shuffle": {
+    "obs_rho_ctl": 0.20586316608679728,
+    "n_audit": 128,
+    "n_perm": 200,
+    "p_mc": 0.11442786069651742,
+    "null_mean": -0.01692386925471525,
+    "pass": false,
+    "inconclusive": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "n_association": 512,
+  "n_probe_eval_median": 2048,
+  "curvature_fit_m_note": "K_H_cross is frozen; unrelated to probe outer-fold train count m from scale experiment",
+  "rho_r2_G": {
+    "raw": -0.41243045899566266,
+    "controlled": -0.2404841119636992,
+    "n": 512,
+    "p_raw": 1.9066267724201765e-22,
+    "p_ctl": 3.6028687450798254e-08
+  },
+  "rho_mse_G": {
+    "raw": 0.35598565835250223,
+    "controlled": 0.22704789227635297,
+    "n": 512,
+    "p_raw": 9.644068355976606e-17,
+    "p_ctl": 2.0701967377215636e-07
+  },
+  "rho_mse_P": {
+    "raw": 0.30196173939414744,
+    "controlled": 0.17477573070804867,
+    "n": 512,
+    "p_raw": 2.9625140410955505e-12,
+    "p_ctl": 7.017301838682721e-05
+  },
+  "rho_dMSE_GP": {
+    "raw": 0.07590734112678957,
+    "controlled": 0.15334238492921803,
+    "n": 512,
+    "p_raw": 0.0861867068843841,
+    "p_ctl": 0.0004979157881532145
+  },
+  "mean_dMSE_GP": -0.1011990469212172,
+  "expected": {
+    "rho_r2": -0.24,
+    "rho_mse_G": 0.227,
+    "rho_dMSE": 0.153,
+    "mean_dMSE": -0.1,
+    "rho_mse_G_point": 0.227,
+    "rho_mse_P_point": 0.175
+  },
+  "match_r2": true,
+  "match_mse_G": true,
+  "match_dMSE": true,
+  "match_mean_sign": true,
+  "zero_overlap": true
+}

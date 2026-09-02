@@ -1,0 +1,10 @@
+{
+  "label": "quadratic_chart_link_unresolved",
+  "median_delta_Q": 0.020581617601622228,
+  "rho_KH_delta_Q": 0.111248619551161,
+  "median_delta_BS": 0.01960613735261897,
+  "seconds": 159.53804206848145,
+  "n_anchors": 512,
+  "smoke": false,
+  "n_workers": 8
+}

@@ -1,0 +1,23 @@
+{
+  "field": "photo_z",
+  "family": "photometric_redshift",
+  "role": "secondary_screen",
+  "display": "photometric redshift",
+  "n_anchors": 512,
+  "n_skipped_sparse": 0,
+  "rho_ctl_r2_G": -0.04736861774870967,
+  "rho_raw_r2_G": -0.09171544729403416,
+  "p_ctl_r2_G": 0.1334866513348665,
+  "rho_ctl_mse_G": 0.032166335501997004,
+  "rho_raw_mse_G": 0.3996859836520525,
+  "p_ctl_mse_G": 0.2755724427557244,
+  "median_delta_Q": null,
+  "delta_Q_ci_lo": null,
+  "delta_Q_ci_hi": null,
+  "frac_positive_delta_Q": null,
+  "p_mc_median_delta_Q": null,
+  "rho_KH_delta_Q": null,
+  "rho_KH_delta_Q_p_mc": null,
+  "A_B_median": null,
+  "gamma_fold_cosine_median": null
+}

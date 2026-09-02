@@ -1,0 +1,21 @@
+{
+  "interpretation": "geometry_regularized_quadratic_decoding",
+  "original_decision_label": "quadratic_chart_link_unresolved",
+  "uq_gain": true,
+  "curvature_predicts_gain": true,
+  "bs_genuinely_constrained": false,
+  "implementation_cap_only": true,
+  "energy_rank_low": false,
+  "truncated_bs_retains_uq_gain": true,
+  "alignment_survives_haar": true,
+  "shuffle_false_positive_safe": true,
+  "shuffle_null_calibrated": false,
+  "real_nested_false_positive_safe": true,
+  "real_nested_well_calibrated": true,
+  "v2_rerun": true,
+  "partial_correlation_rose": true,
+  "median_numerical_rank": 136.0,
+  "median_r95": 90.0,
+  "median_r_original": 48.0,
+  "rank_fraction": 0.35294117647058826
+}

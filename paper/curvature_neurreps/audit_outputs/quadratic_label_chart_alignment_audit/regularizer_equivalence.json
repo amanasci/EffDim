@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "pred_max_abs_diff": 1.3877787807814457e-15,
+  "gamma_max_abs_diff": 5.828670879282072e-16,
+  "rank_B": 21,
+  "q": 21,
+  "penalty_cmin": 0.05659443238982364,
+  "norm_c2": 0.05659443238982363,
+  "full_rank": true,
+  "real_tensor_checks": [
+    {
+      "sample_id": 0,
+      "cmin_formula": 197.4850216754619,
+      "cmin_lstsq": 197.48502167546172,
+      "rank": 136
+    },
+    {
+      "sample_id": 1,
+      "cmin_formula": 341.1240794164465,
+      "cmin_lstsq": 341.1240794164472,
+      "rank": 136
+    },
+    {
+      "sample_id": 8,
+      "cmin_formula": 1072.1866252476652,
+      "cmin_lstsq": 1072.186625247605,
+      "rank": 136
+    },
+    {
+      "sample_id": 11,
+      "cmin_formula": 205.75806674154157,
+      "cmin_lstsq": 205.75806674154265,
+      "rank": 136
+    }
+  ],
+  "note": "If algebraic rank=136, unrestricted-c BS is UQ with penalty \u03b3\u1d40(B\u1d40B)\u207a\u03b3. The frozen implementation additionally truncates c to the leading left singular subspace (99% energy, cap 48)."
+}

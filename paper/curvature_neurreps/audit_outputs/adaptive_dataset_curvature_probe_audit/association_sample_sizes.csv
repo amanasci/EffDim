@@ -1,0 +1,8 @@
+dataset_id,label,full_dataset_rows,valid_labelled_rows,total_curvature_anchors,valid_labelled_anchors,controlled_analysis_anchors,n_controls,residual_df,missingness,underpowered,scientific,note
+physics_vit_base,mag_r_desi,86471,86471,512,512,512,3,508,0/512 anchors unlabeled,False,True,
+physics_vit_base,photo_z,86471,80035,512,477,477,3,473,35/512 anchors unlabeled,False,True,
+physics_vit_base,smooth_fraction,86471,86471,512,512,512,3,508,0/512 anchors unlabeled,False,True,
+physics_vit_base,stellar_mass,86471,79490,512,476,476,3,472,36/512 anchors unlabeled,False,True,
+physics_vit_base,sfr,86471,7306,512,45,45,3,41,467/512 anchors unlabeled,True,True,
+desi_vit_base_hsc,spec_z,20465,20465,512,512,512,3,508,0/512 anchors unlabeled,False,False,desi_label_alignment_unresolved
+desi_vit_base_hsc,mag_r,20465,20465,512,512,512,3,508,0/512 anchors unlabeled,False,False,desi_label_alignment_unresolved

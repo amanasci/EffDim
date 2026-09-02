@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "original_label": "quadratic_chart_link_unresolved",
+  "audit_interpretation": "geometry_regularized_quadratic_decoding",
+  "v2_rerun": true,
+  "seconds": 8273.176621437073,
+  "n_anchors_rank": 512,
+  "smoke": false
+}

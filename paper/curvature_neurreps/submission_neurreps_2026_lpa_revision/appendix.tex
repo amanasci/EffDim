@@ -1,0 +1,88 @@
+\section{Implementation notes}
+\label{app:methods}
+
+Definitions are taken from the code paths that produced the frozen artifacts; see also \texttt{METHODS\_FOR\_PAPER.md}.
+
+Local coordinates: row-$\ell_2$ unit embeddings; $x_0$ normalised; radial component removed before nested PCA; $J\leftarrow\mathrm{orth}((I-x_0x_0^\top)J)$ (\texttt{sphere\_project\_basis}). Quadratic features $\phi_{ab}=u_au_b$ for $a\le b$; off-diagonal packed entries store $2B_{ab}$. $B^S$ columns are projected onto the complement of $\mathrm{span}(x_0,J)$. Production $K_H^{\mathrm{cross}}$ is the split-half inner product of $H$, not $\|H\|$. OOF probes are five-fold ridge ($\alpha{=}100$). Local $R^2$ uses uniform weights on finite neighbours:
+\[
+R^{2}_{\mathrm{local}}=1-\sum_i(y_i-\hat y_i)^2\Big/\sum_i(y_i-\bar y)^2.
+\]
+SSE is $\sum_i(y_i-\hat y_i)^2$; MSE is $\mathrm{SSE}/n_{\mathrm{eval}}$; MAE is $n_{\mathrm{eval}}^{-1}\sum_i|y_i-\hat y_i|$; SST is $\sum_i(y_i-\bar y)^2$. NMSE is $1-R^{2}_{\mathrm{local}}$ and is therefore not an independent estimand.
+
+\section{Target identity and parity}
+\label{app:parity}
+
+The primary target is local OOF probe $R^{2}$ (\texttt{mag\_r\_desi\_local\_oof\_r2}). Catalog magnitude (\texttt{mag\_r\_desi\_catalog\_value}) is a distinct vector. A typed schema rejects ambiguous labels (\texttt{local\_r2}, \texttt{mag\_r\_desi}) and rejects a catalog vector that is identical or an affine rescaling of the probe-performance target. After \texttt{sample\_id} alignment, controlled Spearman correlations at $k{=}2048$, $n{=}512$ match the frozen audit to the reported rounding: $\rho_{12}{=}+0.143$, $\rho_{16}{=}-0.240$, $\rho_{20}{=}-0.233$. Reconstructed $R^{2}_{\mathrm{local}}$ matches the frozen geography table with maximum absolute difference $0$.
+
+\section{Probe-metric associations at $k{=}2048$}
+\label{app:metrics}
+
+Table~\ref{tab:metrics} reports confirmatory controlled Spearman associations at the predeclared ranks (primary $n{=}512$). SST/variance remain near zero after controls; MAE/MSE reverse the $R^2$ sign, as required of an error association. Permutation $p{=}0$ is written $p{<}10^{-4}$ ($B{=}10^{4}$). Intervals are paired-bootstrap 95\% CIs; FWER is over $d{=}12,\ldots,20$.
+
+\begin{table}[h]
+\caption{Controlled $\rho(K_H^{\mathrm{cross}},\,\cdot)$ on $n{=}512$ anchors, $k{=}2048$.}
+\label{tab:metrics}
+\centering
+\footnotesize
+\begin{tabular}{lrrr}
+\toprule
+Target at $d{=}16$ & $\rho$ & 95\% CI & FWER $p$ \\
+\midrule
+\texttt{mag\_r\_desi\_local\_oof\_r2} & $-0.240$ & $[-0.323,-0.156]$ & ${<}10^{-4}$ \\
+OOF MAE & $+0.251$ & $[0.154,0.333]$ & ${<}10^{-4}$ \\
+OOF MSE / SSE & $+0.227$ & $[0.123,0.317]$ & ${<}10^{-4}$ \\
+Local SST / target var.\ & $-0.025$ & --- & $1.00$ \\
+NMSE $=1-R^{2}_{\mathrm{local}}$ & $+0.240$ & --- & --- \\
+\midrule
+$R^{2}_{\mathrm{local}}$ at $d{=}12$ & $+0.143$ & $[0.051,0.226]$ & $0.013$ \\
+$R^{2}_{\mathrm{local}}$ at $d{=}20$ & $-0.233$ & $[-0.317,-0.147]$ & ${<}10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Raw (uncontrolled) Spearman at $d{=}16$ for $R^{2}_{\mathrm{local}}$ is $\rho{=}-0.412$. Outer-half neighbour probe metrics (indices $[k/2,k)$, $K_H^{\mathrm{cross}}$ unchanged) at $d{=}16$: $R^{2}_{\mathrm{local}}$ $\rho{=}-0.246$, MSE $\rho{=}+0.238$. Label shuffle at $d{=}16$: controlled $\rho{\approx}-0.059$.
+
+\section{Scale subset and reliability}
+\label{app:scale}
+
+Chart positions were fixed from held-out variance ($\tau{=}0.80,0.85$ and the midpoint), not by maximising $|\rho|$. Table~\ref{tab:scale} uses the rank-sweep $128$-anchor refits. Signs at $d{=}16,20$ stay negative at $k{=}1024$ and $1536$, but magnitudes are ${<}50\%$ of the primary $k{=}2048$, $n{=}512$ value. Split-half reliability $R_{H}$ fails at $k{=}512$ (median $\approx-0.19$) and recovers to $\approx0.24$ at $k{=}1024$ and $\approx0.41$ at $k{=}1536$. The $k{=}512$ row is reported for completeness and is not confirmatory.
+
+\begin{table}[h]
+\caption{Controlled $\rho(K_H^{\mathrm{cross}},R^{2}_{\mathrm{local}})$ at predeclared ranks. Primary $k{=}2048$ uses $n{=}512$; other rows use $n{=}128$.}
+\label{tab:scale}
+\centering
+\footnotesize
+\begin{tabular}{lrrr}
+\toprule
+$k$ & $d{=}12$ & $d{=}16$ & $d{=}20$ \\
+\midrule
+$2048$ ($n{=}512$) & $+0.143$ & $-0.240$ & $-0.233$ \\
+$512$ (unreliable $R_H$) & $-0.270$ & $-0.198$ & $-0.253$ \\
+$1024$ & $+0.040$ & $-0.027$ & $-0.072$ \\
+$1536$ & $+0.061$ & $-0.080$ & $-0.093$ \\
+$2048$ common $128$ & $+0.148$ & $-0.171$ & $-0.193$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Excluded analyses}
+\label{app:excluded}
+
+DESI spectroscopic labels are omitted because embedding-table identity alignment is unproven; equal row counts are not a join. Catalog-magnitude associations are retained only as a negative control against silent substitution and are not a discovery result. Adaptive-run physics labels other than the frozen probe target are not used for the claim. An earlier catalog-label substitution motivated strict target typing; it is not part of the scientific narrative of the main text.
+
+\section{Exploratory local probe adaptation (post hoc)}
+\label{app:lpa}
+
+This appendix records a \emph{post hoc} analysis of whether high-curvature patches receive a greater \emph{relative} benefit from locally adapted ridge probes. It is not part of the primary claim and does not alter the main-text decision label \texttt{claim\_supported\_but\_scale\_dependent}.
+
+\paragraph{Protocol.} At the frozen geography ($k{=}2048$, $d{=}16$, $n{=}512$ anchors) we compare the frozen global OOF probe ($G$) to strict same-fold OOF ambient patch probes ($P$) with fixed ridge $\alpha{=}100$. The relative improvement is
+\[
+\Delta\mathrm{MSE}_{G\to P}=\mathrm{MSE}_G-\mathrm{MSE}_P.
+\]
+Positive values mean the patch probe is better than the global probe on that neighbourhood. Baseline controls remain $\log$ $k$NN radius, local label variance, and evaluation count.
+
+\paragraph{Primary association.} Controlled Spearman $\rho(K_H^{\mathrm{cross}},\Delta\mathrm{MSE}_{G\to P}){=}+0.153$ (95\% CI $[0.075,0.241]$, $p_{\mathrm{MC}}{\approx}0.0006$). The mean improvement is $\mathrm{mean}(\Delta\mathrm{MSE}_{G\to P}){\approx}-0.10$: patch probes are \emph{worse} than the global probe on average. The curvature--MSE association attenuates from $\rho_G{=}+0.227$ to $\rho_P{=}+0.175$. The relative-advantage association persists against a locally calibrated global prediction ($C$) and a tangent-coordinate probe ($T$).
+
+\paragraph{Alignment and pathway audit.} Recomputing current-anchor global alignment variables $A_H^G$ and $A_B^G$ and adding them to the control set leaves the controlled association essentially unchanged ($\rho{\approx}{+}0.15$). A descriptive pathway analysis does \emph{not} support the stronger claim that curvature predicts reliable patch/global weight rotation. The paired contrast $\Delta\rho^{G-P}=\rho(K_H,\mathrm{MSE}_G)-\rho(K_H,\mathrm{MSE}_P){\approx}0.052$ has a bootstrap 95\% CI that barely includes zero ($[-0.0002,0.112]$). An end-to-end label shuffle on $128$ hash anchors ($B{=}200$) is inconclusive ($p_{\mathrm{MC}}{\approx}0.11$).
+
+\paragraph{Interpretation.} Audit label: \texttt{curvature\_predicts\_relative\_local\_adaptation}. High-curvature patches receive a greater relative benefit from local fitting, but patch probes do not outperform the global probe on average, and direction-level ``adaptation'' is not established. Manuscript placement: exploratory appendix only.

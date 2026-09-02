@@ -1,0 +1,23 @@
+{
+  "field": "stellar_mass",
+  "family": "stellar_population_proxy",
+  "role": "secondary_screen",
+  "display": "catalog stellar-mass proxy",
+  "n_anchors": 512,
+  "n_skipped_sparse": 0,
+  "rho_ctl_r2_G": -0.23102124246117578,
+  "rho_raw_r2_G": -0.31354543965507375,
+  "p_ctl_r2_G": 9.999000099990002e-05,
+  "rho_ctl_mse_G": 0.12435447923461623,
+  "rho_raw_mse_G": 0.18719279648893922,
+  "p_ctl_mse_G": 0.00019998000199980003,
+  "median_delta_Q": null,
+  "delta_Q_ci_lo": null,
+  "delta_Q_ci_hi": null,
+  "frac_positive_delta_Q": null,
+  "p_mc_median_delta_Q": null,
+  "rho_KH_delta_Q": null,
+  "rho_KH_delta_Q_p_mc": null,
+  "A_B_median": null,
+  "gamma_fold_cosine_median": null
+}

@@ -1,0 +1,10 @@
+{
+  "output_dir": "outputs/geometry/physics_local_probe_adaptation_audit",
+  "seed": 0,
+  "n_boot": 10000,
+  "n_shuffle": 200,
+  "smoke": false,
+  "force": false,
+  "skip_shuffle": false,
+  "stage": "all"
+}

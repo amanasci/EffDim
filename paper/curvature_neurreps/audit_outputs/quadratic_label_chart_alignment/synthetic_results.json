@@ -1,0 +1,24 @@
+{
+  "ok": false,
+  "gates": {
+    "linear_uq_near_zero": true,
+    "aligned_uq_positive": true,
+    "aligned_bs_positive": true,
+    "orth_bs_weak": true,
+    "shuffle_small": false
+  },
+  "deltas": {
+    "linear_dQ": -0.012288741446326926,
+    "aligned_dUQ": 30.999727567643944,
+    "aligned_dBS": 35.89922243909601,
+    "orth_dUQ": 20.421523516977572,
+    "orth_dBS": -0.1888982269164785,
+    "shuffle_dQ": -7.561259848029579
+  },
+  "thresholds": {
+    "SYNTH_LIN_MAX_DELTA": 0.02,
+    "SYNTH_ALIGN_MIN_DELTA": 0.05,
+    "SYNTH_ORTH_BS_MAX_FRAC": 0.35,
+    "SYNTH_SHUFFLE_MAX_ABS_RHO": 0.15
+  }
+}

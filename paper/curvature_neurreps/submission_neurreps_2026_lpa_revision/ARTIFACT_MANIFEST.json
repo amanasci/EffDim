@@ -1,0 +1,19 @@
+{
+  "package": "neurreps_2026_lpa_revision",
+  "base": "neurreps_2026",
+  "main_decision": "claim_supported_but_scale_dependent",
+  "lpa_decision": "curvature_predicts_relative_local_adaptation",
+  "lpa_placement": "appendix_only",
+  "pdf_pages_total": 8,
+  "pdf_pages_main_body": 4,
+  "files": [
+    "main.tex",
+    "appendix.tex",
+    "references.bib",
+    "CLAIMS.md",
+    "REVISION_NOTE.md",
+    "main.pdf",
+    "figures/figure1_dimension.pdf",
+    "figures/figure2_curvature_probe.pdf"
+  ]
+}

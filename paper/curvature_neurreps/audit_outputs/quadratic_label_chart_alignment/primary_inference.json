@@ -1,0 +1,19 @@
+{
+  "median_delta_Q": 0.020581617601622228,
+  "mean_delta_Q": 0.023856610401240985,
+  "delta_Q_ci_lo": 0.019672638372278062,
+  "delta_Q_ci_hi": 0.021616092760041075,
+  "frac_positive_delta_Q": 1.0,
+  "p_mc_median_delta_Q": 0.0004997501249375312,
+  "rho_KH_delta_Q": 0.111248619551161,
+  "rho_KH_delta_Q_raw": 0.3880894087387418,
+  "rho_KH_delta_Q_p_mc": 0.007499250074992501,
+  "n_perm": 10000,
+  "n_boot": 2000,
+  "holm": {
+    "median_delta_Q": 0.0009995002498750624,
+    "rho_KH_delta_Q": 0.007499250074992501
+  },
+  "holm_both_pass": true,
+  "n": 512
+}

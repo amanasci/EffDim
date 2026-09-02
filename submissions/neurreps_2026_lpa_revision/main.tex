@@ -1,0 +1,109 @@
+%%%% SELECT ONE OF THE FOLLOWING COMMANDS %%%%%%%%
+%%% TEMPLATE FOR PROCEEDINGS TRACK %%%%
+% \documentclass[mlmain]{jmlr}
+
+%% TEMPLATE FOR Extended Abstract Track %%%%%%%
+% Official limit: 4 pages, excluding references and appendices.
+% (The Findings track is the one with no page limit.)
+\documentclass[mlabstract]{jmlr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Watermark: required by the official review template; remove for camera-ready.
+\usepackage[hpos=300px,vpos=70px]{draftwatermark}
+\SetWatermarkText{\test}
+\SetWatermarkScale{1}
+\SetWatermarkAngle{0}
+
+\usepackage{booktabs}
+
+\jmlrvolume{}
+\firstpageno{1}
+\editors{NeurReps 2026 organisers}
+\jmlryear{2026}
+\jmlrworkshop{Symmetry and Geometry in Neural Representations}
+
+\title[Curvature and local decodability]{Rank- and Scale-Conditioned Curvature Is Associated with Local Linear Decodability in Vision Representations}
+
+% Double-blind: no author block.
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Geometric summaries of neural activations depend on the rank and neighbourhood scale of the local chart used to compute them. We evaluate nested regularised quadratic charts of a ViT-B galaxy representation, define sphere-normal mean curvature $K_{H}^{\mathrm{cross}}$ from a split-half second fundamental form, and select chart ranks from held-out reconstruction rather than a single eigengap. At the frozen neighbourhood $k{=}2048$ ($n{=}512$ anchors), greater curvature is associated with poorer local out-of-fold linear decodability of $r$-band magnitude (\texttt{mag\_r\_desi\_local\_oof\_r2}) at the middle and upper evaluated ranks: controlled Spearman $\rho{=}-0.240$ at $d{=}16$ and $\rho{=}-0.233$ at $d{=}20$. Direct-error associations have the opposite sign (MAE $\rho{=}+0.251$, MSE $\rho{=}+0.227$), while local SST/target variance is essentially unassociated ($\rho{\approx}-0.025$). On $n{=}128$ hash-selected anchors the middle/upper direction remains negative at $k{=}1024$ and $k{=}1536$, but magnitudes attenuate substantially; $k{=}512$ fails curvature reliability and is not confirmatory. The association is therefore supported at the frozen scale and scale-dependent. Scope: one encoder, one astronomical dataset, one probe target, an exploratory rank sweep, and no independent replication.
+\end{abstract}
+\begin{keywords}
+representation geometry, mean curvature, linear probes, vision transformers, chart rank
+\end{keywords}
+
+\section{Question and contributions}
+\label{sec:intro}
+
+Shared geometric structure is a working hypothesis for foundation-model activations~\citep{huh2024platonic,duraphe2025platonicuniverse}. We ask a narrower question about one encoder: after a nested quadratic chart is fit in a finite neighbourhood, is its sphere-normal mean curvature associated with how well a \emph{fixed} global linear probe~\citep{alain2017probes} reconstructs a physical scalar on that neighbourhood?
+
+The probe is five-fold ridge regression from a ViT-B~\citep{dosovitskiy2021vit} embedding to $r$-band magnitude. The outcome at an anchor is the local out-of-fold coefficient of determination
+\[
+R^{2}_{\mathrm{local}}=1-\mathrm{SSE}_{\mathrm{OOF}}/\mathrm{SST}_{\mathrm{local}},
+\]
+denoted \texttt{mag\_r\_desi\_local\_oof\_r2}. Catalog magnitude \texttt{mag\_r\_desi\_catalog\_value} is a different vector and is never substituted. Curvature $K_{H}^{\mathrm{cross}}$ is the split-half inner product of mean-curvature vectors of a sphere-normal second fundamental form: finite-scale, extrinsic, and conditioned on chart rank and neighbourhood size.
+
+\paragraph{Contributions.}
+(i)~A method for evaluating local representation dimensionality as a predictive range rather than selecting one eigengap.
+(ii)~A sphere-normal quadratic-chart curvature statistic that removes the forced radial curvature induced by activation normalisation.
+(iii)~A controlled empirical association between rank-conditioned curvature and local OOF probe error at a frozen neighbourhood scale.
+(iv)~An audit showing that the association is not an $R^{2}$-denominator artefact and is materially neighbourhood-scale dependent.
+
+\section{Local quadratic geometry and chart rank}
+\label{sec:geom}
+
+At each of $512$ hash-stable anchors we take the $k{=}2048$ nearest neighbours on the unit sphere, remove the radial component, and compute a nested PCA frame $J$, following the local-quadratic charting tradition~\citep{donoho2003hessian}. A two-stage ridge quadratic is fit with split-half cross-evaluation: a tangential warp, then a second fundamental form $B^{S}$ projected onto the sphere-normal complement of $\mathrm{span}(x_{0},J)$. Packed off-diagonal coefficients store $2B_{ab}$. Mean curvature is $H_{a}=d^{-1}\sum_{i}B^{S}_{a,ii}$; the production scalar is $K_{H}^{\mathrm{cross}}=\langle H^{(A)},H^{(B)}\rangle$. Reliability $R_{H}$ is the split-half concordance of $H$. Identities appear in the appendix.
+
+Held-out reconstruction (Fig.~\ref{fig:dim}) does not exhibit a single spectral jump. Pooled linear $R^{2}_{L}$ is approximately $0.80$ at $d{=}12$ and $0.85$ at $d{=}20$; quadratic NMSE decreases more slowly at higher ranks, while \emph{linear} reconstruction continues to improve at the right edge of the plotted family. We therefore treat $d{=}12$--$20$ as the \emph{evaluated chart range} spanning roughly $80$--$85\%$ explained variance, not as a complete geometrically adequate dimensional interval and not as an intrinsic dimension. A stable lower-dimensional core is compatible with further predictive gains at higher ranks. Chart positions used for scale mapping were fixed geometrically before inspecting curvature--probe correlations: lower $d{=}12$, middle $d{=}16$, upper $d{=}20$. Rank scanning inside the family is exploratory.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.96\linewidth]{figures/figure1_dimension.pdf}
+\caption{Chart rank is evaluated by held-out reconstruction, not a single eigengap.
+Left: pooled linear and regularised quadratic NMSE versus chart rank ($k{=}2048$).
+Right: pooled $R^{2}_{L}$ and its increment. Shading marks the \emph{evaluated chart range} $d{=}12$--$20$ ($\tau{\approx}0.80$ and $0.85$). Linear NMSE is still falling at $d{=}20$; no vertical line is drawn at a putative intrinsic dimension.}
+\label{fig:dim}
+\end{figure}
+
+\section{Curvature and local decodability}
+\label{sec:result}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{figures/figure2_curvature_probe.pdf}
+\caption{Finite-scale, rank-conditioned association between curvature and local probe error.
+Left: controlled $\rho(K_{H}^{\mathrm{cross}},R^{2}_{\mathrm{local}})$ versus chart rank for the primary $n{=}512$, $k{=}2048$ analysis (line, simultaneous 95\% band). Markers show $n{=}128$ scale estimates; $k{=}512$ is marked unreliable. The top axis is held-out $R^{2}_{L}$. Shading: FWER-negative span $d{=}16$--$20$ in the primary analysis.
+Right: percentile relationship between $K_{H}^{\mathrm{cross}}$ and OOF MSE at the predeclared representative rank $d{=}16$ (primary $n{=}512$, $k{=}2048$). Catalog magnitude and DESI labels are not shown.}
+\label{fig:curv}
+\end{figure}
+
+\paragraph{Primary frozen analysis.} Aligning $K_{H}^{\mathrm{cross}}$ and \texttt{mag\_r\_desi\_local\_oof\_r2} by \texttt{sample\_id} on $n{=}512$ anchors at $k{=}2048$ reproduces the audited controlled Spearman correlations: $\rho_{12}{=}+0.143$, $\rho_{16}{=}-0.240$, $\rho_{20}{=}-0.233$ ($\rho_{20}{-}\rho_{12}{=}-0.376$). The corresponding raw (uncontrolled) correlation at $d{=}16$ is $\rho{=}-0.412$. The reconstructed $R^{2}_{\mathrm{local}}$ matches the frozen local-probe table to numerical identity. A typed schema rejects catalog magnitude as the primary target.
+
+Controls are $\log$ $k$NN radius, local label variance, and evaluation count. Permutations ($B{=}10^{4}$) use rank-space Freedman--Lane for the controlled family; $p{=}0$ is reported as $p{<}1/(B{+}1)$. Familywise error is taken over ranks $d{=}12,\ldots,20$. The negative controlled associations at $d{=}16$ and $d{=}20$ have FWER $p{<}10^{-4}$. Paired bootstrap ($B{=}2000$) simultaneous 95\% intervals: $\rho\in[-0.323,-0.156]$ at $d{=}16$ and $\rho\in[-0.317,-0.147]$ at $d{=}20$. At $d{=}12$ the controlled association is positive ($\rho{=}+0.143$, FWER $p{=}0.013$). The rank that maximises $|\rho|$ is not treated as an intrinsic-dimension estimate.
+
+\paragraph{Direct error versus denominator.} Greater curvature corresponds to \emph{higher} local prediction error and therefore \emph{lower} $R^{2}_{\mathrm{local}}$. After the same controls, at $d{=}16$, $k{=}2048$, $K_{H}^{\mathrm{cross}}$ is associated with OOF MAE ($\rho{=}+0.251$, 95\% CI $[0.154,0.333]$) and OOF MSE/SSE ($\rho{=}+0.227$, $[0.123,0.317]$), both FWER $p{<}10^{-4}$, and is essentially unassociated with SST / local target variance ($\rho{\approx}-0.025$, FWER $p{=}1.00$). NMSE equals $1-R^{2}_{\mathrm{local}}$ and is not an independent metric. Evaluating probe metrics on the outer neighbour half (indices $[k/2,k)$) while leaving $K_{H}^{\mathrm{cross}}$ unchanged yields $\rho_{16}{=}-0.246$ for $R^{2}_{\mathrm{local}}$ and $+0.238$ for MSE. A label shuffle at $d{=}16$ gives controlled $\rho{\approx}-0.059$.
+
+\paragraph{Scale sensitivity.} The $n{=}512$, $k{=}2048$ result is the frozen primary analysis. Scale comparisons use $n{=}128$ hash-selected anchors and are not power-matched to the primary test. At the predeclared middle/upper ranks the direction remains negative at $k{=}1024$ and $k{=}1536$, but magnitudes attenuate substantially (controlled $\rho_{16}{=}-0.027$ and $-0.080$). The $k{=}2048$ common-$128$ estimate at $d{=}16$ is $\rho{=}-0.171$. Neighbourhood $k{=}512$ fails split-half curvature reliability (median $R_{H}{\approx}-0.19$) and is not interpreted as evidence of a contradictory scientific association. We do not apply post-hoc attenuation correction. Decision label: \texttt{claim\_supported\_but\_scale\_dependent}.
+\FloatBarrier
+
+\section{Limitations and conclusion}
+\label{sec:limit}
+
+$K_{H}^{\mathrm{cross}}$ is finite-scale extrinsic curvature of a fitted local chart of the activation cloud, not the intrinsic Riemannian curvature of an unknown manifold, and it is defined only at a chosen chart rank and neighbourhood size. The evaluated range $d{=}12$--$20$ does not identify a unique intrinsic dimension. The association is neighbourhood-scale sensitive. We study one encoder, one dataset, and one probe target. The rank sweep inside $d{=}8$--$20$ was not preregistered. There is no independent encoder or dataset replication. No causal interpretation is offered. DESI spectroscopic labels are excluded because sample-identity alignment was not established. Catalogue-magnitude correlations are not reported as discovery results. A post-hoc local-probe adaptation analysis (Appendix~\ref{app:lpa}) finds a curvature-linked \emph{relative} patch advantage with negative mean patch improvement and is not treated as a main-text claim.
+
+\paragraph{Conclusion.}
+At the frozen $k{=}2048$ scale, rank-conditioned sphere-normal mean curvature is associated with worse local OOF linear-probe performance at the middle and upper evaluated chart positions. The association survives direct-error and denominator checks, but its magnitude attenuates substantially at intermediate neighbourhood scales.
+
+\clearpage
+\bibliography{references}
+
+\clearpage
+\appendix
+\input{appendix}
+
+\end{document}

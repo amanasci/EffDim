@@ -1,0 +1,13 @@
+{
+  "median_delta_BS": 0.01960613735261897,
+  "mean_delta_BS": 0.022563024718249936,
+  "median_delta_FQ": 0.019695030963293697,
+  "mean_delta_FQ": 0.022621311346970922,
+  "median_delta_normal": 0.01871031339968044,
+  "mean_delta_normal": 0.02144571435649039,
+  "frac_UQ_captured_by_BS": 0.9376366120634971,
+  "rho_KH_delta_BS": 0.1566640452443895,
+  "rho_KH_delta_FQ": 0.15770716030944942,
+  "rho_KH_dMSE_GP": 0.15334238492921803,
+  "rho_KH_dMSE_GP_adj_deltaQ": 0.20518047401609046
+}

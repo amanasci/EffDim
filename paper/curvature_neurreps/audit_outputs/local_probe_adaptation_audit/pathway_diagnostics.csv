@@ -1,0 +1,6 @@
+test,rho,n,reliable_only
+KH_predicts_DPG_given_align,-0.02211882438710115,384,False
+DPG_predicts_dMSE_given_KH_align,0.5405492353599404,384,False
+dAB_predicts_dMSE,-0.21603370519819606,384,False
+dAH_predicts_dMSE,-0.09839612085042894,384,False
+KH_predicts_DPG_reliable,-0.02211882438710115,384,True

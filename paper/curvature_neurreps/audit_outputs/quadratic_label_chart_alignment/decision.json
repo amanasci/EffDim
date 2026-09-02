@@ -1,0 +1,19 @@
+{
+  "label": "quadratic_chart_link_unresolved",
+  "uq_gain": true,
+  "curv_predicts_gain": true,
+  "chart_explains_gain": true,
+  "checks": {
+    "median_delta_Q": 0.020581617601622228,
+    "delta_Q_ci_lo": 0.019672638372278062,
+    "rho_KH_delta_Q": 0.111248619551161,
+    "rho_p_mc": 0.007499250074992501,
+    "holm_both_pass": true,
+    "median_delta_BS": 0.01960613735261897,
+    "frac_UQ_captured_by_BS": 0.9376366120634971,
+    "A_B_median": 2.4271836244410787,
+    "gamma_stability": 0.9243428097633845,
+    "synth_ok": false,
+    "unstable": false
+  }
+}

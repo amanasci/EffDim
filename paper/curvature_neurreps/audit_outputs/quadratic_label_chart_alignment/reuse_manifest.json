@@ -1,0 +1,134 @@
+{
+  "n_anchors": 512,
+  "files": {
+    "mm_X": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/prepare/models/vit_base.npz",
+      "exists": true,
+      "sha16": "7635df38659bce31",
+      "shape": {
+        "X": [
+          16384,
+          768
+        ]
+      }
+    },
+    "neigh": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/model_neighbourhoods/vit_base_kmax2048.npz",
+      "exists": true,
+      "sha16": "f0a6a730ba909b58",
+      "shape": {
+        "anchors_local": [
+          512
+        ],
+        "neigh": [
+          512,
+          2048
+        ],
+        "dists": [
+          512,
+          2048
+        ],
+        "sample_ids": [
+          16384
+        ]
+      }
+    },
+    "folds": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/sample_folds.parquet",
+      "exists": true,
+      "sha16": "4f90b0ac0628623d",
+      "shape": {
+        "rows": 16384,
+        "cols": 12
+      }
+    },
+    "oof": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/global_probes/oof_predictions/vit_base_mag_r_desi.npz",
+      "exists": true,
+      "sha16": "54c9703e4d01bbbd",
+      "shape": {
+        "oof": [
+          16384
+        ],
+        "w_full": [
+          768
+        ],
+        "b_full": [
+          1
+        ],
+        "fold_cos_median": [
+          1
+        ]
+      }
+    },
+    "cprs": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_rank_sweep/per_anchor_rank_curve.parquet",
+      "exists": true,
+      "sha16": "badeac8ce6197b3f",
+      "shape": {
+        "rows": 6656,
+        "cols": 27
+      }
+    },
+    "lpa_imp": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_local_probe_adaptation/anchor_improvements.csv",
+      "exists": true,
+      "sha16": "6c9b1e2c461d250a",
+      "shape": null
+    },
+    "ndc_example": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_nested_dimension_curvature/H_vectors/0.npz",
+      "exists": true,
+      "sha16": "76f6c46fa722ae24",
+      "shape": {
+        "H12": [
+          768
+        ],
+        "H16": [
+          768
+        ],
+        "BS16_A": [
+          768,
+          136
+        ],
+        "BS16_B": [
+          768,
+          136
+        ],
+        "BS12_A": [
+          768,
+          78
+        ],
+        "BS12_B": [
+          768,
+          78
+        ],
+        "x0": [
+          768
+        ],
+        "J16": [
+          768,
+          16
+        ],
+        "J12": [
+          768,
+          12
+        ],
+        "J_E": [
+          768,
+          4
+        ]
+      }
+    }
+  },
+  "X_shape": [
+    16384,
+    768
+  ],
+  "neigh_shape": [
+    512,
+    2048
+  ],
+  "n_labels": 16384,
+  "n_quad_d16": 136
+}
