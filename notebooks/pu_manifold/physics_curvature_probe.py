@@ -50,223 +50,416 @@ from . import subsample
 # Filled by Phase 9's single freeze commit (09-05, D9-18).
 # =============================================================================================
 
-K_NEIGHBOURS = None
+K_NEIGHBOURS = 2048
 """Neighbourhood size for knn_panel's per-anchor query (D9-02)."""
 
-NEIGHBOURHOOD_RATIO_RULE = ""
+NEIGHBOURHOOD_RATIO_RULE = (
+    "K_NEIGHBOURS=2048 of n=86,471 is 1/42 of the Physics sample (his 2048 of 16,384 was 1/8); "
+    "this ratio must be printed beside every number this phase reports."
+)
 """Rule string stating K_NEIGHBOURS as a fraction of the Physics sample and requiring that
 ratio be printed beside every number."""
 
-N_ANCHORS = None
+N_ANCHORS = 512
 """Anchor count drawn from the AE holdout pool (D9-03)."""
 
-ANCHOR_DRAW_SEED = None
+ANCHOR_DRAW_SEED = 20260902
 """Seed passed to subsample.draw_row_indices for the anchor draw."""
 
-ANCHOR_POOL = None
+ANCHOR_POOL = "ae_holdout_rows_only"
 """Which row pool anchors are drawn from -- e.g. "ae_holdout_rows_only" (D9-04)."""
 
-ANCHOR_POOL_RULE = ""
+ANCHOR_POOL_RULE = (
+    "Anchors are drawn only from the AE holdout rows (~17k at HOLDOUT_FRACTION = 0.2), a "
+    "deliberate departure from Phase 7's FIELD_EVALUATED_ON = "
+    "'all_10000_rows_including_the_8000_training_rows': curvature is measured only where the "
+    "decoder never trained. Neighbourhoods (k-NN over all 86,471 rows) and the OOF probe folds "
+    "are independent of the AE train/holdout split (D9-04)."
+)
 """Rule string stating the deliberate departure from Phase 7's FIELD_EVALUATED_ON convention:
 curvature is measured only where the decoder never trained."""
 
-SPLIT_SEED = None
+SPLIT_SEED = 20260813
 """Seed for the AE train/holdout split (crossmodal_curvature.split_indices)."""
 
-HOLDOUT_FRACTION = None
+HOLDOUT_FRACTION = 0.2
 """Holdout fraction for the AE train/holdout split."""
 
-AE_IN_DIM = None
+AE_IN_DIM = 768
 """Autoencoder input width."""
 
-AE_HIDDEN = ()
+AE_HIDDEN = (250, 250, 250)
 """Autoencoder hidden-layer widths."""
 
-AE_ACTIVATION = None
+AE_ACTIVATION = "silu"
 """Autoencoder activation name."""
 
-MAX_EPOCHS = None
+MAX_EPOCHS = 600
 """Autoencoder training epoch cap."""
 
-TORCH_INIT_SEED = None
+TORCH_INIT_SEED = 0
 """torch.manual_seed value at model construction."""
 
-TRAIN_CFG = {}
-"""Autoencoder training protocol dict (lr, weight_decay, batch, ...)."""
+TRAIN_CFG = {
+    "lr": 1e-3,
+    "weight_decay": 1e-4,
+    "batch": 128,
+    "lip_weight": 0.0,
+    "fps_pretrain_epochs": 0,
+    "early_stop_patience": MAX_EPOCHS + 1,
+    "early_stop_min_delta": 1e-9,
+    "wallclock_ceiling_s": float("inf"),
+}
+"""Autoencoder training protocol dict (lr, weight_decay, batch, ...). early_stop_patience >
+MAX_EPOCHS deliberately disables total-loss early stopping, per 03-08-DEFECTS-01.md defect 2 --
+re-declared fresh from crossmodal_curvature.TRAIN_CFG, byte-identical."""
 
-CURVATURE_SOURCE_FUNCTION = None
+CURVATURE_SOURCE_FUNCTION = "decoder_curvature.plain_decoder_curvature"
 """Dotted name of the curvature function this phase uses."""
 
-CURVATURE_CONVENTION = None
+CURVATURE_CONVENTION = "trace"
 """Must equal "trace" once filled -- H = tr_g(II), never the averaged convention."""
 
-D_SWEEP = ()
-"""The d values this phase fits and reports (D9-12)."""
+D_SWEEP = (16, 20, 25, 32)
+"""The d values this phase fits and reports (D9-12). d=16 added so one cell matches the
+colleague's chart rank directly. This is Phase 9's OWN sweep constant, declared fresh in this
+module; crossmodal_curvature.D_SWEEP = (20, 25, 32) is Phase 7's frozen record and is not
+edited to add 16."""
 
-FIT_QUALITY_KEYS = ()
+FIT_QUALITY_KEYS = ("var_explained", "cond_g_median")
 """Which fit-quality diagnostics are recorded per d."""
 
-INSTRUMENT_FIDELITY_RANGE_D16 = ()
-INSTRUMENT_FIDELITY_RANGE_D20 = ()
-INSTRUMENT_FIDELITY_RANGE_D25 = ()
-INSTRUMENT_FIDELITY_D32_RULE = ""
+INSTRUMENT_FIDELITY_RANGE_D16 = (0.8376, 0.9882)
+INSTRUMENT_FIDELITY_RANGE_D20 = (0.53, 0.99)
+INSTRUMENT_FIDELITY_RANGE_D25 = (0.17, 0.97)
+INSTRUMENT_FIDELITY_D32_RULE = (
+    "d=32 fixture fidelity is NOT measured and cannot be measured with the "
+    "07_instrument_fixture_sweep_run.py runner: the small-ambient fixture arm's literal ambient "
+    "width is D=28 (a hard literal in the runner), a d=32 graph fixture needs local width "
+    "m = d + 1 = 33, and varying_ii_controls.rotate_and_pad requires D >= m, so it raises "
+    "ValueError by construction the moment --d 32 is passed. This is a limitation, not a bug to "
+    "patch -- ratified in HANDOFF-v1.1.md Section 5.3 and named in 09-CONTEXT.md's Deferred "
+    "section and 09-RESEARCH.md Pitfall 6. Phase 9 does not fix the fixture, does not widen the "
+    "small-ambient arm, and does not attempt the --d 32 run. At d=32, a dying instrument and a "
+    "vanishing effect remain indistinguishable."
+)
 """Analytic-fixture instrument-fidelity ranges per d, and (for d=32) a rule string stating why
 it is unmeasurable at this milestone's fixture width."""
 
-CURVATURE_FIELD_FOR_VERDICT = None
+CURVATURE_FIELD_FOR_VERDICT = "H_tan_norm"
 """Exact-equality-guarded (see _REQUIRED_CURVATURE_FIELD_FOR_VERDICT below): the single field
 name the verdict functions read -- "H_tan_norm", never "H_norm"."""
 
-H_NORM_IS_NON_GATING = None
+H_NORM_IS_NON_GATING = True
 """True: ||H|| is reported beside ||H_tan|| and never promoted to the headline (D9-11)."""
 
-RADIAL_DECOMPOSITION_RULE = ""
+RADIAL_DECOMPOSITION_RULE = (
+    "decompose_radial_tangential, copying 08_radial_curvature_decomposition_run.py's decompose() "
+    "formula exactly: img_norm = ||image||, u = image / img_norm, H_rad = <H_vec, u>, "
+    "H_tan = H_vec - H_rad * u, H_tan_norm = ||H_tan||. 08-DIAGNOSTICS.md Section 2 measured "
+    "H_rad and H_tan disagreeing on the controlled partial by 2.8x at d=25, which is why "
+    "H_tan_norm (never H_norm) carries the verdict (D9-11)."
+)
 """Rule string naming the decompose_radial_tangential formula this phase uses."""
 
-MIN_IMAGE_NORM = None
+MIN_IMAGE_NORM = 1e-12
 """Rows whose decoder-image norm falls below this are excluded from the decomposition rather
 than divided by."""
 
-ALPHA_RIDGE = None
+ALPHA_RIDGE = 100.0
 """The single pinned ridge alpha oof_ridge_predictions fits at."""
 
-ALPHA_GRID = ()
+ALPHA_GRID = (100.0,)
 """Non-gating diagnostic alpha grid -- never used to select ALPHA_RIDGE post-hoc."""
 
-ALPHA_SELECTION_RULE = ""
+ALPHA_SELECTION_RULE = (
+    "alpha_grid passed to oof_ridge_predictions holds exactly one DISTINCT value (ALPHA_RIDGE, "
+    "duplicated as a two-entry tuple only to route around a sklearn==1.9.0 RidgeCV in-place-"
+    "mutation defect on a one-element tuple -- see oof_ridge_predictions's own docstring); no "
+    "alpha selection occurs at fit time. ALPHA_GRID is a diagnostic-only grid, never used to "
+    "choose ALPHA_RIDGE post-hoc."
+)
 """Exact-equality-guarded (see _REQUIRED_ALPHA_SELECTION_RULE below)."""
 
-N_OOF_FOLDS = None
+N_OOF_FOLDS = 5
 """Fold count for the explicit KFold OOF wrapper."""
 
-OOF_FOLD_SEED = None
+OOF_FOLD_SEED = 20260902
 """random_state passed to KFold."""
 
-OOF_IMPLEMENTATION_RULE = ""
+OOF_IMPLEMENTATION_RULE = (
+    "oof_ridge_predictions wraps linear_probe.fit_probe/predict_probe inside an explicit KFold "
+    "loop supplied by this module; sklearn.model_selection.cross_val_predict is never used, and "
+    "a single whole-dataset fit is never presented as an out-of-fold prediction."
+)
 """Exact-equality-guarded (see _REQUIRED_OOF_IMPLEMENTATION_RULE below)."""
 
-LOCAL_R2_RULE = ""
+LOCAL_R2_RULE = (
+    "local_r2_panel computes, per anchor over its K_NEIGHBOURS neighbours, with finite outcome "
+    "and finite prediction, uniform weights: mse, sst (about the neighbourhood mean of y), "
+    "r2 = 1 - mse/sst -- per METHODS_FOR_PAPER.md Section 10. The outcome fed to every downstream "
+    "statistic is this local out-of-fold R2, never the raw catalog label value itself -- the "
+    "exact substitution behind the colleague's own probe_label_alignment_failure bug class."
+)
 """Rule string naming the local out-of-fold R2 as the outcome -- never the catalog label
 value itself (the substitution behind the colleague's own probe_label_alignment_failure)."""
 
-MIN_FINITE_NEIGHBOURS = None
+MIN_FINITE_NEIGHBOURS = 32
 """Floor on finite (y, y_hat) pairs in a neighbourhood before local_r2_panel masks the anchor."""
 
-CONTROLS = ()
-"""The ordered tuple of control names composing the 3-control partial's Z matrix."""
+CONTROLS = ("log_knn_radius", "local_label_variance", "local_evaluation_count")
+"""The ordered tuple of control names composing the 3-control partial's Z matrix (D9-09)."""
 
-VERDICT_STATISTIC = None
+VERDICT_STATISTIC = (
+    "controlled_partial(H_tan_norm, local_oof_r2, Z=[log_knn_radius, local_label_variance, "
+    "local_evaluation_count]) -- the 3-control rank-partial Spearman correlation between the "
+    "decoder tangential curvature magnitude and the local out-of-fold R2, residualized on ranks "
+    "via cross_split_curvature.partial_spearman, exactly the colleague's inference.py "
+    "associate/control_matrix construction (D9-09)."
+)
 """Name of the statistic the phase verdict is computed on -- the controlled 3-control partial,
 never the raw Spearman."""
 
-RAW_RHO_IS_NON_GATING = None
+RAW_RHO_IS_NON_GATING = True
 """True: the raw (uncontrolled) rho is reported beside the controlled partial and never gates."""
 
-STRATIFIED_NULL_IS_NON_GATING = None
+STRATIFIED_NULL_IS_NON_GATING = True
 """True: the density-stratified null is a secondary check and never gates the verdict alone."""
 
-STRATIFICATION_FIELD = None
-"""Field the density-stratified null bins on -- e.g. "log_knn_radius"."""
+STRATIFICATION_FIELD = "log_knn_radius"
+"""Field the density-stratified null bins on -- e.g. "log_knn_radius". Chosen because the
+colleague's own table gives rho(K_H, log_knn_radius) = +0.765 -- his own radius is the field
+that dominates his partial -- and 09-COLLEAGUE-REANALYSIS.md already ran this exact
+construction on his table, so this stratified null is directly comparable to that re-analysis."""
 
-STRATA_GRID = ()
-"""Non-gating stratum-count grid reported alongside the headline stratified null."""
+STRATA_GRID = (10, 20)
+"""Non-gating stratum-count grid reported alongside the headline stratified null. Matches
+09-COLLEAGUE-REANALYSIS.md's own S=10/S=20 re-analysis of the colleague's table exactly."""
 
-STRATIFIED_NULL_DRAWS = None
-"""Draw count for stratified_partial_null_3control."""
+STRATIFIED_NULL_DRAWS = 5000
+"""Draw count for stratified_partial_null_3control. Matches 09-COLLEAGUE-REANALYSIS.md's own
+re-analysis draw count exactly."""
 
-STRATIFIED_NULL_SEED = None
+STRATIFIED_NULL_SEED = 20260902
 """Seed for stratified_partial_null_3control."""
 
-N_PERMUTATIONS = None
-"""Draw count for permutation_fwer's Freedman-Lane null."""
+N_PERMUTATIONS = 10000
+"""Draw count for permutation_fwer's Freedman-Lane null. Inherited from the colleague's own
+B = 10^4, not reduced -- the per-draw cost (one rank-space least squares on a 512-row,
+4-column design plus four partial correlations) is negligible, a different order of magnitude
+from Phase 8's HSIC cost that forced 08-PREREGISTRATION-AMENDMENT-01's reduction."""
 
-PERMUTATION_SEED = None
+PERMUTATION_SEED = 20260902
 """Seed for permutation_fwer's Freedman-Lane null."""
 
-NULL_CONSTRUCTION_RULE = ""
+NULL_CONSTRUCTION_RULE = (
+    "The null for the 3-control partial is Freedman-Lane: freedman_lane_y permutes the residual "
+    "of the outcome's rank on the controls' ranks and adds the fit back. "
+    "crossmodal_curvature.two_tailed_permutation_null is the wrong null for this phase and is "
+    "never used here."
+)
 """Exact-equality-guarded (see _REQUIRED_NULL_CONSTRUCTION_RULE below)."""
 
-FWER_ALPHA = None
+FWER_ALPHA = 0.05
 """Significance level per_d_verdict compares p_fwer against, using a strict <."""
 
-P_VALUE_FLOOR_RULE = ""
+P_VALUE_FLOOR_RULE = (
+    "p_value_from_null never reports a zero p; when the observed statistic clears every null "
+    "draw it reports the string form '< 1/(B+1)' instead of a numeric zero."
+)
 """Rule string stating p_value_from_null never reports a zero p; it reports the
 "< 1/(B+1)" string form instead."""
 
-N_BOOTSTRAP = None
-"""Draw count for paired_anchor_bootstrap."""
+N_BOOTSTRAP = 2000
+"""Draw count for paired_anchor_bootstrap. Matches the colleague's own B=2000 paired anchor
+resamples."""
 
-BOOTSTRAP_SEED = None
+BOOTSTRAP_SEED = 20260902
 """Seed for paired_anchor_bootstrap."""
 
-BOOTSTRAP_RULE = ""
+BOOTSTRAP_RULE = (
+    "paired_anchor_bootstrap resamples anchor ROWS with replacement, carrying x (curvature), y "
+    "(local R2) and every control column together so the pairing is preserved, recomputing "
+    "controlled_partial per draw; reports the 2.5/97.5 percentile band, matching the colleague's "
+    "own B=2000 paired anchor resampling scheme."
+)
 """Rule string naming the paired-anchor-row resampling scheme."""
 
-REPORT_BOTH_NULLS_UNCONDITIONALLY = None
+REPORT_BOTH_NULLS_UNCONDITIONALLY = True
 """True: the Freedman-Lane FWER null and the density-stratified null are both reported on
 every run, never conditionally."""
 
-VERDICT_RULE = ""
+VERDICT_RULE = """D9-10 VERDICT_RULE -- frozen in committed source before any Physics probe
+number existed (D9-18).
+
+"Replicates" at a given d in D_SWEEP means the controlled 3-control partial
+(VERDICT_STATISTIC, on CURVATURE_FIELD_FOR_VERDICT = "H_tan_norm") is STRICTLY NEGATIVE
+(rho < 0.0) AND clears its own Freedman-Lane rank-permutation null under the family-wise
+envelope (the per-draw maximum absolute controlled partial across D_SWEEP) at FWER_ALPHA = 0.05,
+using a strict < on p_fwer. No magnitude threshold. Magnitude is printed beside the colleague's
+-0.240 with both bootstrap bands (his B=2000 paired anchor resamples; ours the same, N_BOOTSTRAP
+= 2000).
+
+Per-d cells are reported independently -- PER_D_VERDICT_VALUES[0] ("NEGATIVE AND CLEARS FWER
+NULL") or PER_D_VERDICT_VALUES[1] ("DOES NOT CLEAR") -- with NO pooled headline number across d.
+The phase verdict then aggregates the per-d cells: every d fired gives VERDICT_VALUES[0]
+("REPLICATES AT EVERY d"), at least one but not all gives VERDICT_VALUES[1] ("REPLICATES AT
+SUBSET OF d"), none gives VERDICT_VALUES[2] ("DOES NOT REPLICATE"). VERDICT_VALUES[3]
+("HALTED - ALIGNMENT NOT PROVED") is reserved for the case where the D9-06/D9-07 row-alignment
+proof itself never clears ALIGNMENT_MARGIN_R2 at any candidate offset (D9-08's SEARCH branch
+finding zero or more-than-one clearing shift) -- in that case no Physics number is ever computed
+and phase_verdict() is never called.
+
+The raw (uncontrolled) rho and the density-stratified null (STRATIFICATION_FIELD =
+"log_knn_radius") are both reported unconditionally beside the headline (REPORT_BOTH_NULLS_
+UNCONDITIONALLY = True) but neither gates the verdict alone (RAW_RHO_IS_NON_GATING,
+STRATIFIED_NULL_IS_NON_GATING). ||H_norm|| is reported beside ||H_tan_norm|| and never promoted
+to the headline (H_NORM_IS_NON_GATING).
+
+Every-d and magnitude-band alternative rules were considered and not chosen. Vocabulary follows
+07.1's SURVIVES AT SUBSET OF d / per-d independent reporting (D8-13 pattern)."""
 """Rule string naming the phase-verdict decision procedure over VERDICT_VALUES."""
 
-VERDICT_VALUES = ()
-"""Exactly three phase-verdict strings: every-d, subset-of-d, does-not-replicate."""
+VERDICT_VALUES = (
+    "REPLICATES AT EVERY d",
+    "REPLICATES AT SUBSET OF d",
+    "DOES NOT REPLICATE",
+    "HALTED - ALIGNMENT NOT PROVED",
+)
+"""Exactly three phase-verdict strings: every-d, subset-of-d, does-not-replicate. [Frozen with a
+fourth, HALTED - ALIGNMENT NOT PROVED, for the D9-06/07 alignment-proof-fails case -- see
+VERDICT_RULE. phase_verdict() itself only ever returns entries [0], [1] or [2]; entry [3] is set
+directly by the row-alignment runner when the proof never clears, before phase_verdict() would
+be called.]"""
 
-PER_D_VERDICT_VALUES = ()
+PER_D_VERDICT_VALUES = ("NEGATIVE AND CLEARS FWER NULL", "DOES NOT CLEAR")
 """Exactly two per-d verdict strings: fired, not-fired."""
 
-VERDICT_SENTENCE_RULE = ""
+VERDICT_SENTENCE_RULE = (
+    "verdict_sentence must name the instrument (cae.PlainAutoEncoder + "
+    "decoder_curvature.plain_decoder_curvature), the d values in D_SWEEP, the colleague's own "
+    "-0.240 at his d=16 beside this phase's measured value at each d, both nulls (Freedman-Lane "
+    "FWER p and density-stratified p, both as p_display strings per P_VALUE_FLOOR_RULE), the "
+    "instrument-fidelity ranges INSTRUMENT_FIDELITY_RANGE_D16/D20/D25 including the unmeasured "
+    "d=32 (INSTRUMENT_FIDELITY_D32_RULE), and the neighbourhood ratio "
+    "(NEIGHBOURHOOD_RATIO_RULE) -- and must say 'reproduces the same sign under a different, "
+    "differently-validated instrument', never 'confirms' (D9-10, D8-21's caveat-bearing pattern)."
+)
 """Rule string naming what verdict_sentence must state."""
 
-REPORTING_BLOCK_ROWS = ()
+REPORTING_BLOCK_ROWS = (
+    "raw_rho",
+    "controlled_partial",
+    "fwer_p_display",
+    "stratified_null_p_display",
+    "bootstrap_ci",
+    "positive_control_detection_floor",
+    "shuffled_label_false_positive_rate",
+    "instrument_fidelity_ranges",
+    "neighbourhood_ratio",
+    "per_d_verdict",
+    "phase_verdict",
+    "colleague_reference_value",
+)
 """Ordered tuple of row labels the final reporting block must include."""
 
-REPORTING_BLOCK_RULE = ""
+REPORTING_BLOCK_RULE = (
+    "Every row named in REPORTING_BLOCK_ROWS is printed and written to the JSONL record on "
+    "every run that reaches a verdict, unconditionally -- never gated on which way the verdict "
+    "came out."
+)
 """Rule string naming the reporting-block assembly procedure."""
 
-POSITIVE_CONTROL_TARGET_RHOS = ()
-"""Target controlled-partial grid plant_curvature_positive_control bisects against."""
+POSITIVE_CONTROL_TARGET_RHOS = (0.05, 0.10, 0.15, 0.20, 0.25)
+"""Target controlled-partial grid plant_curvature_positive_control bisects against (D9-14). The
+grid straddles the colleague's observed -0.240 and descends below the level detectable at
+n=512, so the reported detection floor is a measured property of this design."""
 
-POSITIVE_CONTROL_SEED = None
+POSITIVE_CONTROL_SEED = 20260902
 """Seed for plant_curvature_positive_control's deterministic re-creation per bisection trial."""
 
-POSITIVE_CONTROL_RULE = ""
+POSITIVE_CONTROL_RULE = (
+    "The plant is on the curvature side, spread-matched to the realized ||H_tan_norm|| range "
+    "(D9-14), following the pattern of crossmodal_curvature.plant_positive_control but "
+    "retargeted at controlled_partial(planted, local_oof_r2, Z) rather than "
+    "spearmanr(h_real, planted) -- see plant_curvature_positive_control's own docstring for the "
+    "direction-measurement adaptation this retargeting requires. Validated through the "
+    "identical three-control partial and Freedman-Lane null the headline statistic uses. The "
+    "reported detection floor is the smallest entry of POSITIVE_CONTROL_TARGET_RHOS that clears."
+)
 """Rule string naming the positive-control mechanism and its Freedman-Lane validation route."""
 
-SHUFFLED_LABEL_REPEATS = None
-"""Repeat count for shuffled_label_repeat."""
+SHUFFLED_LABEL_REPEATS = 20
+"""Repeat count for shuffled_label_repeat (D9-15)."""
 
-SHUFFLED_LABEL_SEED = None
+SHUFFLED_LABEL_SEED = 20260902
 """Seed feeding the rng shuffled_label_repeat's caller re-creates per repeat."""
 
-SHUFFLED_LABEL_RULE = ""
+SHUFFLED_LABEL_RULE = (
+    "shuffled_label_repeat performs a global row shuffle of the label vector; the embedding "
+    "matrix, the curvature field and the anchor index array are held byte-identical across "
+    "repeats. Both label-derived controls (local_label_variance, local_evaluation_count) are "
+    "recomputed per repeat from the shuffled OOF fit. The false-positive rate is reported as a "
+    "count out of SHUFFLED_LABEL_REPEATS. Shuffling the local R2 across anchors instead was "
+    "considered and not chosen: it would break the relationship between the outcome and its "
+    "own controls, testing a different null than the one the verdict uses."
+)
 """Rule string naming what is held fixed and what varies across shuffled_label_repeat calls."""
 
-SEED_HANDLING_RULE = ""
+SEED_HANDLING_RULE = "no_pooling_per_seed_verdicts"
 """Exact-equality-guarded (see _REQUIRED_SEED_HANDLING_RULE below): D9-17's never-pool rule."""
 
-TORCH_INIT_SEEDS_WAVE_B = ()
-"""The three torch init seeds Wave B fits at, feeding combine_seed_verdicts."""
+TORCH_INIT_SEEDS_WAVE_B = (0, 1, 2)
+"""The three torch init seeds Wave B fits at, feeding combine_seed_verdicts. Matches Phase 8's
+own seed axis."""
 
-SEED_VERDICT_COMBINATION_RULE = ""
+SEED_VERDICT_COMBINATION_RULE = (
+    "Wave B runs three torch init seeds (TORCH_INIT_SEEDS_WAVE_B) at every d where the Wave A "
+    "per-d verdict fired. combine_seed_verdicts requires exactly three entries; unanimity across "
+    "all three gives the shared per-d verdict, anything else gives 'SPLIT ACROSS SEEDS' -- never "
+    "averaged and never upgraded by majority vote, per 05-03-DECISION.md's one-way ratification."
+)
 """Rule string naming the unanimous-3-of-3 combination rule and the SPLIT ACROSS SEEDS outcome."""
 
-WAVE_B_TRIGGER_RULE = ""
+WAVE_B_TRIGGER_RULE = (
+    "Wave B (the three-seed sweep, TORCH_INIT_SEEDS_WAVE_B) runs only at d values where the "
+    "Wave A (single TORCH_INIT_SEED = 0) per-d verdict fired (PER_D_VERDICT_VALUES[0]); d values "
+    "where Wave A did not fire are never re-run under Wave B."
+)
 """Rule string naming when Wave B (the 3-seed sweep) is triggered."""
 
-PREREGISTRATION_FREEZE_RULE = ""
+PREREGISTRATION_FREEZE_RULE = (
+    "The freeze commit -- the commit that fills every constant in this module and in "
+    "physics_labels.py -- must be a STRICT ancestor of the commit that first produces a Physics "
+    "number. `git merge-base --is-ancestor <freeze> HEAD` alone is insufficient because a commit "
+    "is its own ancestor and would pass even if a number were produced in the freeze commit "
+    "itself; `git rev-list --count <freeze>..HEAD` must also be at least 1."
+)
 """Rule string naming the freeze-commit strict-ancestry requirement (D9-18)."""
 
-RECORD_STEM = None
+RECORD_STEM = "09_physics_curvature"
 """Base filename stem for the frozen Phase 9 JSONL record."""
 
-RECORD_LOCATION_RULE = ""
+RECORD_LOCATION_RULE = (
+    "The frozen record is written under resolve_output_root() via record_path, which routes "
+    "every write through _assert_inside_output_root's containment guard. It is written to "
+    f"{RECORD_STEM}.jsonl under the output root (notebooks/.cache/ by default, or "
+    "OUTPUT_ROOT_ENV_VAR's resolved path on the execution host); the frozen anchor table "
+    "(per-anchor curvature, R2, MSE, SST, controls, per d and label) is the phase's primary "
+    "artifact and is written alongside it as a .npz file with the same stem."
+)
 """Rule string naming where the frozen record and anchor-table npz files live."""
 
-OUTPUT_ROOT_ENV_VAR = None
+OUTPUT_ROOT_ENV_VAR = "EFFDIM_09_OUTPUT_ROOT"
 """Environment variable name resolve_output_root checks for an execution-host override."""
 
-EXECUTION_HOST_RULE = ""
+EXECUTION_HOST_RULE = (
+    "No real number is produced on the developer's machine (09-CONTEXT.md, "
+    "phase-9-execution-off-local-machine.md). --mode smoke and --mode manifest are the only "
+    "modes that run locally; every mode that produces a real number is gated on "
+    "_strict_ancestor_or_exit's strict-ancestor freeze proof and is intended to run on an SSH "
+    "remote or the colleague's compute (09-06, undecided as of this freeze)."
+)
 """Rule string naming the execution-host hand-off (09-06)."""
 
 SWISS_ROLL_APPLICABILITY_RULE = (

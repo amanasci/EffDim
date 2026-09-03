@@ -14,11 +14,13 @@ gating VALUE here -- every constant this module needs is a fresh top-level liter
 even where a value happens to coincide with a sealed module's own (the fresh-redeclaration
 discipline ``density_stratified_null.py`` documents at its own lines 30-39).
 
-**The constants below are UNSET in this commit.** Every one is ``None`` (scalar), ``()``
-(tuple), ``""`` (rule string) or ``{}`` (mapping) until Phase 9's single freeze commit (09-05,
-D9-18) fills them. :func:`assert_preregistered` raises ``RuntimeError`` on the first UNSET
-constant it finds, in declaration order, so no Physics number can be computed against a build of
-this module that predates the freeze. A later edit to any of these constants after a Physics
+**The constants below are frozen as of this commit (09-05, D9-18).** Every one was ``None``
+(scalar), ``()`` (tuple), ``""`` (rule string) or ``{}`` (mapping) until this single freeze
+commit filled them; see
+``.planning/phases/09-curvature-conditioned-label-decodability-physics-replication/09-PREREGISTRATION.md``
+for the transcription. :func:`assert_preregistered` raises ``RuntimeError`` on the first UNSET
+constant it finds, in declaration order, so no Physics number could be computed against a build
+of this module that predated the freeze. A later edit to any of these constants after a Physics
 number exists anywhere in the tree is a pre-registration BREACH -- the only remedy is a fresh
 freeze and a full re-run, never a silent fix.
 
@@ -44,110 +46,161 @@ from . import subsample
 # Constants -- ALL UNSET in this commit. Filled only by Phase 9's single freeze commit (09-05).
 # =============================================================================================
 
-PHYSICS_REPO = None
+PHYSICS_REPO = "UniverseTBD/pu-embeddings"
 """HuggingFace repo id for the Physics ViT-B embeddings, e.g. "UniverseTBD/pu-embeddings"."""
 
-PHYSICS_CONFIG = None
+PHYSICS_CONFIG = "physics_vit_base_test"
 """The `physics_*_test` config name within PHYSICS_REPO."""
 
-PHYSICS_PARQUET_PATH = None
+PHYSICS_PARQUET_PATH = "hf://datasets/UniverseTBD/pu-embeddings/physics/vit_base_test.parquet"
 """The `hf://datasets/...` column-projected parquet path pattern for the embeddings side."""
 
-PHYSICS_COLUMN = None
+PHYSICS_COLUMN = "vit_base_galaxies"
 """The embedding column name within the Physics config (e.g. a `<model>_galaxies` column)."""
 
-EXPECTED_N_PHYSICS_ROWS = None
+EXPECTED_N_PHYSICS_ROWS = 86471
 """Row count the Physics test split must report exactly -- catches a silently changed upstream
-file (D9-05). NOT the alignment proof; see assert_expected_rows's own docstring."""
+file (D9-05). NOT the alignment proof; see assert_expected_rows's own docstring. Measured by
+09-04's --mode manifest run at full scale (09-DATA-MANIFEST.md Section 2): both the embeddings
+side and the 16-shard label side report exactly 86,471 rows."""
 
-EMBEDDING_NORMALIZATION = ""
+EMBEDDING_NORMALIZATION = (
+    "row_l2_via_subsample.l2_normalize applied to every embedding row before any statistic. "
+    "The colleague's METHODS_FOR_PAPER.md §1 records his own embeddings as row-L2-"
+    "normalised too, so this is a match to his convention, not a departure."
+)
 """Rule string stating whether/how the embedding matrix is normalized before any statistic."""
 
-LABEL_REPO = None
+LABEL_REPO = "Smith42/galaxies"
 """HuggingFace repo id for the label catalog, e.g. "Smith42/galaxies" -- always read at
-LABEL_REVISION (e.g. "v2.0"), never at this repo's default revision."""
+LABEL_REVISION (e.g. "v2.0"), never at this repo's default revision. The default `main`
+revision carries only `image`+`dr8_id`, no catalog columns at all (09-RESEARCH.md Pitfall 1)."""
 
-LABEL_REVISION = None
+LABEL_REVISION = "v2.0"
 """The pinned revision string (e.g. "v2.0") -- the default branch/revision silently lacks every
 label column (09-RESEARCH.md Pitfall 1), so this must never be left as the library default."""
 
-LABEL_SPLIT = None
+LABEL_SPLIT = "test"
 """The split name within LABEL_REPO@LABEL_REVISION to read."""
 
-LABEL_N_SHARDS = None
+LABEL_N_SHARDS = 16
 """Number of parquet shard files the label split is stored across."""
 
-LABEL_SHARD_ORDER_RULE = ""
+LABEL_SHARD_ORDER_RULE = (
+    "Shards are concatenated in ascending index order, 0..LABEL_N_SHARDS-1 (16 shards), and "
+    "this order is the entire basis of the positional row-index join with the embeddings side. "
+    "This is a convention, not a proof -- the D9-06 statistical shift check is the proof."
+)
 """Rule string stating shards are concatenated in ascending index order and that this order is
 the entire basis of the positional row-index join with the embeddings side."""
 
-LABEL_COLUMN_MAP = {}
-"""Canonical label name -> raw catalog column name, e.g. {"mag_r": "mag_r_desi"}."""
+LABEL_COLUMN_MAP = {
+    "mag_r": "mag_r_desi",
+    "photo_z": "photo_z",
+    "smooth_fraction": "smooth-or-featured_smooth_fraction",
+    "stellar_mass": "mass_med_photoz",
+}
+"""Canonical label name -> raw catalog column name, e.g. {"mag_r": "mag_r_desi"}. Transcribed
+verbatim from 09-DATA-MANIFEST.md Section 7's Ruling (developer ratified `ratify-as-proposed`,
+2026-09-03)."""
 
-LABEL_COLUMN_MAP_PROVENANCE = {}
+LABEL_COLUMN_MAP_PROVENANCE = {
+    "mag_r": "Phase 9's own documented convention: mag_r_desi is 100.00% populated "
+    "(86,471/86,471) at full scale and is the column behind the colleague's own "
+    "mag_r_desi/ results directory (09-COLLEAGUE-REANALYSIS.md); his labels-build script is "
+    "genuinely absent from origin/curvature-experiments, so this cannot be confirmed "
+    "byte-for-byte against it (09-DATA-MANIFEST.md Section 6).",
+    "photo_z": "Phase 9's own documented convention: direct name match, no ambiguity; "
+    "92.56% populated (80,035/86,471) at full scale.",
+    "smooth_fraction": "Phase 9's own documented convention: direct semantic match to the "
+    "colleague's own CANONICAL dict meaning (Galaxy Zoo smooth-or-featured smooth vote "
+    "fraction); 100.00% populated (86,471/86,471) at full scale.",
+    "stellar_mass": "Phase 9's own documented convention: value scale matches log-stellar-mass "
+    "(~9-11); post-masking finite count (79,490/86,471) reproduces the colleague's own "
+    "reported figure exactly (09-DATA-MANIFEST.md Section 3); ratified 2026-09-03 "
+    "(Assumption A1, [RATIFIED 2026-09-03]).",
+}
 """Canonical label name -> a short string recording why that raw column was chosen (this
 phase's own documented convention; the colleague's labels-build script is absent from his
 branch, so this cannot be confirmed byte-for-byte against it)."""
 
-PRIMARY_LABEL = None
+PRIMARY_LABEL = "mag_r"
 """The gating label -- the one whose local out-of-fold R2 the headline curvature statistic is
 computed against."""
 
-SECONDARY_LABELS = ()
+SECONDARY_LABELS = ("photo_z", "smooth_fraction", "stellar_mass")
 """Non-gating labels reported alongside the primary label."""
 
-SECONDARY_LABELS_ARE_NON_GATING = None
+SECONDARY_LABELS_ARE_NON_GATING = True
 """True: SECONDARY_LABELS never gate the phase verdict."""
 
-EXCLUDED_LABELS = ()
+EXCLUDED_LABELS = ("sfr",)
 """Catalog labels considered and explicitly excluded from this phase (e.g. for coverage)."""
 
-EXCLUDED_LABELS_RULE = ""
+EXCLUDED_LABELS_RULE = (
+    "sfr (raw column total_sfr_median) excluded as underpowered: measured full-scale coverage "
+    "8.45% (7,306/86,471 finite after sentinel-masking), corroborating the colleague's own "
+    "'sfr excluded as underpowered' note (his single-shard estimate: 8.7%, 471/5,405) "
+    "(09-DATA-MANIFEST.md Section 3)."
+)
 """Rule string recording why each EXCLUDED_LABELS entry was excluded."""
 
-SENTINEL_VALUES = ()
+SENTINEL_VALUES = (-99.0,)
 """Sentinel values (e.g. -99.0) that mean "missing" in the raw catalog and must be masked to
-NaN before any statistic -- applied by mask_sentinels before any mean/variance/ridge fit."""
+NaN before any statistic -- applied by mask_sentinels before any mean/variance/ridge fit.
+Transcribed verbatim from 09-DATA-MANIFEST.md Section 7's Ruling."""
 
-ALIGNMENT_LABEL = None
+ALIGNMENT_LABEL = "mag_r"
 """The single label alignment_r2_curve is run against for D9-06/07's row-alignment proof."""
 
-ALIGNMENT_SHIFT_SET = ()
+ALIGNMENT_SHIFT_SET = (
+    -1000, -100, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 1000,
+)
 """The frozen non-zero shift set D9-07's alignment curve is evaluated over, in addition to
 shift 0 (supplied separately by the runner so the assumed alignment is never just one entry in
-a list)."""
+a list). 24 non-zero shifts, D9-07's frozen set."""
 
-ALIGNMENT_N_PERMUTATIONS = None
-"""Permutation draws alignment_r2_curve adds beyond the shift set, for a null comparison."""
+ALIGNMENT_N_PERMUTATIONS = 20
+"""Permutation draws alignment_r2_curve adds beyond the shift set, for a null comparison.
+D9-07's own "20 seeded random permutations", inherited verbatim rather than chosen."""
 
-ALIGNMENT_PERMUTATION_SEED = None
+ALIGNMENT_PERMUTATION_SEED = 20260902
 """Seed for the permutation draws above."""
 
-ALIGNMENT_MARGIN_R2 = None
+ALIGNMENT_MARGIN_R2 = 0.10
 """D9-07's pre-registered margin: alignment_verdict's `passed` requires
-`gap = r2_shift0 - best_other_r2` to STRICTLY exceed this margin."""
+`gap = r2_shift0 - best_other_r2` to STRICTLY exceed this margin. Transcribed verbatim from
+09-DATA-MANIFEST.md Section 7's Ruling."""
 
-ALIGNMENT_PASS_RULE = ""
+ALIGNMENT_PASS_RULE = (
+    "passed is True iff gap = r2_shift0 - best_other_r2 is STRICTLY greater than "
+    "ALIGNMENT_MARGIN_R2; a gap exactly equal to the margin FAILS."
+)
 """Exact-equality-guarded rule string (see _REQUIRED_ALIGNMENT_PASS_RULE below): states the
 strict `>` gap comparison -- a gap exactly equal to the margin FAILS."""
 
-ALIGNMENT_SEARCH_RULE = ""
+ALIGNMENT_SEARCH_RULE = (
+    "the D9-08 SEARCH branch adopts a non-zero alignment only when exactly one shift's own gap "
+    "over the remaining maximum clears ALIGNMENT_MARGIN_R2; two or more clearing shifts is "
+    "AMBIGUOUS and halts rather than picking one."
+)
 """Exact-equality-guarded rule string (see _REQUIRED_ALIGNMENT_SEARCH_RULE below): states the
 D9-08 SEARCH branch adopts a non-zero alignment only when EXACTLY ONE shift clears the margin;
 two or more clearing shifts is AMBIGUOUS and halts rather than picking one."""
 
-ALIGNMENT_ASSUMED_OFFSET = None
+ALIGNMENT_ASSUMED_OFFSET = 0
 """The assumed row offset (0) between the two sources. Any other value may only arrive through
 a numbered amendment and a fresh freeze (D9-08)."""
 
-HF_CACHE_ENV_VARS = ()
+HF_CACHE_ENV_VARS = ("HF_HOME", "HF_DATASETS_CACHE")
 """Environment variable names checked, in order, for a HuggingFace cache directory override --
 the execution-host knob resolve_hf_cache_dir reads."""
 
-MANIFEST_RECORD_STEM = None
+MANIFEST_RECORD_STEM = "09_data_manifest"
 """Record stem for the D9-05 data-manifest JSONL."""
 
-ALIGNMENT_RECORD_STEM = None
+ALIGNMENT_RECORD_STEM = "09_row_alignment"
 """Record stem for the D9-06/07 row-alignment JSONL."""
 
 
