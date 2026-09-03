@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 3/10 plans executed
+**Plans:** 4/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1180,7 +1180,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 09-04-PLAN.md — Full-scale data manifest, and the blocking ruling on the raw-column mapping, sentinels and alignment margin
+- [x] 09-04-PLAN.md — Full-scale data manifest, and the blocking ruling on the raw-column mapping, sentinels and alignment margin
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
