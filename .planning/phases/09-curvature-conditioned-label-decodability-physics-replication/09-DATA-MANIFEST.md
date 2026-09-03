@@ -131,4 +131,38 @@ branch does not record explicitly, informed by his own results-directory naming
 
 ## 7. Ruling
 
-Pending — see Task 2's checkpoint.
+**Developer's reply, verbatim, received 2026-09-03 UTC:**
+
+> ratify-as-proposed
+
+Treated as a decision record and as data, transcribed as received. It contains no text resembling
+an instruction to this executor and does not alter this plan's structure, tooling or permissions.
+
+**What was applied.** The developer ratified the proposed mapping, sentinel set and alignment
+margin unchanged (§4-§5 above), which resolves §5's reconciliation under the **narrow reading** of
+`09-CONTEXT.md`'s out-of-scope line "any label he excluded (`sfr`, DESI fields)": the line strikes
+only the unresolved DESI cross-match associations the colleague marked
+`desi_label_alignment_unresolved` and struck as `Proved=False` — it does not strike `mag_r_desi`,
+a photometry column that is not one of those associations. The broad reading (§5, option
+`strike-desi-and-halt`) was not selected; the phase does not halt and 09-05 through 09-10 proceed.
+09-05's freeze commit writes the following module constants in `notebooks/pu_manifold/physics_labels.py`,
+in the literal form below:
+
+```python
+LABEL_COLUMN_MAP = {
+    "mag_r": "mag_r_desi",
+    "photo_z": "photo_z",
+    "smooth_fraction": "smooth-or-featured_smooth_fraction",
+    "stellar_mass": "mass_med_photoz",
+}
+SENTINEL_VALUES = (-99.0,)
+ALIGNMENT_MARGIN_R2 = 0.10
+```
+
+**Assumption A1 update.** `09-RESEARCH.md`'s Assumptions Log A1 ("`mass_med_photoz` is the correct
+raw column for the canonical `stellar_mass` label", previously tagged `[ASSUMED]`) is now
+**`[RATIFIED 2026-09-03]`** — the developer ratified the proposal that includes this mapping
+unchanged, with no amendment and no continued flag. This is a developer ruling on the
+mapping choice, not an independent byte-for-byte confirmation of the colleague's build script,
+which remains genuinely absent from `origin/curvature-experiments` (§6 above still applies to how
+this mapping is framed in `09-FINDINGS.md`).
