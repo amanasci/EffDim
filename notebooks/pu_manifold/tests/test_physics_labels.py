@@ -311,10 +311,11 @@ def test_shard_url_pins_revision(monkeypatch):
         pl._shard_url(16)
 
 
-def test_shard_url_raises_when_shard_count_is_unset():
-    # LABEL_N_SHARDS is UNSET (None) at module scope by default in this test process (no
-    # monkeypatch applied) -- _shard_url must not raise TypeError from range(None); it must
-    # raise ValueError.
+def test_shard_url_raises_when_shard_count_is_unset(monkeypatch):
+    # LABEL_N_SHARDS is now frozen (16) at module scope post-09-05, so this test explicitly
+    # monkeypatches it back to UNSET (None) to prove _shard_url does not raise TypeError from
+    # range(None); it must raise ValueError instead.
+    monkeypatch.setattr(pl, "LABEL_N_SHARDS", None)
     with pytest.raises(ValueError, match="outside range"):
         pl._shard_url(0)
 
