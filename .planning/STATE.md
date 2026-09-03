@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 09
 current_phase_name: curvature-conditioned-label-decodability-physics-replication
 status: executing
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-09-03T04:54:18.187Z"
+stopped_at: Completed 09-05-PLAN.md
+last_updated: "2026-09-03T05:23:03.663Z"
 last_activity: 2026-09-02
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 17
   completed_phases: 12
   total_plans: 121
-  completed_plans: 107
+  completed_plans: 108
 ---
 
 # Project State
@@ -36,7 +36,7 @@ machine**: 09-06 is the hand-off to an SSH remote or the colleague's compute (un
 09-07/08/09 are `checkpoint:human-action` host runs. Not yet executed. Phase 8 remains open below.
 
 Phase: 09 (curvature-conditioned-label-decodability-physics-replication) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
@@ -386,7 +386,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 88% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 89% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -493,6 +493,7 @@ Progress: [█████████░] 88% of planned plans (17/17; Phases 1
 | Phase 09 P02 | 38min | 2 tasks | 2 files |
 | Phase 09 P03 | 35min | 3 tasks | 3 files |
 | Phase 09 P04 | overnight checkpoint wait | 2 tasks | 1 files |
+| Phase 09 P05 | 75min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -711,6 +712,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 09-03: --mode manifest CLI/record contract (row_kind key, comma-joined --candidate-columns) matched exactly to 09-04-PLAN.md's own hardcoded invocation, discovered by reading ahead
 - [Phase ?]: 09-03: full-scale --mode manifest exercised live against real HuggingFace data (25m47s wallclock); mass_med_photoz reproduces the colleague's reported 79,490/86,471 exactly
 - [Phase ?]: 09-04: developer ratified mag_r_desi/mass_med_photoz mapping, -99.0 sentinel and 0.10 alignment margin (ratify-as-proposed, 2026-09-03), narrow-reading resolution of 09-CONTEXT.md's DESI out-of-scope line
+- [Phase ?]: 09-05: Froze all 103 Phase 9 gating constants in one commit (5f7fbe2); corrected plan prose CURVATURE_FIELD_FOR_VERDICT='H_tan' to the sealed module's own 'H_tan_norm' and PER_D_VERDICT_VALUES to the module-documented two-entry form, both required for assert_preregistered() to pass
+- [Phase ?]: 09-05: FREEZE_COMMIT_SHA=5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 wired into both runners and both test suites (wiring commit f2bf10d); strict-ancestor gate proved from a fresh single-branch clone of the pushed fixture-validity-audit branch
 
 ### Pending Todos
 
@@ -773,8 +776,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-09-03T04:54:18.126Z
-Stopped at: Completed 09-04-PLAN.md
+Last session: 2026-09-03T05:23:03.603Z
+Stopped at: Completed 09-05-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.

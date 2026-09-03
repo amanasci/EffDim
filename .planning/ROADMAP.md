@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 4/10 plans executed
+**Plans:** 5/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1184,7 +1184,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 09-05-PLAN.md — The freeze: every constant filled in one commit, `09-PREREGISTRATION.md`, SHA wired and proved from a fresh clone
+- [x] 09-05-PLAN.md — The freeze: every constant filled in one commit, `09-PREREGISTRATION.md`, SHA wired and proved from a fresh clone
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
