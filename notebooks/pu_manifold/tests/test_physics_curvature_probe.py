@@ -33,9 +33,9 @@ ATOL_TARGET_RHO = 0.02
 FRAC_SPHERE_TOLERANCE = 0.10
 
 
-# --- freeze-commit ancestry scaffold (FREEZE_COMMIT_SHA = None in this plan) ------------------
+# --- freeze-commit ancestry scaffold (FREEZE_COMMIT_SHA wired by plan 09-05) -------------------
 
-FREEZE_COMMIT_SHA = None
+FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
 
 
 def _repo_root() -> Path:
@@ -72,18 +72,18 @@ def _freeze_commit_is_strict_ancestor_of_head() -> bool:
     return int(count_result.stdout.strip()) >= 1
 
 
-@pytest.mark.skipif(
-    not _freeze_commit_is_strict_ancestor_of_head(),
-    reason=(
-        "FREEZE_COMMIT_SHA is None in this plan -- the freeze (09-05) has not happened yet. "
-        "This test starts firing once 09-05 fills FREEZE_COMMIT_SHA with the real freeze "
-        "commit's SHA."
-    ),
-)
 def test_freeze_commit_is_a_strict_ancestor_of_head():
-    """Placeholder ancestry proof -- always skipped in this plan (FREEZE_COMMIT_SHA is None).
-    09-05 fills FREEZE_COMMIT_SHA and this test starts exercising the real ancestry proof."""
+    """09-05 filled FREEZE_COMMIT_SHA with the real freeze commit's SHA; this test now
+    exercises the real ancestry proof (no longer skipped)."""
     assert _freeze_commit_is_strict_ancestor_of_head()
+
+
+def test_freeze_commit_sha_is_full_lowercase_hex():
+    """An abbreviation must never be pasted in later -- FREEZE_COMMIT_SHA must always be a full
+    40-character lowercase hex string."""
+    assert isinstance(FREEZE_COMMIT_SHA, str)
+    assert len(FREEZE_COMMIT_SHA) == 40
+    assert re.fullmatch(r"[0-9a-f]{40}", FREEZE_COMMIT_SHA)
 
 
 # --- parity pin: reproduce the colleague's published numbers ---------------------------------

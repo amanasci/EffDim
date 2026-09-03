@@ -90,12 +90,11 @@ from pu_manifold import subsample  # noqa: E402
 from pu_manifold import physics_labels as pl  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
-# FREEZE_COMMIT_SHA stays None until plan 09-05's single freeze commit fills it (D9-18). Until
-# then, _strict_ancestor_or_exit skips the exact-equality check below and only enforces that
-# --freeze-commit resolves to a real, STRICT git ancestor of HEAD -- so --mode proof/search
-# still refuse to run without SOME freeze-ancestry proof, they just cannot yet check it against
-# a known value.
-FREEZE_COMMIT_SHA = None
+# FREEZE_COMMIT_SHA wired to plan 09-05 Task 1's freeze commit (D9-18): the commit that filled
+# every gating constant in physics_labels.py and physics_curvature_probe.py. _strict_ancestor_or_
+# exit now also enforces the exact-equality check below -- a --freeze-commit resolving to any
+# other genuine ancestor of HEAD is rejected (CR-01).
+FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
 
 # JSONL record stems this runner writes. --mode manifest and --mode proof/search each own one;
 # --mode smoke must never default onto either (it always requires an explicit --record-path,

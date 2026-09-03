@@ -1,7 +1,7 @@
 # Phase 9 Pre-Registration — every gating constant frozen before a Physics number exists
 
 **Date:** 2026-09-03
-**Freeze commit SHA:** `PENDING-TASK-2`
+**Freeze commit SHA:** `5f7fbe27afb0ef2a76353b41fa5713e760bbeea5`
 **Filled by:** plan `09-05`, Task 1 (this document), Task 2 wires the SHA above and into
 `notebooks/diagnostics/09_physics_curvature_run.py`, `notebooks/diagnostics/09_row_alignment_proof_run.py`,
 `notebooks/pu_manifold/tests/test_physics_curvature_probe.py` and

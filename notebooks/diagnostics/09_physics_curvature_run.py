@@ -42,6 +42,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = str(_THREADS)
 
 import argparse
 import json
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -78,6 +79,91 @@ _MODE_IMPLEMENTING_PLAN = {
     "bundle": "09-06",
     "selfcheck": "09-06",
 }
+
+# FREEZE_COMMIT_SHA wired to plan 09-05 Task 1's freeze commit (D9-18): the commit that filled
+# every gating constant in physics_labels.py and physics_curvature_probe.py -- mirrors
+# 09_row_alignment_proof_run.py's own FREEZE_COMMIT_SHA/_strict_ancestor_or_exit pair exactly.
+# No mode in THIS runner produces a Physics number yet (every non-smoke mode above exits 2,
+# implemented by a later plan); this gate is wired now so 09-06/09-08/09-09 call it, rather than
+# each re-deriving the freeze-ancestry check independently.
+FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+
+
+def _git_rev_parse(rev: str) -> Optional[str]:
+    """`git rev-parse rev`, returning `None` (rather than raising) on any failure -- callers
+    decide what a failed resolution means."""
+    result = subprocess.run(
+        ["git", "rev-parse", rev],
+        cwd=str(NOTEBOOK_ROOT.parent),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
+    """D9-18's freeze-ancestry gate, `09_row_alignment_proof_run.py`'s `_strict_ancestor_or_exit`
+    shape exactly. Exits 1 naming D9-18 when `--freeze-commit` is absent or empty. Resolves the
+    supplied value through `git rev-parse` to a full 40-hex SHA -- never trusts an abbreviation.
+    Requires the resolved value to equal `FREEZE_COMMIT_SHA` exactly (CR-01: a wrong-but-genuine
+    ancestor must not silently pass). Requires BOTH `git merge-base --is-ancestor <freeze> HEAD`
+    to exit 0 AND `git rev-list --count <freeze>..HEAD` to be at least 1, so a freeze commit equal
+    to HEAD (a commit is its own ancestor) is rejected. Writes no record row before this gate
+    passes."""
+    if not freeze_commit:
+        print(
+            "ERROR (D9-18): this mode requires --freeze-commit naming the frozen commit's SHA. "
+            "Refusing to compute a Physics number without a strict-ancestor proof.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    resolved_commit = _git_rev_parse(freeze_commit)
+    if resolved_commit is None or len(resolved_commit) != 40:
+        print(
+            f"ERROR (D9-18): --freeze-commit {freeze_commit!r} did not resolve to a full "
+            f"40-hex git SHA (resolved={resolved_commit!r}). Refusing to proceed on an "
+            "abbreviation or an unresolved ref.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if resolved_commit != FREEZE_COMMIT_SHA:
+        print(
+            f"ERROR (D9-18): --freeze-commit {freeze_commit!r} (resolves to {resolved_commit}) "
+            f"does not equal the known freeze commit FREEZE_COMMIT_SHA={FREEZE_COMMIT_SHA!r}. "
+            "--freeze-commit must name THE freeze commit, not merely some earlier ancestor.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", resolved_commit, "HEAD"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+    )
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{resolved_commit}..HEAD"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+        capture_output=True,
+        text=True,
+    )
+    count = -1
+    if count_result.returncode == 0 and count_result.stdout.strip().isdigit():
+        count = int(count_result.stdout.strip())
+
+    if is_ancestor.returncode != 0 or count < 1:
+        print(
+            f"ERROR (D9-18): --freeze-commit {freeze_commit!r} is not a STRICT git ancestor of "
+            f"HEAD. is_ancestor_exit={is_ancestor.returncode} "
+            f"rev_list_count({resolved_commit}..HEAD)={count}. A commit is its own ancestor, so "
+            "`git merge-base --is-ancestor` alone is insufficient -- `git rev-list --count "
+            "<freeze>..HEAD` must also be >= 1. No Physics number may be produced at or before "
+            "the freeze commit itself.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 def resolve_record_path(record_path_arg: Optional[str]) -> Path:

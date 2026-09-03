@@ -12,6 +12,7 @@ sweep).
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -55,6 +56,61 @@ def _small_oof(X: np.ndarray, y: np.ndarray) -> np.ndarray:
         model = Ridge(alpha=1.0).fit(X[train_idx], y[train_idx])
         y_hat[test_idx] = model.predict(X[test_idx])
     return y_hat
+
+
+# --- freeze-commit ancestry scaffold (FREEZE_COMMIT_SHA wired by plan 09-05) -------------------
+# Mirrors test_physics_curvature_probe.py's own scaffold exactly (test_density_stratified_null.py
+# lines 33-73's ancestry-test idiom).
+
+FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _freeze_commit_exists() -> bool:
+    if not FREEZE_COMMIT_SHA:
+        return False
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{FREEZE_COMMIT_SHA}^{{commit}}"],
+        cwd=_repo_root(),
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _freeze_commit_is_strict_ancestor_of_head() -> bool:
+    if not _freeze_commit_exists():
+        return False
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", FREEZE_COMMIT_SHA, "HEAD"],
+        cwd=_repo_root(),
+    )
+    if is_ancestor.returncode != 0:
+        return False
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{FREEZE_COMMIT_SHA}..HEAD"],
+        cwd=_repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return int(count_result.stdout.strip()) >= 1
+
+
+def test_freeze_commit_is_a_strict_ancestor_of_head():
+    """09-05 filled FREEZE_COMMIT_SHA with the real freeze commit's SHA; this test exercises
+    the real ancestry proof."""
+    assert _freeze_commit_is_strict_ancestor_of_head()
+
+
+def test_freeze_commit_sha_is_full_lowercase_hex():
+    """An abbreviation must never be pasted in later -- FREEZE_COMMIT_SHA must always be a full
+    40-character lowercase hex string."""
+    assert isinstance(FREEZE_COMMIT_SHA, str)
+    assert len(FREEZE_COMMIT_SHA) == 40
+    assert re.fullmatch(r"[0-9a-f]{40}", FREEZE_COMMIT_SHA)
 
 
 # --- alignment curve: the heart of this suite --------------------------------------------------
