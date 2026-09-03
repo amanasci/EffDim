@@ -64,8 +64,13 @@ os.environ["MKL_NUM_THREADS"] = str(_THREADS)
 os.environ["NUMEXPR_NUM_THREADS"] = str(_THREADS)
 
 import argparse
+import hashlib
+import io
 import json
+import platform
+import re
 import subprocess
+import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -78,6 +83,16 @@ if str(DIAGNOSTICS_ROOT) not in sys.path:
     sys.path.insert(0, str(DIAGNOSTICS_ROOT))
 
 import numpy as np  # noqa: E402
+import torch  # noqa: E402  (only for _describe_environment's version string -- this runner
+                             # never trains or evaluates a model)
+
+# Imported only so _describe_environment() can report their installed versions (T-09-41) --
+# every one of these is already a project dependency, imported elsewhere transitively.
+import datasets  # noqa: E402
+import pandas  # noqa: E402
+import pyarrow  # noqa: E402
+import scipy  # noqa: E402
+import sklearn  # noqa: E402
 
 from pu_manifold import cache  # noqa: E402  (imported for parity with sibling runners; not
                                               # called directly -- pcp.resolve_output_root owns
@@ -187,6 +202,99 @@ def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
         sys.exit(1)
 
 
+def _describe_environment() -> Dict[str, Any]:
+    """The host's capability, reported before any read or write (T-09-41): core count, thread
+    cap, Python and library versions, the resolved HuggingFace cache directory and output root,
+    HEAD's `git describe` and the frozen `FREEZE_COMMIT_SHA`. Duplicated verbatim from
+    `09_physics_curvature_run.py` -- neither runner imports the other, per this codebase's
+    existing per-runner-duplication convention (`_flag_value_from_argv`, `_git_rev_parse`,
+    `_strict_ancestor_or_exit` are all duplicated the same way). Calls neither
+    `assert_preregistered()` -- every value this reads is either environment-only or a constant
+    already frozen by 09-05, never gated by this call itself."""
+    git_describe = subprocess.run(
+        ["git", "describe", "--always", "--dirty"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+        capture_output=True,
+        text=True,
+    )
+    env: Dict[str, Any] = {
+        "row_kind": "environment",
+        "core_count": os.cpu_count(),
+        "thread_cap": _THREADS,
+        "python_version": platform.python_version(),
+        "torch_version": torch.__version__,
+        "numpy_version": np.__version__,
+        "scipy_version": scipy.__version__,
+        "scikit_learn_version": sklearn.__version__,
+        "pyarrow_version": pyarrow.__version__,
+        "pandas_version": pandas.__version__,
+        "datasets_version": datasets.__version__,
+        "hf_cache_dir": pl.resolve_hf_cache_dir(),
+        "output_root": str(pcp.resolve_output_root()),
+        "git_describe_head": git_describe.stdout.strip() if git_describe.returncode == 0 else None,
+        "freeze_commit_sha": FREEZE_COMMIT_SHA,
+    }
+    print(
+        f"environment: core_count={env['core_count']} thread_cap={env['thread_cap']} "
+        f"python={env['python_version']} torch={env['torch_version']} numpy={env['numpy_version']} "
+        f"scipy={env['scipy_version']} scikit-learn={env['scikit_learn_version']} "
+        f"pyarrow={env['pyarrow_version']} pandas={env['pandas_version']} "
+        f"datasets={env['datasets_version']}"
+    )
+    print(f"resolved HF cache dir: {env['hf_cache_dir']}")
+    print(f"resolved output root: {env['output_root']}")
+    return env
+
+
+def _sanitized_host_label(explicit: Optional[str]) -> str:
+    """`--host-label` verbatim-sanitized if supplied, else the machine's own hostname with every
+    non-alphanumeric character replaced by `-` -- a safe, portable archive filename component.
+    Never committed to any file this plan writes (T-09-40); the archive stays a local, hand-
+    transferred artifact on the execution host's own disk. Duplicated verbatim from
+    `09_physics_curvature_run.py`."""
+    raw = explicit if explicit else (platform.node() or "host")
+    sanitized = re.sub(r"[^A-Za-z0-9]+", "-", raw).strip("-")
+    return sanitized or "host"
+
+
+def run_bundle(args: argparse.Namespace) -> bool:
+    """Collects every `09_`-prefixed file directly under `resolve_output_root()` into one
+    gzipped, checksummed tar -- the same naming `09_physics_curvature_run.py`'s own `run_bundle`
+    uses, so either runner produces an archive distinguishable from the other's only by its UTC
+    stamp. Embeds the environment description as an `environment.json` archive member. Exits 0
+    even on a partial set (T-09-42)."""
+    env = _describe_environment()
+    output_root = pcp.resolve_output_root()
+
+    host_label = _sanitized_host_label(args.host_label)
+    utc_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    archive_name = f"09-artifacts-{host_label}-{utc_stamp}.tar.gz"
+    archive_path = output_root / archive_name
+    pcp._assert_inside_output_root(archive_path)
+
+    members = sorted(p for p in output_root.glob("09_*") if p.is_file())
+
+    with tarfile.open(archive_path, "w:gz") as tar:
+        for member in members:
+            tar.add(member, arcname=member.name)
+        env_bytes = json.dumps(env, indent=2).encode("utf-8")
+        env_info = tarfile.TarInfo(name="environment.json")
+        env_info.size = len(env_bytes)
+        tar.addfile(env_info, io.BytesIO(env_bytes))
+
+    archive_bytes = archive_path.read_bytes()
+    digest = hashlib.sha256(archive_bytes).hexdigest()
+    size = len(archive_bytes)
+
+    print(f"\nbundled {len(members)} artifact file(s) plus environment.json:")
+    for member in members:
+        print(f"  {member.name}")
+    print(f"\narchive: {archive_path}")
+    print(f"size: {size} bytes")
+    print(f"sha256: {digest}")
+    return True
+
+
 _FROZEN_RECORD_STEMS = tuple(sorted(set(RECORD_STEM.values())))
 
 
@@ -289,10 +397,7 @@ def run_smoke(args: argparse.Namespace) -> bool:
         "UNSET.\n" + "=" * 78 + "\n"
     )
 
-    hf_cache_dir = pl.resolve_hf_cache_dir()
-    output_root = pcp.resolve_output_root()
-    print(f"resolved HF cache dir: {hf_cache_dir}")
-    print(f"resolved output root: {output_root}")
+    _describe_environment()  # prints only; smoke never gets a JSONL environment row (T-09-39)
 
     record_path = resolve_record_path(args.record_path, default_stem=None)
 
@@ -401,12 +506,11 @@ def run_manifest(args: argparse.Namespace) -> bool:
         "from the frozen constants (those stay UNSET until 09-05).\n" + "=" * 78 + "\n"
     )
 
-    hf_cache_dir = pl.resolve_hf_cache_dir()
-    output_root = pcp.resolve_output_root()
-    print(f"resolved HF cache dir: {hf_cache_dir}")
-    print(f"resolved output root: {output_root}")
+    env = _describe_environment()
+    hf_cache_dir = env["hf_cache_dir"]
 
     record_path = resolve_record_path(args.record_path, default_stem=RECORD_STEM["manifest"])
+    append_record_row(env, record_path)
 
     run_commit = _git_rev_parse("HEAD") or "UNKNOWN"
     timestamp = _utc_timestamp()
@@ -477,12 +581,10 @@ def run_proof(args: argparse.Namespace) -> int:
     pl.assert_preregistered()
     pcp.assert_preregistered()
 
-    hf_cache_dir = pl.resolve_hf_cache_dir()
-    output_root = pcp.resolve_output_root()
-    print(f"resolved HF cache dir: {hf_cache_dir}")
-    print(f"resolved output root: {output_root}")
+    env = _describe_environment()
 
     record_path = resolve_record_path(args.record_path, default_stem=RECORD_STEM["proof"])
+    append_record_row(env, record_path)
 
     embeddings = pl.load_physics_embeddings()
     raw_column = pl.LABEL_COLUMN_MAP[pl.ALIGNMENT_LABEL]
@@ -543,7 +645,9 @@ def run_search(args: argparse.Namespace) -> int:
     (halts, returns 1). Never adopts an offset itself -- adoption is 09-07's blocking developer
     decision plus a fresh freeze."""
     _strict_ancestor_or_exit(args.freeze_commit)
+    env = _describe_environment()
     record_path = resolve_record_path(args.record_path, default_stem=RECORD_STEM["search"])
+    append_record_row(env, record_path)
     verdict_row = _read_last_verdict_row(record_path)
 
     if verdict_row.get("passed"):
@@ -585,7 +689,7 @@ def run_search(args: argparse.Namespace) -> int:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--mode", choices=["smoke", "manifest", "proof", "search"], default="smoke")
+    p.add_argument("--mode", choices=["smoke", "manifest", "proof", "search", "bundle"], default="smoke")
     p.add_argument("--record-path", type=str, default=None)
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--freeze-commit", type=str, default=None)
@@ -605,6 +709,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="hf://datasets/UniverseTBD/pu-embeddings/physics/vit_base_test.parquet",
     )
     p.add_argument("--physics-column", type=str, default="vit_base_galaxies")
+    p.add_argument("--host-label", type=str, default=None)
     return p
 
 
@@ -624,6 +729,9 @@ def main() -> None:
         sys.exit(run_proof(args))
     elif args.mode == "search":
         sys.exit(run_search(args))
+    elif args.mode == "bundle":
+        ok = run_bundle(args)
+        sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":

@@ -41,9 +41,15 @@ os.environ["MKL_NUM_THREADS"] = str(_THREADS)
 os.environ["NUMEXPR_NUM_THREADS"] = str(_THREADS)
 
 import argparse
+import hashlib
+import io
 import json
+import platform
+import re
 import subprocess
+import tarfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -59,6 +65,14 @@ import torch  # noqa: E402
 
 torch.set_num_threads(_THREADS)
 
+# Imported only so _describe_environment() can report their installed versions (T-09-41) --
+# every one of these is already a project dependency, imported elsewhere transitively.
+import datasets  # noqa: E402
+import pandas  # noqa: E402
+import pyarrow  # noqa: E402
+import scipy  # noqa: E402
+import sklearn  # noqa: E402
+
 from pu_manifold import cache  # noqa: E402
 from pu_manifold import cae  # noqa: E402
 from pu_manifold import cross_split_curvature  # noqa: E402
@@ -69,15 +83,16 @@ from pu_manifold import subsample  # noqa: E402
 from pu_manifold import physics_labels as pl  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
-# Modes not yet implemented by this plan, and which plan implements each.
+# Modes not yet implemented by this plan, and which plan implements each. "bundle" and
+# "print-cost-model" were removed from this dict by 09-06 -- both are implemented below and
+# dispatched directly in main(), never falling through to this "not implemented" table.
 _MODE_IMPLEMENTING_PLAN = {
     "dsweep": "09-08",
     "positive-control": "09-08",
     "shuffled-label": "09-08",
     "verdict": "09-08",
     "seeds": "09-09",
-    "bundle": "09-06",
-    "selfcheck": "09-06",
+    "selfcheck": "a later plan (not yet scheduled)",
 }
 
 # FREEZE_COMMIT_SHA wired to plan 09-05 Task 1's freeze commit (D9-18): the commit that filled
@@ -164,6 +179,173 @@ def _strict_ancestor_or_exit(freeze_commit: Optional[str]) -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+
+# --- Cost model (D9-06/09-06): CORE-HOURS, portable across an unknown execution host ------------
+# Derived from Phase 7's measured DSWEEP_COST_MODEL_MINUTES (07-CONTEXT.md Section 7, an 8-thread
+# cap, 10,000 rows, the curvature field evaluated at every one of those rows). Two independent
+# scalings, kept separate below so a reader can see which dominates:
+#   - training scales LINEARLY in rows: Phase 9 trains on EXPECTED_N_PHYSICS_ROWS=86,471 rows
+#     against Phase 7's 10,000, an 8.65x multiplier. Training cost is d-INDEPENDENT to first
+#     order -- AE_HIDDEN=(250, 250, 250) is a fixed encoder/decoder width, unchanged across
+#     D_SWEEP; only the bottleneck layer's width changes with d -- so ONE training figure applies
+#     to every entry of D_SWEEP, unlike curvature below.
+#   - curvature drops by the ANCHOR-evaluation ratio: D9-04 evaluates the field at N_ANCHORS=512
+#     points only, never at every row -- Phase 7 evaluated at all 10,000 rows. This single
+#     departure removes most of Phase 7's dominant cost term (a 512/10,000 = 0.0512x multiplier,
+#     applied BEFORE the d-scaling below), which is why training -- not curvature -- dominates
+#     Phase 9's cost, the reverse of Phase 7's own shape.
+# d=16 has no entry in Phase 7's own table (Phase 7's D_SWEEP was (20, 25, 32)); its relative-cost
+# multiplier is derived from 07-CONTEXT.md Section 7's own stated scaling law ("scales as D*d^2",
+# D=768 fixed across both phases): (16/20)**2 = 0.64, consistent with the measured ratios Phase 7
+# recorded for d=25 ((25/20)**2 = 1.5625 against its measured ~1.6x) and d=32 ((32/20)**2 = 2.56
+# against its measured ~2.6x) -- both within Phase 7's own rounding.
+_D20_CURVATURE_CORE_HOURS_10K_ROWS_ALL_EVAL = 1457.0 / 3600.0 * 8  # 07-CONTEXT.md Sec 7, d=20
+_D20_TRAINING_CORE_HOURS_10K_ROWS = 374.0 / 3600.0 * 8  # 07-CONTEXT.md Sec 7, 600 epochs, d=20
+_ROW_SCALING_RATIO = 86_471 / 10_000  # physics_labels.EXPECTED_N_PHYSICS_ROWS over Phase 7's 10,000
+_ANCHOR_SCALING_RATIO = 512 / 10_000  # pcp.N_ANCHORS over Phase 7's every-row evaluation
+
+_TRAINING_CORE_HOURS = _D20_TRAINING_CORE_HOURS_10K_ROWS * _ROW_SCALING_RATIO  # d-independent
+
+DSWEEP_COST_MODEL_CORE_HOURS: Dict[int, Dict[str, float]] = {
+    d: {
+        "training_core_hours": _TRAINING_CORE_HOURS,
+        "curvature_core_hours": (
+            _D20_CURVATURE_CORE_HOURS_10K_ROWS_ALL_EVAL * ((d / 20.0) ** 2) * _ANCHOR_SCALING_RATIO
+        ),
+    }
+    for d in pcp.D_SWEEP
+}
+"""Per-`d` mapping of {training_core_hours, curvature_core_hours}, stated in CORE-HOURS -- a
+portable form, unlike Phase 7's own DSWEEP_COST_MODEL_MINUTES wall-clock-minute figures, because
+the execution host's core count is unknown at planning time. Printed by `print_cost_model`. An
+ESTIMATE scaled from Phase 7's measurements; 09-08 records the measured figure."""
+
+
+def _describe_environment() -> Dict[str, Any]:
+    """The host's capability, reported before any read or write (T-09-41): core count, thread
+    cap, Python and library versions, the resolved HuggingFace cache directory and output root,
+    HEAD's `git describe` and the frozen `FREEZE_COMMIT_SHA`. Printed here; the caller decides
+    whether to also append it as a `row_kind="environment"` JSONL row or embed it in an archive.
+    Calls neither `assert_preregistered()` -- every value this reads is either environment-only
+    or a constant already frozen by 09-05, never gated by this call itself."""
+    git_describe = subprocess.run(
+        ["git", "describe", "--always", "--dirty"],
+        cwd=str(NOTEBOOK_ROOT.parent),
+        capture_output=True,
+        text=True,
+    )
+    env: Dict[str, Any] = {
+        "row_kind": "environment",
+        "core_count": os.cpu_count(),
+        "thread_cap": _THREADS,
+        "python_version": platform.python_version(),
+        "torch_version": torch.__version__,
+        "numpy_version": np.__version__,
+        "scipy_version": scipy.__version__,
+        "scikit_learn_version": sklearn.__version__,
+        "pyarrow_version": pyarrow.__version__,
+        "pandas_version": pandas.__version__,
+        "datasets_version": datasets.__version__,
+        "hf_cache_dir": pl.resolve_hf_cache_dir(),
+        "output_root": str(pcp.resolve_output_root()),
+        "git_describe_head": git_describe.stdout.strip() if git_describe.returncode == 0 else None,
+        "freeze_commit_sha": FREEZE_COMMIT_SHA,
+    }
+    print(
+        f"environment: core_count={env['core_count']} thread_cap={env['thread_cap']} "
+        f"python={env['python_version']} torch={env['torch_version']} numpy={env['numpy_version']} "
+        f"scipy={env['scipy_version']} scikit-learn={env['scikit_learn_version']} "
+        f"pyarrow={env['pyarrow_version']} pandas={env['pandas_version']} "
+        f"datasets={env['datasets_version']}"
+    )
+    print(f"resolved HF cache dir: {env['hf_cache_dir']}")
+    print(f"resolved output root: {env['output_root']}")
+    return env
+
+
+def _sanitized_host_label(explicit: Optional[str]) -> str:
+    """`--host-label` verbatim-sanitized if supplied, else the machine's own hostname with every
+    non-alphanumeric character replaced by `-` -- a safe, portable archive filename component.
+    Never committed to any file this plan writes (T-09-40); the archive stays a local, hand-
+    transferred artifact on the execution host's own disk."""
+    raw = explicit if explicit else (platform.node() or "host")
+    sanitized = re.sub(r"[^A-Za-z0-9]+", "-", raw).strip("-")
+    return sanitized or "host"
+
+
+def run_bundle(args: argparse.Namespace) -> bool:
+    """Collects every `09_`-prefixed file directly under `resolve_output_root()` into one
+    gzipped, checksummed tar -- the artifact 09-EXECUTION-HOST.md's Task 3 transfers back.
+    Embeds the environment description as a `environment.json` archive member. Exits 0 even on a
+    partial set (T-09-42): an interrupted multi-hour run is exactly the case whose evidence must
+    not be thrown away for being incomplete. The archive's own name (`09-artifacts-...`, a hyphen
+    after `09`) never matches the `09_`-prefix (underscore) glob, so re-running `--mode bundle`
+    never bundles a prior archive into a new one."""
+    env = _describe_environment()
+    output_root = pcp.resolve_output_root()
+
+    host_label = _sanitized_host_label(args.host_label)
+    utc_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    archive_name = f"09-artifacts-{host_label}-{utc_stamp}.tar.gz"
+    archive_path = output_root / archive_name
+    pcp._assert_inside_output_root(archive_path)
+
+    members = sorted(p for p in output_root.glob("09_*") if p.is_file())
+
+    with tarfile.open(archive_path, "w:gz") as tar:
+        for member in members:
+            tar.add(member, arcname=member.name)
+        env_bytes = json.dumps(env, indent=2).encode("utf-8")
+        env_info = tarfile.TarInfo(name="environment.json")
+        env_info.size = len(env_bytes)
+        tar.addfile(env_info, io.BytesIO(env_bytes))
+
+    archive_bytes = archive_path.read_bytes()
+    digest = hashlib.sha256(archive_bytes).hexdigest()
+    size = len(archive_bytes)
+
+    print(f"\nbundled {len(members)} artifact file(s) plus environment.json:")
+    for member in members:
+        print(f"  {member.name}")
+    print(f"\narchive: {archive_path}")
+    print(f"size: {size} bytes")
+    print(f"sha256: {digest}")
+    return True
+
+
+def print_cost_model(threads: int) -> None:
+    """Prints one row per `d` in `D_SWEEP`: training core-hours, curvature core-hours, their
+    total, and the implied wall-clock at `threads`. Header line names `threads` and the host's
+    own `os.cpu_count()` so a reader on an unfamiliar host sees both numbers at once. Touches no
+    data and calls neither `assert_preregistered()`."""
+    host_cores = os.cpu_count() or 0
+    print(
+        f"\n{'-' * 78}\n"
+        f"Phase 9 cost model -- CORE-HOURS, portable across hosts. threads={threads} "
+        f"host_core_count={host_cores}\n"
+        f"{'-' * 78}"
+    )
+    header = (
+        f"{'d':>4}{'training core-hr':>20}{'curvature core-hr':>20}{'total core-hr':>16}"
+        f"{'wallclock@' + str(threads) + 't (hr)':>22}"
+    )
+    print(header)
+    for d in pcp.D_SWEEP:
+        entry = DSWEEP_COST_MODEL_CORE_HOURS[d]
+        total = entry["training_core_hours"] + entry["curvature_core_hours"]
+        wallclock_hours = total / threads if threads else float("inf")
+        print(
+            f"{d:>4}{entry['training_core_hours']:>20.3f}{entry['curvature_core_hours']:>20.3f}"
+            f"{total:>16.3f}{wallclock_hours:>22.3f}"
+        )
+    print(
+        "\nModel scaled from Phase 7's measured DSWEEP_COST_MODEL_MINUTES (07-CONTEXT.md Section "
+        "7, 8-thread cap, 10,000 rows, curvature evaluated at every row): training scaled "
+        "linearly by rows (86,471/10,000 ~= 8.65x), curvature scaled by the anchor-evaluation "
+        "ratio (512/10,000 = 0.0512x, D9-04's single biggest cost difference from Phase 7). This "
+        "is an ESTIMATE; 09-08 replaces it with the measured figure."
+    )
 
 
 def resolve_record_path(record_path_arg: Optional[str]) -> Path:
@@ -270,6 +452,8 @@ def run_smoke(args: argparse.Namespace) -> bool:
         "NUMBER.\nEvery gating constant in physics_labels/physics_curvature_probe is still "
         "UNSET.\n" + "=" * 78 + "\n"
     )
+
+    _describe_environment()  # prints only; smoke never gets a JSONL environment row (T-09-39)
 
     record_path = resolve_record_path(args.record_path)
 
@@ -429,6 +613,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--field-npz", type=str, default=None)
     p.add_argument("--output-root", type=str, default=None)
     p.add_argument("--print-cost-model", action="store_true")
+    p.add_argument("--host-label", type=str, default=None)
     return p
 
 
@@ -437,6 +622,14 @@ def main() -> None:
 
     if args.output_root and pcp.OUTPUT_ROOT_ENV_VAR:
         os.environ[pcp.OUTPUT_ROOT_ENV_VAR] = args.output_root
+
+    if args.print_cost_model:
+        print_cost_model(args.threads)
+        sys.exit(0)
+
+    if args.mode == "bundle":
+        ok = run_bundle(args)
+        sys.exit(0 if ok else 1)
 
     if args.mode != "smoke":
         plan = _MODE_IMPLEMENTING_PLAN.get(args.mode, "a later plan")
