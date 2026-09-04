@@ -123,4 +123,110 @@ Exit 0. The record carries `WAVE_B_NOT_TRIGGERED` as required by the plan's `<ve
 `d: null` (there is no triggered `d` for the row to name) — consistent with the empty-scope branch
 this document's Provenance section above describes.
 
-<!-- Task 3's analysis follows below this line. -->
+## 1. The frozen rule, quoted
+
+Every value below is the verbatim committed value in
+`notebooks/pu_manifold/physics_curvature_probe.py` at freeze commit
+`5f7fbe27afb0ef2a76353b41fa5713e760bbeea5` (`09-PREREGISTRATION.md`):
+
+```
+SEED_HANDLING_RULE = "no_pooling_per_seed_verdicts"
+
+TORCH_INIT_SEEDS_WAVE_B = (0, 1, 2)
+
+SEED_VERDICT_COMBINATION_RULE = (
+    "Wave B runs three torch init seeds (TORCH_INIT_SEEDS_WAVE_B) at every d where the Wave A "
+    "per-d verdict fired. combine_seed_verdicts requires exactly three entries; unanimity across "
+    "all three gives the shared per-d verdict, anything else gives 'SPLIT ACROSS SEEDS' -- never "
+    "averaged and never upgraded by majority vote, per 05-03-DECISION.md's one-way ratification."
+)
+
+WAVE_B_TRIGGER_RULE = (
+    "Wave B (the three-seed sweep, TORCH_INIT_SEEDS_WAVE_B) runs only at d values where the "
+    "Wave A (single TORCH_INIT_SEED = 0) per-d verdict fired (PER_D_VERDICT_VALUES[0]); d values "
+    "where Wave A did not fire are never re-run under Wave B."
+)
+```
+
+`combine_seed_verdicts(seed_verdicts)` (the frozen function these rules govern, verbatim behavior):
+raises `ValueError` unless given exactly three entries; returns the shared value when all three
+agree (`len(set(verdicts)) == 1`); returns the literal string `"SPLIT ACROSS SEEDS"` on any other
+split (1-of-3 or 2-of-3), never an average, never an upgrade. This is the same function pinned by
+Task 1's `test_seed_cell_verdict_never_upgrades_a_split`.
+
+Seeds are never pooled, and anything short of 3-of-3 unanimity is terminal — this inherits
+`05-03-DECISION.md`'s one-way ratification (Phase 5, D5-04 superseded) that pooling seed statistics
+into a single headline number is not a permitted combination anywhere downstream of that decision.
+`SEED_VERDICT_COMBINATION_RULE` names `05-03-DECISION.md` directly in its own committed text, quoted
+above.
+
+## 2. Scope
+
+**`WAVE_B_NOT_TRIGGERED`.** Applying `WAVE_B_TRIGGER_RULE` literally: Wave B runs only at `d`
+values where Wave A's per-`d` verdict fired (`PER_D_VERDICT_VALUES[0]`, `"NEGATIVE AND CLEARS FWER
+NULL"`). `09-WAVE-A-RESULTS.md` §8 applied `per_d_verdict` to all four `D_SWEEP` cells
+(`d = 16, 20, 25, 32`) and every one returned `"DOES NOT CLEAR"` — `d=16` has the strongest
+statistical signal in the sweep (`p_fwer < 9.999e-05`) but the wrong sign (`rho = +0.346967`, not
+`< 0`); `d=32` has the correct sign (`rho = -0.003450`) but the weakest, furthest-from-clearing
+`p_fwer` (`0.935506`); `d=20` and `d=25` clear neither condition. Zero of four cells fired.
+
+No `d` value entered Wave B's scope. This host run (§ Run record above) independently confirms the
+same conclusion from the runner's own live read of the Wave A record, not merely from re-reading
+`09-WAVE-A-RESULTS.md`'s prose: `_triggered_d_values(record_path)` read the `verdict` record row
+Wave A wrote, found an empty triggered list, and the mode's own empty-scope branch executed,
+printed its message, and recorded `WAVE_B_NOT_TRIGGERED` as a terminal, complete outcome — exactly
+the outcome the plan's own precondition anticipated.
+
+**Seed stability has nothing to test at any `d`, and no seed agreement is claimed anywhere in this
+document.** A reader must not mistake the record's `WAVE_B_NOT_TRIGGERED` row, or this document's
+silence on any `d`'s three-seed table, for "seeds were run and happened to agree" — they were never
+run, because no cell survived Wave A to be re-tested.
+
+## 3. Per-`d` seed table
+
+Not applicable. No `d` triggered Wave B, so no seed was fit, no controlled partial was recomputed
+per seed, no Freedman-Lane null was drawn per seed, and no bootstrap band was computed per seed.
+There is no table to report — an empty table would misstate the record as having three rows per
+`d` when it has none.
+
+## 4. Field disagreement diagnostic
+
+Not applicable, for the same reason as §3: the pairwise Spearman between seeds' `H_tan_norm`
+arrays at the anchors is only defined where three seed fields exist to compare, and none was
+computed. No diagnostic value is reported here as a stand-in zero or placeholder — its absence is
+the correct record of an untriggered wave, not a missing measurement.
+
+## 5. What a split means, and what unanimity means
+
+Stated for completeness even though this run has neither outcome to report: under
+`SEED_VERDICT_COMBINATION_RULE`, a **split cell** (any 1-of-3 or 2-of-3 disagreement among
+`TORCH_INIT_SEEDS_WAVE_B`) is a terminal non-supportive outcome — `combine_seed_verdicts` returns
+`"SPLIT ACROSS SEEDS"` literally and that value is never averaged, never rounded up to a weaker
+positive, and never treated as "leaning cleared." A **unanimous cell** is three independent fits
+agreeing on sign and FWER clearance at one `d` — a statement about that `d` alone, not about the
+sweep as a whole, and not strengthened by how many other cells did or did not agree. Neither
+outcome occurs in this run: with zero cells triggered, `combine_seed_verdicts` was never called,
+and the record's own `seed_cell_verdict` row carries the literal value `"WAVE_B_NOT_TRIGGERED"`,
+which is neither of the two values `combine_seed_verdicts` can return — it is the mode's own
+explicit third outcome for an empty scope, kept textually distinct from both `"SPLIT ACROSS
+SEEDS"` and any per-`d` verdict string so a reader parsing the record cannot mistake "nothing to
+run" for either a split or an agreement.
+
+## 6. Carried into the phase verdict
+
+The per-`d` cell verdicts 09-10 will read, in `D_SWEEP` order — unchanged from `09-WAVE-A-RESULTS.md`
+§8, since Wave B did not run at any `d` and therefore altered nothing:
+
+| `d` | Wave A per-`d` verdict | Wave B outcome |
+|---:|---|---|
+| 16 | `DOES NOT CLEAR` | not triggered — Wave A cell stands |
+| 20 | `DOES NOT CLEAR` | not triggered — Wave A cell stands |
+| 25 | `DOES NOT CLEAR` | not triggered — Wave A cell stands |
+| 32 | `DOES NOT CLEAR` | not triggered — Wave A cell stands |
+
+No phase verdict is written in this document. `09-08-SUMMARY.md`'s own "Next Phase Readiness"
+section already states that 09-10 can write the phase verdict directly from Wave A's per-`d` cells
+(`phase_verdict = "DOES NOT REPLICATE"` per `VERDICT_RULE`, since none of the four cells fired),
+and this plan's own `<discretion_decisions>` makes that finalization 09-10's act, not this
+document's.
+
