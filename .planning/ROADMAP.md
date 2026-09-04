@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 8/10 plans executed
+**Plans:** 9/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1200,7 +1200,7 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
-- [ ] 09-09-PLAN.md — Wave B: three seeds at every fired `d`, combined by the frozen unanimity rule, never pooled
+- [x] 09-09-PLAN.md — Wave B: three seeds at every fired `d`, combined by the frozen unanimity rule, never pooled
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
