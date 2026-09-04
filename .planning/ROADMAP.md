@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 7/10 plans executed
+**Plans:** 8/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1196,7 +1196,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 09-08-PLAN.md — Wave A: the four-`d` sweep, the positive control, the shuffled-label calibration and the verdict print
+- [x] 09-08-PLAN.md — Wave A: the four-`d` sweep, the positive control, the shuffled-label calibration and the verdict print
 
 **Wave 8** *(blocked on Wave 7 completion)*
 

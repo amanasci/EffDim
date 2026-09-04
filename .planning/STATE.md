@@ -5,15 +5,15 @@ milestone_name: PU Manifold Curvature
 current_phase: 09
 current_phase_name: curvature-conditioned-label-decodability-physics-replication
 status: executing
-stopped_at: Completed 09-07-PLAN.md
-last_updated: "2026-09-04T12:27:50.286Z"
+stopped_at: Completed 09-08-PLAN.md
+last_updated: "2026-09-04T18:24:57.274Z"
 last_activity: 2026-09-02
 last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 17
   completed_phases: 12
   total_plans: 121
-  completed_plans: 110
+  completed_plans: 111
 ---
 
 # Project State
@@ -31,13 +31,20 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 PASSED, 0 blockers). Research corrected two data assumptions CONTEXT.md did not anticipate
 (`Smith42/galaxies` labels exist only at HF revision `v2.0`; raw `mag_r` is ~93% missing and
 `mag_r_desi` is the colleague's own column) — both are frozen constants routed through a blocking
-developer ruling in 09-04 before the 09-05 freeze. **Execution will NOT run on the developer's
-machine**: 09-06 is the hand-off to an SSH remote or the colleague's compute (undecided), and
-09-07/08/09 are `checkpoint:human-action` host runs. Not yet executed. Phase 8 remains open below.
+developer ruling in 09-04 before the 09-05 freeze. **Execution does NOT run on the developer's
+machine**: 09-06 bootstrapped and verified an SSH remote execution host (`pod128`, 128 cores),
+under the developer's standing 2026-09-04 UTC instruction to use available compute without
+displacing other users. 09-07 (the row-alignment proof, shift 0 PASS, gap 5.16x the margin) and
+09-08 (the Wave A sweep and both gates) have both run for real on that host and are ingested.
+**09-08's verdict: `DOES NOT REPLICATE` at every `d` in `D_SWEEP = (16, 20, 25, 32)`** — the one
+statistically decisive cell (`d=16`, `p_fwer < 9.999e-05`) has the wrong sign per `VERDICT_RULE`;
+the positive-control gate cleared no target at any `d` (a structural finding, recorded as
+evidence, is put to the developer as an open question in `09-08-SUMMARY.md`, not decided);
+`WAVE_B_NOT_TRIGGERED`, so 09-09 has nothing to run. Phase 8 remains open below.
 
 Phase: 09 (curvature-conditioned-label-decodability-physics-replication) — EXECUTING
-Plan: 8 of 10
-Status: Ready to execute
+Plan: 9 of 10
+Status: Ready to execute (09-09 expected to be a no-op skip per `WAVE_B_NOT_TRIGGERED`)
 (`08-PREREGISTRATION-AMENDMENT-01.md`). The developer selected the "Balanced ~28h" budget shape
 on the orchestrator's measured cost table; `N_PERMUTATIONS` 1000->500, `N_REPEATS` 30->10,
 `PLANTED_EFFECT_GRID` 7->5 rungs (rung choice flagged as the orchestrator's judgment call, not
@@ -386,7 +393,7 @@ Surviving explanation: a real, stable ~20-25 dimensional manifold whose geodesic
 
 **Implication for any Phase 3 respec:** a curvature-native representation is required (Riemannian/hyperbolic embedding, or working directly on the geodesic metric without flattening), target dimension ~20-25, not 5.
 
-Progress: [█████████░] 91% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
+Progress: [█████████░] 92% of planned plans (17/17; Phases 1, 2, 02.1, 02.2 all complete). Phase 02.4 next — not yet scoped, so its plan count is unknown and the milestone is not near done.
 
 ## Performance Metrics
 
@@ -496,6 +503,7 @@ Progress: [█████████░] 91% of planned plans (17/17; Phases 1
 | Phase 09 P05 | 75min | 2 tasks | 8 files |
 | Phase 09 P06 | ~25min | 3 tasks | 3 files |
 | Phase 09 P07 | 7h11m | 3 tasks | 2 files |
+| Phase 09 P08 | 306min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -718,6 +726,8 @@ Logged in PROJECT.md Key Decisions table. Recent decisions affecting current wor
 - [Phase ?]: 09-05: FREEZE_COMMIT_SHA=5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 wired into both runners and both test suites (wiring commit f2bf10d); strict-ancestor gate proved from a fresh single-branch clone of the pushed fixture-validity-audit branch
 - [Phase ?]: 09-06 Task 3: execution host chosen and bootstrapped over SSH by the orchestrator under explicit developer instruction (use available compute, check nvidia-smi, follow the user guide); host verified against the freeze gate and green on both smoke paths; capability recorded, no hostname/IP/username/key path written to any committed file.
 - [Phase ?]: 09-07: Row-alignment proof PASSED at shift 0 (gap 0.5160133636458043, 5.16x ALIGNMENT_MARGIN_R2=0.10); developer ruled proceed-as-assumed, ALIGNMENT_ASSUMED_OFFSET stays 0, original freeze SHA 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 stays in force, no amendment/re-freeze
+- [Phase ?]: 09-08: Wave A DOES NOT REPLICATE at every d (d=16 clears FWER but wrong sign; d=20/25/32 don't clear); WAVE_B_NOT_TRIGGERED
+- [Phase ?]: 09-08: Positive-control gate cleared no target at any d; structural cause (bounded-achievable-statistic, negative-target-vs-positive-real-relation) recorded as evidence; gate amendment left open for developer, not decided
 
 ### Pending Todos
 
@@ -780,8 +790,8 @@ From `TODO.md`:
 
 ## Session Continuity
 
-Last session: 2026-09-04T12:27:50.226Z
-Stopped at: Completed 09-07-PLAN.md
+Last session: 2026-09-04T18:24:57.214Z
+Stopped at: Completed 09-08-PLAN.md
 2026-08-17/18 but never summarised, which is why the phase read 10/11 for five days). All ten
 `must_haves` verified against the artifacts rather than asserted; `03-FINDINGS-SUPPLEMENT-01.md`
 withdraws one supporting clause in §6 point 3 without changing its conclusion.
