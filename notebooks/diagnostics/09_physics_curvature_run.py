@@ -51,7 +51,7 @@ import tarfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 NOTEBOOK_ROOT = Path(__file__).resolve().parents[1]
 if str(NOTEBOOK_ROOT) not in sys.path:
@@ -72,6 +72,7 @@ import pandas  # noqa: E402
 import pyarrow  # noqa: E402
 import scipy  # noqa: E402
 import sklearn  # noqa: E402
+from scipy.stats import spearmanr  # noqa: E402
 
 from pu_manifold import cache  # noqa: E402
 from pu_manifold import cae  # noqa: E402
@@ -84,13 +85,10 @@ from pu_manifold import physics_labels as pl  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
 # Modes not yet implemented by this plan, and which plan implements each. "bundle" and
-# "print-cost-model" were removed from this dict by 09-06 -- both are implemented below and
+# "print-cost-model" were removed from this dict by 09-06; "dsweep", "positive-control",
+# "shuffled-label" and "verdict" were removed by 09-08 -- all eight are implemented below and
 # dispatched directly in main(), never falling through to this "not implemented" table.
 _MODE_IMPLEMENTING_PLAN = {
-    "dsweep": "09-08",
-    "positive-control": "09-08",
-    "shuffled-label": "09-08",
-    "verdict": "09-08",
     "seeds": "09-09",
     "selfcheck": "a later plan (not yet scheduled)",
 }
@@ -348,11 +346,16 @@ def print_cost_model(threads: int) -> None:
     )
 
 
-def resolve_record_path(record_path_arg: Optional[str]) -> Path:
+def resolve_record_path(record_path_arg: Optional[str], default_stem: Optional[str] = None) -> Path:
     """Caller-supplied paths are routed through `pcp._assert_inside_output_root` (T-09-03); a
-    traversal path raises rather than writes. No default is offered here -- `--mode smoke`
-    requires an explicit `--record-path` and refuses to default onto any frozen record stem."""
+    traversal path raises rather than writes. `--mode smoke` calls this with `default_stem=None`
+    and refuses to default onto any frozen record stem -- an explicit `--record-path` is
+    required. Every production mode (09-08) instead passes `default_stem=pcp.RECORD_STEM`, so an
+    omitted `--record-path` falls onto the frozen `09_physics_curvature.jsonl` record via
+    `pcp.record_path`, itself containment-checked."""
     if record_path_arg is None:
+        if default_stem is not None:
+            return pcp.record_path(default_stem, "jsonl")
         raise ValueError(
             "resolve_record_path: no --record-path was supplied and this mode refuses to "
             "default onto any frozen record stem."
@@ -375,6 +378,148 @@ def append_record_row(row: Dict[str, Any], record_path: Path) -> None:
     record_path.parent.mkdir(parents=True, exist_ok=True)
     with record_path.open("a") as fh:
         fh.write(json.dumps(row) + "\n")
+
+
+def _gate_and_environment(args: argparse.Namespace) -> Dict[str, Any]:
+    """Common preamble every non-smoke production mode (09-08) runs, in this exact order, before
+    any read or write: describe the environment, the strict-ancestor freeze proof, then BOTH
+    `assert_preregistered()` calls (`pl` then `pcp`). Returns the environment dict; the caller
+    resolves its own `--record-path` (each mode may need mode-specific validation, e.g.
+    `--field-npz`, before it is safe to write anything) and appends this dict as the first row
+    of its own successful run -- never on an error path, so a validation failure never leaves a
+    stray row in the record (T-09-58)."""
+    env = _describe_environment()
+    _strict_ancestor_or_exit(args.freeze_commit)
+    pl.assert_preregistered()
+    pcp.assert_preregistered()
+    return env
+
+
+_ANCHOR_TABLE_NAME_RE = re.compile(r"^09_anchor_table_d(\d+)_(.+)\.npz$")
+
+
+def _anchor_table_path(output_root: Path, d: int, label: str) -> Path:
+    """`{output_root}/09_anchor_table_d{d}_{label}.npz`, containment-checked -- the filename
+    pattern Task 2's host instructions name literally (D9-12 ordering: `d` is part of the
+    filename)."""
+    path = output_root / f"09_anchor_table_d{d}_{label}.npz"
+    pcp._assert_inside_output_root(path)
+    return path
+
+
+def _parse_anchor_table_filename(path: Path) -> Dict[str, Any]:
+    """Recovers `{"d": int, "label": str}` from an anchor table's own filename (the two gates
+    receive only a `--field-npz` path, not a `d`/label pair passed separately) -- `{"d": None,
+    "label": None}` when the name does not match `_anchor_table_path`'s own pattern."""
+    match = _ANCHOR_TABLE_NAME_RE.match(Path(path).name)
+    if not match:
+        return {"d": None, "label": None}
+    return {"d": int(match.group(1)), "label": match.group(2)}
+
+
+def _oof_predictions_for_label(
+    X: np.ndarray, y_full: np.ndarray, alpha: float, n_folds: int, fold_seed: int
+) -> np.ndarray:
+    """`pcp.oof_ridge_predictions` requires every row of `y` to be finite (its own structural
+    out-of-fold proof guard); a Physics label may carry sentinel-masked `NaN` rows (`photo_z`
+    and `stellar_mass` are not 100% populated -- 09-DATA-MANIFEST.md). Fits and predicts OOF
+    only on the finite subset of rows, scattering the result back into a full-length array with
+    `NaN` at every non-finite row -- never widening the fold structure to hold out a row with no
+    real label value. Returns an all-`NaN` array, rather than raising, when no row is finite."""
+    y_full = np.asarray(y_full, dtype=np.float64).ravel()
+    finite = np.isfinite(y_full)
+    y_hat_full = np.full(y_full.shape[0], np.nan, dtype=np.float64)
+    if not np.any(finite):
+        return y_hat_full
+    y_hat_full[finite] = pcp.oof_ridge_predictions(
+        X[finite], y_full[finite], alpha=alpha, n_folds=n_folds, fold_seed=fold_seed
+    )
+    return y_hat_full
+
+
+def local_mse_sst_panel(
+    y: np.ndarray, y_hat: np.ndarray, neighbour_idx: np.ndarray, min_finite: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Mirrors `pcp.LOCAL_R2_RULE`'s construction EXACTLY -- same finite mask, same `min_finite`
+    floor, same zero-SST exclusion -- to expose `mse`/`sst` per anchor. `pcp.local_r2_panel`
+    computes both internally but returns only their ratio (`r2`); this is the same loop, never a
+    reimplementation of the R2 formula itself, just retaining the two intermediate values
+    `local_r2_panel` discards -- needed because this plan's anchor table (`must_haves`) carries
+    `mse` and `sst` as their own columns, mirroring the colleague's own
+    `global_anchor_metrics.csv`. Returns `(mse, sst)`, each `NaN` at exactly the anchors where
+    `pcp.local_r2_panel`'s own `r2` would be `NaN`."""
+    y = np.asarray(y, dtype=np.float64).ravel()
+    y_hat = np.asarray(y_hat, dtype=np.float64).ravel()
+    neighbour_idx = np.asarray(neighbour_idx)
+    n_anchors = neighbour_idx.shape[0]
+    mse = np.full(n_anchors, np.nan, dtype=np.float64)
+    sst = np.full(n_anchors, np.nan, dtype=np.float64)
+    for i in range(n_anchors):
+        nbrs = neighbour_idx[i]
+        y_n = y[nbrs]
+        yhat_n = y_hat[nbrs]
+        finite = np.isfinite(y_n) & np.isfinite(yhat_n)
+        if int(finite.sum()) < min_finite:
+            continue
+        y_f = y_n[finite]
+        yhat_f = yhat_n[finite]
+        mean_y = float(np.mean(y_f))
+        sst_v = float(np.sum((y_f - mean_y) ** 2))
+        if sst_v == 0.0:
+            continue
+        sst[i] = sst_v
+        mse[i] = float(np.sum((y_f - yhat_f) ** 2))
+    return mse, sst
+
+
+def build_anchor_table(
+    anchor_idx: np.ndarray,
+    decomp: Dict[str, np.ndarray],
+    cond_g: np.ndarray,
+    panel: Dict[str, np.ndarray],
+    mse: np.ndarray,
+    sst: np.ndarray,
+    log_knn_radius: np.ndarray,
+) -> Dict[str, np.ndarray]:
+    """Assembles the per-`(d, label)` anchor table this plan's `must_haves` names: the anchor
+    row index, `H_norm`, `H_tan_norm`, `H_rad`, `image_norm`, `cond_g`, the local `r2`, `mse`,
+    `sst`, `local_label_variance`, `local_evaluation_count` and `log_knn_radius` -- the
+    colleague's own `global_anchor_metrics.csv` column set plus the curvature/decomposition
+    columns his table cannot have."""
+    return {
+        "anchor_idx": np.asarray(anchor_idx, dtype=np.int64),
+        "H_norm": np.asarray(decomp["H_norm"], dtype=np.float64),
+        "H_tan_norm": np.asarray(decomp["H_tan_norm"], dtype=np.float64),
+        "H_rad": np.asarray(decomp["H_rad"], dtype=np.float64),
+        "image_norm": np.asarray(decomp["image_norm"], dtype=np.float64),
+        "cond_g": np.asarray(cond_g, dtype=np.float64),
+        "r2": np.asarray(panel["r2"], dtype=np.float64),
+        "mse": np.asarray(mse, dtype=np.float64),
+        "sst": np.asarray(sst, dtype=np.float64),
+        "local_label_variance": np.asarray(panel["local_label_variance"], dtype=np.float64),
+        "local_evaluation_count": np.asarray(panel["local_evaluation_count"], dtype=np.int64),
+        "log_knn_radius": np.asarray(log_knn_radius, dtype=np.float64),
+    }
+
+
+def write_anchor_table(table: Dict[str, np.ndarray], path: Path) -> Path:
+    """Containment-checked `np.savez` of `table` to `path`. Returns `path` for chaining."""
+    pcp._assert_inside_output_root(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(path, **table)
+    return path
+
+
+def load_anchor_table(path: Any) -> Dict[str, np.ndarray]:
+    """Containment-checked `np.load` of an anchor table written by `write_anchor_table`. Raises
+    `FileNotFoundError` naming `path` when it does not exist -- the two gates refuse to
+    regenerate a field and must see this raised, never a silent empty read (T-09-51)."""
+    candidate = Path(path)
+    pcp._assert_inside_output_root(candidate)
+    if not candidate.exists():
+        raise FileNotFoundError(f"load_anchor_table: {candidate} does not exist.")
+    with np.load(candidate) as z:
+        return {key: np.asarray(z[key]) for key in z.files}
 
 
 def fit_and_field_at_anchors(
@@ -593,6 +738,660 @@ def run_smoke(args: argparse.Namespace) -> bool:
     return all_passed
 
 
+def run_dsweep(args: argparse.Namespace) -> bool:
+    """`--mode dsweep` (D9-12): the phase's deliverable. ONE sequential in-process loop over
+    `pcp.D_SWEEP`, never concurrent (09-EXECUTION-HOST.md Section 4's own precedent). Loads the
+    embeddings and every label once; computes the anchor draw, the k-NN neighbourhood panel and
+    every label's out-of-fold ridge probe once, before the `d` loop, all three independent of
+    `d` by construction (this plan's own `<discretion_decisions>`). For each `d`: fits the
+    autoencoder and evaluates curvature at the anchors only (D9-04), decomposes radial/tangential
+    (D9-11), writes one anchor table per label, and computes the raw/controlled partial and the
+    density-stratified null for both `H_tan_norm` and `H_norm` against every label. After the
+    loop, computes ONE Freedman-Lane family-wise envelope per label/field across ALL `d` at once
+    (the null construction the family-wise `p_fwer` needs a common surrogate for)."""
+    env = _gate_and_environment(args)
+    freeze_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path, default_stem=pcp.RECORD_STEM)
+    append_record_row(env, record_path)
+
+    def _utc_now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    output_root = pcp.resolve_output_root()
+    all_labels = (pl.PRIMARY_LABEL,) + pl.SECONDARY_LABELS
+
+    print(
+        f"\nDSWEEP: D_SWEEP={pcp.D_SWEEP} N_ANCHORS={pcp.N_ANCHORS} K_NEIGHBOURS={pcp.K_NEIGHBOURS} "
+        f"labels={all_labels}\n{pcp.NEIGHBOURHOOD_RATIO_RULE}\n"
+    )
+
+    t0 = time.monotonic()
+    emb = pl.load_physics_embeddings()
+    X = emb["X"]
+    n_rows = emb["n_rows"]
+    print(f"[load] physics embeddings: n_rows={n_rows} wallclock={time.monotonic() - t0:.1f}s")
+
+    t0 = time.monotonic()
+    table = pl.load_label_table(columns=list(pl.LABEL_COLUMN_MAP.values()))
+    print(f"[load] label table: wallclock={time.monotonic() - t0:.1f}s")
+
+    offset_perm = pl.shifted_pairing(n_rows, pl.ALIGNMENT_ASSUMED_OFFSET)
+    y_by_label: Dict[str, np.ndarray] = {}
+    for name in all_labels:
+        y_raw = pl.canonical_label(table, name, pl.LABEL_COLUMN_MAP, pl.SENTINEL_VALUES)
+        y_by_label[name] = y_raw[offset_perm]
+
+    idx = pcp.anchor_indices(
+        n_rows=n_rows, split_seed=pcp.SPLIT_SEED, holdout_fraction=pcp.HOLDOUT_FRACTION,
+        n_anchors=pcp.N_ANCHORS, anchor_seed=pcp.ANCHOR_DRAW_SEED,
+    )
+    anchor_idx = idx["anchor_idx"]
+
+    t0 = time.monotonic()
+    knn = pcp.knn_panel(X, anchor_idx, pcp.K_NEIGHBOURS)
+    print(f"[knn] k={pcp.K_NEIGHBOURS} n_anchors={anchor_idx.shape[0]} wallclock={time.monotonic() - t0:.1f}s")
+
+    panel_by_label: Dict[str, Dict[str, Any]] = {}
+    for name in all_labels:
+        t0 = time.monotonic()
+        y_hat = _oof_predictions_for_label(X, y_by_label[name], pcp.ALPHA_RIDGE, pcp.N_OOF_FOLDS, pcp.OOF_FOLD_SEED)
+        panel = pcp.local_r2_panel(y_by_label[name], y_hat, knn["indices"], pcp.MIN_FINITE_NEIGHBOURS)
+        mse, sst = local_mse_sst_panel(y_by_label[name], y_hat, knn["indices"], pcp.MIN_FINITE_NEIGHBOURS)
+        const_eval = bool(np.all(panel["local_evaluation_count"] == panel["local_evaluation_count"][0]))
+        panel_by_label[name] = {"panel": panel, "mse": mse, "sst": sst, "const_eval": const_eval}
+        print(
+            f"[oof/local_r2] label={name} n_masked_anchors={panel['n_masked_anchors']} "
+            f"local_evaluation_count_constant={const_eval} wallclock={time.monotonic() - t0:.1f}s"
+        )
+
+    controls_by_label = {
+        name: np.column_stack([
+            knn["log_knn_radius"],
+            panel_by_label[name]["panel"]["local_label_variance"],
+            panel_by_label[name]["panel"]["local_evaluation_count"],
+        ])
+        for name in all_labels
+    }
+
+    H_tan_full_by_d: Dict[int, np.ndarray] = {}
+    H_norm_full_by_d: Dict[int, np.ndarray] = {}
+
+    for d in pcp.D_SWEEP:
+        cost = DSWEEP_COST_MODEL_CORE_HOURS[d]
+        projected_total = cost["training_core_hours"] + cost["curvature_core_hours"]
+        print(
+            f"\n{'-' * 78}\n[d={d}] starting fit + field. cost-model estimate: "
+            f"{projected_total:.3f} core-hr (~{projected_total / max(args.threads, 1):.3f}h @ "
+            f"{args.threads}t).\n{'-' * 78}"
+        )
+        t_d0 = time.monotonic()
+
+        fit = fit_and_field_at_anchors(
+            X, d=d, anchor_idx=anchor_idx, in_dim=pcp.AE_IN_DIM, hidden=pcp.AE_HIDDEN,
+            activation=pcp.AE_ACTIVATION, train_cfg=pcp.TRAIN_CFG, max_epochs=pcp.MAX_EPOCHS,
+            torch_init_seed=pcp.TORCH_INIT_SEED, split_seed=pcp.SPLIT_SEED,
+            holdout_fraction=pcp.HOLDOUT_FRACTION,
+        )
+        decomp = pcp.decompose_radial_tangential(fit["H_vec"], fit["image"], pcp.MIN_IMAGE_NORM)
+        cond_g = fit["metric_condition_number"]
+        cond_g_median = float(np.median(cond_g))
+        h_rad_median = float(np.nanmedian(decomp["H_rad"]))
+
+        print(
+            f"[d={d}] fit done (elapsed so far {time.monotonic() - t_d0:.1f}s). "
+            f"wallclock_fit={fit['wallclock_fit_s']:.1f}s wallclock_field={fit['wallclock_field_s']:.1f}s "
+            f"var_explained={fit['var_explained']:.4f} cond(g) median={cond_g_median:.4e} "
+            f"H_rad median={h_rad_median:.4f} (expected ~{-d})"
+        )
+
+        append_record_row(
+            {
+                "row_kind": "fit",
+                "d": d,
+                "var_explained": fit["var_explained"],
+                "cond_g_median": cond_g_median,
+                "cond_g_p95": float(np.percentile(cond_g, 95)),
+                "H_rad_median": h_rad_median,
+                "H_rad_expected": float(-d),
+                "n_excluded_low_image_norm": decomp["n_excluded_low_norm"],
+                "wallclock_fit_s": fit["wallclock_fit_s"],
+                "wallclock_field_s": fit["wallclock_field_s"],
+                "freeze_commit": freeze_commit,
+                "run_commit": run_commit,
+                "timestamp_utc": _utc_now(),
+            },
+            record_path,
+        )
+
+        H_tan_full_by_d[d] = decomp["H_tan_norm"]
+        H_norm_full_by_d[d] = decomp["H_norm"]
+
+        for name in all_labels:
+            panel = panel_by_label[name]["panel"]
+            anchor_table = build_anchor_table(
+                anchor_idx=anchor_idx, decomp=decomp, cond_g=cond_g, panel=panel,
+                mse=panel_by_label[name]["mse"], sst=panel_by_label[name]["sst"],
+                log_knn_radius=knn["log_knn_radius"],
+            )
+            table_path = write_anchor_table(anchor_table, _anchor_table_path(output_root, d, name))
+
+            append_record_row(
+                {
+                    "row_kind": "anchor_summary",
+                    "d": d,
+                    "label": name,
+                    "gating": bool(name == pl.PRIMARY_LABEL),
+                    "n_anchors": int(anchor_idx.shape[0]),
+                    "n_masked_anchors": panel["n_masked_anchors"],
+                    "local_evaluation_count_constant": panel_by_label[name]["const_eval"],
+                    "anchor_table_path": str(table_path),
+                    "freeze_commit": freeze_commit,
+                    "run_commit": run_commit,
+                    "timestamp_utc": _utc_now(),
+                },
+                record_path,
+            )
+
+            finite = np.isfinite(panel["r2"]) & np.isfinite(decomp["H_tan_norm"]) & np.isfinite(decomp["H_norm"])
+            controls = controls_by_label[name]
+
+            for field_name, field_full in (("H_tan_norm", decomp["H_tan_norm"]), ("H_norm", decomp["H_norm"])):
+                x_f = field_full[finite]
+                y_f = panel["r2"][finite]
+                z_f = controls[finite]
+                raw_rho = float(spearmanr(x_f, y_f).statistic) if x_f.size > 1 else float("nan")
+                controlled = float(pcp.controlled_partial(x_f, y_f, z_f))
+                gating = bool(name == pl.PRIMARY_LABEL and field_name == pcp.CURVATURE_FIELD_FOR_VERDICT)
+
+                append_record_row(
+                    {
+                        "row_kind": "partial",
+                        "d": d,
+                        "label": name,
+                        "field": field_name,
+                        "gating": gating,
+                        "n_finite_anchors": int(finite.sum()),
+                        "raw_rho": raw_rho,
+                        "controlled_partial": controlled,
+                        "freeze_commit": freeze_commit,
+                        "run_commit": run_commit,
+                        "timestamp_utc": _utc_now(),
+                    },
+                    record_path,
+                )
+
+                for n_strata in pcp.STRATA_GRID:
+                    strat = pcp.stratified_partial_null_3control(
+                        x_f, y_f, z_f, knn["log_knn_radius"][finite], n_strata,
+                        pcp.STRATIFIED_NULL_DRAWS, pcp.STRATIFIED_NULL_SEED,
+                    )
+                    append_record_row(
+                        {
+                            "row_kind": "null",
+                            "null_type": "stratified",
+                            "d": d,
+                            "label": name,
+                            "field": field_name,
+                            "n_strata": n_strata,
+                            "observed": strat["observed"],
+                            "p": strat["p"],
+                            "p_display": strat["p_display"],
+                            "floor_reached": strat["floor_reached"],
+                            "freeze_commit": freeze_commit,
+                            "run_commit": run_commit,
+                            "timestamp_utc": _utc_now(),
+                        },
+                        record_path,
+                    )
+
+                boot = pcp.paired_anchor_bootstrap(x_f, y_f, z_f, pcp.N_BOOTSTRAP, pcp.BOOTSTRAP_SEED)
+                append_record_row(
+                    {
+                        "row_kind": "bootstrap",
+                        "d": d,
+                        "label": name,
+                        "field": field_name,
+                        "ci_low": boot["ci_low"],
+                        "ci_high": boot["ci_high"],
+                        "n_boot": boot["n_boot"],
+                        "freeze_commit": freeze_commit,
+                        "run_commit": run_commit,
+                        "timestamp_utc": _utc_now(),
+                    },
+                    record_path,
+                )
+
+        print(f"[d={d}] total wallclock: {time.monotonic() - t_d0:.1f}s")
+
+    # --- Family-wise Freedman-Lane envelope, ALL d at once, per label/field (D9-10) -------------
+    # The envelope needs a common Freedman-Lane surrogate drawn once per permutation and applied
+    # to every d's curvature array -- this can only happen after every d's field is known, hence
+    # after the loop above, never inside it. Anchors excluded at ANY d (a low-image-norm row at
+    # that d) are excluded from every d's array here, so the same physical anchor set backs the
+    # whole envelope (never a shifting row set from one d to the next).
+    for name in all_labels:
+        panel = panel_by_label[name]["panel"]
+        controls = controls_by_label[name]
+        for field_name, field_by_d in (("H_tan_norm", H_tan_full_by_d), ("H_norm", H_norm_full_by_d)):
+            finite = np.isfinite(panel["r2"])
+            for d in pcp.D_SWEEP:
+                finite = finite & np.isfinite(field_by_d[d])
+            curvature_by_d = {d: field_by_d[d][finite] for d in pcp.D_SWEEP}
+            y_f = panel["r2"][finite]
+            z_f = controls[finite]
+            fwer = pcp.permutation_fwer(curvature_by_d, y_f, z_f, pcp.N_PERMUTATIONS, pcp.PERMUTATION_SEED)
+
+            for d in pcp.D_SWEEP:
+                per_d = fwer["per_d"][d]
+                append_record_row(
+                    {
+                        "row_kind": "null",
+                        "null_type": "fwer",
+                        "d": d,
+                        "label": name,
+                        "field": field_name,
+                        "gating": bool(name == pl.PRIMARY_LABEL and field_name == pcp.CURVATURE_FIELD_FOR_VERDICT),
+                        "n_finite_anchors": int(finite.sum()),
+                        "observed_rho": per_d["observed_rho"],
+                        "p": per_d["p"],
+                        "p_display": per_d["p_display"],
+                        "floor_reached": per_d["floor_reached"],
+                        "freeze_commit": freeze_commit,
+                        "run_commit": run_commit,
+                        "timestamp_utc": _utc_now(),
+                    },
+                    record_path,
+                )
+            append_record_row(
+                {
+                    "row_kind": "null",
+                    "null_type": "fwer_global",
+                    "label": name,
+                    "field": field_name,
+                    "d_values": list(pcp.D_SWEEP),
+                    "n_finite_anchors": int(finite.sum()),
+                    "p": fwer["global"]["p"],
+                    "p_display": fwer["global"]["p_display"],
+                    "floor_reached": fwer["global"]["floor_reached"],
+                    "freeze_commit": freeze_commit,
+                    "run_commit": run_commit,
+                    "timestamp_utc": _utc_now(),
+                },
+                record_path,
+            )
+            print(f"[fwer] label={name} field={field_name} global p_display={fwer['global']['p_display']}")
+
+    print(f"\nDSWEEP done. Record: {record_path}.")
+    return True
+
+
+def run_positive_control(args: argparse.Namespace) -> bool:
+    """`--mode positive-control` (D9-14): requires `--field-npz` naming a Wave A anchor table and
+    refuses to regenerate one, following `07_crossmodal_curvature_run.py`'s own discipline
+    (T-09-51). Plants on the curvature side at every entry of `POSITIVE_CONTROL_TARGET_RHOS`,
+    read as MAGNITUDES straddling the colleague's observed `-0.240` -- the plant targets the
+    NEGATIVE of each magnitude, matching this phase's own negative-association hypothesis
+    (D9-09/D9-10) and `plant_curvature_positive_control`'s own direction note. Validates each
+    planted array through the identical three-control partial and `permutation_fwer`'s
+    Freedman-Lane construction (never `two_tailed_permutation_null`, Phase 7's own null), and
+    reports the smallest cleared MAGNITUDE as the detection floor."""
+    env = _gate_and_environment(args)
+
+    if not args.field_npz:
+        print(
+            "ERROR: --mode positive-control requires --field-npz naming a Wave A anchor table "
+            "(e.g. 09_anchor_table_d16_mag_r.npz, written by --mode dsweep); this mode refuses "
+            "to regenerate a curvature field.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    field_path = Path(args.field_npz)
+    pcp._assert_inside_output_root(field_path)
+    if not field_path.exists():
+        print(
+            f"ERROR: --mode positive-control: {field_path} does not exist -- --mode dsweep has "
+            "not written a field there yet, and this mode refuses to regenerate one.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    table = load_anchor_table(field_path)
+    required_keys = {"H_tan_norm", "r2", "log_knn_radius", "local_label_variance", "local_evaluation_count"}
+    missing_keys = required_keys - set(table.keys())
+    if missing_keys:
+        print(
+            f"ERROR: --mode positive-control: {field_path} is missing key(s) {sorted(missing_keys)} "
+            f"(found: {sorted(table.keys())}).",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    parsed = _parse_anchor_table_filename(field_path)
+    freeze_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path, default_stem=pcp.RECORD_STEM)
+    append_record_row(env, record_path)
+
+    h_real = np.asarray(table["H_tan_norm"], dtype=np.float64)
+    r2 = np.asarray(table["r2"], dtype=np.float64)
+    controls = np.column_stack(
+        [table["log_knn_radius"], table["local_label_variance"], table["local_evaluation_count"]]
+    )
+    finite = np.isfinite(h_real) & np.isfinite(r2)
+    h_real_f, r2_f, controls_f = h_real[finite], r2[finite], controls[finite]
+
+    print(
+        f"\nPOSITIVE CONTROL: {h_real_f.shape[0]} finite anchors loaded from {field_path.name} "
+        f"(d={parsed['d']} label={parsed['label']}), magnitudes={pcp.POSITIVE_CONTROL_TARGET_RHOS}, "
+        f"seed={pcp.POSITIVE_CONTROL_SEED}.\n"
+    )
+
+    cleared_magnitudes = []
+    for magnitude in pcp.POSITIVE_CONTROL_TARGET_RHOS:
+        target_rho = -float(magnitude)  # plant toward the NEGATIVE (D9-09's own hypothesis)
+        plant = pcp.plant_curvature_positive_control(
+            h_real_f, r2_f, controls_f, target_rho=target_rho, seed=pcp.POSITIVE_CONTROL_SEED, n_bisect=40,
+        )
+        fwer = pcp.permutation_fwer(
+            {0: plant["planted"]}, r2_f, controls_f, pcp.N_PERMUTATIONS, pcp.PERMUTATION_SEED,
+        )
+        per = fwer["per_d"][0]
+        verdict = pcp.per_d_verdict(rho=per["observed_rho"], p_fwer=per["p"], fwer_alpha=pcp.FWER_ALPHA)
+        cleared = bool(verdict == pcp.PER_D_VERDICT_VALUES[0])
+        if cleared:
+            cleared_magnitudes.append(float(magnitude))
+
+        append_record_row(
+            {
+                "row_kind": "positive_control",
+                "d": parsed["d"],
+                "label": parsed["label"],
+                "target_magnitude": float(magnitude),
+                "target_rho": target_rho,
+                "achieved_controlled_partial": plant["achieved_controlled_partial"],
+                "slope": plant["slope"],
+                "cleared": cleared,
+                "p": per["p"],
+                "p_display": per["p_display"],
+                "floor_reached": per["floor_reached"],
+                "field_npz": str(field_path),
+                "freeze_commit": freeze_commit,
+                "run_commit": run_commit,
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            },
+            record_path,
+        )
+        print(
+            f"  target_magnitude={magnitude:.3f} achieved={plant['achieved_controlled_partial']:.4f} "
+            f"p_display={per['p_display']} cleared={cleared}"
+        )
+
+    if cleared_magnitudes:
+        floor = min(cleared_magnitudes)
+        print(f"\ndetection floor (smallest cleared magnitude): {floor}")
+    else:
+        print(
+            "\ndetection floor: NONE CLEARED -- the instrument did not recover any planted "
+            f"magnitude at this d/label."
+        )
+    return True
+
+
+def run_shuffled_label(args: argparse.Namespace) -> bool:
+    """`--mode shuffled-label` (D9-15): requires `--field-npz` likewise (refuses to regenerate a
+    field). For `SHUFFLED_LABEL_REPEATS` repeats from `SHUFFLED_LABEL_SEED`, shuffles the label
+    vector globally and recomputes ONLY the out-of-fold predictions and both label-derived
+    controls -- the embedding matrix, curvature field and anchor index array stay
+    byte-identical. `pcp.shuffled_label_repeat`'s own return signature does not expose the
+    shuffled local-R2 panel (needed to build THIS repeat's own Freedman-Lane null for the
+    false-positive count), so this mode composes the same sealed primitives
+    (`oof_ridge_predictions`, `local_r2_panel`, `controlled_partial`) in the SAME order that
+    function uses, consuming the SAME `rng` -- never a reimplementation of any formula, purely
+    retaining the intermediate array the sealed wrapper discards (see the module docstring's own
+    `plant_curvature_positive_control` precedent for composing sealed primitives in the runner)."""
+    env = _gate_and_environment(args)
+
+    if not args.field_npz:
+        print(
+            "ERROR: --mode shuffled-label requires --field-npz naming a Wave A anchor table "
+            "(e.g. 09_anchor_table_d16_mag_r.npz, written by --mode dsweep); this mode refuses "
+            "to regenerate a curvature field.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    field_path = Path(args.field_npz)
+    pcp._assert_inside_output_root(field_path)
+    if not field_path.exists():
+        print(
+            f"ERROR: --mode shuffled-label: {field_path} does not exist -- --mode dsweep has "
+            "not written a field there yet, and this mode refuses to regenerate one.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    table = load_anchor_table(field_path)
+    required_keys = {"H_tan_norm", "anchor_idx", "log_knn_radius"}
+    missing_keys = required_keys - set(table.keys())
+    if missing_keys:
+        print(
+            f"ERROR: --mode shuffled-label: {field_path} is missing key(s) {sorted(missing_keys)} "
+            f"(found: {sorted(table.keys())}).",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    parsed = _parse_anchor_table_filename(field_path)
+    freeze_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path, default_stem=pcp.RECORD_STEM)
+    append_record_row(env, record_path)
+
+    emb = pl.load_physics_embeddings()
+    X = emb["X"]
+    n_rows = emb["n_rows"]
+    label_table = pl.load_label_table(columns=list(pl.LABEL_COLUMN_MAP.values()))
+    offset_perm = pl.shifted_pairing(n_rows, pl.ALIGNMENT_ASSUMED_OFFSET)
+    y_raw = pl.canonical_label(label_table, pl.PRIMARY_LABEL, pl.LABEL_COLUMN_MAP, pl.SENTINEL_VALUES)
+    y_full = y_raw[offset_perm]
+
+    anchor_idx = np.asarray(table["anchor_idx"], dtype=np.int64)
+    knn = pcp.knn_panel(X, anchor_idx, pcp.K_NEIGHBOURS)
+    h_field = np.asarray(table["H_tan_norm"], dtype=np.float64)
+    log_knn_radius = np.asarray(table["log_knn_radius"], dtype=np.float64)
+
+    print(
+        f"\nSHUFFLED-LABEL: {pcp.SHUFFLED_LABEL_REPEATS} repeats from seed={pcp.SHUFFLED_LABEL_SEED}, "
+        f"field={field_path.name} (d={parsed['d']} label={parsed['label']}).\n"
+    )
+
+    rng = np.random.default_rng(pcp.SHUFFLED_LABEL_SEED)
+    n_cleared = 0
+    for repeat in range(pcp.SHUFFLED_LABEL_REPEATS):
+        perm = rng.permutation(y_full.shape[0])
+        y_shuffled = y_full[perm]
+        y_hat = _oof_predictions_for_label(X, y_shuffled, pcp.ALPHA_RIDGE, pcp.N_OOF_FOLDS, pcp.OOF_FOLD_SEED)
+        panel = pcp.local_r2_panel(y_shuffled, y_hat, knn["indices"], pcp.MIN_FINITE_NEIGHBOURS)
+        controls = np.column_stack(
+            [log_knn_radius, panel["local_label_variance"], panel["local_evaluation_count"]]
+        )
+        finite = np.isfinite(panel["r2"]) & np.isfinite(h_field)
+        controlled = float(pcp.controlled_partial(h_field[finite], panel["r2"][finite], controls[finite]))
+
+        fwer = pcp.permutation_fwer(
+            {0: h_field[finite]}, panel["r2"][finite], controls[finite], pcp.N_PERMUTATIONS, pcp.PERMUTATION_SEED,
+        )
+        per = fwer["per_d"][0]
+        verdict = pcp.per_d_verdict(rho=per["observed_rho"], p_fwer=per["p"], fwer_alpha=pcp.FWER_ALPHA)
+        cleared = bool(verdict == pcp.PER_D_VERDICT_VALUES[0])
+        if cleared:
+            n_cleared += 1
+
+        append_record_row(
+            {
+                "row_kind": "shuffled_label",
+                "d": parsed["d"],
+                "label": parsed["label"],
+                "repeat": repeat,
+                "controlled_partial": controlled,
+                "n_masked_anchors": panel["n_masked_anchors"],
+                "cleared": cleared,
+                "p": per["p"],
+                "p_display": per["p_display"],
+                "floor_reached": per["floor_reached"],
+                "field_npz": str(field_path),
+                "freeze_commit": freeze_commit,
+                "run_commit": run_commit,
+                "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            },
+            record_path,
+        )
+        print(f"  repeat={repeat} controlled_partial={controlled:.4f} p_display={per['p_display']} cleared={cleared}")
+
+    fp_rate = n_cleared / pcp.SHUFFLED_LABEL_REPEATS
+    print(
+        f"\nfalse-positive count: {n_cleared}/{pcp.SHUFFLED_LABEL_REPEATS} ({fp_rate:.3f}) vs "
+        f"nominal FWER_ALPHA={pcp.FWER_ALPHA}"
+    )
+    return True
+
+
+def run_verdict(args: argparse.Namespace) -> bool:
+    """`--mode verdict` (D9-10/D9-18): reads the record and the anchor tables only and
+    recomputes nothing, so the printed verdict cannot differ from the recorded numbers. Exits 2
+    naming the missing gate row kind(s) when the record carries no `positive_control` row or no
+    `shuffled_label` row -- the verdict has no scale before both gates have run (T-09-53). Prints
+    the per-`d` table for `H_tan_norm` (gating) beside `H_norm` (non-gating), both nulls, the
+    detection floor, the false-positive rate, the fit-quality read-out, the fidelity ranges, the
+    neighbourhood ratio and the caveat-bearing verdict sentence -- REPORTING_BLOCK_ROWS order,
+    unconditionally. Appends exactly one `verdict` record row; never overwrites a prior one."""
+    env = _gate_and_environment(args)
+    record_path = resolve_record_path(args.record_path, default_stem=pcp.RECORD_STEM)
+
+    rows = []
+    if record_path.exists():
+        with record_path.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+
+    has_positive_control = any(r.get("row_kind") == "positive_control" for r in rows)
+    has_shuffled_label = any(r.get("row_kind") == "shuffled_label" for r in rows)
+    if not has_positive_control or not has_shuffled_label:
+        missing = [
+            kind for kind, present in (
+                ("positive_control", has_positive_control), ("shuffled_label", has_shuffled_label),
+            ) if not present
+        ]
+        print(
+            f"ERROR: --mode verdict refuses to print before both gates have run -- the record at "
+            f"{record_path} carries no row(s) of kind {missing}. The positive control establishes "
+            "the detection floor and the shuffled-label calibration establishes the "
+            "false-positive rate; a verdict read before them has no scale.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    append_record_row(env, record_path)
+
+    gating_field = pcp.CURVATURE_FIELD_FOR_VERDICT
+    print(f"\n{'=' * 78}\nPHASE 9 WAVE A VERDICT (reads the record only; recomputes nothing)\n{'=' * 78}\n")
+
+    per_d_verdicts: Dict[int, str] = {}
+    for d in pcp.D_SWEEP:
+        partial_row = next(
+            (r for r in rows if r.get("row_kind") == "partial" and r.get("d") == d
+             and r.get("label") == pl.PRIMARY_LABEL and r.get("field") == gating_field), None,
+        )
+        fwer_row = next(
+            (r for r in rows if r.get("row_kind") == "null" and r.get("null_type") == "fwer" and r.get("d") == d
+             and r.get("label") == pl.PRIMARY_LABEL and r.get("field") == gating_field), None,
+        )
+        h_norm_partial_row = next(
+            (r for r in rows if r.get("row_kind") == "partial" and r.get("d") == d
+             and r.get("label") == pl.PRIMARY_LABEL and r.get("field") == "H_norm"), None,
+        )
+        if partial_row is None or fwer_row is None:
+            print(f"[d={d}] no recorded {gating_field}/{pl.PRIMARY_LABEL} partial+fwer row -- skipping.")
+            continue
+
+        rho = partial_row["controlled_partial"]
+        verdict = pcp.per_d_verdict(rho=rho, p_fwer=fwer_row["p"], fwer_alpha=pcp.FWER_ALPHA)
+        per_d_verdicts[d] = verdict
+        print(
+            f"[d={d}] raw_rho={partial_row['raw_rho']:.6f} controlled_partial={rho:.6f} "
+            f"fwer_p_display={fwer_row['p_display']} verdict={verdict}"
+        )
+        if h_norm_partial_row is not None:
+            print(f"        [non-gating H_norm] controlled_partial={h_norm_partial_row['controlled_partial']:.6f}")
+
+    phase = pcp.phase_verdict(per_d_verdicts)
+    print(f"\nPER-D VERDICTS: {per_d_verdicts}")
+    print(f"PHASE VERDICT: {phase}")
+
+    pc_rows = [r for r in rows if r.get("row_kind") == "positive_control"]
+    cleared_magnitudes = sorted({r["target_magnitude"] for r in pc_rows if r.get("cleared")})
+    detection_floor = cleared_magnitudes[0] if cleared_magnitudes else None
+    print(f"\nPOSITIVE CONTROL detection floor: {detection_floor}")
+
+    sl_rows = [r for r in rows if r.get("row_kind") == "shuffled_label"]
+    n_fp = sum(1 for r in sl_rows if r.get("cleared"))
+    n_total = len(sl_rows)
+    fp_rate = (n_fp / n_total) if n_total else float("nan")
+    print(f"SHUFFLED-LABEL false-positive rate: {n_fp}/{n_total} ({fp_rate:.3f}) vs nominal FWER_ALPHA={pcp.FWER_ALPHA}")
+
+    fidelity = {
+        16: pcp.INSTRUMENT_FIDELITY_RANGE_D16,
+        20: pcp.INSTRUMENT_FIDELITY_RANGE_D20,
+        25: pcp.INSTRUMENT_FIDELITY_RANGE_D25,
+        32: f"UNMEASURED -- {pcp.INSTRUMENT_FIDELITY_D32_RULE}",
+    }
+    print(f"\nInstrument fidelity ranges: {fidelity}")
+    print(f"Neighbourhood ratio: {pcp.NEIGHBOURHOOD_RATIO_RULE}")
+
+    last_fwer_global = next(
+        (r for r in reversed(rows) if r.get("row_kind") == "null" and r.get("null_type") == "fwer_global"
+         and r.get("label") == pl.PRIMARY_LABEL and r.get("field") == gating_field), None,
+    )
+    sentence = pcp.verdict_sentence(
+        instrument="cae.PlainAutoEncoder + decoder_curvature.plain_decoder_curvature",
+        d_values=pcp.D_SWEEP,
+        colleague_rho=-0.2405,
+        colleague_d=16,
+        fwer_p_display=(last_fwer_global["p_display"] if last_fwer_global else "n/a"),
+        stratified_p_display="see per-d 'null' rows (null_type='stratified')",
+        instrument_fidelity_ranges=fidelity,
+        neighbourhood_ratio=pcp.NEIGHBOURHOOD_RATIO_RULE,
+    )
+    print(f"\n{sentence}")
+
+    append_record_row(
+        {
+            "row_kind": "verdict",
+            "phase_verdict": phase,
+            "per_d_verdicts": {str(k): v for k, v in per_d_verdicts.items()},
+            "positive_control_detection_floor": detection_floor,
+            "shuffled_label_false_positive_count": n_fp,
+            "shuffled_label_repeats": n_total,
+            "verdict_sentence": sentence,
+            "freeze_commit": _git_rev_parse(args.freeze_commit),
+            "run_commit": _git_rev_parse("HEAD"),
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        },
+        record_path,
+    )
+
+    print(f"\nVERDICT recorded to {record_path}.")
+    return True
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
@@ -631,17 +1430,33 @@ def main() -> None:
         ok = run_bundle(args)
         sys.exit(0 if ok else 1)
 
-    if args.mode != "smoke":
-        plan = _MODE_IMPLEMENTING_PLAN.get(args.mode, "a later plan")
-        print(
-            f"ERROR: --mode {args.mode} is not implemented by this plan (09-01) -- it is added "
-            f"by plan {plan}.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+    if args.mode == "smoke":
+        ok = run_smoke(args)
+        sys.exit(0 if ok else 1)
 
-    ok = run_smoke(args)
-    sys.exit(0 if ok else 1)
+    if args.mode == "dsweep":
+        ok = run_dsweep(args)
+        sys.exit(0 if ok else 1)
+
+    if args.mode == "positive-control":
+        ok = run_positive_control(args)
+        sys.exit(0 if ok else 1)
+
+    if args.mode == "shuffled-label":
+        ok = run_shuffled_label(args)
+        sys.exit(0 if ok else 1)
+
+    if args.mode == "verdict":
+        ok = run_verdict(args)
+        sys.exit(0 if ok else 1)
+
+    plan = _MODE_IMPLEMENTING_PLAN.get(args.mode, "a later plan")
+    print(
+        f"ERROR: --mode {args.mode} is not implemented by this plan (09-08) -- it is added "
+        f"by plan {plan}.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 
 
 if __name__ == "__main__":
