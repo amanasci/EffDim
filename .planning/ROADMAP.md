@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 6/10 plans executed
+**Plans:** 7/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1192,7 +1192,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 09-07-PLAN.md — The row-alignment proof on the execution host, and the ruling on its outcome (D9-08 adoption branch included)
+- [x] 09-07-PLAN.md — The row-alignment proof on the execution host, and the ruling on its outcome (D9-08 adoption branch included)
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
