@@ -105,11 +105,12 @@ from pu_manifold import subsample  # noqa: E402
 from pu_manifold import physics_labels as pl  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
-# FREEZE_COMMIT_SHA wired to plan 09-05 Task 1's freeze commit (D9-18): the commit that filled
-# every gating constant in physics_labels.py and physics_curvature_probe.py. _strict_ancestor_or_
-# exit now also enforces the exact-equality check below -- a --freeze-commit resolving to any
-# other genuine ancestor of HEAD is rejected (CR-01).
-FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+# FREEZE_COMMIT_SHA wired to Amendment 01's freeze commit (09-PREREGISTRATION-AMENDMENT-01.md),
+# which superseded plan 09-05's original freeze 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 in full. Every
+# gating constant in physics_labels.py is unchanged by the amendment, but D9-18 gates on THE
+# freeze in force, and _strict_ancestor_or_exit's exact-equality check (CR-01) now rejects the
+# superseded SHA along with any other genuine ancestor of HEAD.
+FREEZE_COMMIT_SHA = "e31b3010c1a568065e35132ed60a32fb4842db36"
 
 # JSONL record stems this runner writes. --mode manifest and --mode proof/search each own one;
 # --mode smoke must never default onto either (it always requires an explicit --record-path,

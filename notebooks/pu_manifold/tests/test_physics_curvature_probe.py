@@ -37,7 +37,9 @@ FRAC_SPHERE_TOLERANCE = 0.10
 
 # --- freeze-commit ancestry scaffold (FREEZE_COMMIT_SHA wired by plan 09-05) -------------------
 
-FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+FREEZE_COMMIT_SHA = "e31b3010c1a568065e35132ed60a32fb4842db36"
+# Superseded by 09-PREREGISTRATION-AMENDMENT-01.md; must never be accepted again.
+SUPERSEDED_FREEZE_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
 
 
 def _repo_root() -> Path:
@@ -86,6 +88,18 @@ def test_freeze_commit_sha_is_full_lowercase_hex():
     assert isinstance(FREEZE_COMMIT_SHA, str)
     assert len(FREEZE_COMMIT_SHA) == 40
     assert re.fullmatch(r"[0-9a-f]{40}", FREEZE_COMMIT_SHA)
+
+
+def test_superseded_freeze_sha_is_rejected():
+    """Amendment 01 superseded plan 09-05's freeze in full: the old SHA is still a genuine
+    ancestor of HEAD (so an ancestry check alone would accept it) but must never be the accepted
+    freeze again."""
+    assert SUPERSEDED_FREEZE_SHA != FREEZE_COMMIT_SHA
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", SUPERSEDED_FREEZE_SHA, FREEZE_COMMIT_SHA],
+        cwd=_repo_root(),
+    )
+    assert is_ancestor.returncode == 0, "the amendment freeze must descend from the original freeze"
 
 
 # --- parity pin: reproduce the colleague's published numbers ---------------------------------
@@ -565,6 +579,17 @@ def _load_runner_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_runner_gate_rejects_superseded_freeze_sha(capsys):
+    """`_strict_ancestor_or_exit` must refuse the superseded 09-05 freeze SHA (CR-01's exact-
+    equality check), even though it is a genuine ancestor of HEAD."""
+    module = _load_runner_module()
+    assert module.FREEZE_COMMIT_SHA == FREEZE_COMMIT_SHA
+    with pytest.raises(SystemExit) as exc_info:
+        module._strict_ancestor_or_exit(SUPERSEDED_FREEZE_SHA)
+    assert exc_info.value.code == 1
+    assert "does not equal the known freeze commit" in capsys.readouterr().err
 
 
 def test_verdict_mode_requires_both_gates(tmp_path, monkeypatch):

@@ -62,7 +62,9 @@ def _small_oof(X: np.ndarray, y: np.ndarray) -> np.ndarray:
 # Mirrors test_physics_curvature_probe.py's own scaffold exactly (test_density_stratified_null.py
 # lines 33-73's ancestry-test idiom).
 
-FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+FREEZE_COMMIT_SHA = "e31b3010c1a568065e35132ed60a32fb4842db36"
+# Superseded by 09-PREREGISTRATION-AMENDMENT-01.md; must never be accepted again.
+SUPERSEDED_FREEZE_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
 
 
 def _repo_root() -> Path:
@@ -111,6 +113,18 @@ def test_freeze_commit_sha_is_full_lowercase_hex():
     assert isinstance(FREEZE_COMMIT_SHA, str)
     assert len(FREEZE_COMMIT_SHA) == 40
     assert re.fullmatch(r"[0-9a-f]{40}", FREEZE_COMMIT_SHA)
+
+
+def test_superseded_freeze_sha_is_rejected():
+    """Amendment 01 superseded plan 09-05's freeze in full: the old SHA is still a genuine
+    ancestor of HEAD (so an ancestry check alone would accept it) but must never be the accepted
+    freeze again."""
+    assert SUPERSEDED_FREEZE_SHA != FREEZE_COMMIT_SHA
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", SUPERSEDED_FREEZE_SHA, FREEZE_COMMIT_SHA],
+        cwd=_repo_root(),
+    )
+    assert is_ancestor.returncode == 0, "the amendment freeze must descend from the original freeze"
 
 
 # --- alignment curve: the heart of this suite --------------------------------------------------

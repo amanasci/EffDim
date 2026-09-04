@@ -93,13 +93,12 @@ _MODE_IMPLEMENTING_PLAN = {
     "selfcheck": "a later plan (not yet scheduled)",
 }
 
-# FREEZE_COMMIT_SHA wired to plan 09-05 Task 1's freeze commit (D9-18): the commit that filled
-# every gating constant in physics_labels.py and physics_curvature_probe.py -- mirrors
+# FREEZE_COMMIT_SHA wired to Amendment 01's freeze commit (09-PREREGISTRATION-AMENDMENT-01.md):
+# the commit that added DECODER_IMAGE_PROJECTION = "sphere" to physics_curvature_probe.py and
+# superseded plan 09-05's original freeze 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 in full. Mirrors
 # 09_row_alignment_proof_run.py's own FREEZE_COMMIT_SHA/_strict_ancestor_or_exit pair exactly.
-# No mode in THIS runner produces a Physics number yet (every non-smoke mode above exits 2,
-# implemented by a later plan); this gate is wired now so 09-06/09-08/09-09 call it, rather than
-# each re-deriving the freeze-ancestry check independently.
-FREEZE_COMMIT_SHA = "5f7fbe27afb0ef2a76353b41fa5713e760bbeea5"
+# The superseded SHA is now REJECTED by _strict_ancestor_or_exit's exact-equality check (CR-01).
+FREEZE_COMMIT_SHA = "e31b3010c1a568065e35132ed60a32fb4842db36"
 
 
 def _git_rev_parse(rev: str) -> Optional[str]:
@@ -522,6 +521,24 @@ def load_anchor_table(path: Any) -> Dict[str, np.ndarray]:
         return {key: np.asarray(z[key]) for key in z.files}
 
 
+class SphereProjectedDecoder(torch.nn.Module):
+    """Amendment 01 (`pcp.DECODER_IMAGE_PROJECTION == "sphere"`): the decoder map whose
+    curvature is differentiated is `F(z) / ||F(z)||`, so the decoder image lies in the unit
+    sphere the L2-normalised data occupy and `H_rad == -d` identically. `.decoder` is the wrapped
+    model's own decoder so `decoder_curvature.assert_c2_decoder` inspects the real activation
+    modules; the parameters are the wrapped model's own, so `_assert_float64` sees the real dtype
+    (construct this AFTER `model.eval().double()`)."""
+
+    def __init__(self, model: torch.nn.Module) -> None:
+        super().__init__()
+        self.model = model
+        self.decoder = model.decoder
+
+    def decode(self, z: torch.Tensor) -> torch.Tensor:
+        F = self.model.decode(z)
+        return F / torch.linalg.norm(F, dim=-1, keepdim=True)
+
+
 def fit_and_field_at_anchors(
     X: np.ndarray,
     d: int,
@@ -557,19 +574,25 @@ def fit_and_field_at_anchors(
     wallclock_fit_s = time.monotonic() - t0
 
     model.eval().double()
+    # Amendment 01: curvature (and the image handed to decompose_radial_tangential) is taken on
+    # the sphere-projected decoder F/||F||. The fit, encoder, var_explained and anchor codes are
+    # untouched. Built after .double() so the wrapper shares the float64 weights.
+    curvature_model: torch.nn.Module = model
+    if pcp.DECODER_IMAGE_PROJECTION == "sphere":
+        curvature_model = SphereProjectedDecoder(model).eval()
     anchor_idx_t = torch.as_tensor(np.asarray(anchor_idx), dtype=torch.long)
     x_anchor64 = x64[anchor_idx_t]
     with torch.no_grad():
         z_anchor = model.encode(x_anchor64)
         y_holdout = model(x_holdout64)["y"]
-        image = model.decode(z_anchor).detach().cpu().numpy()
+        image = curvature_model.decode(z_anchor).detach().cpu().numpy()
 
     recon = cae.reconstruction_stats(x_holdout64, y_holdout)
     sig = float((torch.linalg.norm(x_holdout64, dim=1) ** 2).mean())
     var_explained = 1.0 - recon["mse_total"] / sig
 
     t0 = time.monotonic()
-    field = decoder_curvature.plain_decoder_curvature(model, z_anchor)
+    field = decoder_curvature.plain_decoder_curvature(curvature_model, z_anchor)
     wallclock_field_s = time.monotonic() - t0
 
     H_vec = field["H_vec"].detach().cpu().numpy()
@@ -837,12 +860,18 @@ def run_dsweep(args: argparse.Namespace) -> bool:
         cond_g = fit["metric_condition_number"]
         cond_g_median = float(np.median(cond_g))
         h_rad_median = float(np.nanmedian(decomp["H_rad"]))
+        h_rad_max_abs_dev = float(np.nanmax(np.abs(decomp["H_rad"] + d)))
 
         print(
             f"[d={d}] fit done (elapsed so far {time.monotonic() - t_d0:.1f}s). "
             f"wallclock_fit={fit['wallclock_fit_s']:.1f}s wallclock_field={fit['wallclock_field_s']:.1f}s "
             f"var_explained={fit['var_explained']:.4f} cond(g) median={cond_g_median:.4e} "
             f"H_rad median={h_rad_median:.4f} (expected ~{-d})"
+        )
+        print(
+            f"[d={d}] decoder image projection={pcp.DECODER_IMAGE_PROJECTION!r} (Amendment 01): "
+            f"max|H_rad + d| over anchors = {h_rad_max_abs_dev:.3e} (identically 0 under the "
+            f"sphere projection; recorded as a check, never as a result)"
         )
 
         append_record_row(
@@ -854,6 +883,8 @@ def run_dsweep(args: argparse.Namespace) -> bool:
                 "cond_g_p95": float(np.percentile(cond_g, 95)),
                 "H_rad_median": h_rad_median,
                 "H_rad_expected": float(-d),
+                "H_rad_max_abs_dev": h_rad_max_abs_dev,
+                "decoder_image_projection": pcp.DECODER_IMAGE_PROJECTION,
                 "n_excluded_low_image_norm": decomp["n_excluded_low_norm"],
                 "wallclock_fit_s": fit["wallclock_fit_s"],
                 "wallclock_field_s": fit["wallclock_field_s"],
