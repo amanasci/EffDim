@@ -13,7 +13,7 @@ SHA is quoted in this document's first commit because, by the commit-ordering di
 follows, the document is written before that commit exists; a follow-up docs commit records it
 in the header line below.
 
-**Amendment 01 freeze commit SHA:** _(filled by the follow-up docs commit)_
+**Amendment 01 freeze commit SHA:** `e31b3010c1a568065e35132ed60a32fb4842db36` (wiring commit: `2b43c918a626f57f79a6093676cf47d3c4722604`, which sets `FREEZE_COMMIT_SHA` in both runners and both test suites and carries the runner change in § 2 below).
 
 ## Why this amendment exists, and why it is legitimate
 
