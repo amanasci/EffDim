@@ -96,6 +96,8 @@ python3 -m venv .venv
 If step 2's ancestry check fails, stop — do not proceed to step 3 or beyond, and report the
 failure back rather than attempting a repair on the host (Section 8).
 
+**Verified against a real host: see Section 9, "Host as bootstrapped."**
+
 ## 4. The run sequence
 
 Every command below carries the literal freeze commit `5f7fbe27afb0ef2a76353b41fa5713e760bbeea5`
@@ -306,3 +308,91 @@ more artifacts exist just produces a second, later-stamped archive.
 partial bundle exists (Section 6's `--mode bundle` exits 0 on a partial set precisely for this
 reason), rather than attempting a repair on the host.** A repair on an unaudited host is itself a
 new source of the exact kind of undocumented drift this freeze discipline exists to prevent.
+
+## 9. Host as bootstrapped
+
+**Recorded 2026-09-04 UTC.** Section 3's fresh-clone bootstrap was executed on a real execution
+host and is now **verified**: the freeze proof held, both smoke modes passed, and a bundle
+transferred back cleanly. Host identity is recorded as capability only — core count, OS, Python
+and library versions, thread count — never as an address, per Section 7.
+
+Per the developer's instruction (2026-09-04 UTC): *"begin with running experiments on ssh
+server. ensure you use AVAILABLE compute, don't kick someone off if they are already using.
+check free compute with nvidia-smi. adhere strictly to the user-guide."* The bootstrap steps
+below were executed over SSH by the orchestrator acting on that instruction, following the
+host's own user guide, not typed interactively by the developer.
+
+**Host capability (measured, not assumed):**
+
+- **OS:** Ubuntu 22.04.5 LTS
+- **Core count:** `os.cpu_count()` / `nproc` report 128. cgroup CPU limit unlimited (cgroup v2
+  `cpu.max` = `-1 100000` at survey time). RAM: 1006 GB total, ~836 GB free.
+- **GPU:** 8x NVIDIA A100-SXM4-80GB, all idle (0 MiB used, 0% util) at survey time — **not
+  used**; Phase 9 is CPU-only. Load average at survey: ~4 on 128 cores, no other live compute
+  jobs (only defunct zombie processes). Thread count chosen for the cost model and smoke runs:
+  **16**, leaving the remaining cores free for other users of the shared host, per the
+  developer's "don't kick someone off" instruction.
+- **Python:** 3.14.7
+- **Library versions:** torch 2.13.0+cpu, numpy 2.5.1, scipy 1.18.0, scikit-learn 1.9.0,
+  pyarrow 25.0.1, pandas 3.0.5, datasets 5.0.1. (The local development machine differs only in
+  pyarrow 25.0.0 — not a Phase 9-relevant discrepancy.)
+
+**Bootstrap deviation from Section 3, step 3 (must be recorded):** the host's system `python3`
+is 3.10.12. The pins `numpy==2.5.1` and `scipy==1.18.0` require Python >= 3.12 per their PyPI
+`requires_python` metadata, so `python3 -m venv .venv` as literally written cannot satisfy
+`requirements-notebooks.txt` on this host. Per the host's own persistent-environment recipe in
+its user guide, a Python 3.14.7 interpreter was provisioned first
+(`mamba create -p <persistent-root>/env python=3.14 pip`), and Section 3's `.venv` was then
+created **from that interpreter** (`<persistent-root>/env/bin/python -m venv .venv`) so every
+other command in Section 3 and Section 4 runs literally as written, via `.venv/bin/python`. The
+dependency install took 36 minutes wall-clock. No sealed module (`notebooks/pu_manifold/`) was
+touched by this deviation; `git status` in the host clone is clean.
+
+**Clone.** `git clone --single-branch --branch fixture-validity-audit` over HTTPS into a
+persistent directory on the host. HEAD at clone time: `ee992bac947f3469dfb0e607867901992f0b17de`.
+Freeze proof on the host, both checks:
+- `git merge-base --is-ancestor 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 HEAD` → exit 0
+  (`is-ancestor: OK`)
+- `git rev-list --count 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5..HEAD` → `5`
+
+**Environment overrides used** (Section 3, step 4), both pointed at the host's persistent disk:
+`HF_HOME=/mnt/ssd-cluster/effdim/hf-cache`, `EFFDIM_09_OUTPUT_ROOT=/mnt/ssd-cluster/effdim/phase9-out`.
+The host's home directory is ephemeral and wiped on unannounced restarts; nothing this phase
+needs lives there.
+
+**Cost-model output** (`--print-cost-model --threads 16`), verbatim:
+
+```
+Phase 9 cost model -- CORE-HOURS, portable across hosts. threads=16 host_core_count=128
+   d    training core-hr   curvature core-hr   total core-hr    wallclock@16t (hr)
+  16               7.187               0.106           7.293                 0.456
+  20               7.187               0.166           7.352                 0.460
+  25               7.187               0.259           7.446                 0.465
+  32               7.187               0.424           7.611                 0.476
+```
+
+**Physics smoke** (`--mode smoke`, 12.3 s wall-clock): all seven stages PASS — `ae_fit` 0.9893
+(> 0.7), `radial_decomposition` -1.8809, `knn` 64, `oof_ridge` 2000, `local_r2` 128,
+`controlled_partial` -0.0014, `permutation_fwer` 0.99005. Banner: **`SMOKE PASS`**, exit 0.
+
+**Alignment smoke** (`--mode smoke`): aligned case `argmax_shift=0`, `r2_shift0=0.9949`,
+`passed=true`; offset case `injected_offset=5`, `clearing_alignments=[5]`, `passed=true`
+(the archive's own record — both smoke cases individually report `passed: true`, consistent
+with the overall banner). Banner: **`ALIGNMENT SMOKE PASS`**, exit 0. One wording note, not a
+defect: the smoke-mode banner also printed "Every gating constant in
+physics_labels/physics_curvature_probe is still UNSET" — stale text left over from before the
+freeze; smoke mode reads no frozen constant, so this does not affect the result, but it should
+be cleaned up in a future plan touching that banner.
+
+**Returned bundle.** Archive `09-artifacts-pod128-20260904T044351Z.tar.gz`, 883 bytes.
+SHA-256 (as reported by the host and re-verified locally over the received file — both match):
+`20c6a8ba28f3b9b95ba9e01164520a3f5d33fdcc5f1949146fc5c3aeb99338cd`. Contents: `09_scratch_alignment.jsonl`,
+`09_scratch_tracer.jsonl`, `environment.json`. Extracted locally under the resolved local output
+root (`notebooks/.cache/`, unset `EFFDIM_09_OUTPUT_ROOT` on the local machine). Every extracted
+record's `mode` value, where present, is `smoke`; no `verdict`, `phase_verdict` or
+data-derived `passed` key appears anywhere in the archive. No production Physics file
+(`09_row_alignment.jsonl`, `09_physics_curvature.jsonl`) exists locally or in the archive.
+
+**Section 3's "Fresh-clone bootstrap" is now verified against this host**, with the one
+recorded deviation above (Python interpreter provisioning) and no other departure from the
+literal steps.
