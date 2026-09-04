@@ -158,9 +158,26 @@ RADIAL_DECOMPOSITION_RULE = (
     "formula exactly: img_norm = ||image||, u = image / img_norm, H_rad = <H_vec, u>, "
     "H_tan = H_vec - H_rad * u, H_tan_norm = ||H_tan||. 08-DIAGNOSTICS.md Section 2 measured "
     "H_rad and H_tan disagreeing on the controlled partial by 2.8x at d=25, which is why "
-    "H_tan_norm (never H_norm) carries the verdict (D9-11)."
+    "H_tan_norm (never H_norm) carries the verdict (D9-11). Amendment 01: the image handed to "
+    "decompose_radial_tangential (and the H_vec differentiated) is the sphere-projected decoder "
+    "image F/||F|| named by DECODER_IMAGE_PROJECTION; the formula above is unchanged."
 )
 """Rule string naming the decompose_radial_tangential formula this phase uses."""
+
+DECODER_IMAGE_PROJECTION = "sphere"
+"""Amendment 01 (09-PREREGISTRATION-AMENDMENT-01.md): the decoder map whose curvature is
+evaluated is F/||F||, not the raw F. Literal-guarded to "sphere" by assert_preregistered."""
+
+DECODER_IMAGE_PROJECTION_RULE = (
+    "Curvature is evaluated on the sphere-projected decoder map F/||F|| (F = "
+    "cae.PlainAutoEncoder.decode, whose out_activation=None leaves the raw image unconstrained), "
+    "so the decoder image lies in the unit sphere the L2-normalised data occupy. Under this "
+    "projection the radial component H_rad equals -d identically (CURVATURE_CONVENTION = trace) "
+    "and H_tan_norm is the mean curvature within the sphere -- the sphere-intrinsic curvature "
+    "CURVATURE_FIELD_FOR_VERDICT was always declared to measure. H_rad is recorded as a check "
+    "(max over anchors of |H_rad + d|, beside H_rad_median), never as a result."
+)
+"""Exact-equality-guarded (see _REQUIRED_DECODER_IMAGE_PROJECTION_RULE below)."""
 
 MIN_IMAGE_NORM = 1e-12
 """Rows whose decoder-image norm falls below this are excluded from the decomposition rather
@@ -504,6 +521,16 @@ _REQUIRED_NULL_CONSTRUCTION_RULE = (
     "never used here."
 )
 
+_REQUIRED_DECODER_IMAGE_PROJECTION_RULE = (
+    "Curvature is evaluated on the sphere-projected decoder map F/||F|| (F = "
+    "cae.PlainAutoEncoder.decode, whose out_activation=None leaves the raw image unconstrained), "
+    "so the decoder image lies in the unit sphere the L2-normalised data occupy. Under this "
+    "projection the radial component H_rad equals -d identically (CURVATURE_CONVENTION = trace) "
+    "and H_tan_norm is the mean curvature within the sphere -- the sphere-intrinsic curvature "
+    "CURVATURE_FIELD_FOR_VERDICT was always declared to measure. H_rad is recorded as a check "
+    "(max over anchors of |H_rad + d|, beside H_rad_median), never as a result."
+)
+
 
 _REQUIRED_CONSTANTS = (
     "K_NEIGHBOURS", "NEIGHBOURHOOD_RATIO_RULE", "N_ANCHORS", "ANCHOR_DRAW_SEED", "ANCHOR_POOL",
@@ -512,7 +539,8 @@ _REQUIRED_CONSTANTS = (
     "CURVATURE_CONVENTION", "D_SWEEP", "FIT_QUALITY_KEYS", "INSTRUMENT_FIDELITY_RANGE_D16",
     "INSTRUMENT_FIDELITY_RANGE_D20", "INSTRUMENT_FIDELITY_RANGE_D25",
     "INSTRUMENT_FIDELITY_D32_RULE", "CURVATURE_FIELD_FOR_VERDICT", "H_NORM_IS_NON_GATING",
-    "RADIAL_DECOMPOSITION_RULE", "MIN_IMAGE_NORM", "ALPHA_RIDGE", "ALPHA_GRID",
+    "RADIAL_DECOMPOSITION_RULE", "DECODER_IMAGE_PROJECTION", "DECODER_IMAGE_PROJECTION_RULE",
+    "MIN_IMAGE_NORM", "ALPHA_RIDGE", "ALPHA_GRID",
     "ALPHA_SELECTION_RULE", "N_OOF_FOLDS", "OOF_FOLD_SEED", "OOF_IMPLEMENTATION_RULE",
     "LOCAL_R2_RULE", "MIN_FINITE_NEIGHBOURS", "CONTROLS", "VERDICT_STATISTIC",
     "RAW_RHO_IS_NON_GATING", "STRATIFIED_NULL_IS_NON_GATING", "STRATIFICATION_FIELD",
@@ -546,11 +574,12 @@ def assert_preregistered() -> None:
     in declaration order -- one check per constant. ``None``, an empty tuple/list, an empty
     dict and an empty-or-whitespace-only string are all treated as UNSET.
 
-    Once every constant is non-empty, five additional checks fire by EXACT STRING EQUALITY,
+    Once every constant is non-empty, six additional checks fire by EXACT STRING EQUALITY,
     never by truthiness: ``SEED_HANDLING_RULE``, ``CURVATURE_FIELD_FOR_VERDICT``,
-    ``ALPHA_SELECTION_RULE``, ``OOF_IMPLEMENTATION_RULE`` and ``NULL_CONSTRUCTION_RULE`` must
-    each equal this module's own required canonical text -- a reworded rule string fails the
-    guard even though it is non-empty."""
+    ``ALPHA_SELECTION_RULE``, ``OOF_IMPLEMENTATION_RULE``, ``NULL_CONSTRUCTION_RULE`` and
+    (Amendment 01) ``DECODER_IMAGE_PROJECTION_RULE`` must each equal this module's own required
+    canonical text -- a reworded rule string fails the guard even though it is non-empty.
+    ``DECODER_IMAGE_PROJECTION`` must equal the literal ``"sphere"``."""
     g = globals()
     for name in _REQUIRED_CONSTANTS:
         if name not in g:
@@ -570,6 +599,7 @@ def assert_preregistered() -> None:
         ("ALPHA_SELECTION_RULE", _REQUIRED_ALPHA_SELECTION_RULE),
         ("OOF_IMPLEMENTATION_RULE", _REQUIRED_OOF_IMPLEMENTATION_RULE),
         ("NULL_CONSTRUCTION_RULE", _REQUIRED_NULL_CONSTRUCTION_RULE),
+        ("DECODER_IMAGE_PROJECTION_RULE", _REQUIRED_DECODER_IMAGE_PROJECTION_RULE),
     )
     for name, required in _equality_checks:
         if g[name] != required:
@@ -581,6 +611,11 @@ def assert_preregistered() -> None:
         raise RuntimeError(
             f"assert_preregistered: CURVATURE_CONVENTION={g['CURVATURE_CONVENTION']!r} does "
             'not equal "trace".'
+        )
+    if g["DECODER_IMAGE_PROJECTION"] != "sphere":
+        raise RuntimeError(
+            f"assert_preregistered: DECODER_IMAGE_PROJECTION={g['DECODER_IMAGE_PROJECTION']!r} "
+            'does not equal "sphere" (Amendment 01).'
         )
 
 
