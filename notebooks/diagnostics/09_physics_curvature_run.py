@@ -51,7 +51,7 @@ import tarfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 NOTEBOOK_ROOT = Path(__file__).resolve().parents[1]
 if str(NOTEBOOK_ROOT) not in sys.path:
@@ -86,10 +86,10 @@ from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
 # Modes not yet implemented by this plan, and which plan implements each. "bundle" and
 # "print-cost-model" were removed from this dict by 09-06; "dsweep", "positive-control",
-# "shuffled-label" and "verdict" were removed by 09-08 -- all eight are implemented below and
-# dispatched directly in main(), never falling through to this "not implemented" table.
+# "shuffled-label" and "verdict" were removed by 09-08; "seeds" was removed by 09-09 -- all nine
+# are implemented below and dispatched directly in main(), never falling through to this "not
+# implemented" table.
 _MODE_IMPLEMENTING_PLAN = {
-    "seeds": "09-09",
     "selfcheck": "a later plan (not yet scheduled)",
 }
 
@@ -1392,6 +1392,351 @@ def run_verdict(args: argparse.Namespace) -> bool:
     return True
 
 
+def _triggered_d_values(record_path: Path) -> List[int]:
+    """Reads the `row_kind="verdict"` row Wave A's `--mode verdict` wrote and returns the
+    triggered `d` list -- the `d` values whose `per_d_verdicts` entry equals
+    `PER_D_VERDICT_VALUES[0]` -- in ascending order. The scope comes from the record, never from
+    a CLI argument (`WAVE_B_TRIGGER_RULE`): an operator cannot pass a `d` list that could be
+    widened after seeing Wave A's own result (T-09-63). Returns an empty list when no verdict row
+    exists in the record, or when the verdict row's own per-`d` map fired nowhere -- both cases
+    route `run_seeds` to record `WAVE_B_NOT_TRIGGERED` rather than fit anything."""
+    record_path = Path(record_path)
+    if not record_path.exists():
+        return []
+    verdict_row: Optional[Dict[str, Any]] = None
+    with record_path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("row_kind") == "verdict":
+                verdict_row = row  # last verdict row wins; run_verdict only ever appends
+    if verdict_row is None:
+        return []
+    per_d = verdict_row.get("per_d_verdicts") or {}
+    return sorted(int(d) for d, v in per_d.items() if v == pcp.PER_D_VERDICT_VALUES[0])
+
+
+def run_seeds(args: argparse.Namespace) -> bool:
+    """`--mode seeds` (D9-17): Wave B, the three-seed sweep, run only at the `d` values Wave A's
+    own recorded `verdict` row fired at (`_triggered_d_values`, never a CLI `d` list). Reuses
+    Wave A's anchor set, neighbourhood panel, out-of-fold predictions and the three controls
+    completely unchanged -- loaded once per `d` from the Wave A anchor table rather than
+    recomputed, since none of them depends on the autoencoder fit and recomputing them would let
+    the three seeds differ by more than the seed (T-09-64). For each triggered `d` and each seed
+    in `TORCH_INIT_SEEDS_WAVE_B` order: refits at that seed, decomposes the SAME anchor
+    curvature, computes its own controlled partial, its own Freedman-Lane null and its own
+    bootstrap band, and records `seed_fit`/`seed_partial`/`seed_null` rows -- a failed or
+    non-finite seed is recorded, never dropped (T-09-62), and gets the not-cleared per-d verdict
+    so it cannot let the remaining two agree by construction. Combines exactly three per-seed
+    verdicts with the frozen, exact-equality-guarded `combine_seed_verdicts` (05-03-DECISION.md's
+    one-way do-not-pool ratification) into one `seed_cell_verdict` row, alongside the pairwise
+    Spearman between the three seeds' `H_tan_norm` fields (T-09-66). When Wave A's own verdict
+    row fired at zero `d` values, appends exactly one row carrying `wave_b ==
+    "WAVE_B_NOT_TRIGGERED"` and returns without fitting anything -- a complete, terminal outcome,
+    never a silent no-op (T-09-65)."""
+    env = _gate_and_environment(args)
+    freeze_commit = _git_rev_parse(args.freeze_commit)
+    run_commit = _git_rev_parse("HEAD")
+    record_path = resolve_record_path(args.record_path, default_stem=pcp.RECORD_STEM)
+    append_record_row(env, record_path)
+
+    def _utc_now() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    triggered = _triggered_d_values(record_path)
+    print(
+        f"\nWAVE B: {pcp.WAVE_B_TRIGGER_RULE}\n"
+        f"triggered d values (read from the record's own verdict row): {triggered}\n"
+    )
+
+    if not triggered:
+        print(
+            "Wave A fired at zero d values -- no seed is fit. Recording WAVE_B_NOT_TRIGGERED as "
+            "a complete, terminal outcome (never an absence)."
+        )
+        append_record_row(
+            {
+                "row_kind": "seed_cell_verdict",
+                "d": None,
+                "wave_b": "WAVE_B_NOT_TRIGGERED",
+                "cell_verdict": "WAVE_B_NOT_TRIGGERED",
+                "seeds": list(pcp.TORCH_INIT_SEEDS_WAVE_B),
+                "freeze_commit": freeze_commit,
+                "run_commit": run_commit,
+                "timestamp_utc": _utc_now(),
+            },
+            record_path,
+        )
+        print(f"WAVE_B_NOT_TRIGGERED recorded to {record_path}.")
+        return True
+
+    output_root = pcp.resolve_output_root()
+    seeds_list = list(pcp.TORCH_INIT_SEEDS_WAVE_B)
+
+    t0 = time.monotonic()
+    emb = pl.load_physics_embeddings()
+    X = emb["X"]
+    print(f"[load] physics embeddings: n_rows={emb['n_rows']} wallclock={time.monotonic() - t0:.1f}s")
+
+    for d in triggered:
+        anchor_table_path = _anchor_table_path(output_root, d, pl.PRIMARY_LABEL)
+        wave_a_table = load_anchor_table(anchor_table_path)
+        anchor_idx = np.asarray(wave_a_table["anchor_idx"], dtype=np.int64)
+        log_knn_radius = np.asarray(wave_a_table["log_knn_radius"], dtype=np.float64)
+        local_label_variance = np.asarray(wave_a_table["local_label_variance"], dtype=np.float64)
+        local_evaluation_count = np.asarray(wave_a_table["local_evaluation_count"], dtype=np.int64)
+        r2 = np.asarray(wave_a_table["r2"], dtype=np.float64)
+        mse = np.asarray(wave_a_table["mse"], dtype=np.float64)
+        sst = np.asarray(wave_a_table["sst"], dtype=np.float64)
+        controls = np.column_stack([log_knn_radius, local_label_variance, local_evaluation_count])
+        r2_finite = np.isfinite(r2)
+
+        print(
+            f"\n{'-' * 78}\n[d={d}] Wave B: {len(seeds_list)} seeds, reusing Wave A's own anchor "
+            f"set/panel/controls from {anchor_table_path.name} unchanged.\n{'-' * 78}"
+        )
+
+        per_seed_verdict: Dict[int, str] = {}
+        seed_h_tan: Dict[int, np.ndarray] = {}
+        seed_partials: Dict[int, float] = {}
+
+        for seed in seeds_list:
+            # The shared inputs above are loaded ONCE per d, before this seed loop, and never
+            # recomputed inside it -- reasserted every seed iteration against the same Wave A
+            # anchor-table read so a bug that mutated them mid-loop could not pass silently
+            # (T-09-64).
+            assert np.array_equal(
+                anchor_idx, np.asarray(wave_a_table["anchor_idx"], dtype=np.int64)
+            ), f"run_seeds: anchor_idx drifted across seeds at d={d}."
+            assert np.array_equal(
+                controls,
+                np.column_stack([
+                    np.asarray(wave_a_table["log_knn_radius"], dtype=np.float64),
+                    np.asarray(wave_a_table["local_label_variance"], dtype=np.float64),
+                    np.asarray(wave_a_table["local_evaluation_count"], dtype=np.int64),
+                ]),
+                equal_nan=True,
+            ), f"run_seeds: shared controls drifted across seeds at d={d}."
+            assert np.array_equal(
+                r2, np.asarray(wave_a_table["r2"], dtype=np.float64), equal_nan=True
+            ), f"run_seeds: shared out-of-fold r2 drifted across seeds at d={d}."
+
+            t_seed0 = time.monotonic()
+            fit_failed = False
+            fit_error: Optional[str] = None
+            var_explained = float("nan")
+            cond_g_median = float("nan")
+            h_tan_norm = np.full(anchor_idx.shape[0], np.nan, dtype=np.float64)
+            fit = None
+            decomp = None
+            try:
+                fit = fit_and_field_at_anchors(
+                    X, d=d, anchor_idx=anchor_idx, in_dim=pcp.AE_IN_DIM, hidden=pcp.AE_HIDDEN,
+                    activation=pcp.AE_ACTIVATION, train_cfg=pcp.TRAIN_CFG, max_epochs=pcp.MAX_EPOCHS,
+                    torch_init_seed=seed, split_seed=pcp.SPLIT_SEED, holdout_fraction=pcp.HOLDOUT_FRACTION,
+                )
+                decomp = pcp.decompose_radial_tangential(fit["H_vec"], fit["image"], pcp.MIN_IMAGE_NORM)
+                h_tan_norm = np.asarray(decomp["H_tan_norm"], dtype=np.float64)
+                var_explained = float(fit["var_explained"])
+                cond_g_median = float(np.median(fit["metric_condition_number"]))
+                if not np.all(np.isfinite(h_tan_norm)):
+                    fit_failed = True
+                    fit_error = "non-finite H_tan_norm field"
+            except Exception as exc:  # noqa: BLE001 -- a seed's fit failing is a recorded
+                # outcome that makes its cell split (T-09-62), never a crash of the whole wave.
+                fit_failed = True
+                fit_error = f"{type(exc).__name__}: {exc}"
+
+            wallclock_fit_s = time.monotonic() - t_seed0
+
+            append_record_row(
+                {
+                    "row_kind": "seed_fit",
+                    "d": d,
+                    "seed": seed,
+                    "var_explained": var_explained,
+                    "cond_g_median": cond_g_median,
+                    "fit_failed": bool(fit_failed),
+                    "fit_error": fit_error,
+                    "wallclock_fit_s": wallclock_fit_s,
+                    "freeze_commit": freeze_commit,
+                    "run_commit": run_commit,
+                    "timestamp_utc": _utc_now(),
+                },
+                record_path,
+            )
+
+            seed_h_tan[seed] = h_tan_norm
+
+            if fit_failed:
+                per_seed_verdict[seed] = pcp.PER_D_VERDICT_VALUES[1]
+                seed_partials[seed] = float("nan")
+                append_record_row(
+                    {
+                        "row_kind": "seed_partial",
+                        "d": d,
+                        "seed": seed,
+                        "raw_rho": None,
+                        "controlled_partial": None,
+                        "n_finite_anchors": 0,
+                        "fit_failed": True,
+                        "freeze_commit": freeze_commit,
+                        "run_commit": run_commit,
+                        "timestamp_utc": _utc_now(),
+                    },
+                    record_path,
+                )
+                append_record_row(
+                    {
+                        "row_kind": "seed_null",
+                        "d": d,
+                        "seed": seed,
+                        "p": None,
+                        "p_display": None,
+                        "floor_reached": None,
+                        "bootstrap_ci_low": None,
+                        "bootstrap_ci_high": None,
+                        "n_boot": None,
+                        "per_seed_verdict": per_seed_verdict[seed],
+                        "fit_failed": True,
+                        "freeze_commit": freeze_commit,
+                        "run_commit": run_commit,
+                        "timestamp_utc": _utc_now(),
+                    },
+                    record_path,
+                )
+                print(
+                    f"  seed={seed} FIT FAILED ({fit_error}) -> "
+                    f"per_seed_verdict={per_seed_verdict[seed]}"
+                )
+                continue
+
+            finite = r2_finite & np.isfinite(h_tan_norm)
+            x_f = h_tan_norm[finite]
+            y_f = r2[finite]
+            z_f = controls[finite]
+            raw_rho = float(spearmanr(x_f, y_f).statistic) if x_f.size > 1 else float("nan")
+            controlled = float(pcp.controlled_partial(x_f, y_f, z_f))
+            seed_partials[seed] = controlled
+
+            seed_table = build_anchor_table(
+                anchor_idx=anchor_idx,
+                decomp=decomp,
+                cond_g=fit["metric_condition_number"],
+                panel={
+                    "r2": r2,
+                    "local_label_variance": local_label_variance,
+                    "local_evaluation_count": local_evaluation_count,
+                },
+                mse=mse,
+                sst=sst,
+                log_knn_radius=log_knn_radius,
+            )
+            seed_table_path = write_anchor_table(
+                seed_table, _anchor_table_path(output_root, d, f"{pl.PRIMARY_LABEL}_seed{seed}"),
+            )
+
+            append_record_row(
+                {
+                    "row_kind": "seed_partial",
+                    "d": d,
+                    "seed": seed,
+                    "raw_rho": raw_rho,
+                    "controlled_partial": controlled,
+                    "n_finite_anchors": int(finite.sum()),
+                    "fit_failed": False,
+                    "anchor_table_path": str(seed_table_path),
+                    "freeze_commit": freeze_commit,
+                    "run_commit": run_commit,
+                    "timestamp_utc": _utc_now(),
+                },
+                record_path,
+            )
+
+            fwer = pcp.permutation_fwer({0: x_f}, y_f, z_f, pcp.N_PERMUTATIONS, pcp.PERMUTATION_SEED)
+            per = fwer["per_d"][0]
+            verdict = pcp.per_d_verdict(rho=controlled, p_fwer=per["p"], fwer_alpha=pcp.FWER_ALPHA)
+            per_seed_verdict[seed] = verdict
+
+            boot = pcp.paired_anchor_bootstrap(x_f, y_f, z_f, pcp.N_BOOTSTRAP, pcp.BOOTSTRAP_SEED)
+
+            append_record_row(
+                {
+                    "row_kind": "seed_null",
+                    "d": d,
+                    "seed": seed,
+                    "p": per["p"],
+                    "p_display": per["p_display"],
+                    "floor_reached": per["floor_reached"],
+                    "bootstrap_ci_low": boot["ci_low"],
+                    "bootstrap_ci_high": boot["ci_high"],
+                    "n_boot": boot["n_boot"],
+                    "per_seed_verdict": verdict,
+                    "fit_failed": False,
+                    "freeze_commit": freeze_commit,
+                    "run_commit": run_commit,
+                    "timestamp_utc": _utc_now(),
+                },
+                record_path,
+            )
+
+            print(
+                f"  seed={seed} raw_rho={raw_rho:.6f} controlled_partial={controlled:.6f} "
+                f"p_display={per['p_display']} var_explained={var_explained:.4f} "
+                f"cond_g_median={cond_g_median:.4e} per_seed_verdict={verdict}"
+            )
+
+        # Pairwise Spearman between the three seeds' H_tan_norm fields at the anchors -- shows
+        # the fields genuinely differ, so a unanimous cell is three agreeing measurements rather
+        # than one measurement made three times (T-09-66). Computed over each pair's own finite
+        # intersection; a failed seed's all-NaN field yields NaN for every pair it is in.
+        pairwise_spearman: Dict[str, float] = {}
+        for i in range(len(seeds_list)):
+            for j in range(i + 1, len(seeds_list)):
+                s_i, s_j = seeds_list[i], seeds_list[j]
+                a, b = seed_h_tan[s_i], seed_h_tan[s_j]
+                pair_finite = np.isfinite(a) & np.isfinite(b)
+                if int(pair_finite.sum()) > 1:
+                    rho_pair = float(spearmanr(a[pair_finite], b[pair_finite]).statistic)
+                else:
+                    rho_pair = float("nan")
+                pairwise_spearman[f"{s_i}-{s_j}"] = rho_pair
+
+        combined = pcp.combine_seed_verdicts([per_seed_verdict[s] for s in seeds_list])
+
+        append_record_row(
+            {
+                "row_kind": "seed_cell_verdict",
+                "d": d,
+                "per_seed_verdicts": {str(s): per_seed_verdict[s] for s in seeds_list},
+                "seed_controlled_partials": {str(s): seed_partials[s] for s in seeds_list},
+                "cell_verdict": combined,
+                "pairwise_spearman_h_tan_norm": pairwise_spearman,
+                "freeze_commit": freeze_commit,
+                "run_commit": run_commit,
+                "timestamp_utc": _utc_now(),
+            },
+            record_path,
+        )
+
+        print(
+            f"\n[d={d}] seed table: " + " | ".join(
+                f"seed={s} partial={seed_partials[s]:.6f} verdict={per_seed_verdict[s]}"
+                for s in seeds_list
+            )
+        )
+        print(f"[d={d}] pairwise Spearman(H_tan_norm): {pairwise_spearman}")
+        print(f"[d={d}] COMBINED CELL VERDICT: {combined}")
+
+    print(f"\nWAVE B done. Record: {record_path}.")
+    return True
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument(
@@ -1448,6 +1793,10 @@ def main() -> None:
 
     if args.mode == "verdict":
         ok = run_verdict(args)
+        sys.exit(0 if ok else 1)
+
+    if args.mode == "seeds":
+        ok = run_seeds(args)
         sys.exit(0 if ok else 1)
 
     plan = _MODE_IMPLEMENTING_PLAN.get(args.mode, "a later plan")

@@ -699,3 +699,94 @@ def test_no_pooled_headline_statistic(tmp_path, monkeypatch):
                     f"row_kind={row.get('row_kind')!r} carries an unlabelled pooled-looking key "
                     f"{key!r} (only the labelled fwer_global null row may carry a cross-d key)"
                 )
+
+
+# --- `--mode seeds` (Wave B, D9-17) --------------------------------------------------------------
+
+
+def test_seeds_mode_refuses_untriggered_d(tmp_path):
+    """`_triggered_d_values` reads the scope from the record's own `verdict` row and returns
+    only the `d` values whose per-`d` verdict fired -- a `d` Wave A did not fire at is excluded,
+    never passed through as a CLI argument an operator could widen after seeing a result
+    (T-09-63/`WAVE_B_TRIGGER_RULE`)."""
+    module = _load_runner_module()
+    record_path = tmp_path / "09_scratch_triggered_scope_test.jsonl"
+    with record_path.open("w") as fh:
+        fh.write(json.dumps({
+            "row_kind": "verdict",
+            "per_d_verdicts": {
+                "16": module.pcp.PER_D_VERDICT_VALUES[1],
+                "20": module.pcp.PER_D_VERDICT_VALUES[0],
+                "25": module.pcp.PER_D_VERDICT_VALUES[1],
+                "32": module.pcp.PER_D_VERDICT_VALUES[0],
+            },
+        }) + "\n")
+
+    triggered = module._triggered_d_values(record_path)
+    assert triggered == [20, 32]
+    assert 16 not in triggered
+    assert 25 not in triggered
+
+    # No verdict row at all -- e.g. Wave A's --mode verdict was never run -- is likewise an empty
+    # scope, never an error, so run_seeds's own empty-scope branch handles it identically.
+    empty_record_path = tmp_path / "09_scratch_no_verdict_row_test.jsonl"
+    empty_record_path.write_text(json.dumps({"row_kind": "fit", "d": 16}) + "\n")
+    assert module._triggered_d_values(empty_record_path) == []
+    assert module._triggered_d_values(tmp_path / "09_scratch_does_not_exist.jsonl") == []
+
+
+def test_seeds_mode_records_wave_b_not_triggered(tmp_path, monkeypatch):
+    """When Wave A's own verdict row fires at zero `d` values, `--mode seeds` must append exactly
+    one row carrying `wave_b == "WAVE_B_NOT_TRIGGERED"` and exit (return `True`) without fitting
+    anything -- a complete, distinguishable outcome, never a silent no-op (T-09-65). No
+    autoencoder call is stubbed here; `fit_and_field_at_anchors` and `pl.load_physics_embeddings`
+    are left wired to their real (network/training) implementations, so if this branch ever fell
+    through to a real fit, this test would hang or raise rather than pass -- that absence of a
+    stub is itself part of the proof that the empty-scope path never reaches them."""
+    module = _load_runner_module()
+    monkeypatch.setenv(module.pcp.OUTPUT_ROOT_ENV_VAR, str(tmp_path))
+
+    record_path = tmp_path / "09_scratch_not_triggered_test.jsonl"
+    with record_path.open("w") as fh:
+        fh.write(json.dumps({
+            "row_kind": "verdict",
+            "per_d_verdicts": {
+                "16": module.pcp.PER_D_VERDICT_VALUES[1],
+                "20": module.pcp.PER_D_VERDICT_VALUES[1],
+                "25": module.pcp.PER_D_VERDICT_VALUES[1],
+                "32": module.pcp.PER_D_VERDICT_VALUES[1],
+            },
+        }) + "\n")
+
+    args = module.build_arg_parser().parse_args([
+        "--mode", "seeds", "--freeze-commit", module.FREEZE_COMMIT_SHA,
+        "--record-path", str(record_path),
+    ])
+    ok = module.run_seeds(args)
+    assert ok is True
+
+    rows = [json.loads(line) for line in record_path.open()]
+    nt_rows = [r for r in rows if r.get("wave_b") == "WAVE_B_NOT_TRIGGERED"]
+    assert len(nt_rows) == 1
+    assert nt_rows[0]["row_kind"] == "seed_cell_verdict"
+    assert not any(r.get("row_kind") == "seed_fit" for r in rows)
+    assert not any(r.get("row_kind") == "seed_partial" for r in rows)
+
+
+def test_seed_cell_verdict_never_upgrades_a_split():
+    """T-09-61: two `PER_D_VERDICT_VALUES[0]` ("cleared") plus one `PER_D_VERDICT_VALUES[1]`
+    ("not-cleared") must combine to the terminal split value, never an upgrade to unanimous
+    clearance -- and two entries and four entries must both raise. Exercises
+    `combine_seed_verdicts` in the exact vocabulary `run_seeds` actually passes it
+    (`PER_D_VERDICT_VALUES`), distinct from `test_combine_seed_verdicts_requires_exactly_three`'s
+    generic-string exercise above."""
+    cleared = pcp.PER_D_VERDICT_VALUES[0]
+    not_cleared = pcp.PER_D_VERDICT_VALUES[1]
+    assert pcp.combine_seed_verdicts([cleared, cleared, not_cleared]) == "SPLIT ACROSS SEEDS"
+    assert pcp.combine_seed_verdicts([cleared, not_cleared, not_cleared]) == "SPLIT ACROSS SEEDS"
+    assert pcp.combine_seed_verdicts([cleared, cleared, cleared]) == cleared
+    assert pcp.combine_seed_verdicts([not_cleared, not_cleared, not_cleared]) == not_cleared
+    with pytest.raises(ValueError):
+        pcp.combine_seed_verdicts([cleared, cleared])
+    with pytest.raises(ValueError):
+        pcp.combine_seed_verdicts([cleared, cleared, cleared, cleared])
