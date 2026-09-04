@@ -1166,7 +1166,7 @@ outcome on the same data, in place of his `k=2048` nested-PCA quadratic-chart es
 arrangement Phases 7 and 8 used)
 **Depends on:** Phase 7 (instrument and fit protocol), Phase 07.1 (stratified null), Phase 8
 (density-matched machinery)
-**Plans:** 5/10 plans executed
+**Plans:** 6/10 plans executed
 
 Plans:
 **Wave 1**
@@ -1188,7 +1188,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 09-06-PLAN.md — Execution-host hand-off: artifact bundling, per-thread cost model, runbook, and a green smoke run on the host
+- [x] 09-06-PLAN.md — Execution-host hand-off: artifact bundling, per-thread cost model, runbook, and a green smoke run on the host
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
