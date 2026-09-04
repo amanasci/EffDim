@@ -281,4 +281,15 @@ explicitly, not treat the two `k=2048` values as the same measurement at a diffe
 
 ## 7. Ruling
 
-Pending — see Task 3's checkpoint.
+The developer's reply to Task 3's checkpoint (2026-09-04 UTC), verbatim:
+
+> proceed as assumed
+
+This maps to the plan's option `proceed-as-assumed`. The measured branch was **shift 0
+PASSED** (Section 4: gap `0.5160133636458043` strictly exceeds `ALIGNMENT_MARGIN_R2 = 0.10`,
+5.16x the margin), so `proceed-as-assumed` was the only live option — `adopt-found-offset` and
+`halt` do not apply on a PASS. Applying it: the ruling is recorded here and no source file is
+changed. `physics_labels.ALIGNMENT_ASSUMED_OFFSET` stays `0`; the freeze SHA the run was gated
+on, `5f7fbe27afb0ef2a76353b41fa5713e760bbeea5`, stays in force with no amendment and no fresh
+freeze. `ALIGNMENT_MARGIN_R2` is unchanged from the freeze. Phase 9 proceeds to `09-08` on the
+row-index join proved in Sections 1-4 above.
