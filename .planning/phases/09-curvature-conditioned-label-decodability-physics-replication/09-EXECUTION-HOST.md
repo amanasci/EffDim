@@ -349,7 +349,8 @@ dependency install took 36 minutes wall-clock. No sealed module (`notebooks/pu_m
 touched by this deviation; `git status` in the host clone is clean.
 
 **Clone.** `git clone --single-branch --branch fixture-validity-audit` over HTTPS into a
-persistent directory on the host. HEAD at clone time: `ee992bac947f3469dfb0e607867901992f0b17de`.
+persistent directory on the host. HEAD at clone time: `ee992ba` (short SHA of the "docs(09-06):
+write the execution-host runbook" commit).
 Freeze proof on the host, both checks:
 - `git merge-base --is-ancestor 5f7fbe27afb0ef2a76353b41fa5713e760bbeea5 HEAD` → exit 0
   (`is-ancestor: OK`)
