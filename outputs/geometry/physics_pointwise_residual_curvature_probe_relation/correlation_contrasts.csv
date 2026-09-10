@@ -1,0 +1,5 @@
+name,observed,p_holm,ci95
+P3_delta_rho,-0.24929699033542757,1.0,"[-0.31249455179137275, -0.18447202391456227]"
+mean_delta_adapt,-0.10119904692121723,,
+median_delta_adapt,-0.10167620480055889,,
+frac_patch_R2_gt_global,0.001953125,,

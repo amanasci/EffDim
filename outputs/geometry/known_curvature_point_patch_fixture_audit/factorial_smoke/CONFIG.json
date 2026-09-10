@@ -1,0 +1,12 @@
+{
+  "smoke": false,
+  "factorial_smoke": true,
+  "n_points": 4096,
+  "n_anchors": 128,
+  "k": 512,
+  "epochs": 20,
+  "seeds": [
+    0
+  ],
+  "device": "cuda"
+}

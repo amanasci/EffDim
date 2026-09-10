@@ -1,0 +1,26 @@
+{
+  "label": "distinct_mean_and_traceless_predictive_roles",
+  "reason": "mean_predicts_error_or_gain_and_tf_accounts_for_hessian_or_tq",
+  "rules_version": 1,
+  "exploratory": true,
+  "flags": {
+    "unique_KH_mseg": false,
+    "unique_KTF_mseg": true,
+    "unique_KH_vitb": true,
+    "unique_KTF_vitb": true,
+    "unique_KH_delta_Q": false,
+    "unique_KTF_delta_Q": true,
+    "loo_flip_KH": "True",
+    "loo_flip_KTF": "False",
+    "n_pos_KH": 2,
+    "n_pos_KTF": 3,
+    "hessian_isotropic": false,
+    "hessian_traceless": true,
+    "align_mean": false,
+    "align_tf": true,
+    "align_interaction": false,
+    "iq_explains_uq2": false,
+    "tq_explains_uq2": true,
+    "bstf_explains_bs": true
+  }
+}

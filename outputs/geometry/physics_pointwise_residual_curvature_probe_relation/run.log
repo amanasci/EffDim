@@ -1,0 +1,17 @@
+[prcr] loaded bundle
+[prcr] parity True
+[prcr] unit tests 22 / 22
+[prcr] train seed 0 remaining=4379s
+[prcr] seed 0 reused=True wall=79.83305931091309
+[prcr] train seed 1 remaining=4379s
+[prcr] seed 1 reused=True wall=79.13079571723938
+[prcr] train seed 2 remaining=4379s
+[prcr] seed 2 reused=True wall=80.38505005836487
+[prcr] smoke 32 anchors seed=0
+[prcr] smoke done in 11.8s
+[prcr] hessian seed 0 n=512 remaining=4367s
+[prcr] hessian seed 0 done remaining=4178s
+[prcr] hessian seed 1 n=512 remaining=4178s
+[prcr] hessian seed 1 done remaining=3989s
+[prcr] hessian seed 2 n=512 remaining=3989s
+[prcr] hessian seed 2 done remaining=3800s

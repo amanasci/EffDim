@@ -1,0 +1,58 @@
+{
+  "n_tests": 11,
+  "n_passed": 11,
+  "all_passed": true,
+  "rows": [
+    {
+      "name": "flat_affine_II_E_zero",
+      "ok": true,
+      "e": 0.0
+    },
+    {
+      "name": "great_sphere_B_S_small",
+      "ok": true,
+      "e": 6.00268871950112e-22
+    },
+    {
+      "name": "great_sphere_II_E_nonzero",
+      "ok": true,
+      "e": 2.9999959141572745
+    },
+    {
+      "name": "II_E_eq_II_R_plus_B_S",
+      "ok": true,
+      "rel": 9.12507821931359e-07
+    },
+    {
+      "name": "P_T_II_E_zero",
+      "ok": true,
+      "n": 2.804813653862595e-16
+    },
+    {
+      "name": "normalized_xT_Q_eq_minus_g",
+      "ok": true,
+      "n": 1.4771247850340065e-06
+    },
+    {
+      "name": "H_E_avg_eq_minus_x_plus_H_S",
+      "ok": true
+    },
+    {
+      "name": "metric_trace_reparam_invariant",
+      "ok": true
+    },
+    {
+      "name": "autodiff_vs_fd_three_points",
+      "ok": true,
+      "max_rel": 1.17834290732709e-06
+    },
+    {
+      "name": "convention_is_unnormalized_trace",
+      "ok": true
+    },
+    {
+      "name": "sample_id_rows_align_by_explicit_id",
+      "ok": true
+    }
+  ]
+}

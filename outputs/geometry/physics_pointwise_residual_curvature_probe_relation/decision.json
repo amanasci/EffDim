@@ -1,0 +1,81 @@
+{
+  "label": "pointwise_residual_probe_relation_unresolved",
+  "seed_reliability_passed": true,
+  "reason": "mechanical",
+  "estimator": "pointwise_sphere_residual_decoder_curvature",
+  "Q_not_treated_as_ground_truth": true,
+  "historical_full_not_primary": true,
+  "P1": {
+    "name": "P1_CH_R2G",
+    "observed": 0.02970575697233952,
+    "ci95": [
+      -0.06033128034512162,
+      0.11522413313438622
+    ],
+    "p_mc": 0.5089491050894911,
+    "ci_excludes_zero": false,
+    "side": "two-sided",
+    "p_holm": 1.0,
+    "raw": 0.1980620979995309,
+    "n": 512,
+    "n_perm": 10000,
+    "n_boot": 2000,
+    "point": {
+      "raw": 0.1980620979995309,
+      "controlled": 0.02970575697233952,
+      "n": 512,
+      "p_raw": 6.3170861029284386e-06,
+      "p_ctl": 0.5024309731293574
+    }
+  },
+  "P2": {
+    "name": "P2_CH_R2P",
+    "observed": -0.21959123336308806,
+    "ci95": [
+      -0.3109223694334986,
+      -0.13263040191427813
+    ],
+    "p_mc": 9.999000099990002e-05,
+    "ci_excludes_zero": true,
+    "side": "two-sided",
+    "p_holm": 0.00029997000299970003,
+    "raw": -0.1947103837932236,
+    "n": 512,
+    "n_perm": 10000,
+    "n_boot": 2000,
+    "point": {
+      "raw": -0.1947103837932236,
+      "controlled": -0.21959123336308806,
+      "n": 512,
+      "p_raw": 9.098194685717575e-06,
+      "p_ctl": 5.220837788857718e-07
+    }
+  },
+  "P3": {
+    "name": "P3_delta_rho",
+    "observed": -0.24929699033542757,
+    "ci95": [
+      -0.31249455179137275,
+      -0.18447202391456227
+    ],
+    "p_mc": 1.0,
+    "ci_excludes_zero": true,
+    "side": "greater",
+    "p_holm": 1.0,
+    "raw": NaN,
+    "n": 512,
+    "n_perm": 10000,
+    "n_boot": 2000,
+    "components": {
+      "rho_R2P": -0.21959123336308806,
+      "rho_R2G": 0.02970575697233952
+    }
+  },
+  "signs_differ": true,
+  "global_penalty": false,
+  "patch_positive": false,
+  "patch_penalty": true,
+  "contrast_sig": false,
+  "rho_ctl_delta_adapt": -0.2073438626532083,
+  "relative_adaptation": false
+}

@@ -1,0 +1,26 @@
+[audit] unit tests
+[audit] cell 1/4 {'suite': 'A', 'name': 'F0', 'sampling': 'S0', 'noise': 'N0', 'n': 2048, 'k': 256, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/geometry.py:315: RuntimeWarning: Mean of empty slice
+  return float(np.nanmean(vals))
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/geometry.py:315: RuntimeWarning: Mean of empty slice
+  return float(np.nanmean(vals))
+[cell] A_F0_S0_N0_n2048_k256_eta0.00 0.01227106227106227 Q_T1=-0.0074175824175824155 t=21.9s
+[audit] cell 2/4 {'suite': 'A', 'name': 'F1', 'sampling': 'S0', 'noise': 'N0', 'n': 2048, 'k': 256, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F1_S0_N0_n2048_k256_eta0.00 0.07396650799513621 Q_T1=0.14108725317489207 t=21.0s
+[audit] cell 3/4 {'suite': 'A', 'name': 'F2', 'sampling': 'S0', 'noise': 'N0', 'n': 2048, 'k': 256, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F2_S0_N0_n2048_k256_eta0.00 -0.14615689161310222 Q_T1=0.027672494467611657 t=20.8s
+[audit] cell 4/4 {'suite': 'A', 'name': 'F4', 'sampling': 'S0', 'noise': 'N0', 'n': 2048, 'k': 256, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F4_S0_N0_n2048_k256_eta0.00 0.12298534798534796 Q_T1=0.2478479853479853 t=29.4s
+Traceback (most recent call last):
+  File "/home/angus/platonic-universe/experiments/geometry/run_known_curvature_point_patch_fixture_audit.py", line 64, in <module>
+    main()
+  File "/home/angus/platonic-universe/experiments/geometry/run_known_curvature_point_patch_fixture_audit.py", line 43, in main
+    run(
+  File "/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/pipeline.py", line 790, in run
+    for (fx, sid), g in ddf.groupby([ddf.get("sample_id", ddf.columns[0])]):
+        ^^^^^^^^^
+ValueError: not enough values to unpack (expected 2, got 1)

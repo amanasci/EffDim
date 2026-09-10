@@ -1,0 +1,119 @@
+{
+  "status": "complete",
+  "created_at": "2026-09-10T17:56:53Z",
+  "source_count": 18,
+  "missing_sources": [
+    {
+      "path": "outputs/geometry/physics_local_probe_adaptation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_local_probe_adaptation_audit/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_multimodel_graph_prior_quadratic/",
+      "status": "missing_in_worktree_present_on_host_data_source_no_COMPLETE",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_ae_local_patch_scale_match/",
+      "status": "present_but_no_COMPLETE_or_decision",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_curvature_probe_submission_validation/",
+      "status": "present_decision_json_but_no_COMPLETE_json",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/",
+      "status": "worktree_partial_host_complete",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/decision.json",
+      "status": "absent_by_design_label_only_in_COMPLETE_audit_interpretation",
+      "audited": true
+    }
+  ],
+  "conflicts_found": [
+    {
+      "id": "lpa_superseded_smoke_vs_current",
+      "description": "Superseded smoke decision.json label local_probe_result_unresolved vs current curvature_predicts_local_direction_adaptation. Current COMPLETE/decision are authoritative; superseded files retained."
+    },
+    {
+      "id": "qlca_decision_vs_audit_interpretation",
+      "description": "QLCA decision.json remains quadratic_chart_link_unresolved. Audit COMPLETE.json records audit_interpretation=geometry_regularized_quadratic_decoding and has no decision.json. Both preserved; audit does not overwrite."
+    },
+    {
+      "id": "vitb_KH_vs_Kdir_adaptation_sign",
+      "description": "ViT-B rho_ctl(K_H, Delta_adapt)=+0.15334238492921803 vs rho_Kdir_Dadapt=-0.1594762627172955 from FCR central_comparison_table.csv. Estimand divergence, not a copy error. Do not relabel KHcross tables as full curvature."
+    },
+    {
+      "id": "reproduction_swiss_spearman_vs_pass_label",
+      "description": "Primary label colleague_decoder_results_reproduced with n_primary_cells_passed=3. R1 Swiss-roll Spearman disagrees with historical 0.553. reproduction_cells.csv is the numerical authority."
+    },
+    {
+      "id": "neither_estimator_validated_vs_residual_internal_pass",
+      "description": "summary_label neither_estimator_validated while decoder_residual_clean_ok/stress_ok are true. Operating-characteristics adds utility labels without overwriting the gate. Also summary.json==decision.json byte-identical in the dual-estimator tree."
+    },
+    {
+      "id": "dres_vs_Q_adaptation_opposite_signs",
+      "description": "Q K_H rho_ctl vs Delta_adapt = +0.153; D-residual C_H rho_ctl vs Delta_adapt = -0.207. Distinct estimands."
+    },
+    {
+      "id": "q_comparison_raw_vs_controlled_CH_KH",
+      "description": "q_comparison.csv raw rho(C_H,K_H)=-0.28423038046435956 vs controlled +0.2295621151909454. Sign flip under radius/label-variance/count controls. Report both."
+    },
+    {
+      "id": "instrument_failure_worktree_vs_host_docs",
+      "description": "Worktree METHODS.md and REPORT.md hashes differ from host; COMPLETE/decision absent locally. Host artifacts used as authoritative."
+    },
+    {
+      "id": "fixture_f0_full_euclidean_vs_later_residual_scoring",
+      "description": "Initial fixture F0_decoder_Kdir=8.47 is full Euclidean curvature of a sphere immersion, not a documented sphere-residual hallucination. Dual-estimator residual F0 energy_frac is the matched residual target."
+    }
+  ],
+  "n_conflicts": 9,
+  "n_claims": 32,
+  "main_document": "outputs/geometry/curvature_program_synthesis/CURVATURE_PROGRAM_SUMMARY.md",
+  "claim_matrix": "outputs/geometry/curvature_program_synthesis/CLAIM_MATRIX.csv",
+  "source_manifest": "outputs/geometry/curvature_program_synthesis/SOURCE_MANIFEST.json",
+  "experiment_context": "experiments/geometry/curvature_program_synthesis/CONTEXT.md",
+  "hashes": {
+    "CURVATURE_PROGRAM_SUMMARY.md": "56d4813d7dfea2e1adde4f7fbfaf44401ca5d25f2430026fb9f5e2c479cb67ef",
+    "CLAIM_MATRIX.csv": "128be543c8a40e1c7f7677b91146e09c8114866a535e7002849d1c298b6fec97",
+    "SOURCE_MANIFEST.json": "b76a36ae31eb800483a1007d50b660f87baa897a4f8c8d61e33b29f03be40a50",
+    "CONTEXT.md": "0c6f13116417e40a649efa9c7ff0a16e35e2355c92210768c3add20cd82cffa9"
+  },
+  "manuscript_modified": false,
+  "experiments_run": false,
+  "notes": [
+    "Documentation-only. Frozen output trees were read, not written.",
+    "Four required real-data trees are host-only in this worktree and were audited over SSH.",
+    "No cross-model D-residual experiment was launched."
+  ]
+}

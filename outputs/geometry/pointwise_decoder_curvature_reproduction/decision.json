@@ -1,0 +1,26 @@
+{
+  "primary_reproduction_label": "colleague_decoder_results_reproduced",
+  "secondary_estimand_label": "reported_quantity_is_full_euclidean_curvature",
+  "radial_baseline_label": "radial_baseline_not_applicable",
+  "H_is_averaged_1_over_d": false,
+  "II_removes_sphere_radial": false,
+  "F_differentiated_after_normalization": false,
+  "historical_H": "g^{ab} II_ab  (UNNORMALIZED trace)",
+  "historical_II": "(I - P_T) D^2 F",
+  "n_primary_cells_passed": 3,
+  "primary_done": [
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "skipped": [
+    "R5:hard_cap_max_4_new_decoders",
+    "cached_sphere_evaluation_skipped_missing_weights"
+  ],
+  "colleague": {
+    "name": "Austin Lutterbach",
+    "email": "rmhslutterbach@gmail.com",
+    "role": "Author of notebooks/pu_manifold/decoder_curvature.py (phase 02.6) and of the d=16 cubic/ridge fidelity table 09-FIXTURE-FIDELITY-D16.md on origin/fixture-validity-audit. Not the nested-chart K_H^cross / local-quadratic estimator on curvature-experiments."
+  }
+}

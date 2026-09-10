@@ -1,0 +1,16 @@
+# Report — Q geometry resampling
+
+## Runtime
+{'runtime_s': 1678.8757109642029, 'wall_s': 2700.0, 'pilot_n': 4, 'selected_n_per_scheme': 32, 'completed_A': 32, 'completed_B': 32, 'median_t_A_s': 26.978554129600525, 'median_t_B_s': 19.51921844482422, 'proj_32_s': 1504.4214339256287, 'proj_64_s': 2992.3501563072205, 'projection_rule': '64 if total<40min else 32 else max fitting under 40min', 'rss_mb': 1790.41015625, 'stages': ['disk', 'reuse', 'parity', 'pilot', 'scheme_A', 'scheme_B'], 'skipped': [], 'n_ae': 0, 'figures': ['/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig01_association_distributions.png', '/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig02_reliability_vs_overlap.png', '/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig03_uncertainty_intervals.png']}
+
+## Parity
+{'n': 512, 'rho_ctl_KH_R2G': {'raw': -0.41243045899566266, 'controlled': -0.2404841119636992, 'n': 512, 'p_raw': 1.9066267724201765e-22, 'p_ctl': 3.6028687450798254e-08, 'expect': -0.24, 'match': True}, 'rho_ctl_KH_MSEG': {'raw': 0.35598565835250223, 'controlled': 0.22704789227635297, 'n': 512, 'p_raw': 9.644068355976606e-17, 'p_ctl': 2.0701967377215636e-07, 'expect': 0.227, 'match': True}, 'rho_ctl_KH_DeltaAdapt': {'raw': 0.07590734112678957, 'controlled': 0.15334238492921803, 'n': 512, 'p_raw': 0.0861867068843841, 'p_ctl': 0.0004979157881532145, 'expect': 0.153, 'match': True}, 'rho_ctl_KH_R2P': {'raw': 0.03546385584394777, 'controlled': -0.15795580203362286, 'n': 512, 'p_raw': 0.42327868589640516, 'p_ctl': 0.0003332949993812253}, 'rho_ctl_KH_MSEP': {'raw': 0.30196173939414744, 'controlled': 0.17477573070804867, 'n': 512, 'p_raw': 2.9625140410955505e-12, 'p_ctl': 7.017301838682721e-05}, 'patch_r2_column': None, 'patch_r2_note': 'no frozen patch-R^2 column on the aligned 512-anchor table', 'ok': True, 'sample_id_unique': True, 'q_refit': {'n': 8, 'median_abs_diff': 0.0, 'ok': True, 'rows': [{'sample_id': 0, 'refit': 0.018409484316046477, 'frozen': 0.018409484316046477, 'abs_diff': 0.0}, {'sample_id': 1, 'refit': 0.027592433196754564, 'frozen': 0.027592433196754564, 'abs_diff': 0.0}, {'sample_id': 8, 'refit': 0.03174145218784237, 'frozen': 0.03174145218784237, 'abs_diff': 0.0}, {'sample_id': 11, 'refit': 0.02909703044841653, 'frozen': 0.02909703044841653, 'abs_diff': 0.0}, {'sample_id': 16, 'refit': 0.024801922770464245, 'frozen': 0.024801922770464245, 'abs_diff': 0.0}, {'sample_id': 18, 'refit': 0.024159531040015697, 'frozen': 0.024159531040015697, 'abs_diff': 0.0}, {'sample_id': 19, 'refit': 0.016726139041649185, 'frozen': 0.016726139041649185, 'abs_diff': 0.0}, {'sample_id': 22, 'refit': 0.044582455137668175, 'frozen': 0.04458245513766817, 'abs_diff': 6.938893903907228e-18}]}}
+
+## Decision
+q_global_and_adaptation_associations_geometry_robust
+
+Prior labels answered exact-recovery, operating characteristics, or chart-link questions. This label answers only whether the frozen ViT-B Q–probe associations survive resampling of the geometry used to estimate Q.
+
+Prior labels not overwritten: ['quadratic_chart_link_unresolved', 'neither_estimator_validated', 'q_moderately_informative_sampling_dependent_statistic']
+
+label=q_global_and_adaptation_associations_geometry_robust nA=32 nB=32 t=1678.9s

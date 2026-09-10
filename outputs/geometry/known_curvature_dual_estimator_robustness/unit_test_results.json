@@ -1,0 +1,93 @@
+{
+  "n_tests": 19,
+  "n_passed": 19,
+  "all_passed": true,
+  "rows": [
+    {
+      "name": "analytic_autodiff_fd_J",
+      "ok": true
+    },
+    {
+      "name": "analytic_autodiff_fd_H",
+      "ok": true
+    },
+    {
+      "name": "II_E_eq_minus_g_x_plus_BS",
+      "ok": true,
+      "rel": 5.985252607243119e-16
+    },
+    {
+      "name": "F0_BS_zero",
+      "ok": true,
+      "e": 5.161215167143433e-30
+    },
+    {
+      "name": "F0_II_E_nonzero",
+      "ok": true,
+      "e": 16.000000000000007
+    },
+    {
+      "name": "F0_Scal_eq_d_dminus1",
+      "ok": true,
+      "scal": 240.0
+    },
+    {
+      "name": "F2_HS_small",
+      "ok": true,
+      "hs": 7.108967367958708e-15,
+      "bs": 2.354681026425033
+    },
+    {
+      "name": "F2_BS_nonzero",
+      "ok": true,
+      "e": 15.999999999999996
+    },
+    {
+      "name": "F1_HS_nonzero",
+      "ok": true,
+      "hs": 12.000000000000004
+    },
+    {
+      "name": "split_half_scal_formula",
+      "ok": true
+    },
+    {
+      "name": "no_clamp_negative_cross",
+      "ok": true
+    },
+    {
+      "name": "normalize_then_differentiate_F0_BS_small",
+      "ok": true,
+      "e": 4.314682304590058e-30
+    },
+    {
+      "name": "full_vs_residual_F0",
+      "ok": true
+    },
+    {
+      "name": "procrustes_identity",
+      "ok": true,
+      "pe": 9.148598222079697e-16
+    },
+    {
+      "name": "anchors_deterministic",
+      "ok": true
+    },
+    {
+      "name": "train_eval_id_disjoint",
+      "ok": true
+    },
+    {
+      "name": "N0_is_clean",
+      "ok": true
+    },
+    {
+      "name": "latent_truth_rows_align",
+      "ok": true
+    },
+    {
+      "name": "T2_T3_functions_distinct",
+      "ok": true
+    }
+  ]
+}

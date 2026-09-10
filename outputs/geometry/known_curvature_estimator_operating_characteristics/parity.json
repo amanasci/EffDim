@@ -1,0 +1,77 @@
+{
+  "ok": true,
+  "reproduction": {
+    "d_full_cubic_rho": 0.9392535779861432,
+    "d_full_cubic_cosine": 0.9935515167974374,
+    "d_full_ridge_rho": 0.9897837249033488,
+    "d_full_ridge_cosine": 0.999738235498892,
+    "cubic_ok": true,
+    "ridge_ok": true
+  },
+  "per_anchor": {
+    "ok": true,
+    "got": {
+      "d_res_f4_clean_rho": 0.8193223443223443,
+      "d_res_f4_scal_rho": 0.8617673992673993,
+      "d_res_f4_combined_stress_rho": 0.7369047619047618,
+      "q_f4_t2_tensor_cos": 0.6176322563326069,
+      "t2_t3_tensor_cos": 0.7481855145541307,
+      "d_res_f0_energy_frac": 0.0009638843433637,
+      "d_full_f4_cosine": 0.9993950499913692
+    },
+    "checks": {
+      "d_res_f4_clean_rho": {
+        "got": 0.8193223443223443,
+        "expect": 0.8193223443223443,
+        "ok": true,
+        "tol": 0.02
+      },
+      "d_res_f4_scal_rho": {
+        "got": 0.8617673992673993,
+        "expect": 0.8617673992673993,
+        "ok": true,
+        "tol": 0.02
+      },
+      "d_res_f4_combined_stress_rho": {
+        "got": 0.7369047619047618,
+        "expect": 0.7369047619047618,
+        "ok": true,
+        "tol": 0.02
+      },
+      "q_f4_t2_tensor_cos": {
+        "got": 0.6176322563326069,
+        "expect": 0.6176322563326069,
+        "ok": true,
+        "tol": 0.02
+      },
+      "t2_t3_tensor_cos": {
+        "got": 0.7481855145541307,
+        "expect": 0.7481855145541307,
+        "ok": true,
+        "tol": 0.02
+      },
+      "d_res_f0_energy_frac": {
+        "got": 0.0009638843433637,
+        "expect": 0.0009638843433637421,
+        "ok": true,
+        "tol": 0.0005
+      },
+      "parquet_vs_csv_dres_rho": {
+        "got": 0.8193223443223443,
+        "csv": 0.8193223443223443,
+        "ok": true
+      },
+      "parquet_vs_csv_qt2_cos": {
+        "got": 0.6176322563326069,
+        "csv": 0.6176322563326069,
+        "ok": true
+      },
+      "parquet_vs_csv_t2t3": {
+        "got": 0.7481855145541307,
+        "csv": 0.7481855145541307,
+        "ok": true
+      }
+    }
+  },
+  "prior_dual_label": "neither_estimator_validated"
+}

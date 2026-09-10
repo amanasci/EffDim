@@ -1,0 +1,14 @@
+{
+  "frozen_hashes": {
+    "experiments/geometry/physics_activation_atlas/nested_dimension_curvature.py": "a150b1eb7ff0abb3",
+    "experiments/geometry/physics_activation_atlas/full_curvature_audit.py": "8eb735f21becbc77",
+    "experiments/geometry/physics_activation_atlas/sphere_normal_quadratic.py": "b11058e087f2d0fa",
+    "experiments/geometry/physics_activation_atlas/split_half_curvature_reliability.py": "c09c6dfb252b304f",
+    "experiments/geometry/physics_cross_model_full_curvature_reconciliation/metrics.py": "9b3582474a74bef7",
+    "notebooks/pu_manifold/cae.py": "f7cc285c041d2623",
+    "notebooks/pu_manifold/decoder_curvature.py": "6b00bb100f267272",
+    "notebooks/pu_manifold/chart_curvature.py": "663ea8a6304ea389",
+    "experiments/geometry/run_ae_local_patch_scale_match.py": "1e0cb9f3d2e3d7ae"
+  },
+  "preserved": true
+}

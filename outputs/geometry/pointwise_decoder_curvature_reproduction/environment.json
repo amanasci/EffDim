@@ -1,0 +1,21 @@
+{
+  "python": "3.12.3",
+  "torch": "2.8.0+cu128",
+  "numpy": "2.3.2",
+  "platform": "Linux-6.14.0-24-generic-x86_64-with-glibc2.39",
+  "cuda_available": false,
+  "device": "cpu",
+  "cudnn": null,
+  "deterministic": false,
+  "executed_on": "ubuntu-host angus@100.97.36.119:/home/angus/platonic-universe",
+  "host_branch_at_run": "main",
+  "host_sha_at_run": "6672072c5ca76b43df1ec7bd8c75d6596771c9f4",
+  "host_note": "Sealed pu_manifold modules (decoder_curvature, cae, curvature_probe, chart_curvature, synthetic_controls, subsample) were sha256-identical to curvature-experiments 97efb2e. Job wrote first to experiments/outputs/... because pipeline parents[2] was the experiments/ directory; artifacts were copied to the canonical outputs/geometry/pointwise_decoder_curvature_reproduction/ path.",
+  "curvature_experiments_sha": "97efb2eb6cd7dec7f2c568f53c534752ff3c32c8",
+  "fixture_validity_audit_sha": "dcd2208803f27224ee182cce47fdee21c1bc6ba5",
+  "colleague": {
+    "name": "Austin Lutterbach",
+    "email": "rmhslutterbach@gmail.com",
+    "role": "Author of notebooks/pu_manifold/decoder_curvature.py (phase 02.6) and of the d=16 cubic/ridge fidelity table 09-FIXTURE-FIDELITY-D16.md on origin/fixture-validity-audit. Not the nested-chart K_H^cross / local-quadratic estimator on curvature-experiments."
+  }
+}

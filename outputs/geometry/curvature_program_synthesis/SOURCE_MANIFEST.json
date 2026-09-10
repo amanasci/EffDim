@@ -1,0 +1,1212 @@
+{
+  "created_at": "2026-09-11T03:47:00+10:00",
+  "audit_mode": "documentation_only",
+  "worktree": "/home/angus/Documents/Code/PlatonicUniverse/EffDim-worktrees/SAE-shared-basis",
+  "canonical_host_root": "/home/angus/platonic-universe/outputs/geometry",
+  "priority_order": [
+    "COMPLETE.json",
+    "decision.json",
+    "summary.json",
+    "primary CSV/parquet result tables",
+    "REPORT.md",
+    "METHODS.md",
+    "MANUSCRIPT_RECOMMENDATION.md"
+  ],
+  "read_only_historical_trees": true,
+  "experiments_run": false,
+  "manuscript_modified": false,
+  "source_count": 18,
+  "sources": [
+    {
+      "id": "physics_local_probe_adaptation",
+      "source_path": "outputs/geometry/physics_local_probe_adaptation/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_local_probe_adaptation/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "curvature_predicts_local_direction_adaptation",
+      "decision_label_source": "decision.json and COMPLETE.json",
+      "runtime_s": 1133.8583009243011,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "38ac67b483362cb62b923e5ddb2dd4c8399e288541ca25750ba00d3667c8c48a",
+          "location": "host"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "4184db5470c19051dc299d6b781d2f266730a62e2d948da1c64b1746e3162970",
+          "location": "host"
+        },
+        {
+          "path": "parity.json",
+          "sha256": "eaaacf3ad9e2cbba64efb703fb5c6a4bd5a1efc6968ab4fcd70bfd21c413152b",
+          "location": "host",
+          "role": "authoritative_numeric_for_rho_ctl_KH_R2G_and_MSE_G"
+        },
+        {
+          "path": "REPORT.md",
+          "sha256": "3a5c72a722f7fbfc27f823c38bd86f6384385c9862a477fc0e876527003a50ce",
+          "location": "host"
+        },
+        {
+          "path": "METHODS.md",
+          "sha256": "14ae92672dae19aef33c848da8cf461073690814da319066aaccaff7a0b53d33",
+          "location": "host"
+        },
+        {
+          "path": "decision.superseded.20260822T100017.json",
+          "sha256": "747680897bb2125181fcb4acae270a6bba2f97720cc40b4e9dd5e3fc966b4e95",
+          "location": "host",
+          "role": "superseded_smoke_label"
+        }
+      ],
+      "notes": "Host-only in this worktree. Frozen ViT-B Q K_H associations: rho_ctl(KH,R_G^2)=-0.2404841119636992, rho_ctl(KH,MSE_G)=+0.22704789227635297, rho_ctl(KH,Delta_adapt)=+0.15334238492921803 from parity.json / decision.json.",
+      "missing_or_contradictory": [
+        "Same tree contains superseded smoke COMPLETE/decision label local_probe_result_unresolved (smoke=true, 18.4s). Current frozen label is curvature_predicts_local_direction_adaptation. Both preserved; do not overwrite.",
+        "summary.json absent.",
+        "Not present in this worktree; audited read-only on host."
+      ]
+    },
+    {
+      "id": "physics_local_probe_adaptation_audit",
+      "source_path": "outputs/geometry/physics_local_probe_adaptation_audit/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_local_probe_adaptation_audit/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "curvature_predicts_relative_local_adaptation",
+      "decision_label_source": "decision.json and COMPLETE.json",
+      "runtime_s": 22974.731616973877,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "798d25958e8d81a4ff3f9e2e0d376cdd23f6e305ccce2a91f5b4a91db444d19d",
+          "location": "host"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "4ff20a0fad4faa16389d68d5a58b80679eb56ce79959dfd6e2460983690ba58b",
+          "location": "host"
+        },
+        {
+          "path": "parity.json",
+          "sha256": "0ea74c04ef194bd5908572baf6a2545f5040260ac1782013a4dc1c228b6e1278",
+          "location": "host"
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "sha256": "4b1f7fa4f3f4a219698844cb242775a86e7ae5516cdf6476f0c81589268024ab",
+          "location": "host"
+        }
+      ],
+      "notes": "Exploratory restatement of LPA: mean Delta_adapt=-0.1011990469212172; relative not absolute. Does not replace parent decision.json.",
+      "missing_or_contradictory": [
+        "Label differs from parent tree curvature_predicts_local_direction_adaptation by design (audit vs primary). Both frozen.",
+        "summary.json absent.",
+        "Not present in this worktree; audited read-only on host."
+      ]
+    },
+    {
+      "id": "physics_quadratic_label_chart_alignment",
+      "source_path": "outputs/geometry/physics_quadratic_label_chart_alignment/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "quadratic_chart_link_unresolved",
+      "decision_label_source": "decision.json, COMPLETE.json, and summary.json (agree)",
+      "runtime_s": 159.53816390037537,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "78a00ba43cfe7c634bfa2fc6059387b462bb3901ea9a0b9ff944c9cc5f335efe",
+          "location": "host"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "eef821efb95fe9ed293511ffc71d426ad091a9d555e81625682877bd2223b629",
+          "location": "host",
+          "role": "authoritative_numeric_for_delta_Q"
+        },
+        {
+          "path": "summary.json",
+          "sha256": "c708d4f2ba3dae0c0f475e03597dde84ef4d10f88a2704d3e36a04000a9dcea2",
+          "location": "host"
+        },
+        {
+          "path": "parity.json",
+          "sha256": "da2d3212ff6ff5fba47242645ef9ed6cc36ac475ead687945d42449e179d53e2",
+          "location": "host"
+        },
+        {
+          "path": "REPORT.md",
+          "sha256": "1d97a6a1240b4512b0095b0952cb1cf62e3d2654743531c2ca3610934ae4f42f",
+          "location": "host"
+        },
+        {
+          "path": "METHODS.md",
+          "sha256": "59ebf4b6dd3fbb7798acfdd395adf68714f3251e0f2cdfef63aab074de882201",
+          "location": "host"
+        }
+      ],
+      "notes": "median_delta_Q=0.020581617601622228; rho_KH_delta_Q=0.111248619551161; synth_ok=false. Host-only in this worktree.",
+      "missing_or_contradictory": [
+        "Audit tree later records audit_interpretation=geometry_regularized_quadratic_decoding in COMPLETE.json only; this tree's decision.json remains quadratic_chart_link_unresolved.",
+        "Not present in this worktree; audited read-only on host."
+      ]
+    },
+    {
+      "id": "physics_quadratic_label_chart_alignment_audit",
+      "source_path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment_audit/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "geometry_regularized_quadratic_decoding",
+      "decision_label_source": "COMPLETE.json audit_interpretation only; no decision.json",
+      "runtime_s": 8273.176621437073,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "545bbe41086dc1d78cecf9b6ebd66fc533948398cbbdd0f81cdf11744c6aa5ad",
+          "location": "host"
+        },
+        {
+          "path": "phase5_v2_decision.json",
+          "sha256": "a56165f2fb12d789a276a13c5c0aae36e8b91c82f56f503025748d6813c3d710",
+          "location": "host",
+          "note": "original_label_unchanged=quadratic_chart_link_unresolved"
+        },
+        {
+          "path": "METHODS.md",
+          "sha256": "1b279fcfc105667c37fa9388aae02da959bd2b873ed31c82046898f0644ab4ca",
+          "location": "host"
+        }
+      ],
+      "notes": "Audit interpretation, not a replacement of QLCA decision.json. original_label remains quadratic_chart_link_unresolved.",
+      "missing_or_contradictory": [
+        "No decision.json. Label geometry_regularized_quadratic_decoding is COMPLETE.json audit_interpretation only.",
+        "Not present in this worktree; audited read-only on host."
+      ]
+    },
+    {
+      "id": "physics_cross_model_curvature_local_adaptation",
+      "source_path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "representation_specific_effect",
+      "decision_label_source": "decision.json and COMPLETE.json",
+      "runtime_s": 46601.62622714043,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "bedf25c4e943347da40d7ff39af174ae7dcfa6489a201f647efe6d7f3ed757c2",
+          "location": "host"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "96a9d81ca51df8c71aed02b7d539ca794c0267b33e6664a13bb5a083249e3b7b",
+          "location": "host"
+        },
+        {
+          "path": "per_model_primary.json",
+          "sha256": "a2c151b88b8dd88b45b146d3f935d9d3c90c94d9dc8b1130195621be2c8e7cf1",
+          "location": "host",
+          "role": "authoritative_five_model_KH_table"
+        },
+        {
+          "path": "REPORT.md",
+          "sha256": "ab7d031f9ec48d31b05a5f341a637c4a752679a4f5f2570d1cbe92744a305517",
+          "location": "host"
+        }
+      ],
+      "notes": "Five-model Q K_H. models_with_both=[vit_base]. C_G/C_A: vit_base +0.227/+0.153; dinov3 -0.130/-0.045; clip -0.274/-0.179; convnext -0.187/-0.255; vit_large -0.038/+0.181. Authoritative table: per_model_primary.json.",
+      "missing_or_contradictory": [
+        "Not present in this worktree; audited read-only on host.",
+        "FCR later recomputes K_H associations with exact match to this table; no numerical conflict."
+      ]
+    },
+    {
+      "id": "physics_cross_model_full_curvature_reconciliation",
+      "source_path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "full_curvature_partial_cross_model_replication",
+      "decision_label_source": "decision.json, COMPLETE.json, and summary.json (agree)",
+      "runtime_s": 9673.020702838898,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "d16e90b88ae6a21e94e204ba86e583c003750423e9e2f27b028f91b840277d8c",
+          "location": "host"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "5df16157678b84460472df93e5fcf8948d2e40901031384db765a5ac08e78816",
+          "location": "host"
+        },
+        {
+          "path": "summary.json",
+          "sha256": "e1b72c265faee02e4befcc7b6f2e763f42340977939344dc4f7473ebaf570dc1",
+          "location": "host"
+        },
+        {
+          "path": "central_comparison_table.csv",
+          "sha256": "f092ec6dcc6d9ddc6b872e247153060738c65a5933f61f2624d95a8400c7e6f1",
+          "size": 1784,
+          "location": "host",
+          "role": "authoritative_Kdir_vs_KH_comparison"
+        },
+        {
+          "path": "parity.json",
+          "sha256": "9b059a0d7b716cfa5909861f6f037b92c7593e8f35f9e4316838ba69a9228bde",
+          "location": "host"
+        },
+        {
+          "path": "REPORT.md",
+          "sha256": "262f5e2538f63eca3cdf1a969a16ed365975f8bca300bcd0163c75b623aa6c95",
+          "location": "host"
+        },
+        {
+          "path": "METHODS.md",
+          "sha256": "f610e4bc03525be5e6c11a1230048169edeefa24469358a664838e1dda5c0c0f",
+          "location": "host"
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "sha256": "159556cac8dbd8c562ca1dc5f6abb2279eb3f72d8146709713147e0c0bdaf1b6",
+          "location": "host"
+        }
+      ],
+      "notes": "K_dir aggregate C_G_bar=+0.05464, C_A_bar=-0.07319. Does not overwrite representation_specific_effect.",
+      "missing_or_contradictory": [
+        "ViT-B adaptation sign for K_H (+0.153) vs K_dir (central table; reported -0.159 in synthesis) is a genuine estimand divergence, not a file error. Do not relabel historical KHcross tables as full curvature.",
+        "Not present in this worktree; audited read-only on host."
+      ]
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "mean_vs_full_curvature_divergence",
+      "decision_label_source": "decision.json and COMPLETE.json (agree); COMPLETE.decision matches decision.label",
+      "runtime_s": 4.234332323074341,
+      "notes": "Host COMPLETE sha256 matches worktree. Original mixed-estimand audit. F0 decoder K_dir=8.467652068555033 vs Q ~0; later dual-estimator shows this is full Euclidean II^E on a sphere, not residual hallucination.",
+      "missing_or_contradictory": [
+        "Later dual-estimator and reproduction trees re-score matched targets; this tree's decoder_ok=false / quadratic_patch_ok=false remain historical. Do not treat F0 decoder K_dir as sphere-residual failure without specifying the full Euclidean target.",
+        "COMPLETE.json skipped n=86471 and suite_F."
+      ],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/known_curvature_point_patch_fixture_audit/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/known_curvature_point_patch_fixture_audit/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "c234000f1730a3da7f90e46b2c7a751be5752211059b5f970b26c90f41e85192",
+          "size": 187
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "ad76f47ec6ac2589053ef63076835862a875c680f89892f383e0950818fdcd43",
+          "size": 1883
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "f88235351e2f4b50ae8cad740b44dbba00d101c8bfd0207b1ffff9f5c5beedaf",
+          "size": 2285
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "fbd2e56c3dbd8741ab4010c2d7aa87a9315614712db846137d6b83e4dafd560a",
+          "size": 1954
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "490be8748e2452f034aca60d59a01d5633cd67ad866189abc6e34121b124f568",
+          "size": 3765
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "d658bc2dfcdd49e29234a133336a6351581b74ce4050390fc44f6e3f5926b3aa",
+          "size": 2485
+        }
+      ],
+      "id": "known_curvature_point_patch_fixture_audit"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "colleague_decoder_results_reproduced",
+      "decision_label_source": "decision.json primary_reproduction_label and COMPLETE.json.decision.primary_reproduction_label",
+      "runtime_s": 834.2675635814667,
+      "notes": "Recovered D-full: H=g^{ab} II_ab unaveraged, F raw decode, II=(I-P_T)D^2 F. n_primary_cells_passed=3 of 4.",
+      "missing_or_contradictory": [
+        "R1 Swiss-roll Spearman fails vs historical 0.553 (reproduction_cells.csv is authoritative). Primary label still colleague_decoder_results_reproduced because 3/4 cells passed. Recorded, not silently dropped."
+      ],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/pointwise_decoder_curvature_reproduction/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/pointwise_decoder_curvature_reproduction/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "6ed1330ccf61f4b2b4702859bac12f7271f1f8ebaacb6fe756d5fe30ccb442b1",
+          "size": 1146
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "b4af6a3b115b2c2dd121e22f1f03dd30059c9b21ea1b6e6ce1fc77b684cf3dac",
+          "size": 1003
+        },
+        {
+          "path": "reproduction_cells.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "62a31fe315ad6c769e3cb5230b6b3f1275cf2a9d01612dc96b89f052811bced0",
+          "size": 1086
+        },
+        {
+          "path": "metric_parity.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "034883ce26644990b85152e7f4e1c48c323a29ab9242edac05b2570c93eeeeb6",
+          "size": 1896
+        },
+        {
+          "path": "runtime.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "9abf8517c679e1b9f00982189ad030a8768662c64bc95d85df85f78ed07a0491",
+          "size": 269
+        },
+        {
+          "path": "FORMULA_AUDIT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "a4925b13a39a4e5d6b809826c5feb0bfbd919ca5ec2241ae98bb8202435edb03",
+          "size": 1563
+        },
+        {
+          "path": "PROTOCOL_AUDIT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "aa8994ca5fcfe9704c71625804a0a6ce0996a03929a0ee0b1b48aa94d6642c64",
+          "size": 7291
+        },
+        {
+          "path": "REPRODUCTION_REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "9a33d1be0bb98163e0ae6b813a99a65c9b198da78684d03875d40be45e30e885",
+          "size": 2268
+        }
+      ],
+      "id": "pointwise_decoder_curvature_reproduction"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "neither_estimator_validated",
+      "decision_label_source": "decision.json summary_label and COMPLETE.json.decision.summary_label",
+      "runtime_s": 612.1608238220215,
+      "notes": "Historical D-full and Q fail strict gates. D-residual clean/stress gates pass internally (decoder_residual_clean_ok=true). Q sampling_measure_dependence_detected=true.",
+      "missing_or_contradictory": [
+        "summary.json is byte-identical to decision.json (same sha256); there is no independent richer summary. Numerical tables (decoder_*_metrics.csv, quadratic_*_metrics.csv) are authoritative for magnitudes.",
+        "neither_estimator_validated coexists with internal residual pass flags. The label answers historical-instrument gates, not 'every derived measure is useless'. Operating-characteristics tree later adds utility labels without overwriting this one."
+      ],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/known_curvature_dual_estimator_robustness/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "1f3fb1f4d98a582acf91de6c116f1d9782592367fb5f37750d759a0fde9f0daf",
+          "size": 803
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059",
+          "size": 635
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059",
+          "size": 635
+        },
+        {
+          "path": "decoder_full_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "52bdf041a11858a4975e66c82b11d126f3439cfacb583ed2cc192eea397e45bd",
+          "size": 2961
+        },
+        {
+          "path": "decoder_residual_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "800c0def5d4f12911b5359565ca14600c2354df5e5945ab8194b146bf11efd8d",
+          "size": 2548
+        },
+        {
+          "path": "quadratic_T2_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "0404e18ed6e4c95f6d4be8d706fc92b8b57cf394ad6e9fd311465257df5fbe85",
+          "size": 1195
+        },
+        {
+          "path": "quadratic_T3_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "f5f0d633951265e15c7db2bef1cf05c5205f78b453993f8ebaf407a0bace970a",
+          "size": 698
+        },
+        {
+          "path": "quadratic_pointwise_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "12dcc9a47b031dc68402dedfa6be2ddd9db1221c059ebc509af36390e78c2a96",
+          "size": 1082
+        },
+        {
+          "path": "intrinsic_curvature_metrics.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "15db83bbea0c445390bc1fe78c2bac417bc86de8f35b1080df74cbc9264f7b7e",
+          "size": 796
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "c15e767aa3a740acf345a65b458e58de7c4303e8ab2d365fdf3061c2ba97eb65",
+          "size": 4033
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "4b5d2f14ccd16a87e3fd7faee3b750bbf01e8e78a2ab1f7b1d328a5c43907cc1",
+          "size": 696
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "955aea3a82a3cb254cde26b55f33b5ba3fa502e43f8fbd5df35cac8bd132ec7e",
+          "size": 536
+        }
+      ],
+      "id": "known_curvature_dual_estimator_robustness"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "three estimator-specific labels; prior neither_estimator_validated not overwritten",
+      "decision_labels": {
+        "d_full": "d_full_useful_on_non_spherical_clean_geometry",
+        "q": "q_moderately_informative_sampling_dependent_statistic",
+        "d_residual": "d_residual_useful_but_stress_sensitive",
+        "prior_unchanged": "neither_estimator_validated"
+      },
+      "runtime_s": 386.0059542655945,
+      "notes": "Authoritative operating numbers in operating_curves.csv / decision.json.notes. D-full cubic/ridge rho 0.939/0.990; D-residual F4 clean 0.819 stress 0.737; Q T2 rho 0.523 tensor cos 0.618.",
+      "missing_or_contradictory": [],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/known_curvature_estimator_operating_characteristics/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "a58ed4efa2d9167bd8e64b9bc0538adecb9d98da8f687cab12828c5fad6b516b",
+          "size": 399
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "e78b1d29928c040518831a73f90dac17d4df11931647e342f5536bbae04f418c",
+          "size": 2074
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "38c68080516c994763977716e16d69a7c2a91bbea25b11842826c301992fc7df",
+          "size": 3398
+        },
+        {
+          "path": "operating_curves.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "86745f4512c41f6f81028c64cc4d7bc77e53464500ba40b175f9ce5e0011369e",
+          "size": 10306
+        },
+        {
+          "path": "repeat_reliability.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "323d4b4a43e89daf5374dad61982e2c608c45aaafb4ef3741666b31ed1798438",
+          "size": 2092
+        },
+        {
+          "path": "dynamic_range.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "ff300511a7d1dee3b1dbb5615d3dd537b53f27304f045fb3486a0d8cad08906e",
+          "size": 19073
+        },
+        {
+          "path": "noise_scale_comparison.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "816b223c33b10441a6d7d4d2f9234ed7dae352f0dd1ea24850babcea8f6e5afa",
+          "size": 5261
+        },
+        {
+          "path": "tensor_recovery.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "6ff12a75781e6db5dd669862edfcad0b5f7ea5157283f07a46e8c0167f5ae9cb",
+          "size": 4479
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "9569415d62ec96fbfb6fc413ddbc4e2ea3c5eece49a9fd29d01649a7bd80683d",
+          "size": 4193
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "22a7d19bec6211de8819d11936e9f0988539c59f546ba9f1de9a16c6686bc6e7",
+          "size": 2750
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "ee8ea155a0f0a93639951c6ef32b1f5cee131a7a72072f2c882532d6a3abc3d1",
+          "size": 809
+        }
+      ],
+      "id": "known_curvature_estimator_operating_characteristics"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "pointwise_residual_probe_relation_unresolved",
+      "decision_label_source": "decision.json and COMPLETE.json",
+      "runtime_s": 731.4623050689697,
+      "notes": "D-residual C_H uses averaged H^S=(1/d)tr_g B^S. P1 rho_ctl(CH,R_G^2)=+0.0297 n.s.; P2 rho_ctl(CH,R_P^2)=-0.2196; P3 Delta_rho=-0.249 (preregistered greater falsified). rho_ctl(CH,Delta_adapt)=-0.207. COMPLETE.wall_s used as runtime.",
+      "missing_or_contradictory": [
+        "q_comparison.csv: raw rho(C_H,K_H)=-0.28423038046435956 vs controlled +0.2295621151909454. Both real; controls {log_knn_radius, local_label_variance, local_evaluation_count} flip the sign. Do not cite one as 'the' association without naming raw vs controlled.",
+        "Uncontrolled raw rho(C_H,R_G^2)=+0.198 is not the primary P1 result; P1 is the controlled +0.0297 (CI includes 0)."
+      ],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "2ed3d9e9fe210d5270837462d83323cf1e430fd55098897031a99e0a21ac07f9",
+          "size": 153
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "9b7f842c31ff98f2437c875ffea774d67ad577170245ecb5e0b343d025f4f267",
+          "size": 1975
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "d23e9c55ec0aadd54d234fe3e75eecc4b6490be21a9787a86bb98b8f5d4fcd38",
+          "size": 5761
+        },
+        {
+          "path": "primary_tests.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "99d29a52a0c046bcc1d032f98f5c22e969f86a647c37aec7a10fe57e8f17e35d",
+          "size": 878
+        },
+        {
+          "path": "q_comparison.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "619d5631145b1d178a80f8a49adfed928637911a04e1de5728e1ce28fed8730f",
+          "size": 1386
+        },
+        {
+          "path": "correlation_contrasts.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "33253587c1b5bd30f73bc0aa166becb5be7f9a5c694e9f664527a63e04458b8c",
+          "size": 231
+        },
+        {
+          "path": "seed_reliability.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "1ed5ce226c843380a38bd3bcb61020449408b77ee25c5a2c19fe3eefd5594de0",
+          "size": 1525
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "e7ba99bd074a5dfc01304bd266aac2c52ee0395f3df8eafebc40ba4e1a8e57d2",
+          "size": 858
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "99e328c916c0696501f6c106a755aab92789db12b5abe288ebb6d897115a149f",
+          "size": 1453
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "26c666ae21aaa121692ab90cd3d48b71e5e95796056f4f67c84f30186e934ced",
+          "size": 342
+        }
+      ],
+      "id": "physics_pointwise_residual_curvature_probe_relation"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "q_global_and_adaptation_associations_geometry_robust",
+      "decision_label_source": "decision.json summary_label and COMPLETE.json.decision",
+      "runtime_s": 1678.8757109642029,
+      "notes": "32 conditional-support + 32 object-support Q refits. Object-support is delete-20% of the same 16384-object ViT-B population, not a new dataset.",
+      "missing_or_contradictory": [],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/physics_q_geometry_resampling_stability/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "092cd5c10beeb038ba6dc912ba81a1be58755bde768ed883c4aea915b296ca56",
+          "size": 213
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "4aa2b0dfa5aca06d34f62409a2b169fc6c47c37218b9663364c3755019929a0a",
+          "size": 4544
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "0fe888ee2ce80b9df716c7f4f5f9a7e417e19ad2aa2e62dfcfebce3ef6c74c03",
+          "size": 6653
+        },
+        {
+          "path": "association_stability.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "01f8b90359d90b94c0faa9e1175f490a96ef1fb3510eb89befef7c3150495dad",
+          "size": 2925
+        },
+        {
+          "path": "field_reliability.csv",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "72559a3d6cf33ed9d62eb7ec36056d21ab01db0652b67be3cc4e2eae997edba0",
+          "size": 714
+        },
+        {
+          "path": "parity.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "0e8cc30927898f6e7afb1bda8e939412819d0138a907e1bc91437cca7a70a5be",
+          "size": 2475
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "ca832572cae5cdaccc347d4ef63f6402e4bbd58cf955d2b699ff30b1da99e4bf",
+          "size": 3346
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "4be63f837dbdd9df9e930fa90124908ff328c5cb5aaf514e4695bb2594335f63",
+          "size": 2066
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "055140ac57d9790c90b195274eaa5a807ca0f810b614db3dae3944beb66394f2",
+          "size": 342
+        }
+      ],
+      "id": "physics_q_geometry_resampling_stability"
+    },
+    {
+      "completion_status": "complete",
+      "decision_label": "distinct_mean_and_traceless_predictive_roles",
+      "decision_label_source": "decision.json and COMPLETE.json",
+      "runtime_s": 3672.6632719039917,
+      "notes": "Exploratory (decision.json exploratory=true). Mean vs traceless Q have distinct predictive roles.",
+      "missing_or_contradictory": [],
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "read_only": true,
+      "source_path": "outputs/geometry/physics_curvature_component_predictive_decomposition/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_component_predictive_decomposition/",
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "c18237dc6a585c0657ecff07715d7a3e21f7b2a283915fbbc8cc28b767331986",
+          "size": 233
+        },
+        {
+          "path": "decision.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "004ba33deae19c771e06e06b7187534b31dadc1cfb03d0165c6725b6d08621b0",
+          "size": 706
+        },
+        {
+          "path": "summary.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "5ad26615b3797b0cf2bd51b749cdfe94ec91a9b901d004a47dcc3aee7bae821b",
+          "size": 3281
+        },
+        {
+          "path": "REPORT.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "88295fbe47de00889b293b99bdbca36aad42f178614f302b56e8a8848fa07d3e",
+          "size": 2106
+        },
+        {
+          "path": "METHODS.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "fd4ff102f21034709a169529ec3e2881a4c3eb976c4ef4443039010287df7bcb",
+          "size": 3584
+        },
+        {
+          "path": "MANUSCRIPT_RECOMMENDATION.md",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "98816f3ea3a9c932b4fb1af48b571ea9b406a5f559cbe2a7911d8665df1b29c1",
+          "size": 1266
+        },
+        {
+          "path": "parity.json",
+          "present_in_worktree": true,
+          "location": "worktree_and_host",
+          "sha256": "992220ba7ed0197556c27f6670fff1d89a4ba31be7518a01a1ff68da49d6d09e",
+          "size": 3861
+        }
+      ],
+      "id": "physics_curvature_component_predictive_decomposition"
+    },
+    {
+      "id": "physics_curvature_probe_submission_validation",
+      "source_path": "outputs/geometry/physics_curvature_probe_submission_validation/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_submission_validation/",
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "completion_status": "complete_without_COMPLETE_json",
+      "decision_label": "claim_supported_but_scale_dependent",
+      "decision_label_source": "decision.json only; no COMPLETE.json",
+      "runtime_s": 1252.867083787918,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/decision.json",
+          "present_in_worktree": true,
+          "sha256": "faca61f24be364090ca6a8ef0f86dcaf7b4ae5cd6aa9935df5a7c29b0f8fe17c",
+          "size": 1313
+        },
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/runtime.json",
+          "present_in_worktree": true,
+          "sha256": "76c3c1ae74093eb26378a7f3325da3ad08cd9304db6d45da97312f9b2bb17e81",
+          "size": 52
+        },
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/VALIDATION_REPORT.md",
+          "present_in_worktree": true,
+          "sha256": "18d0f022861dc177a918393aacea5448ebb19d3688c577d293a1aeb70a1cb2ca",
+          "size": 2463
+        },
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/CLAIMS.md",
+          "present_in_worktree": true,
+          "sha256": "525333a1b3ec94078c232873f220bc5c220a95f45fbb0af56237405a7692ddd4",
+          "size": 746
+        },
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/metric_associations.csv",
+          "present_in_worktree": true,
+          "sha256": "d17e2ed843dfde1d6eca40bc43860ecafecefbc8c41071aa90cb7722bc451ea5",
+          "size": 27495
+        },
+        {
+          "path": "outputs/geometry/physics_curvature_probe_submission_validation/scale_sensitivity.csv",
+          "present_in_worktree": true,
+          "sha256": "7cfc5b0dd32bc421ba1e2a60455ae455ae1b54c5f4452991096012b6c3f55deb",
+          "size": 9112
+        }
+      ],
+      "notes": "NeurReps-era K_H vs error at d=16. rho16 MSE=0.2270478922763529. No COMPLETE.json in this tree.",
+      "missing_or_contradictory": [
+        "COMPLETE.json absent; decision.json is the completion record. Superseded decision/config copies retained in-tree."
+      ]
+    },
+    {
+      "id": "known_curvature_instrument_failure_localization",
+      "source_path": "outputs/geometry/known_curvature_instrument_failure_localization/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/known_curvature_instrument_failure_localization/",
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "completion_status": "complete_on_host; worktree_partial",
+      "decision_label": "quadratic_tangent_estimation_failure",
+      "decision_label_source": "host decision.json and COMPLETE.json",
+      "runtime_s": 1268.35986661911,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "COMPLETE.json",
+          "sha256": "2d653839a6bd84827c28bdc50acd80c24312cc6e0cbb5cfdddfa81d7e03a5929",
+          "location": "host_only"
+        },
+        {
+          "path": "decision.json",
+          "sha256": "fa64474b6fcb70caf60d0ac21a2ff0ae76d3b5424571579bf6889ad0af608689",
+          "location": "host_only"
+        },
+        {
+          "path": "summary.json",
+          "sha256": "0145e59f6bc3809f3dfe606ba74e117c958a4541fdb9b4dc650bd37384c742d7",
+          "location": "host_only"
+        },
+        {
+          "path": "REPORT.md",
+          "sha256_host": "c53c3842be4fb9fc9a7a1cf206e586aed5e939f4c607469d52def69a76721b13",
+          "sha256_worktree": "b4b21ad17b5721124644752831edad8aa9150390301278b3eb149d9250a7a63f",
+          "size_worktree": 6219,
+          "location": "both_but_hashes_differ"
+        },
+        {
+          "path": "METHODS.md",
+          "sha256_host": "9e62026630ca24ebd4dea20d5f8cd541ebf30fda144bbbfd68fdd93e42957823",
+          "sha256_worktree": "b23a8367436bb5609b94829375017786c33adf4f81e75c8563be490bcbb47d94",
+          "size_worktree": 1637,
+          "location": "both_but_hashes_differ"
+        }
+      ],
+      "notes": "Host is authoritative. Q1 T2 rho=0.932; Q3 PCA rho=0.311. Worktree contains only METHODS.md and REPORT.md and those files do not match host hashes.",
+      "missing_or_contradictory": [
+        "Worktree REPORT.md sha256 b4b21ad17b5721124644752831edad8aa9150390301278b3eb149d9250a7a63f (6219 bytes) != host c53c3842be4fb9fc9a7a1cf206e586aed5e939f4c607469d52def69a76721b13 (2740 bytes).",
+        "Worktree METHODS.md sha256 b23a8367436bb5609b94829375017786c33adf4f81e75c8563be490bcbb47d94 != host 9e62026630ca24ebd4dea20d5f8cd541ebf30fda144bbbfd68fdd93e42957823.",
+        "COMPLETE.json and decision.json missing in worktree; present on host. Host used as authoritative."
+      ]
+    },
+    {
+      "id": "physics_ae_local_patch_scale_match",
+      "source_path": "outputs/geometry/physics_ae_local_patch_scale_match/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_ae_local_patch_scale_match/",
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "completion_status": "incomplete_no_COMPLETE_or_decision",
+      "decision_label": null,
+      "decision_label_source": null,
+      "runtime_s": 258.89889001846313,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "outputs/geometry/physics_ae_local_patch_scale_match/summary.json",
+          "present_in_worktree": true,
+          "sha256": "d691a9b945692ac84e36ab3b7ae7ec03d2a29df6b5a0ced4719b3cf40bfc7e3a",
+          "size": 815
+        },
+        {
+          "path": "outputs/geometry/physics_ae_local_patch_scale_match/REPORT.md",
+          "present_in_worktree": true,
+          "sha256": "c0ccbe9d2c81080968286df828bac509957f2df6bae02104392eca39af5392d4",
+          "size": 820
+        }
+      ],
+      "notes": "600-epoch AE protocol, not the 400-epoch D-residual protocol. rho_point_R2=-0.01876; rho_KH_R2=-0.240484. No COMPLETE.json / decision.json.",
+      "missing_or_contradictory": [
+        "COMPLETE.json missing. decision.json missing. Not a D-residual result."
+      ]
+    },
+    {
+      "id": "physics_adaptive_dataset_curvature_probe",
+      "source_path": "outputs/geometry/physics_adaptive_dataset_curvature_probe/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_adaptive_dataset_curvature_probe/",
+      "present_in_worktree": true,
+      "present_on_host": true,
+      "completion_status": "complete",
+      "decision_label": "dataset_specific_curvature_probe_associations",
+      "decision_label_source": "COMPLETE.json primary_label and summary.json; no decision.json",
+      "runtime_s": 44058.82481265068,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "outputs/geometry/physics_adaptive_dataset_curvature_probe/COMPLETE.json",
+          "present_in_worktree": true,
+          "sha256": "2e10906da4e564c7036255855122cf073dd9ed48cc9159e315d520f80f7ed6cc",
+          "size": 116
+        },
+        {
+          "path": "outputs/geometry/physics_adaptive_dataset_curvature_probe/summary.json",
+          "present_in_worktree": true,
+          "sha256": "a7d7e1414f3841407b7574e62a0dda829e608cd13fcb592a533e5deef7747096",
+          "size": 5416
+        },
+        {
+          "path": "outputs/geometry/physics_adaptive_dataset_curvature_probe/REPORT.md",
+          "present_in_worktree": true,
+          "sha256": "c9bc9a67879a28edb086df79add70f3b5478685160109223c9b98322674326aa",
+          "size": 42358
+        },
+        {
+          "path": "outputs/geometry/physics_adaptive_dataset_curvature_probe/METHODS.md",
+          "present_in_worktree": true,
+          "sha256": "1092cb84ce8e05345c732ed5f6cd6a9d749824d9a6797624aa86d80edd997828",
+          "size": 2638
+        }
+      ],
+      "notes": "Predecessor dataset-sweep of Q\u2013probe associations. Label lives in COMPLETE.json/summary.json, not decision.json.",
+      "missing_or_contradictory": [
+        "decision.json absent; COMPLETE.json primary_label used."
+      ]
+    },
+    {
+      "id": "physics_multimodel_graph_prior_quadratic",
+      "source_path": "outputs/geometry/physics_multimodel_graph_prior_quadratic/",
+      "canonical_host_path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/",
+      "present_in_worktree": false,
+      "present_on_host": true,
+      "completion_status": "data_source_no_COMPLETE",
+      "decision_label": null,
+      "decision_label_source": null,
+      "runtime_s": null,
+      "read_only": true,
+      "relevant_files": [
+        {
+          "path": "REPORT.md",
+          "sha256": "556b2d7d495e957f991ba9cad2e46bbac9030ac4931b0522f6a91a1d75f230b3",
+          "location": "host"
+        },
+        {
+          "path": "curvature_features.parquet",
+          "location": "host",
+          "role": "frozen_KH_and_neighbourhood_source"
+        }
+      ],
+      "notes": "Upstream frozen embeddings / neighbourhoods / Q features consumed by LPA and later trees. Not a curvature-validation experiment.",
+      "missing_or_contradictory": [
+        "COMPLETE.json missing. decision.json missing. Not present in this worktree."
+      ]
+    }
+  ],
+  "conflicts_found": [
+    {
+      "id": "lpa_superseded_smoke_vs_current",
+      "trees": [
+        "physics_local_probe_adaptation"
+      ],
+      "description": "Superseded smoke decision.json label local_probe_result_unresolved vs current curvature_predicts_local_direction_adaptation. Current COMPLETE/decision are authoritative; superseded files retained.",
+      "authoritative": "outputs/geometry/physics_local_probe_adaptation/decision.json (host, current)"
+    },
+    {
+      "id": "qlca_decision_vs_audit_interpretation",
+      "trees": [
+        "physics_quadratic_label_chart_alignment",
+        "physics_quadratic_label_chart_alignment_audit"
+      ],
+      "description": "QLCA decision.json remains quadratic_chart_link_unresolved. Audit COMPLETE.json records audit_interpretation=geometry_regularized_quadratic_decoding and has no decision.json. Both preserved; audit does not overwrite.",
+      "authoritative": "parent decision.json for the frozen scientific label; audit COMPLETE for the interpretation flag"
+    },
+    {
+      "id": "vitb_KH_vs_Kdir_adaptation_sign",
+      "trees": [
+        "physics_local_probe_adaptation",
+        "physics_cross_model_full_curvature_reconciliation"
+      ],
+      "description": "ViT-B rho_ctl(K_H, Delta_adapt)=+0.15334238492921803 vs rho_Kdir_Dadapt=-0.1594762627172955 from FCR central_comparison_table.csv. Estimand divergence, not a copy error. Do not relabel KHcross tables as full curvature.",
+      "authoritative": "per-estimand tables: LPA/CMCLA for K_H; FCR central_comparison_table.csv for K_dir"
+    },
+    {
+      "id": "reproduction_swiss_spearman_vs_pass_label",
+      "trees": [
+        "pointwise_decoder_curvature_reproduction"
+      ],
+      "description": "Primary label colleague_decoder_results_reproduced with n_primary_cells_passed=3. R1 Swiss-roll Spearman disagrees with historical 0.553. reproduction_cells.csv is the numerical authority.",
+      "authoritative": "outputs/geometry/pointwise_decoder_curvature_reproduction/reproduction_cells.csv"
+    },
+    {
+      "id": "neither_estimator_validated_vs_residual_internal_pass",
+      "trees": [
+        "known_curvature_dual_estimator_robustness",
+        "known_curvature_estimator_operating_characteristics"
+      ],
+      "description": "summary_label neither_estimator_validated while decoder_residual_clean_ok/stress_ok are true. Operating-characteristics adds utility labels without overwriting the gate. Also summary.json==decision.json byte-identical in the dual-estimator tree.",
+      "authoritative": "CSV metric tables for magnitudes; both labels kept"
+    },
+    {
+      "id": "dres_vs_Q_adaptation_opposite_signs",
+      "trees": [
+        "physics_local_probe_adaptation",
+        "physics_pointwise_residual_curvature_probe_relation"
+      ],
+      "description": "Q K_H rho_ctl vs Delta_adapt = +0.153; D-residual C_H rho_ctl vs Delta_adapt = -0.207. Distinct estimands.",
+      "authoritative": "each tree's decision.json / primary_tests.csv"
+    },
+    {
+      "id": "q_comparison_raw_vs_controlled_CH_KH",
+      "trees": [
+        "physics_pointwise_residual_curvature_probe_relation"
+      ],
+      "description": "q_comparison.csv raw rho(C_H,K_H)=-0.28423038046435956 vs controlled +0.2295621151909454. Sign flip under radius/label-variance/count controls. Report both.",
+      "authoritative": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/q_comparison.csv"
+    },
+    {
+      "id": "instrument_failure_worktree_vs_host_docs",
+      "trees": [
+        "known_curvature_instrument_failure_localization"
+      ],
+      "description": "Worktree METHODS.md and REPORT.md hashes differ from host; COMPLETE/decision absent locally. Host artifacts used as authoritative.",
+      "authoritative": "/home/angus/platonic-universe/outputs/geometry/known_curvature_instrument_failure_localization/"
+    },
+    {
+      "id": "fixture_f0_full_euclidean_vs_later_residual_scoring",
+      "trees": [
+        "known_curvature_point_patch_fixture_audit",
+        "known_curvature_dual_estimator_robustness"
+      ],
+      "description": "Initial fixture F0_decoder_Kdir=8.47 is full Euclidean curvature of a sphere immersion, not a documented sphere-residual hallucination. Dual-estimator residual F0 energy_frac is the matched residual target.",
+      "authoritative": "dual-estimator decoder_residual_metrics.csv for residual; fixture decision.json for the historical mixed-estimand run"
+    }
+  ],
+  "missing_sources": [
+    {
+      "path": "outputs/geometry/physics_local_probe_adaptation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_local_probe_adaptation_audit/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/",
+      "status": "missing_in_worktree_present_on_host",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_multimodel_graph_prior_quadratic/",
+      "status": "missing_in_worktree_present_on_host_data_source_no_COMPLETE",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_ae_local_patch_scale_match/",
+      "status": "present_but_no_COMPLETE_or_decision",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_curvature_probe_submission_validation/",
+      "status": "present_decision_json_but_no_COMPLETE_json",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/",
+      "status": "worktree_partial_host_complete",
+      "audited": true
+    },
+    {
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/decision.json",
+      "status": "absent_by_design_label_only_in_COMPLETE_audit_interpretation",
+      "audited": true
+    }
+  ],
+  "notes": [
+    "When files disagree, the most direct numerical result table is authoritative unless a report documents a correction. No silent choice.",
+    "Host artifacts were read over SSH; no files in frozen output trees were written.",
+    "This worktree is a partial mirror of /home/angus/platonic-universe/outputs/geometry/."
+  ]
+}

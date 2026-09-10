@@ -1,0 +1,32 @@
+domain,cell,quantity,value,s_x,rms_eps,note,final_recon_mse,columns,synthetic_rms_over_s_x,vit_decoder_rmse,class
+synthetic,F0_S0_N0,observation_rms_over_s_x,0.0,0.9998950659548889,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F0_S3_N4,observation_rms_over_s_x,0.028386280653884762,0.9981433262395849,0.028333576591438914,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F1_S0_N0,observation_rms_over_s_x,0.0,0.7999234138894432,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F2_S0_N0,observation_rms_over_s_x,0.0,0.9999092581585427,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F2_S3_N4,observation_rms_over_s_x,0.029509619314848152,0.9944873447279049,0.029346942956354635,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S0_N0,observation_rms_over_s_x,0.0,0.9985427906903943,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S0_N1,observation_rms_over_s_x,0.010000000000000002,0.9985427906903943,0.009985427906903946,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S0_N2,observation_rms_over_s_x,0.05000000000000001,0.9985427906903943,0.04992713953451972,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S0_N3,observation_rms_over_s_x,0.05000000000000001,0.9985427906903943,0.04992713953451972,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S1_N0,observation_rms_over_s_x,0.0,0.9981957871417761,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S2_N0,observation_rms_over_s_x,0.0,0.9964603388028486,0.0,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F4_S3_N4,observation_rms_over_s_x,0.02978320203406055,0.9963241001698973,0.02967372196676363,injected noise / cloud scale; not identified as decoder residual,,,,,
+synthetic,F0_S0_N0,decoder_anchor_rmse,0.03336767837130117,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F1_S0_N0,decoder_anchor_rmse,0.024758706840063358,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F2_S0_N0,decoder_anchor_rmse,0.032046271092938415,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S0_N0,decoder_anchor_rmse,0.02221442414783917,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S1_N0,decoder_anchor_rmse,0.04002407792140501,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S2_N0,decoder_anchor_rmse,0.03267263678442712,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S0_N1,decoder_anchor_rmse,0.021862663999165335,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S0_N2,decoder_anchor_rmse,0.02827863949457081,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S0_N3,decoder_anchor_rmse,0.027022509591671903,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F4_S3_N4,decoder_anchor_rmse,0.048519332104201514,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F0_S3_N4,decoder_anchor_rmse,0.03289985119782611,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+synthetic,F2_S3_N4,decoder_anchor_rmse,0.09204544524545308,,,D=28 reconstruction RMSE at anchors; estimator residual scale comparator,,,,,
+vit_base,physics_D_residual_run,decoder_recon_rmse_over_unit_signal,0.21290787560339633,,,empirical estimator residual scale comparator only; not observational noise,0.04532976349395129,,,,
+vit_base,,quadratic_residual_over_radius,,,,unresolved: no valid residual/radius columns in existing ViT-B artifacts,,"['sample_id', 'K_H_cross', 'K_aniso_cross', 'K_dir_cross', 'R_H', 'R_B0', 'R_BS', 'n_splits', 'model_x', 'source', 'K_B_cross', 'model_y', 'overlap_any', 'n_eval', 'identical_GP_eval', 'log_knn_radius', 'local_label_variance', 'local_evaluation_count', 'mse_G', 'r2_G', 'mae_G', 'mse_Gcal', 'r2_Gcal', 'mae_Gcal', 'mse_C', 'r2_C', 'mae_C', 'mse_P', 'r2_P', 'mae_P', 'mse_T', 'r2_T', 'mae_T', 'mse_P_dir_Gcal', 'r2_P_dir_Gcal', 'mae_P_dir_Gcal', 'mse_G_dir_Pcal', 'r2_G_dir_Pcal', 'mae_G_dir_Pcal', 'delta_adapt']",,,
+vit_base,,augmentation_embedding_variation,,,,unresolved: no existing augmentation-induced embedding variation artifact used,,,,,
+classification,F4_S0_N1,,,,,reconstruction residual is an empirical scale comparator only,,,0.01,0.21290787560339633,below_observed_estimator_residual_scale
+classification,F4_S0_N2,,,,,reconstruction residual is an empirical scale comparator only,,,0.05,0.21290787560339633,below_observed_estimator_residual_scale
+classification,F4_S0_N3,,,,,reconstruction residual is an empirical scale comparator only,,,0.05,0.21290787560339633,below_observed_estimator_residual_scale
+classification,F4_S3_N4,,,,,reconstruction residual is an empirical scale comparator only,,,0.03,0.21290787560339633,below_observed_estimator_residual_scale

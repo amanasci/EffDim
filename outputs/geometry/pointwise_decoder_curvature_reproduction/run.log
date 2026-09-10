@@ -1,0 +1,19 @@
+===== START pointwise decoder curvature reproduction 2026-09-10T16:11:46+10:00 =====
+Traceback (most recent call last):
+  File "/home/angus/platonic-universe/experiments/geometry/run_pointwise_decoder_curvature_reproduction.py", line 15, in <module>
+    from geometry.pointwise_decoder_curvature_reproduction.pipeline import ExpConfig, run
+  File "/home/angus/platonic-universe/experiments/geometry/pointwise_decoder_curvature_reproduction/pipeline.py", line 274
+    print("[repro] R1 swiss roll", flush=True)
+    ^
+IndentationError: expected an indented block after 'if' statement on line 273
+===== RESTART 2026-09-10T16:14:06+10:00 =====
+[repro] unit tests
+[repro] R1 swiss roll
+[repro] R1 ve=0.9960 rho=0.6538 cos=0.9995 ratio=1.0123 t=14.4+0.1s
+[repro] R2 cubic d=16 D=28
+[repro] R2 ve=0.999384 rho=0.9393 cos=0.9936 ratio=0.9493 t=40.5+13.1s
+[repro] R3 ridge d=16 D=28
+[repro] R3 ve=0.999547 rho=0.9898 cos=0.9997 ratio=0.9907 t=40.7+12.6s
+[repro] R4 ridge d=16 D=768
+[repro] R4 ve=0.998827 rho=0.9869 cos=0.9994 ratio=0.9887 t=56.2+647.2s
+[repro] done label=colleague_decoder_results_reproduced t=834.3s stages=['unit_tests', 'R1', 'R2', 'R3', 'R4'] skipped=['R5:hard_cap_max_4_new_decoders', 'cached_sphere_evaluation_skipped_missing_weights']

@@ -1,0 +1,118 @@
+{
+  "n_tests": 27,
+  "n_passed": 27,
+  "all_passed": true,
+  "rows": [
+    {
+      "name": "deterministic_hash",
+      "ok": true
+    },
+    {
+      "name": "hash_changes_with_replicate",
+      "ok": true
+    },
+    {
+      "name": "conditional_disjoint",
+      "ok": true
+    },
+    {
+      "name": "conditional_cover_once",
+      "ok": true
+    },
+    {
+      "name": "conditional_sizes_1024",
+      "ok": true
+    },
+    {
+      "name": "global_mask_shared",
+      "ok": true
+    },
+    {
+      "name": "global_mask_approx_80",
+      "ok": true
+    },
+    {
+      "name": "queries_always_available",
+      "ok": true
+    },
+    {
+      "name": "self_not_in_candidates_if_we_exclude",
+      "ok": true
+    },
+    {
+      "name": "other_anchors_follow_mask",
+      "ok": true
+    },
+    {
+      "name": "k_prime_1638",
+      "ok": true
+    },
+    {
+      "name": "half_prime_819",
+      "ok": true
+    },
+    {
+      "name": "object_halves_819",
+      "ok": true
+    },
+    {
+      "name": "object_halves_disjoint",
+      "ok": true
+    },
+    {
+      "name": "object_halves_unique",
+      "ok": true
+    },
+    {
+      "name": "no_signed_cross_clamp",
+      "ok": true,
+      "note": "fit wrapper stores raw K_H_cross"
+    },
+    {
+      "name": "sample_id_alignment",
+      "ok": true
+    },
+    {
+      "name": "frozen_outcome_control_parity",
+      "ok": true
+    },
+    {
+      "name": "controlled_correlation_parity",
+      "ok": true
+    },
+    {
+      "name": "exact_baseline_q_parity",
+      "ok": true
+    },
+    {
+      "name": "no_probe_refitting",
+      "ok": true
+    },
+    {
+      "name": "no_label_use_in_geometry",
+      "ok": true
+    },
+    {
+      "name": "scalar_only_output_policy",
+      "ok": true
+    },
+    {
+      "name": "combined_reproducible",
+      "ok": true
+    },
+    {
+      "name": "gate_all_pass",
+      "ok": true
+    },
+    {
+      "name": "gate_fail_wrong_sign",
+      "ok": true
+    },
+    {
+      "name": "exact_baseline_Q_refit",
+      "ok": true,
+      "median_abs_diff": 0.0,
+      "n": 8
+    }
+  ]
+}

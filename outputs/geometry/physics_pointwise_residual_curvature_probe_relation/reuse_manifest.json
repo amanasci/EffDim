@@ -1,0 +1,135 @@
+{
+  "n_objects": 16384,
+  "X_shape": [
+    16384,
+    768
+  ],
+  "X_dtype": "float32",
+  "median_embedding_norm": 1.0,
+  "n_frozen_anchors": 512,
+  "n_used_anchors": 512,
+  "n_folds": 5,
+  "fold_ids": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sample_id_is_row_index": false,
+  "align_by": "sample_id",
+  "d": 16,
+  "k": 2048,
+  "model": "vit_base",
+  "target_field": "mag_r_desi",
+  "estimator": "pointwise_sphere_residual_decoder_curvature",
+  "historical_full_is_control_only": true,
+  "Q_is_empirical_statistic_only": true,
+  "files": {
+    "vit_b_embeddings": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/prepare/models/vit_base.npz",
+      "exists": true,
+      "sha256": "7635df38659bce31a3fd7bdff59c4d8f107dc674b33a43abd54e5fe4d9d7235a",
+      "sha16": "7635df38659bce31",
+      "bytes": 46727202
+    },
+    "anchors": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/prepare/anchors.npz",
+      "exists": true,
+      "sha256": "d648acecf0f7382fa17391daaa484034e7df99ed5149a960379acfef4be1c7db",
+      "sha16": "d648acecf0f7382f",
+      "bytes": 2136
+    },
+    "folds": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/sample_folds.parquet",
+      "exists": true,
+      "sha256": "4f90b0ac0628623da7c8e5ea6aff3cfc503ad1e05babb40b47a6de806d8eba38",
+      "sha16": "4f90b0ac0628623d",
+      "bytes": 693385
+    },
+    "oof": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/global_probes/oof_predictions/vit_base_mag_r_desi.npz",
+      "exists": true,
+      "sha256": "54c9703e4d01bbbd17988a767ebd4d88c22f6eb256dd8cb7bbe30202f2dfc571",
+      "sha16": "54c9703e4d01bbbd",
+      "bytes": 59306
+    },
+    "local_probe_fields": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/local_probe_fields.parquet",
+      "exists": true,
+      "sha256": "8deccdeba7401d73555132e9817b3a3c1f423c30f2759ad2c7c4934b1eb05df6",
+      "sha16": "8deccdeba7401d73",
+      "bytes": 3103899
+    },
+    "cprs_rank_curve": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_probe_rank_sweep/per_anchor_rank_curve.parquet",
+      "exists": true,
+      "sha256": "badeac8ce6197b3f8e7a8f68f3d05b64e8d965d3d146120f09d04c9f7e1c0f4a",
+      "sha16": "badeac8ce6197b3f",
+      "bytes": 627928
+    },
+    "lpa_improvements": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_local_probe_adaptation/anchor_improvements.csv",
+      "exists": true,
+      "sha256": "6c9b1e2c461d250a35db9279c84e5effbff726c5b44a9c601529bd16a115734b",
+      "sha16": "6c9b1e2c461d250a",
+      "bytes": 150519
+    },
+    "lpa_metrics": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_local_probe_adaptation/anchor_model_metrics.parquet",
+      "exists": true,
+      "sha256": "cb0bf4504ebd661f8d00adbe10937c87d3b254f0e72658371a2a300e55d21405",
+      "sha16": "cb0bf4504ebd661f",
+      "bytes": 276755
+    },
+    "cmcla_vit_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/vit_base_anchor_metrics.parquet",
+      "exists": true,
+      "sha256": "140c1ae0b7ce7c76b8514dafa08041252def5d8a1b6ef6085f7d99e4b603446e",
+      "sha16": "140c1ae0b7ce7c76",
+      "bytes": 191357
+    },
+    "fcr_vit_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/vit_base_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha256": "a4ecc11a5da672e23b406f8b4049a09f142c9ec0564e5bf298ff02e742133052",
+      "sha16": "a4ecc11a5da672e2",
+      "bytes": 225140
+    },
+    "qlca_risks": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/anchor_risks.csv",
+      "exists": true,
+      "sha256": "1ca838b13e9740773374c7abdb2a8c85e64a5e9cdafe2a2eab5736bbf747a1c9",
+      "sha16": "1ca838b13e974077",
+      "bytes": 239742
+    },
+    "decoder_impl": {
+      "path": "/home/angus/platonic-universe/notebooks/pu_manifold/decoder_curvature.py",
+      "exists": true,
+      "sha256": "6b00bb100f26727286c70f71b1c66bb20f629286ed2ed13be3511bdcee62130c",
+      "sha16": "6b00bb100f267272",
+      "bytes": 15989
+    },
+    "cae_impl": {
+      "path": "/home/angus/platonic-universe/notebooks/pu_manifold/cae.py",
+      "exists": true,
+      "sha256": "f7cc285c041d2623285da571a5df46cb05adf9ac9520b0c88c38faaaba9eecae",
+      "sha16": "f7cc285c041d2623",
+      "bytes": 54636
+    }
+  },
+  "fold_table_columns": [
+    "local_index",
+    "sample_id",
+    "fold",
+    "is_anchor",
+    "y_mag_r_desi",
+    "finite_mag_r_desi",
+    "y_photo_z",
+    "finite_photo_z",
+    "y_smooth_fraction",
+    "finite_smooth_fraction",
+    "y_stellar_mass",
+    "finite_stellar_mass"
+  ]
+}

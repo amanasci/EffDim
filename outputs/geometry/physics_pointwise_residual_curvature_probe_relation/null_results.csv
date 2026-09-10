@@ -1,0 +1,3 @@
+name,observed,p_mc,null_median,n,median_rho_vs_unpermuted_consensus,min_rho,seed_selective,note
+anchor_perm_CH_vs_R2G,0.02970575697233952,0.5077492250774922,-0.0010048487371396527,,,,,
+seed_label_perm,,,,200.0,1.0,1.0,False,Median rank is permutation-invariant across seed labels; min rho should be 1.

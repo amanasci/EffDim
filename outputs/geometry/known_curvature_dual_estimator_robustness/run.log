@@ -1,0 +1,60 @@
+===== START dual robustness 2026-09-10T21:54:54+10:00 =====
+[dual] F0 S0 N0
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[dual] F0_S0_N0 Dρ=nan Dresρ=nan QT2cos=-0.008 t=40.6+1.8+7.6s
+[dual] F1 S0 N0
+[dual] F1_S0_N0 Dρ=nan Dresρ=nan QT2cos=0.208 t=40.6+1.8+7.6s
+[dual] F2 S0 N0
+[dual] F2_S0_N0 Dρ=nan Dresρ=nan QT2cos=0.421 t=40.8+1.8+7.7s
+[dual] F4 S0 N0
+[dual] F4_S0_N0 Dρ=-0.079 Dresρ=0.819 QT2cos=0.618 t=40.8+1.8+7.7s
+[dual] F4 S1 N0
+[dual] F4_S1_N0 Dρ=0.049 Dresρ=0.832 QT2cos=0.297 t=12.2+1.8+7.6s
+[dual] F4 S2 N0
+[dual] F4_S2_N0 Dρ=-0.076 Dresρ=0.815 QT2cos=0.610 t=40.7+1.8+7.8s
+[dual] F4 S0 N1
+[dual] F4_S0_N1 Dρ=-0.143 Dresρ=0.802 QT2cos=0.590 t=40.8+1.8+7.6s
+[dual] F4 S0 N2
+[dual] F4_S0_N2 Dρ=-0.053 Dresρ=0.731 QT2cos=0.377 t=40.6+1.8+7.6s
+[dual] F4 S0 N3
+[dual] F4_S0_N3 Dρ=0.163 Dresρ=0.762 QT2cos=0.459 t=40.6+1.8+7.6s
+[dual] F4 S3 N4
+[dual] F4_S3_N4 Dρ=0.334 Dresρ=0.737 QT2cos=0.313 t=12.2+1.8+7.8s
+[dual] F0 S3 N4
+[dual] F0_S3_N4 Dρ=nan Dresρ=nan QT2cos=0.006 t=12.2+1.8+7.8s
+[dual] F2 S3 N4
+/home/angus/platonic-universe/experiments/geometry/known_curvature_dual_estimator_robustness/pipeline.py:298: RuntimeWarning: All-NaN slice encountered
+  return float(np.nanmedian(xs)) if xs else float("nan")
+[dual] F2_S3_N4 Dρ=nan Dresρ=nan QT2cos=nan t=12.3+1.8+7.7s
+[dual] done label=neither_estimator_validated t=612.2s n_ae=12

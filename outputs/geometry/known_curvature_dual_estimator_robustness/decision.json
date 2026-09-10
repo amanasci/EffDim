@@ -1,0 +1,23 @@
+{
+  "decoder_full_clean_ok": false,
+  "decoder_full_stress_ok": false,
+  "decoder_residual_clean_ok": true,
+  "decoder_residual_stress_ok": true,
+  "quadratic_matched_patch_ok": false,
+  "quadratic_uniform_patch_ok": false,
+  "quadratic_pointwise_residual_ok": false,
+  "quadratic_intrinsic_ok": false,
+  "sampling_measure_dependence_detected": true,
+  "sampling_robust": true,
+  "noise_robust": true,
+  "summary_label": "neither_estimator_validated",
+  "skipped": [],
+  "notes": {
+    "f0_residual_energy_ok": true,
+    "f1_mean_ok": true,
+    "f2_tracefree_ok": true,
+    "sparse_row": {
+      "rho": 0.04913003663003663
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    "F0",
+    "F1",
+    "F2",
+    "F4"
+  ],
+  "d": 16,
+  "D": 28,
+  "n_anchors": 64,
+  "rotation": "orthonormal_qr(28, 20260907)"
+}

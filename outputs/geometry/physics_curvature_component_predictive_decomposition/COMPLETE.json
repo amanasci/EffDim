@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "decision": "distinct_mean_and_traceless_predictive_roles",
+  "runtime_s": 3672.6632719039917,
+  "output_dir": "/home/angus/platonic-universe/outputs/geometry/physics_curvature_component_predictive_decomposition"
+}

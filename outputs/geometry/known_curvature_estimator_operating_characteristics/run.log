@@ -1,0 +1,29 @@
+[oc] regenerating T2/T3 scalar oracles
+[oc] oracles F0 S0 N0
+[oc] oracles F1 S0 N0
+[oc] oracles F2 S0 N0
+[oc] oracles F4 S0 N0
+[oc] oracles F4 S1 N0
+[oc] oracles F4 S2 N0
+[oc] oracles F4 S0 N1
+[oc] oracles F4 S0 N2
+[oc] oracles F4 S0 N3
+[oc] oracles F4 S3 N4
+[oc] oracles F0 S3 N4
+[oc] oracles F2 S3 N4
+/home/angus/platonic-universe/experiments/geometry/known_curvature_estimator_operating_characteristics/pipeline.py:372: RuntimeWarning: Mean of empty slice
+  "rho_random_mean": float(np.nanmean(shuf)),
+[oc] F4 repeat panel
+[oc] repeat S0 N0 draw=A
+[oc] trained F4_S0_N0_drawA_seed0 t=25.8s n_ae=1
+[oc] trained F4_S0_N0_drawA_seed1 t=25.4s n_ae=2
+[oc] repeat S0 N0 draw=B
+[oc] trained F4_S0_N0_drawB_seed0 t=25.6s n_ae=3
+[oc] trained F4_S0_N0_drawB_seed1 t=25.7s n_ae=4
+[oc] repeat S3 N4 draw=A
+[oc] trained F4_S3_N4_drawA_seed0 t=7.6s n_ae=5
+[oc] trained F4_S3_N4_drawA_seed1 t=7.5s n_ae=6
+[oc] repeat S3 N4 draw=B
+[oc] trained F4_S3_N4_drawB_seed0 t=7.8s n_ae=7
+[oc] trained F4_S3_N4_drawB_seed1 t=7.7s n_ae=8
+[oc] done t=386.0s n_ae=8 D=d_full_useful_on_non_spherical_clean_geometry Q=q_moderately_informative_sampling_dependent_statistic

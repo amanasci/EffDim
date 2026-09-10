@@ -1,0 +1,42 @@
+[
+  {
+    "suite": "A",
+    "fixture": "F0",
+    "scores": {},
+    "error": "einsum(): output subscript o appears more than once in the output",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F1",
+    "scores": {},
+    "error": "einsum(): output subscript o appears more than once in the output",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F2",
+    "scores": {},
+    "error": "einsum(): output subscript o appears more than once in the output",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F4",
+    "scores": {},
+    "error": "einsum(): output subscript o appears more than once in the output",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  }
+]

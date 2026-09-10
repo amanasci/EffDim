@@ -1,0 +1,6 @@
+{
+  "S0": "Haar uniform n=5000",
+  "S1": "Haar uniform n=1500",
+  "S2": "w=exp(\u03b2 s(u)) n=5000 \u03b2=log(10)/2",
+  "S3": "same weight n=1500"
+}

@@ -1,0 +1,31 @@
+{
+  "read_only_trees": [
+    "outputs/geometry/known_curvature_dual_estimator_robustness",
+    "outputs/geometry/pointwise_decoder_curvature_reproduction",
+    "outputs/geometry/known_curvature_point_patch_fixture_audit",
+    "outputs/geometry/known_curvature_instrument_failure_localization",
+    "outputs/geometry/physics_pointwise_residual_curvature_probe_relation"
+  ],
+  "files": {
+    "dual_per_anchor": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/per_anchor_metrics.parquet",
+    "dual_d_full": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/decoder_full_metrics.csv",
+    "dual_d_res": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/decoder_residual_metrics.csv",
+    "dual_q_t2": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/quadratic_T2_metrics.csv",
+    "dual_q_t3": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/quadratic_T3_metrics.csv",
+    "dual_q_pw": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/quadratic_pointwise_metrics.csv",
+    "dual_scal": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/intrinsic_curvature_metrics.csv",
+    "dual_decision": "/home/angus/platonic-universe/outputs/geometry/known_curvature_dual_estimator_robustness/decision.json",
+    "repro_cells": "/home/angus/platonic-universe/outputs/geometry/pointwise_decoder_curvature_reproduction/reproduction_cells.csv",
+    "phys_decision": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/decision.json",
+    "fail_decision": "/home/angus/platonic-universe/outputs/geometry/known_curvature_instrument_failure_localization/decision.json",
+    "patch_complete": "/home/angus/platonic-universe/outputs/geometry/known_curvature_point_patch_fixture_audit/COMPLETE.json",
+    "fcr_vit": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/vit_base_per_anchor_curvature.parquet",
+    "phys_train": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/decoder_training_manifest.json"
+  },
+  "missing": [],
+  "n_per_anchor": 768,
+  "prior_dual_label": "neither_estimator_validated",
+  "prior_label_not_overwritten": true,
+  "new_decoder_checkpoints_in_prior": false,
+  "note": "Historical decision.json / COMPLETE.json / reports were not modified."
+}

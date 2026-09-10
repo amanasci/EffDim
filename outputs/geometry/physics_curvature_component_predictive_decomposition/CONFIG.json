@@ -1,0 +1,14 @@
+{
+  "output_dir": "outputs/geometry/physics_curvature_component_predictive_decomposition",
+  "seed": 0,
+  "n_boot": 2000,
+  "n_perm": 10000,
+  "n_haar": 2000,
+  "smoke": false,
+  "force": true,
+  "stage": "all",
+  "n_anchors_override": null,
+  "models_override": null,
+  "n_workers": 8,
+  "skip_probes": false
+}

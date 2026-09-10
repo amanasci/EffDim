@@ -1,0 +1,10 @@
+{
+  "evaluated": [],
+  "skipped": [
+    "dinov3",
+    "clip_base",
+    "convnext_base",
+    "vit_large"
+  ],
+  "reason": "no_compatible_decoder_checkpoints_for_seeds_0_1_2"
+}

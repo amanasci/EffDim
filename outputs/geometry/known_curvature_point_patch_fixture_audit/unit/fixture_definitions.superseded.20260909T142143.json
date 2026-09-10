@@ -1,0 +1,158 @@
+{
+  "d": 16,
+  "D": 768,
+  "ambient_rotation_seed": 20260907,
+  "ambient_rotation_hash16": "251f756d4adcce56",
+  "F1_c": 0.6,
+  "F1_r": 0.8,
+  "F3_r2": 0.7,
+  "F3_s2": 0.3,
+  "F4_bump_scale": 0.8,
+  "F4_amplitudes": [
+    0.85,
+    -0.7,
+    0.6,
+    -0.5
+  ],
+  "F4_widths": [
+    0.8,
+    0.95,
+    0.7,
+    1.05
+  ],
+  "F5_widths": [
+    0.22,
+    0.18,
+    0.25,
+    0.2
+  ],
+  "F4_centers": [
+    [
+      0.6554975015546735,
+      -0.523529394177129,
+      0.070503783212324,
+      0.1285679118433932,
+      0.1763531876411883,
+      0.5664305600220579,
+      -0.3992841493111468,
+      -0.4791686552728127,
+      0.0884049877469623,
+      0.4539735367877165,
+      -0.019583153713226,
+      -0.5701379946624442,
+      0.3986891119736022,
+      -0.0219427236815099,
+      -0.2949744972657849,
+      -0.562365480263261
+    ],
+    [
+      -0.2194601032411319,
+      -1.3176041794136746,
+      -0.7259616270721948,
+      -0.3551205421731211,
+      0.4910933697746437,
+      0.1955606151655251,
+      -0.6559465853079872,
+      0.3431168177057484,
+      -0.1138683587058425,
+      0.2958042506433989,
+      -0.1702086361246476,
+      -0.7586385825127746,
+      -0.758542963790235,
+      -0.2923113575699286,
+      -0.0885149819427515,
+      0.2071702628939527
+    ],
+    [
+      -0.1294132673308467,
+      -0.1986588413606185,
+      0.345153803024326,
+      0.3086747613037822,
+      -1.1969646847319737,
+      -0.5696954364410566,
+      -0.0031542507345659,
+      -0.2295998422227863,
+      -0.328180276116154,
+      -0.474532493440982,
+      0.0488860799285252,
+      -0.3380500884350144,
+      0.5713729802142972,
+      -0.4137204047786925,
+      0.0356144405067917,
+      -0.3618902838375533
+    ],
+    [
+      -0.3481821665540672,
+      -0.6074072782802246,
+      0.0375553176078436,
+      0.4537031657531641,
+      -0.1618543610254836,
+      -0.2814702787043342,
+      0.1476463321983474,
+      0.5030402951523673,
+      0.3532802173466812,
+      0.1040286585779806,
+      0.5002010759459415,
+      -0.2312376261463009,
+      0.4174851898124352,
+      -0.0156933908771821,
+      0.2048566500914245,
+      0.9037811944949826
+    ]
+  ],
+  "clifford_p": 8,
+  "clifford_q": 8,
+  "stereo": "inverse_stereographic R^n -> S^n, north-pole",
+  "unit_normalized": true,
+  "specs": {
+    "F0": {
+      "name": "F0",
+      "family": "great_subsphere",
+      "closed_form": true,
+      "expected_H": "zero",
+      "expected_tf": "zero",
+      "notes": "totally geodesic S^16 in S^767; B^S=0"
+    },
+    "F1": {
+      "name": "F1",
+      "family": "latitude_subsphere",
+      "closed_form": true,
+      "expected_H": "nonzero_const",
+      "expected_tf": "zero",
+      "notes": "c=0.6, kappa=c/r"
+    },
+    "F2": {
+      "name": "F2",
+      "family": "minimal_clifford",
+      "closed_form": true,
+      "expected_H": "zero",
+      "expected_tf": "nonzero_const",
+      "notes": "r^2=s^2=1/2; H=0, TF\u22600"
+    },
+    "F3": {
+      "name": "F3",
+      "family": "nonminimal_clifford",
+      "closed_form": true,
+      "expected_H": "nonzero_const",
+      "expected_tf": "nonzero_const",
+      "notes": "r^2=0.7, s^2=0.3"
+    },
+    "F4": {
+      "name": "F4",
+      "family": "low_freq_bumped_sphere",
+      "closed_form": false,
+      "expected_H": "variable",
+      "expected_tf": "variable",
+      "notes": "frozen wide Gaussian bumps"
+    },
+    "F5": {
+      "name": "F5",
+      "family": "high_freq_bumped_sphere",
+      "closed_form": false,
+      "expected_H": "variable",
+      "expected_tf": "variable",
+      "notes": "frozen narrow Gaussian bumps"
+    }
+  },
+  "packing_note": "T1 B^S is the Hessian P_NS \u2202_{ab}G. Frozen quadratic BS_flat stores Phi=u_a u_b coefficients; Hess = 2 * unpack_BS_symmetric(BS_flat)."
+}

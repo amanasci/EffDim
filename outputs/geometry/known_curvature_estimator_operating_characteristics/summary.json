@@ -1,0 +1,38 @@
+{
+  "parity_ok": true,
+  "d_full_label": "d_full_useful_on_non_spherical_clean_geometry",
+  "q_label": "q_moderately_informative_sampling_dependent_statistic",
+  "d_residual_label": "d_residual_useful_but_stress_sensitive",
+  "prior_label": "neither_estimator_validated",
+  "dimensions": {
+    "d_full_clean_vector_recovery": "strong",
+    "d_full_rank_informative": "degenerate_target",
+    "d_residual_clean_rank_recovery": "strong",
+    "d_residual_stress_rank_recovery": "moderate",
+    "q_t2_scalar_rank_recovery": "moderate",
+    "q_t2_tensor_recovery": "moderate",
+    "q_t3_geometric_rank_recovery": "moderate",
+    "q_pointwise_rank_recovery": "moderate",
+    "q_sampling_measure_dependence": "strong",
+    "d_sampling_reliability": "strong",
+    "q_sampling_reliability": "weak",
+    "d_fraction_of_ceiling": "strong",
+    "q_fraction_of_ceiling": "weak"
+  },
+  "structural": {
+    "f0_dres_energy_frac": 0.0009638843433637,
+    "f0_dfull_cosine": 0.9993431523062966,
+    "f2_dres_hs_mean": 0.2138999073270713,
+    "f2_dres_tensor_cos": 0.9228219414916792,
+    "f2_note": "F2 has ~zero residual mean curvature and nonzero trace-free bending; D-residual H_S should stay small while tensor cosine can be nonzero."
+  },
+  "headline_md": "\n- D-full cubic/ridge reuse: \u03c1(R2)=0.939, \u03c1(R3)=0.990\n- D-full F4 clean vector cosine=0.999; sphere rank degenerate=True\n- D-full residualized F4 clean \u03c1=-0.03427419595949699\n- D-residual F4 clean \u03c1=0.819; stress \u03c1=0.737; Scal \u03c1=0.862\n- Q T2 scalar K_H \u03c1=0.5232142857142856; T2 tensor cos=0.618; T2\u2013T3 cos=0.748\n- Repeat reliability / ceiling: see repeat_reliability.csv and reliability_ceiling.csv\n- Sparsest density quintile: D-full residualized \u03c1=0.211; D-residual \u03c1=0.390; Q K_H vs T2 \u03c1=0.066; D-full residualized \u03c1=0.431; D-residual \u03c1=0.582; Q K_H vs T2 \u03c1=0.220\n- Labels: D-full `d_full_useful_on_non_spherical_clean_geometry`; Q `q_moderately_informative_sampling_dependent_statistic`; D-residual `d_residual_useful_but_stress_sensitive`\n- Prior exact-recovery label unchanged: `neither_estimator_validated`\n- Runtime 386.0059542655945 s; new AEs 8\n",
+  "dimensions_md": "- d_full_clean_vector_recovery: **strong**\n- d_full_rank_informative: **degenerate_target**\n- d_residual_clean_rank_recovery: **strong**\n- d_residual_stress_rank_recovery: **moderate**\n- q_t2_scalar_rank_recovery: **moderate**\n- q_t2_tensor_recovery: **moderate**\n- q_t3_geometric_rank_recovery: **moderate**\n- q_pointwise_rank_recovery: **moderate**\n- q_sampling_measure_dependence: **strong**\n- d_sampling_reliability: **strong**\n- q_sampling_reliability: **weak**\n- d_fraction_of_ceiling: **strong**\n- q_fraction_of_ceiling: **weak**",
+  "manuscript_note": "Keep exact-recovery and operating-utility paragraphs separate.",
+  "paths": {
+    "summary.json": "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/summary.json",
+    "decision.json": "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/decision.json",
+    "REPORT.md": "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/REPORT.md",
+    "COMPLETE.json": "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/COMPLETE.json"
+  }
+}

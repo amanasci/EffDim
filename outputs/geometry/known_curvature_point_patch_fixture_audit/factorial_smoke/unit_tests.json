@@ -1,0 +1,119 @@
+{
+  "n_tests": 17,
+  "n_passed": 17,
+  "all_passed": true,
+  "results": [
+    {
+      "name": "F0_BS_zero",
+      "ok": true,
+      "ad_fd_B_rel": 0.9999999999934853,
+      "orth_max_abs_radial": 1.137919401760124e-15,
+      "K_dir": 1.5024130858330743e-31
+    },
+    {
+      "name": "F1_pure_mean",
+      "ok": true,
+      "H_norm": 0.7500000000000001,
+      "tf_frac": 1.1707212915188917e-15,
+      "an_ad_B_rel": 1.3389938235702482e-15
+    },
+    {
+      "name": "F2_minimal_clifford",
+      "ok": true,
+      "H_norm": 4.499438938996672e-16,
+      "K_tf": 0.11111111111111123,
+      "K_dir": 0.11111111111111123,
+      "an_ad_B_rel": 1.288566262723756e-15
+    },
+    {
+      "name": "F3_principal_curvatures",
+      "ok": true,
+      "ku": 0.6546536707079771,
+      "kv": -1.5275252316519468,
+      "H_analytic": 0.4364357804719849,
+      "H_ad": 0.4364357804719853
+    },
+    {
+      "name": "metric_contractions",
+      "ok": true,
+      "k_formula": 0.5624999999999998,
+      "k_dir": 0.5624999999999998
+    },
+    {
+      "name": "frobenius_packing",
+      "ok": true,
+      "unpack_err": 0.0,
+      "hess_scale_err": 0.0,
+      "packed_fro": 19.0951791139326,
+      "tensor_fro": 10.857189402035221
+    },
+    {
+      "name": "latent_rotation_invariance",
+      "ok": true,
+      "rel_K_lat": 2.579903503944525e-15,
+      "K_dir_base": 0.32275132275132257,
+      "K_dir_lat": 0.3227513227513234
+    },
+    {
+      "name": "ambient_rotation_invariance",
+      "ok": true,
+      "rel_K_amb": 4.643826307100145e-15
+    },
+    {
+      "name": "radial_identity",
+      "ok": true,
+      "GJ": 1.0668549377257364e-16,
+      "ident": 5.773159728050814e-15
+    },
+    {
+      "name": "BS_orthogonality",
+      "ok": true,
+      "radial": 3.627740469136498e-16,
+      "tangent": 4.0852737859253807e-16
+    },
+    {
+      "name": "analytic_vs_mc_kdir",
+      "ok": true,
+      "rel": 0.009176929894042344,
+      "kdir": 0.11111111111111123,
+      "kmc": 0.11213076998822705
+    },
+    {
+      "name": "pointwise_limit_small_radius",
+      "ok": true,
+      "K_T2_lo": 0.5616501848238812,
+      "K_T2_hi": 0.5501842204308522,
+      "K_T1": 0.5625,
+      "rel_lo": 0.0015107825353223427,
+      "rel_hi": 0.021894719234040454
+    },
+    {
+      "name": "split_cross_vs_directional_mc",
+      "ok": true,
+      "mc": 0.0018923222318155072,
+      "formula": 0.001907539652640031
+    },
+    {
+      "name": "F0_density_independence_truth",
+      "ok": true,
+      "n": 256,
+      "note": "analytic B^S=0 independent of sampling; estimator scored in Suite B"
+    },
+    {
+      "name": "sample_id_permutation_invariance",
+      "ok": true
+    },
+    {
+      "name": "no_decoder_anchor_leakage",
+      "ok": true,
+      "n_train": 80,
+      "n_holdout": 20
+    },
+    {
+      "name": "oracle_convergence",
+      "ok": true,
+      "n_rows": 4,
+      "ok_flag": false
+    }
+  ]
+}

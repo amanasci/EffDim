@@ -1,0 +1,6 @@
+{
+  "sampling": "S1",
+  "rho_logp_K": NaN,
+  "s1_tries": 32,
+  "rho_logp_Kdir_anchors": 0.08505768174327046
+}

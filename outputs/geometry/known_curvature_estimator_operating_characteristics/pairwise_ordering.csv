@@ -1,0 +1,109 @@
+estimator,target,cell,pairwise_acc,chance,pair_band
+D-full,H_E_norm,F4_S0_N0,0.4756944444444444,0.5,weak
+D-full residualized,H_S_from_HE,F4_S0_N0,0.42857142857142855,0.5,weak
+D-residual,H_S_norm,F4_S0_N0,0.8625992063492064,0.5,strong
+D-residual Scal,Scal,F4_S0_N0,0.8829365079365079,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S0_N0,0.6850198412698413,0.5,moderate
+Q K_dir vs T2,K_dir_T2,F4_S0_N0,0.5595238095238095,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S0_N0,0.654265873015873,0.5,moderate
+Q K_H vs pointwise,K_H_pw,F4_S0_N0,0.6626984126984127,0.5,moderate
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S0_N0,0.6626984126984127,0.5,moderate
+D-full,H_E_norm,F4_S1_N0,0.5124007936507936,0.5,weak
+D-full residualized,H_S_from_HE,F4_S1_N0,0.3968253968253968,0.5,weak
+D-residual,H_S_norm,F4_S1_N0,0.8229166666666666,0.5,strong
+D-residual Scal,Scal,F4_S1_N0,0.8035714285714286,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S1_N0,0.5704365079365079,0.5,weak
+Q K_dir vs T2,K_dir_T2,F4_S1_N0,0.39285714285714285,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S1_N0,0.5694444444444444,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S1_N0,0.5803571428571429,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S1_N0,0.5803571428571429,0.5,weak
+D-full,H_E_norm,F4_S2_N0,0.4742063492063492,0.5,weak
+D-full residualized,H_S_from_HE,F4_S2_N0,0.3715277777777778,0.5,weak
+D-residual,H_S_norm,F4_S2_N0,0.8358134920634921,0.5,strong
+D-residual Scal,Scal,F4_S2_N0,0.8442460317460317,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S2_N0,0.589781746031746,0.5,weak
+Q K_dir vs T2,K_dir_T2,F4_S2_N0,0.5560515873015873,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S2_N0,0.5565476190476191,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S2_N0,0.6056547619047619,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S2_N0,0.6056547619047619,0.5,weak
+D-full,H_E_norm,F4_S0_N1,0.4479166666666667,0.5,weak
+D-full residualized,H_S_from_HE,F4_S0_N1,0.3472222222222222,0.5,weak
+D-residual,H_S_norm,F4_S0_N1,0.8511904761904762,0.5,strong
+D-residual Scal,Scal,F4_S0_N1,0.8645833333333334,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S0_N1,0.6780753968253969,0.5,moderate
+Q K_dir vs T2,K_dir_T2,F4_S0_N1,0.5808531746031746,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S0_N1,0.6364087301587301,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S0_N1,0.6726190476190477,0.5,moderate
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S0_N1,0.6726190476190477,0.5,moderate
+D-full,H_E_norm,F4_S0_N2,0.48412698412698413,0.5,weak
+D-full residualized,H_S_from_HE,F4_S0_N2,0.4479166666666667,0.5,weak
+D-residual,H_S_norm,F4_S0_N2,0.7931547619047619,0.5,moderate
+D-residual Scal,Scal,F4_S0_N2,0.8219246031746031,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S0_N2,0.5535714285714286,0.5,weak
+Q K_dir vs T2,K_dir_T2,F4_S0_N2,0.6388888888888888,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S0_N2,0.5739087301587301,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S0_N2,0.5714285714285714,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S0_N2,0.5714285714285714,0.5,weak
+D-full,H_E_norm,F4_S0_N3,0.5540674603174603,0.5,weak
+D-full residualized,H_S_from_HE,F4_S0_N3,0.43253968253968256,0.5,weak
+D-residual,H_S_norm,F4_S0_N3,0.8139880952380952,0.5,strong
+D-residual Scal,Scal,F4_S0_N3,0.8323412698412699,0.5,strong
+Q K_H vs T2,K_H_T2,F4_S0_N3,0.6344246031746031,0.5,weak
+Q K_dir vs T2,K_dir_T2,F4_S0_N3,0.5813492063492064,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S0_N3,0.6180555555555556,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S0_N3,0.6334325396825397,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S0_N3,0.6334325396825397,0.5,weak
+D-full,H_E_norm,F4_S3_N4,0.6155753968253969,0.5,weak
+D-full residualized,H_S_from_HE,F4_S3_N4,0.373015873015873,0.5,weak
+D-residual,H_S_norm,F4_S3_N4,0.7857142857142857,0.5,moderate
+D-residual Scal,Scal,F4_S3_N4,0.7876984126984127,0.5,moderate
+Q K_H vs T2,K_H_T2,F4_S3_N4,0.5238095238095238,0.5,weak
+Q K_dir vs T2,K_dir_T2,F4_S3_N4,0.4816468253968254,0.5,weak
+Q K_H vs T3,K_H_T3,F4_S3_N4,0.5436507936507936,0.5,weak
+Q K_H vs pointwise,K_H_pw,F4_S3_N4,0.5749007936507936,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F4_S3_N4,0.5749007936507936,0.5,weak
+D-full,H_E_norm,F0_S0_N0,0.4355212355212355,0.5,weak
+D-full residualized,H_S_from_HE,F0_S0_N0,0.25862068965517243,0.5,weak
+D-residual,H_S_norm,F0_S0_N0,0.535899333826795,0.5,weak
+D-residual Scal,Scal,F0_S0_N0,,0.5,not_estimable
+Q K_H vs T2,K_H_T2,F0_S0_N0,,0.5,not_estimable
+Q K_dir vs T2,K_dir_T2,F0_S0_N0,,0.5,not_estimable
+Q K_H vs T3,K_H_T3,F0_S0_N0,,0.5,not_estimable
+Q K_H vs pointwise,K_H_pw,F0_S0_N0,,0.5,not_estimable
+Q K_H vs pointwise H_S2,H_S2_pw,F0_S0_N0,,0.5,not_estimable
+D-full,H_E_norm,F1_S0_N0,0.5659640905542545,0.5,weak
+D-full residualized,H_S_from_HE,F1_S0_N0,0.5659640905542545,0.5,weak
+D-residual,H_S_norm,F1_S0_N0,0.5921644187540142,0.5,weak
+D-residual Scal,Scal,F1_S0_N0,0.6220677671589921,0.5,weak
+Q K_H vs T2,K_H_T2,F1_S0_N0,0.4677579365079365,0.5,weak
+Q K_dir vs T2,K_dir_T2,F1_S0_N0,0.4771825396825397,0.5,weak
+Q K_H vs T3,K_H_T3,F1_S0_N0,0.4503968253968254,0.5,weak
+Q K_H vs pointwise,K_H_pw,F1_S0_N0,0.5124378109452736,0.5,weak
+Q K_H vs pointwise H_S2,H_S2_pw,F1_S0_N0,,0.5,not_estimable
+D-full,H_E_norm,F2_S0_N0,0.5208643815201193,0.5,weak
+D-full residualized,H_S_from_HE,F2_S0_N0,0.45901639344262296,0.5,weak
+D-residual,H_S_norm,F2_S0_N0,0.48045178105994785,0.5,weak
+D-residual Scal,Scal,F2_S0_N0,,0.5,not_estimable
+Q K_H vs T2,K_H_T2,F2_S0_N0,0.47023809523809523,0.5,weak
+Q K_dir vs T2,K_dir_T2,F2_S0_N0,0.5178571428571429,0.5,weak
+Q K_H vs T3,K_H_T3,F2_S0_N0,0.4905753968253968,0.5,weak
+Q K_H vs pointwise,K_H_pw,F2_S0_N0,,0.5,not_estimable
+Q K_H vs pointwise H_S2,H_S2_pw,F2_S0_N0,,0.5,not_estimable
+D-full,H_E_norm,F0_S3_N4,0.4648648648648649,0.5,weak
+D-full residualized,H_S_from_HE,F0_S3_N4,0.3879310344827586,0.5,weak
+D-residual,H_S_norm,F0_S3_N4,0.5255366395262768,0.5,weak
+D-residual Scal,Scal,F0_S3_N4,,0.5,not_estimable
+Q K_H vs T2,K_H_T2,F0_S3_N4,,0.5,not_estimable
+Q K_dir vs T2,K_dir_T2,F0_S3_N4,,0.5,not_estimable
+Q K_H vs T3,K_H_T3,F0_S3_N4,,0.5,not_estimable
+Q K_H vs pointwise,K_H_pw,F0_S3_N4,,0.5,not_estimable
+Q K_H vs pointwise H_S2,H_S2_pw,F0_S3_N4,,0.5,not_estimable
+D-full,H_E_norm,F2_S3_N4,0.5052160953800298,0.5,weak
+D-full residualized,H_S_from_HE,F2_S3_N4,0.6120218579234973,0.5,weak
+D-residual,H_S_norm,F2_S3_N4,0.48740225890529976,0.5,weak
+D-residual Scal,Scal,F2_S3_N4,,0.5,not_estimable
+Q K_H vs T2,K_H_T2,F2_S3_N4,0.5218253968253969,0.5,weak
+Q K_dir vs T2,K_dir_T2,F2_S3_N4,0.44246031746031744,0.5,weak
+Q K_H vs T3,K_H_T3,F2_S3_N4,0.5257936507936508,0.5,weak
+Q K_H vs pointwise,K_H_pw,F2_S3_N4,,0.5,not_estimable
+Q K_H vs pointwise H_S2,H_S2_pw,F2_S3_N4,,0.5,not_estimable

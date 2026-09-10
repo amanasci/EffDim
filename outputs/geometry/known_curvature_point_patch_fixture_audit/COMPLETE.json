@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "bounded": true,
+  "skipped": [
+    "n=86471",
+    "suite_F"
+  ],
+  "decision": "mean_vs_full_curvature_divergence",
+  "runtime_s": 4.234332323074341,
+  "n_cells": 62
+}

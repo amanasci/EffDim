@@ -1,0 +1,516 @@
+{
+  "rows": [
+    {
+      "scheme": "A",
+      "replicate": 0,
+      "t_s": 33.50345206260681,
+      "phase": "pilot"
+    },
+    {
+      "scheme": "A",
+      "replicate": 1,
+      "t_s": 26.625256061553955,
+      "phase": "pilot"
+    },
+    {
+      "scheme": "A",
+      "replicate": 2,
+      "t_s": 27.331852197647095,
+      "phase": "pilot"
+    },
+    {
+      "scheme": "A",
+      "replicate": 3,
+      "t_s": 26.585365056991577,
+      "phase": "pilot"
+    },
+    {
+      "scheme": "B",
+      "replicate": 0,
+      "t_s": 19.381221532821655,
+      "phase": "pilot",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 1,
+      "t_s": 19.495790243148804,
+      "phase": "pilot",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 2,
+      "t_s": 19.617340087890625,
+      "phase": "pilot",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 3,
+      "t_s": 19.542646646499634,
+      "phase": "pilot",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "A",
+      "replicate": 4,
+      "t_s": 26.442949533462524,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 5,
+      "t_s": 26.45939564704895,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 6,
+      "t_s": 26.297226905822754,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 7,
+      "t_s": 26.393991947174072,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 8,
+      "t_s": 26.408652544021606,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 9,
+      "t_s": 26.368645668029785,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 10,
+      "t_s": 26.643720388412476,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 11,
+      "t_s": 26.34325122833252,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 12,
+      "t_s": 26.57220149040222,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 13,
+      "t_s": 26.162574529647827,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 14,
+      "t_s": 26.60601830482483,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 15,
+      "t_s": 26.26845359802246,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 16,
+      "t_s": 26.750690937042236,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 17,
+      "t_s": 26.815450191497803,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 18,
+      "t_s": 26.67143678665161,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 19,
+      "t_s": 27.975183486938477,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 20,
+      "t_s": 30.37450408935547,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 21,
+      "t_s": 29.271575927734375,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 22,
+      "t_s": 29.343930959701538,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 23,
+      "t_s": 29.044046640396118,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 24,
+      "t_s": 27.546027660369873,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 25,
+      "t_s": 26.8618426322937,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 26,
+      "t_s": 27.30043625831604,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 27,
+      "t_s": 26.926917552947998,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 28,
+      "t_s": 26.404319047927856,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 29,
+      "t_s": 26.480515480041504,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 30,
+      "t_s": 26.40053963661194,
+      "phase": "full"
+    },
+    {
+      "scheme": "A",
+      "replicate": 31,
+      "t_s": 27.518574953079224,
+      "phase": "full"
+    },
+    {
+      "scheme": "B",
+      "replicate": 4,
+      "t_s": 22.95527720451355,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 5,
+      "t_s": 23.424209594726562,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 6,
+      "t_s": 23.236618757247925,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 7,
+      "t_s": 23.425914764404297,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 8,
+      "t_s": 22.774083852767944,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 9,
+      "t_s": 22.734132051467896,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 10,
+      "t_s": 23.13975739479065,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 11,
+      "t_s": 23.141869068145752,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 12,
+      "t_s": 23.244004487991333,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 13,
+      "t_s": 23.01935362815857,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 14,
+      "t_s": 22.781707286834717,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 15,
+      "t_s": 23.85399580001831,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 16,
+      "t_s": 23.51099467277527,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 17,
+      "t_s": 23.049978256225586,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 18,
+      "t_s": 23.421292066574097,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 19,
+      "t_s": 23.1173996925354,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 20,
+      "t_s": 23.137725353240967,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 21,
+      "t_s": 23.411620378494263,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 22,
+      "t_s": 23.21346354484558,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 23,
+      "t_s": 22.98948884010315,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 24,
+      "t_s": 23.326966047286987,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 25,
+      "t_s": 22.99525475502014,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 26,
+      "t_s": 23.197900533676147,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 27,
+      "t_s": 23.28181529045105,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 28,
+      "t_s": 23.467033863067627,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 29,
+      "t_s": 23.61421513557434,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 30,
+      "t_s": 23.08443856239319,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    },
+    {
+      "scheme": "B",
+      "replicate": 31,
+      "t_s": 23.57058358192444,
+      "phase": "full",
+      "retained_n": 13107,
+      "mask_sum": 13107,
+      "k_prime": 1638,
+      "half": 819
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "runtime_s": 386.0059542655945,
+  "wall_s": 2700.0,
+  "n_ae": 8,
+  "max_new_aes": 8,
+  "stages": [
+    "start",
+    "reuse",
+    "parity",
+    "oracles",
+    "repeats"
+  ],
+  "skipped": [],
+  "reused_cells": [
+    "F0_S0_N0",
+    "F0_S3_N4",
+    "F1_S0_N0",
+    "F2_S0_N0",
+    "F2_S3_N4",
+    "F4_S0_N0",
+    "F4_S0_N1",
+    "F4_S0_N2",
+    "F4_S0_N3",
+    "F4_S1_N0",
+    "F4_S2_N0",
+    "F4_S3_N4"
+  ],
+  "new_cells": [
+    "F4_S0_N0_drawA_seed0",
+    "F4_S0_N0_drawA_seed1",
+    "F4_S0_N0_drawB_seed0",
+    "F4_S0_N0_drawB_seed1",
+    "F4_S3_N4_drawA_seed0",
+    "F4_S3_N4_drawA_seed1",
+    "F4_S3_N4_drawB_seed0",
+    "F4_S3_N4_drawB_seed1"
+  ],
+  "stopped_before_cap": true,
+  "figures": [
+    "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/fig01_operating_curves.png",
+    "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/fig02_reliability_ceiling.png",
+    "/home/angus/platonic-universe/outputs/geometry/known_curvature_estimator_operating_characteristics/fig03_density_stratified.png"
+  ]
+}

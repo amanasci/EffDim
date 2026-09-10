@@ -1,0 +1,49 @@
+{
+  "prior_exact_recovery_label": "neither_estimator_validated",
+  "prior_label_not_overwritten": true,
+  "d_full_summary_label": "d_full_useful_on_non_spherical_clean_geometry",
+  "q_summary_label": "q_moderately_informative_sampling_dependent_statistic",
+  "d_residual_summary_label": "d_residual_useful_but_stress_sensitive",
+  "dimensions": {
+    "d_full_clean_vector_recovery": "strong",
+    "d_full_rank_informative": "degenerate_target",
+    "d_residual_clean_rank_recovery": "strong",
+    "d_residual_stress_rank_recovery": "moderate",
+    "q_t2_scalar_rank_recovery": "moderate",
+    "q_t2_tensor_recovery": "moderate",
+    "q_t3_geometric_rank_recovery": "moderate",
+    "q_pointwise_rank_recovery": "moderate",
+    "q_sampling_measure_dependence": "strong",
+    "d_sampling_reliability": "strong",
+    "q_sampling_reliability": "weak",
+    "d_fraction_of_ceiling": "strong",
+    "q_fraction_of_ceiling": "weak"
+  },
+  "distinction": "Exact-recovery validation asked whether D-full and Q recovered the matched tensor at a frozen gate. Operating characteristics ask whether the same frozen estimators still rank, discriminate, and repeat under sampling and noise, even when those gates fail. The two questions are not substitutes.",
+  "notes": {
+    "d_full": {
+      "sphere_rank_degenerate": true,
+      "cubic_rho": 0.9392535779861432,
+      "ridge_rho": 0.9897837249033488,
+      "clean_vector_cosine": 0.9993950499913692,
+      "residualized_f4_clean_rho": -0.03427419595949699,
+      "residualized_f4_stress_rho": 0.2637635971528983,
+      "unresolved": false
+    },
+    "q": {
+      "t2_kh_clean_rho": 0.5232142857142856,
+      "t2_kh_stress_rho": 0.0695970695970696,
+      "t2_tensor_clean": 0.6176322563326069,
+      "t2_t3_cos": 0.7481855145541307,
+      "sampling_measure_dependence": true,
+      "sampling_reliability": 0.20352564102564102,
+      "unresolved": false
+    },
+    "d_res": {
+      "f4_clean_rho": 0.8193223443223443,
+      "f4_stress_rho": 0.7369047619047618,
+      "f4_scal_rho": 0.8617673992673993,
+      "unresolved": false
+    }
+  }
+}

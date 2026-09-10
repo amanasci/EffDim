@@ -1,0 +1,45 @@
+{
+  "decoder_D": {
+    "source": "outputs/geometry/pointwise_decoder_curvature_reproduction + notebooks/pu_manifold/decoder_curvature.py",
+    "curvature_experiments_sha": "97efb2eb6cd7dec7f2c568f53c534752ff3c32c8",
+    "H": "g^{ab} II_ab unnormalized",
+    "II": "(I-P_T) D^2 F",
+    "differentiate": "raw model.decode for D-full; F/||F|| for D-residual",
+    "train": {
+      "seed": 20260816,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "batch": 128,
+      "max_epochs": 400,
+      "early_stop_patience": 401,
+      "early_stop_min_delta": 1e-09,
+      "lip_weight": 0.0,
+      "fps_pretrain_epochs": 0,
+      "wallclock_ceiling_s": Infinity
+    },
+    "torch_init": 0,
+    "epochs": 400,
+    "architecture": "PlainAutoEncoder hidden (250,250,250) silu"
+  },
+  "quadratic_Q": {
+    "source": "experiments/geometry/known_curvature_point_patch_fixture_audit/estimator_q.py",
+    "fit": "nested_pca_frame + fit_quad RIDGES grid + split-half",
+    "n_splits": 3,
+    "k_primary": 1024,
+    "no_clamp": true,
+    "T2_this_experiment": "matched neighbourhood, clean Y, exact latents (NOT prior T2=uniform-volume)",
+    "T3_this_experiment": "Sobol uniform latent ball, max 2048 (prior T2-like volume design without sqrt(det g) weights)",
+    "convention_map": "Prior audit T2=uniform volume, T3=sampling-weighted. This experiment T2=empirical neighbourhood, T3=uniform reference."
+  },
+  "fixtures": {
+    "source": "known_curvature_point_patch_fixture_audit F0/F1/F2/F4 generators",
+    "change": "pad/rotate to D=28 with orthonormal_qr seed 20260907; frozen 768 Q.npy unused",
+    "centers": "F4_CENTERS imported unchanged from audit config"
+  },
+  "fixture_validity_audit_sha": "dcd2208803f27224ee182cce47fdee21c1bc6ba5",
+  "compatibility_changes": [
+    "D=28 rotation via seeded QR (768\u00d7768 matrix inapplicable)",
+    "Decoder D-residual differentiates through normalization (not historical primary)",
+    "T2/T3 labels follow this brief, not the prior audit names"
+  ]
+}

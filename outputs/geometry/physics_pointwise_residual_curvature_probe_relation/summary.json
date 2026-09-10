@@ -1,0 +1,188 @@
+{
+  "label": "pointwise_residual_probe_relation_unresolved",
+  "seed_reliability": {
+    "pairs": [
+      {
+        "pair": "0-1",
+        "seed_a": 0,
+        "seed_b": 1,
+        "rho_CH": 0.8940410744326569,
+        "pearson_rank_CH": 0.894041074432657,
+        "median_cos_HS": 0.866412742462094,
+        "median_rel_norm": 0.04502978033551956,
+        "rho_recon": 0.9916582087353085,
+        "rho_cond": 0.6158735701983269,
+        "rho_CH_ctl_radius": 0.8435282698756021,
+        "rho_CH_ctl_radius_recon": 0.8402472004783649
+      },
+      {
+        "pair": "0-2",
+        "seed_a": 0,
+        "seed_b": 2,
+        "rho_CH": 0.859347998992916,
+        "pearson_rank_CH": 0.8593479989929161,
+        "median_cos_HS": 0.8786899564118105,
+        "median_rel_norm": 0.04897288058643798,
+        "rho_recon": 0.9938211503358854,
+        "rho_cond": 0.773298739857635,
+        "rho_CH_ctl_radius": 0.7959665323411267,
+        "rho_CH_ctl_radius_recon": 0.7896353326237969
+      },
+      {
+        "pair": "1-2",
+        "seed_a": 1,
+        "seed_b": 2,
+        "rho_CH": 0.881358737168263,
+        "pearson_rank_CH": 0.8813587371682632,
+        "median_cos_HS": 0.8780326144977072,
+        "median_rel_norm": 0.04549907984387624,
+        "rho_recon": 0.9919058669790916,
+        "rho_cond": 0.7511192900916676,
+        "rho_CH_ctl_radius": 0.8345527596102126,
+        "rho_CH_ctl_radius_recon": 0.8283753404630297
+      }
+    ],
+    "median_rho_CH": 0.881358737168263,
+    "median_cos_HS": 0.8780326144977072,
+    "pass_rho": true,
+    "pass_cos": true,
+    "passed": true,
+    "n_seeds": 3,
+    "gate_rho": 0.7,
+    "gate_cos": 0.8,
+    "best_seed_selected": false,
+    "consensus_is_median_rank": true
+  },
+  "primary": {
+    "P1": {
+      "name": "P1_CH_R2G",
+      "observed": 0.02970575697233952,
+      "ci95": [
+        -0.06033128034512162,
+        0.11522413313438622
+      ],
+      "p_mc": 0.5089491050894911,
+      "ci_excludes_zero": false,
+      "side": "two-sided",
+      "p_holm": 1.0,
+      "raw": 0.1980620979995309,
+      "n": 512,
+      "n_perm": 10000,
+      "n_boot": 2000,
+      "point": {
+        "raw": 0.1980620979995309,
+        "controlled": 0.02970575697233952,
+        "n": 512,
+        "p_raw": 6.3170861029284386e-06,
+        "p_ctl": 0.5024309731293574
+      }
+    },
+    "P2": {
+      "name": "P2_CH_R2P",
+      "observed": -0.21959123336308806,
+      "ci95": [
+        -0.3109223694334986,
+        -0.13263040191427813
+      ],
+      "p_mc": 9.999000099990002e-05,
+      "ci_excludes_zero": true,
+      "side": "two-sided",
+      "p_holm": 0.00029997000299970003,
+      "raw": -0.1947103837932236,
+      "n": 512,
+      "n_perm": 10000,
+      "n_boot": 2000,
+      "point": {
+        "raw": -0.1947103837932236,
+        "controlled": -0.21959123336308806,
+        "n": 512,
+        "p_raw": 9.098194685717575e-06,
+        "p_ctl": 5.220837788857718e-07
+      }
+    },
+    "P3": {
+      "name": "P3_delta_rho",
+      "observed": -0.24929699033542757,
+      "ci95": [
+        -0.31249455179137275,
+        -0.18447202391456227
+      ],
+      "p_mc": 1.0,
+      "ci_excludes_zero": true,
+      "side": "greater",
+      "p_holm": 1.0,
+      "raw": NaN,
+      "n": 512,
+      "n_perm": 10000,
+      "n_boot": 2000,
+      "components": {
+        "rho_R2P": -0.21959123336308806,
+        "rho_R2G": 0.02970575697233952
+      }
+    }
+  },
+  "parity": {
+    "ok": true,
+    "n": 512,
+    "rho_ctl_KH_R2G": {
+      "raw": -0.41243045899566266,
+      "controlled": -0.2404841119636992,
+      "n": 512,
+      "p_raw": 1.9066267724201765e-22,
+      "p_ctl": 3.6028687450798254e-08
+    },
+    "rho_ctl_KH_MSEG": {
+      "raw": 0.35598565835250223,
+      "controlled": 0.22704789227635297,
+      "n": 512,
+      "p_raw": 9.644068355976606e-17,
+      "p_ctl": 2.0701967377215636e-07
+    },
+    "rho_ctl_KH_DeltaAdapt": {
+      "raw": 0.07590734112678957,
+      "controlled": 0.15334238492921803,
+      "n": 512,
+      "p_raw": 0.0861867068843841,
+      "p_ctl": 0.0004979157881532145
+    },
+    "expected": {
+      "r2": -0.24,
+      "mse_G": 0.227,
+      "dMSE": 0.153
+    },
+    "match_r2": true,
+    "match_mse_G": true,
+    "match_dMSE": true,
+    "n_folds": 5,
+    "zero_overlap": true,
+    "sample_id_alignment_ok": true,
+    "catalog_not_used_as_outcome": true,
+    "note": "Outcomes are frozen OOF probe metrics, never mag_r_desi_catalog_value."
+  },
+  "historical_decoder_field": {
+    "available": false,
+    "reason": "no compatible historical pointwise decoder field on the frozen 512 anchors",
+    "searched": [
+      "/home/angus/platonic-universe/outputs/geometry/physics_ae_local_patch_scale_match/per_object_curvature.parquet",
+      "/home/angus/platonic-universe/outputs/geometry/physics_ae_local_patch_scale_match/anchor_curvature.parquet",
+      "/home/angus/platonic-universe/outputs/geometry/physics_multimodel_graph_prior_quadratic/decoder_curvature_vit_base.parquet"
+    ],
+    "scale_match_summary_exists": true,
+    "expected_rho_approx": 0.328,
+    "identities_to_check_if_found": [
+      "raw-decoder full H^E",
+      "normalized-decoder residual H^S",
+      "norm vs squared norm",
+      "averaged vs unaveraged trace"
+    ],
+    "scale_match_rho_point_R2": -0.01875988844828967,
+    "scale_match_protocol": "PlainAutoEncoder 600 epochs, sphere-projected H_tan at evaluation; not the 400-epoch raw-decode reproduction protocol; single seed; not reused."
+  },
+  "mean_delta_adapt": -0.10119904692121723,
+  "median_delta_adapt": -0.10167620480055889,
+  "signs_differ": true,
+  "median_cos_HE_HR": 0.6127441284285378,
+  "median_f_res_vec": 0.5919055930042385,
+  "runtime_s": 731.4623050689697,
+  "output_dir": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation"
+}

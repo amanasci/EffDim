@@ -1,0 +1,14 @@
+{
+  "anchor_perm_CH_vs_R2G": {
+    "observed": 0.02970575697233952,
+    "p_mc": 0.5077492250774922,
+    "null_median": -0.0010048487371396527
+  },
+  "seed_label_perm": {
+    "n": 200,
+    "median_rho_vs_unpermuted_consensus": 1.0,
+    "min_rho": 1.0,
+    "seed_selective": false,
+    "note": "Median rank is permutation-invariant across seed labels; min rho should be 1."
+  }
+}

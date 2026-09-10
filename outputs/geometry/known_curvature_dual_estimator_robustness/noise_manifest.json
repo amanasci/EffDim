@@ -1,0 +1,8 @@
+{
+  "scale": "s_x = median ||x-mean(x)|| on clean training cloud",
+  "N0": "clean",
+  "N1": "sphere-normal RMS 0.01 s_x, renormalize",
+  "N2": "sphere-normal RMS 0.05 s_x, renormalize",
+  "N3": "isotropic RMS 0.05 s_x, renormalize",
+  "N4": "heteroscedastic 0.01\u20130.05 s_x by density, renormalize"
+}

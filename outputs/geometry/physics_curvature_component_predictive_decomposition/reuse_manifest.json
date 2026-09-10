@@ -1,0 +1,105 @@
+{
+  "n_anchors": 512,
+  "models": [
+    "vit_base",
+    "dinov3",
+    "clip_base",
+    "convnext_base",
+    "vit_large"
+  ],
+  "d": 16,
+  "coordinate_convention": "orthonormal_pca_chart_euclidean_frobenius",
+  "align_by": "sample_id",
+  "files": {
+    "cmcla_manifest": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/common_anchor_manifest.json",
+      "exists": true,
+      "sha16": "25db01da9fea4cbd",
+      "bytes": 5103
+    },
+    "qlca_risks": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/anchor_risks.csv",
+      "exists": true,
+      "sha16": "1ca838b13e974077",
+      "bytes": 239742
+    },
+    "qlca_primary": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/primary_inference.json",
+      "exists": true,
+      "sha16": "b421381d6304d739",
+      "bytes": 557
+    },
+    "qlca_align": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_quadratic_label_chart_alignment/alignment_summary.json",
+      "exists": true,
+      "sha16": "717571ac8d65ab43",
+      "bytes": 152
+    },
+    "ndc_example": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_nested_dimension_curvature/H_vectors/0.npz",
+      "exists": true,
+      "sha16": "76f6c46fa722ae24",
+      "bytes": 1634024
+    },
+    "fcr_vit_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/vit_base_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha16": "a4ecc11a5da672e2",
+      "bytes": 225140
+    },
+    "cmcla_vit_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/vit_base_anchor_metrics.parquet",
+      "exists": true,
+      "sha16": "140c1ae0b7ce7c76",
+      "bytes": 191357
+    },
+    "fcr_dinov3": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/dinov3_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha16": "085d60d1efc6383e",
+      "bytes": 282608
+    },
+    "cmcla_dinov3": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/dinov3_anchor_metrics.parquet",
+      "exists": true,
+      "sha16": "24d86fd723d6027d",
+      "bytes": 191333
+    },
+    "fcr_clip_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/clip_base_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha16": "d2703ef0a405522c",
+      "bytes": 283184
+    },
+    "cmcla_clip_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/clip_base_anchor_metrics.parquet",
+      "exists": true,
+      "sha16": "bac8f7fd9cdca106",
+      "bytes": 191372
+    },
+    "fcr_convnext_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/convnext_base_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha16": "98885721bcf99ed5",
+      "bytes": 283124
+    },
+    "cmcla_convnext_base": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/convnext_base_anchor_metrics.parquet",
+      "exists": true,
+      "sha16": "ce99c0b4a3bba70a",
+      "bytes": 191334
+    },
+    "fcr_vit_large": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_full_curvature_reconciliation/tables/vit_large_per_anchor_curvature.parquet",
+      "exists": true,
+      "sha16": "b788f753e20a58ce",
+      "bytes": 283072
+    },
+    "cmcla_vit_large": {
+      "path": "/home/angus/platonic-universe/outputs/geometry/physics_cross_model_curvature_local_adaptation/probes/vit_large_anchor_metrics.parquet",
+      "exists": true,
+      "sha16": "0edade6af0d19097",
+      "bytes": 191327
+    }
+  }
+}

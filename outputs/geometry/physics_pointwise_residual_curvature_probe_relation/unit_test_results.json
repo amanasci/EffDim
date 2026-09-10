@@ -1,0 +1,108 @@
+{
+  "n_tests": 22,
+  "n_passed": 22,
+  "all_passed": true,
+  "rows": [
+    {
+      "name": "1_normalize_unit",
+      "ok": true
+    },
+    {
+      "name": "1b_J_orthogonal_to_x",
+      "ok": true,
+      "val": 3.9719106968203295e-17
+    },
+    {
+      "name": "2_metric_inverse",
+      "ok": true
+    },
+    {
+      "name": "3_PT_idempotent",
+      "ok": true
+    },
+    {
+      "name": "3b_PNS_idempotent",
+      "ok": true
+    },
+    {
+      "name": "4_PNS_J",
+      "ok": true
+    },
+    {
+      "name": "5_PNS_x",
+      "ok": true
+    },
+    {
+      "name": "6_radial_removed_or_present",
+      "ok": true,
+      "f_res": 0.9912441894993592,
+      "C_H_full": 2.7922581011701304,
+      "C_H_res": 2.8120866862264076
+    },
+    {
+      "name": "7_averaged_vs_unaveraged_factor_d",
+      "ok": true,
+      "ratio": 2.0
+    },
+    {
+      "name": "7b_spearman_invariant_to_square",
+      "ok": true
+    },
+    {
+      "name": "7c_spearman_CH_CH2",
+      "ok": true
+    },
+    {
+      "name": "8_9_contracted_matches_explicit_hessian",
+      "ok": true,
+      "rel": 5.217950718577982e-16
+    },
+    {
+      "name": "8_fixture_F0_residual_energy_small",
+      "ok": true,
+      "e": 1.8107346764782964e-31
+    },
+    {
+      "name": "10_sample_id_not_row_position",
+      "ok": true
+    },
+    {
+      "name": "11_eval_anchors_excluded",
+      "ok": true
+    },
+    {
+      "name": "12_consensus_deterministic",
+      "ok": true
+    },
+    {
+      "name": "12b_identical_seeds_pass_and_median_rank",
+      "ok": true
+    },
+    {
+      "name": "13_no_best_seed_flag",
+      "ok": true
+    },
+    {
+      "name": "14_paired_contrast_keys",
+      "ok": true
+    },
+    {
+      "name": "15_frozen_GP_parity_r2",
+      "ok": true,
+      "rho": -0.2404841119636992
+    },
+    {
+      "name": "16_no_catalog_magnitude_substitution",
+      "ok": true
+    },
+    {
+      "name": "holm_monotone",
+      "ok": true,
+      "p": [
+        0.03,
+        0.08,
+        0.2
+      ]
+    }
+  ]
+}

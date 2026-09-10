@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "runtime_s": 1678.8757109642029,
+  "decision": "q_global_and_adaptation_associations_geometry_robust",
+  "n_A": 32,
+  "n_B": 32,
+  "tests": true,
+  "parity_ok": true,
+  "skipped": []
+}

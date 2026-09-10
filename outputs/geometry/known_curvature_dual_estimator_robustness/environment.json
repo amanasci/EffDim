@@ -1,0 +1,13 @@
+{
+  "python": "3.12.3",
+  "torch": "2.8.0+cu128",
+  "platform": "Linux-6.14.0-24-generic-x86_64-with-glibc2.39",
+  "device": "cpu",
+  "cuda": false,
+  "curvature_experiments_sha": "97efb2eb6cd7dec7f2c568f53c534752ff3c32c8",
+  "d": 16,
+  "D": 28,
+  "n_anchors": 64,
+  "k": 1024,
+  "epochs": 400
+}

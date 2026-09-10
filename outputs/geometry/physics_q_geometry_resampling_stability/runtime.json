@@ -1,0 +1,29 @@
+{
+  "runtime_s": 1678.8757109642029,
+  "wall_s": 2700.0,
+  "pilot_n": 4,
+  "selected_n_per_scheme": 32,
+  "completed_A": 32,
+  "completed_B": 32,
+  "median_t_A_s": 26.978554129600525,
+  "median_t_B_s": 19.51921844482422,
+  "proj_32_s": 1504.4214339256287,
+  "proj_64_s": 2992.3501563072205,
+  "projection_rule": "64 if total<40min else 32 else max fitting under 40min",
+  "rss_mb": 1790.41015625,
+  "stages": [
+    "disk",
+    "reuse",
+    "parity",
+    "pilot",
+    "scheme_A",
+    "scheme_B"
+  ],
+  "skipped": [],
+  "n_ae": 0,
+  "figures": [
+    "/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig01_association_distributions.png",
+    "/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig02_reliability_vs_overlap.png",
+    "/home/angus/platonic-universe/outputs/geometry/physics_q_geometry_resampling_stability/fig03_uncertainty_intervals.png"
+  ]
+}

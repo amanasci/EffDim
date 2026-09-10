@@ -1,0 +1,151 @@
+{
+  "n_objects": 16384,
+  "n_eval_anchors_excluded": 512,
+  "n_train": 15872,
+  "neighbours_of_anchors_may_remain": true,
+  "n_non_anchor_train_points": 15872,
+  "same_split_across_seeds": true,
+  "split_changes": "initialization and documented minibatch permutation only",
+  "label_blind": true,
+  "architecture": "PlainAutoEncoder hidden (250,250,250) silu",
+  "epochs": 400,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "max_new_decoders": 3,
+  "n_new_trained": 0,
+  "reused": [
+    {
+      "seed": 0,
+      "in_dim": 768,
+      "latent_dim": 16,
+      "hidden": [
+        250,
+        250,
+        250
+      ],
+      "activation": "silu",
+      "max_epochs": 400,
+      "cfg": {
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "batch": 128,
+        "max_epochs": 400,
+        "early_stop_patience": 401,
+        "early_stop_min_delta": 1e-09,
+        "lip_weight": 0.0,
+        "fps_pretrain_epochs": 0,
+        "wallclock_ceiling_s": Infinity,
+        "seed": 0
+      },
+      "protocol": "reproduction_plain_ae_400",
+      "anchors_excluded": true,
+      "n_train": 15872,
+      "device": "cuda",
+      "wallclock_s": 79.83305931091309,
+      "epochs_run": 400,
+      "early_stopped": false,
+      "final_recon": 0.04532976349395129,
+      "reused": true,
+      "label_blind": true,
+      "checkpoint": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed0.npz",
+      "weights": {
+        "path": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed0.npz",
+        "exists": true,
+        "sha256": "912aa3e2a9dd7d79346f13c7861e37267fc2f78b5c15e13a9a86e7f1d0c0eb99",
+        "sha16": "912aa3e2a9dd7d79",
+        "bytes": 5158486
+      }
+    },
+    {
+      "seed": 1,
+      "in_dim": 768,
+      "latent_dim": 16,
+      "hidden": [
+        250,
+        250,
+        250
+      ],
+      "activation": "silu",
+      "max_epochs": 400,
+      "cfg": {
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "batch": 128,
+        "max_epochs": 400,
+        "early_stop_patience": 401,
+        "early_stop_min_delta": 1e-09,
+        "lip_weight": 0.0,
+        "fps_pretrain_epochs": 0,
+        "wallclock_ceiling_s": Infinity,
+        "seed": 1
+      },
+      "protocol": "reproduction_plain_ae_400",
+      "anchors_excluded": true,
+      "n_train": 15872,
+      "device": "cuda",
+      "wallclock_s": 79.13079571723938,
+      "epochs_run": 400,
+      "early_stopped": false,
+      "final_recon": 0.04522043616781311,
+      "reused": true,
+      "label_blind": true,
+      "checkpoint": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed1.npz",
+      "weights": {
+        "path": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed1.npz",
+        "exists": true,
+        "sha256": "057f81eece2e5aae5f6dfae769e61a49f573af9f3f06cd0961aea1be13a38c26",
+        "sha16": "057f81eece2e5aae",
+        "bytes": 5158486
+      }
+    },
+    {
+      "seed": 2,
+      "in_dim": 768,
+      "latent_dim": 16,
+      "hidden": [
+        250,
+        250,
+        250
+      ],
+      "activation": "silu",
+      "max_epochs": 400,
+      "cfg": {
+        "lr": 0.001,
+        "weight_decay": 0.0001,
+        "batch": 128,
+        "max_epochs": 400,
+        "early_stop_patience": 401,
+        "early_stop_min_delta": 1e-09,
+        "lip_weight": 0.0,
+        "fps_pretrain_epochs": 0,
+        "wallclock_ceiling_s": Infinity,
+        "seed": 2
+      },
+      "protocol": "reproduction_plain_ae_400",
+      "anchors_excluded": true,
+      "n_train": 15872,
+      "device": "cuda",
+      "wallclock_s": 80.38505005836487,
+      "epochs_run": 400,
+      "early_stopped": false,
+      "final_recon": 0.04533803306760326,
+      "reused": true,
+      "label_blind": true,
+      "checkpoint": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed2.npz",
+      "weights": {
+        "path": "/home/angus/platonic-universe/outputs/geometry/physics_pointwise_residual_curvature_probe_relation/checkpoints/vit_base_plain_ae_seed2.npz",
+        "exists": true,
+        "sha256": "d5c0a4a3f1ba7d5f81f3e27d3e2cda6a5fcd3ebfb1b12c4753d10b250d6fdd02",
+        "sha16": "d5c0a4a3f1ba7d5f",
+        "bytes": 5158486
+      }
+    }
+  ],
+  "trained": [],
+  "protocol": "reproduction_plain_ae_400",
+  "n_new_trained_original": 3,
+  "note": "Seeds 0,1,2 were trained in this tree then reused after a disk-full restart."
+}

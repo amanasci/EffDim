@@ -1,0 +1,42 @@
+[
+  {
+    "suite": "A",
+    "fixture": "F0",
+    "scores": {},
+    "error": "mat1 and mat2 must have the same dtype, but got Float and Double",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F1",
+    "scores": {},
+    "error": "mat1 and mat2 must have the same dtype, but got Float and Double",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F2",
+    "scores": {},
+    "error": "mat1 and mat2 must have the same dtype, but got Float and Double",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  },
+  {
+    "suite": "A",
+    "fixture": "F4",
+    "scores": {},
+    "error": "mat1 and mat2 must have the same dtype, but got Float and Double",
+    "sampling": "S0",
+    "noise": "N0",
+    "k": 256,
+    "n": 2048
+  }
+]

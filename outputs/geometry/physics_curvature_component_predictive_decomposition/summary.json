@@ -1,0 +1,130 @@
+{
+  "ok": true,
+  "decision": "distinct_mean_and_traceless_predictive_roles",
+  "reason": "mean_predicts_error_or_gain_and_tf_accounts_for_hessian_or_tq",
+  "runtime_s": 3672.6632719039917,
+  "n_anchors": 512,
+  "models": [
+    "vit_base",
+    "dinov3",
+    "clip_base",
+    "convnext_base",
+    "vit_large"
+  ],
+  "tests": {
+    "n": 11,
+    "n_pass": 11,
+    "ok": true
+  },
+  "parity_ok": true,
+  "unique_KH_mse_G_bar": {
+    "observed": -0.031055968259690325,
+    "ci95": [
+      -0.07301826188195358,
+      0.012382396616804977
+    ],
+    "p_mc": 0.11848815118488151,
+    "ci_excludes_zero": false,
+    "p_holm": 0.11848815118488151
+  },
+  "unique_KTF_mse_G_bar": {
+    "observed": 0.07702053364003617,
+    "ci95": [
+      0.017068504363465454,
+      0.13243907705817906
+    ],
+    "p_mc": 0.00019998000199980003,
+    "ci_excludes_zero": true,
+    "p_holm": 0.00039996000399960006
+  },
+  "vitb_delta_Q": {
+    "n": 512,
+    "ycol": "delta_Q",
+    "KH": {
+      "observed": 0.111248619551161,
+      "raw": 0.3880894087387418,
+      "ci95": [
+        0.01947835191434665,
+        0.19409698211069637
+      ],
+      "ci_excludes_zero": true
+    },
+    "KTF": {
+      "observed": 0.3385030427095135,
+      "raw": 0.5414780172463122,
+      "ci95": [
+        0.2513777697911035,
+        0.4158299185240468
+      ],
+      "ci_excludes_zero": true
+    },
+    "Kdir": {
+      "observed": 0.3290374909877433,
+      "raw": 0.534796072658816,
+      "ci95": [
+        0.242975479881324,
+        0.4081687584247842
+      ],
+      "ci_excludes_zero": true
+    },
+    "unique_KH": {
+      "observed": -0.03424827408132203,
+      "raw": 0.3880894087387418,
+      "ci95": [
+        -0.13191746284956168,
+        0.05103778060049849
+      ],
+      "ci_excludes_zero": false,
+      "p_mc": 0.43955604439556045,
+      "p_holm": 0.43955604439556045
+    },
+    "unique_KTF": {
+      "observed": 0.31961744758585964,
+      "raw": 0.5414780172463122,
+      "ci95": [
+        0.2327325113771876,
+        0.3983043048082045
+      ],
+      "ci_excludes_zero": true,
+      "p_mc": 9.999000099990002e-05,
+      "p_holm": 0.00019998000199980003
+    },
+    "n_perm": 10000,
+    "n_boot": 2000
+  },
+  "hessian": {
+    "primarily_traceless": true,
+    "primarily_isotropic": false,
+    "component_unstable": false,
+    "median_frac_H": 0.013092323499425327,
+    "median_frac_TF": 0.9869076765005749,
+    "median_stab_H": 1.0,
+    "median_stab_TF": 0.9240284522722584
+  },
+  "alignment": {
+    "driven_by_mean": false,
+    "driven_by_traceless": true,
+    "driven_by_interaction": false,
+    "driver": "traceless",
+    "median_A_B": 2.4271836244410787,
+    "median_A_H": 1.7805559959218435,
+    "median_A_TF": 2.3783684556095532,
+    "median_null_H": 0.4596897432699153,
+    "median_null_TF": 0.9855540961470953
+  },
+  "probes": {
+    "iq_explains_uq2": false,
+    "tq_explains_uq2": true,
+    "bstf_explains_bs": true,
+    "median_frac_IQ_of_UQ2": -0.0007946819822932355,
+    "median_frac_TQ_of_UQ2": 0.9835296727689697,
+    "median_frac_BSTF_of_BS": 0.9877588129791821,
+    "median_delta_IQ": -1.4718411201902759e-05,
+    "median_delta_TQ": 0.02006891756845544,
+    "median_delta_UQ2": 0.020581617601622228,
+    "win_IQ": 0.33984375,
+    "win_TQ": 1.0,
+    "win_UQ2": 1.0
+  },
+  "peak_rss_mb": 9502.9921875
+}

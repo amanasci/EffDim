@@ -1,0 +1,16 @@
+{
+  "runtime_s": 834.2675635814667,
+  "wall_s": 3600.0,
+  "stages": [
+    "unit_tests",
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "skipped": [
+    "R5:hard_cap_max_4_new_decoders",
+    "cached_sphere_evaluation_skipped_missing_weights"
+  ],
+  "n_new_decoders": 4
+}

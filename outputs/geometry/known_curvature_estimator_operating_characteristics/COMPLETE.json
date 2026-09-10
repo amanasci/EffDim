@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "runtime_s": 386.0059542655945,
+  "n_ae": 8,
+  "parity_ok": true,
+  "tests": true,
+  "decision_labels": {
+    "d_full": "d_full_useful_on_non_spherical_clean_geometry",
+    "q": "q_moderately_informative_sampling_dependent_statistic",
+    "d_residual": "d_residual_useful_but_stress_sensitive",
+    "prior_unchanged": "neither_estimator_validated"
+  },
+  "skipped": []
+}

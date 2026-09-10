@@ -1,0 +1,56 @@
+[audit] unit tests
+[audit] cell 1/15 {'suite': 'A', 'name': 'F0', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[cell] A_F0_S0_N0_n4096_k512_eta0.00 -0.04155603369346273 Q_T1=0.024978254898370262 t=44.5s
+[audit] cell 2/15 {'suite': 'A', 'name': 'F1', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F1_S0_N0_n4096_k512_eta0.00 0.04901814525767289 Q_T1=0.17524231416318384 t=43.2s
+[audit] cell 3/15 {'suite': 'A', 'name': 'F2', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F2_S0_N0_n4096_k512_eta0.00 -0.24650868888470764 Q_T1=0.07046921619231793 t=43.2s
+[audit] cell 4/15 {'suite': 'A', 'name': 'F3', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F3_S0_N0_n4096_k512_eta0.00 0.03557714444785311 Q_T1=0.1613099746690994 t=43.7s
+[audit] cell 5/15 {'suite': 'A', 'name': 'F4', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] A_F4_S0_N0_n4096_k512_eta0.00 -0.14922289873649516 Q_T1=0.11815029298663247 t=60.5s
+[audit] cell 6/15 {'suite': 'A', 'name': 'F5', 'sampling': 'S0', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[cell] A_F5_S0_N0_n4096_k512_eta0.00 -0.10142945431239699 Q_T1=0.23532777879509245 t=61.1s
+[audit] cell 7/15 {'suite': 'B', 'name': 'F0', 'sampling': 'S1', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': False, 'do_oracle': True}
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/sampling.py:112: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  rho = spearmanr(field, k_pool).correlation
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/sampling.py:120: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  accepted = (direction, field, float(spearmanr(field, k_pool).correlation), 32)
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[cell] B_F0_S1_N0_n4096_k512_eta0.00 None Q_T1=-0.010014191540010986 t=67.5s
+[audit] cell 8/15 {'suite': 'B', 'name': 'F0', 'sampling': 'S4', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': False, 'do_oracle': False}
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/angus/platonic-universe/.venv/lib/python3.12/site-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+[cell] B_F0_S4_N0_n4096_k512_eta0.00 None Q_T1=-0.03465482512360374 t=36.9s
+[audit] cell 9/15 {'suite': 'C', 'name': 'F0', 'sampling': 'S0', 'noise': 'N2', 'n': 4096, 'k': 512, 'eta': 0.1, 'do_decoder': False, 'do_oracle': False}
+[cell] C_F0_S0_N2_n4096_k512_eta0.10 None Q_T1=-0.1051604559604468 t=55.8s
+[audit] cell 10/15 {'suite': 'B', 'name': 'F2', 'sampling': 'S1', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': False, 'do_oracle': True}
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/sampling.py:112: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  rho = spearmanr(field, k_pool).correlation
+/home/angus/platonic-universe/experiments/geometry/known_curvature_point_patch_fixture_audit/sampling.py:120: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  accepted = (direction, field, float(spearmanr(field, k_pool).correlation), 32)
+[cell] B_F2_S1_N0_n4096_k512_eta0.00 None Q_T1=-0.0466264407027646 t=67.3s
+[audit] cell 11/15 {'suite': 'B', 'name': 'F2', 'sampling': 'S4', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': False, 'do_oracle': False}
+[cell] B_F2_S4_N0_n4096_k512_eta0.00 None Q_T1=0.09038619757110959 t=36.9s
+[audit] cell 12/15 {'suite': 'C', 'name': 'F2', 'sampling': 'S0', 'noise': 'N2', 'n': 4096, 'k': 512, 'eta': 0.1, 'do_decoder': False, 'do_oracle': False}
+[cell] C_F2_S0_N2_n4096_k512_eta0.10 None Q_T1=-0.05606389003068492 t=55.6s
+[audit] cell 13/15 {'suite': 'B', 'name': 'F4', 'sampling': 'S1', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': True}
+[cell] B_F4_S1_N0_n4096_k512_eta0.00 0.11788706280900933 Q_T1=0.0678161051089544 t=75.3s
+[audit] cell 14/15 {'suite': 'B', 'name': 'F4', 'sampling': 'S4', 'noise': 'N0', 'n': 4096, 'k': 512, 'eta': 0.0, 'do_decoder': True, 'do_oracle': False}
+[cell] B_F4_S4_N0_n4096_k512_eta0.00 0.20218366599523896 Q_T1=0.0432441402673503 t=43.3s
+[audit] cell 15/15 {'suite': 'C', 'name': 'F4', 'sampling': 'S0', 'noise': 'N2', 'n': 4096, 'k': 512, 'eta': 0.1, 'do_decoder': True, 'do_oracle': False}
+[cell] C_F4_S0_N2_n4096_k512_eta0.10 -0.1667448727339315 Q_T1=0.2693359732649697 t=61.9s
+[audit] done label=mean_vs_full_curvature_divergence t=811.4s tests=17/17

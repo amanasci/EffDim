@@ -1,0 +1,213 @@
+{
+  "n_tests": 34,
+  "n_passed": 34,
+  "all_passed": true,
+  "rows": [
+    {
+      "name": "t2_kh_matches_production_kdir_from_pair",
+      "ok": true,
+      "kh_pair": 7.744843140171373,
+      "kh_curv": 7.744843140171374
+    },
+    {
+      "name": "t2_kh_star_is_self_cross",
+      "ok": true
+    },
+    {
+      "name": "t2_kdir_matches_production",
+      "ok": true,
+      "kdir": 7.744843140171373
+    },
+    {
+      "name": "t2_kdir_matches_curvature_from_B",
+      "ok": true
+    },
+    {
+      "name": "constant_target_analytic",
+      "ok": true
+    },
+    {
+      "name": "constant_target_tiny_iqr",
+      "ok": true,
+      "iqr": 1.6502355038028327e-12
+    },
+    {
+      "name": "varying_target_not_degenerate",
+      "ok": true,
+      "cv": 0.4728631549208035
+    },
+    {
+      "name": "pairwise_perfect",
+      "ok": true
+    },
+    {
+      "name": "pairwise_reversed",
+      "ok": true
+    },
+    {
+      "name": "pairwise_chance_baseline",
+      "ok": true
+    },
+    {
+      "name": "pairwise_independent_near_half",
+      "ok": true
+    },
+    {
+      "name": "quartile_perfect_precision",
+      "ok": true
+    },
+    {
+      "name": "quartile_perfect_auc",
+      "ok": true
+    },
+    {
+      "name": "quartile_chance_precision_is_025",
+      "ok": true
+    },
+    {
+      "name": "quartile_chance_auc_is_05",
+      "ok": true
+    },
+    {
+      "name": "quartile_random_precision_near_chance",
+      "ok": true
+    },
+    {
+      "name": "cal_split_deterministic",
+      "ok": true
+    },
+    {
+      "name": "cal_split_half",
+      "ok": true
+    },
+    {
+      "name": "cal_split_complement_eval",
+      "ok": true
+    },
+    {
+      "name": "cal_factor_global_not_per_condition",
+      "ok": true,
+      "factor": 2.0
+    },
+    {
+      "name": "draw_seeds_distinct",
+      "ok": true
+    },
+    {
+      "name": "independent_draws_not_identical",
+      "ok": true
+    },
+    {
+      "name": "independent_draws_same_n",
+      "ok": true
+    },
+    {
+      "name": "reliability_decomp_keys",
+      "ok": true,
+      "r_init": 0.9943681318681318,
+      "r_samp": 0.9474358974358973
+    },
+    {
+      "name": "attenuation_rmax",
+      "ok": true
+    },
+    {
+      "name": "attenuation_fraction",
+      "ok": true
+    },
+    {
+      "name": "attenuation_unclamped_kept",
+      "ok": true
+    },
+    {
+      "name": "attenuation_skipped_if_nonpositive",
+      "ok": true
+    },
+    {
+      "name": "display_clamp_only",
+      "ok": true
+    },
+    {
+      "name": "density_baseline_recovers_density_signal",
+      "ok": true
+    },
+    {
+      "name": "radius_baseline_defined",
+      "ok": true
+    },
+    {
+      "name": "partial_after_density_radius",
+      "ok": true
+    },
+    {
+      "name": "no_label_derived_controls_in_metrics_api",
+      "ok": true
+    },
+    {
+      "name": "exact_parity_reused_per_anchor",
+      "ok": true,
+      "got": {
+        "d_res_f4_clean_rho": 0.8193223443223443,
+        "d_res_f4_scal_rho": 0.8617673992673993,
+        "d_res_f4_combined_stress_rho": 0.7369047619047618,
+        "q_f4_t2_tensor_cos": 0.6176322563326069,
+        "t2_t3_tensor_cos": 0.7481855145541307,
+        "d_res_f0_energy_frac": 0.0009638843433637,
+        "d_full_f4_cosine": 0.9993950499913692
+      },
+      "checks": {
+        "d_res_f4_clean_rho": {
+          "got": 0.8193223443223443,
+          "expect": 0.8193223443223443,
+          "ok": true,
+          "tol": 0.02
+        },
+        "d_res_f4_scal_rho": {
+          "got": 0.8617673992673993,
+          "expect": 0.8617673992673993,
+          "ok": true,
+          "tol": 0.02
+        },
+        "d_res_f4_combined_stress_rho": {
+          "got": 0.7369047619047618,
+          "expect": 0.7369047619047618,
+          "ok": true,
+          "tol": 0.02
+        },
+        "q_f4_t2_tensor_cos": {
+          "got": 0.6176322563326069,
+          "expect": 0.6176322563326069,
+          "ok": true,
+          "tol": 0.02
+        },
+        "t2_t3_tensor_cos": {
+          "got": 0.7481855145541307,
+          "expect": 0.7481855145541307,
+          "ok": true,
+          "tol": 0.02
+        },
+        "d_res_f0_energy_frac": {
+          "got": 0.0009638843433637,
+          "expect": 0.0009638843433637421,
+          "ok": true,
+          "tol": 0.0005
+        },
+        "parquet_vs_csv_dres_rho": {
+          "got": 0.8193223443223443,
+          "csv": 0.8193223443223443,
+          "ok": true
+        },
+        "parquet_vs_csv_qt2_cos": {
+          "got": 0.6176322563326069,
+          "csv": 0.6176322563326069,
+          "ok": true
+        },
+        "parquet_vs_csv_t2t3": {
+          "got": 0.7481855145541307,
+          "csv": 0.7481855145541307,
+          "ok": true
+        }
+      }
+    }
+  ]
+}

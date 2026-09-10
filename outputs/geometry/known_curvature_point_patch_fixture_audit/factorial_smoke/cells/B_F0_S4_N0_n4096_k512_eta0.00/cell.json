@@ -1,0 +1,27 @@
+{
+  "tag": "B_F0_S4_N0_n4096_k512_eta0.00",
+  "suite": "B",
+  "fixture": "F0",
+  "sampling": "S4",
+  "noise": "N0",
+  "n": 4096,
+  "k": 512,
+  "eta": 0.0,
+  "r_med": 1.1814291693875054,
+  "n_anchors": 128,
+  "n_oracle": 0,
+  "scores": {
+    "rho_Q_T1": -0.03465482512360374,
+    "rho_Q_Hcross_T1": -0.11789278520417507,
+    "Q_split_R": 0.005184637831286678,
+    "rho_Q_log_r": 0.17204953305255447,
+    "rho_Q_T1_given_r": -0.024331624244643836,
+    "false_Kdir_T1_mean": 7.837087727163388e-31,
+    "F0_Q_Kdir": 1.165378271981253e-14,
+    "F0_D_Kdir": NaN,
+    "rel_Q_Kdir_T1": 0.01044768036805276
+  },
+  "recon": {},
+  "runtime_s": 36.93993425369263,
+  "holdout_fraction_check": true
+}

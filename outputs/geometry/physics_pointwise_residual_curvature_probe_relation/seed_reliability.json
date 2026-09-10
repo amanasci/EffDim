@@ -1,0 +1,53 @@
+{
+  "pairs": [
+    {
+      "pair": "0-1",
+      "seed_a": 0,
+      "seed_b": 1,
+      "rho_CH": 0.8940410744326569,
+      "pearson_rank_CH": 0.894041074432657,
+      "median_cos_HS": 0.866412742462094,
+      "median_rel_norm": 0.04502978033551956,
+      "rho_recon": 0.9916582087353085,
+      "rho_cond": 0.6158735701983269,
+      "rho_CH_ctl_radius": 0.8435282698756021,
+      "rho_CH_ctl_radius_recon": 0.8402472004783649
+    },
+    {
+      "pair": "0-2",
+      "seed_a": 0,
+      "seed_b": 2,
+      "rho_CH": 0.859347998992916,
+      "pearson_rank_CH": 0.8593479989929161,
+      "median_cos_HS": 0.8786899564118105,
+      "median_rel_norm": 0.04897288058643798,
+      "rho_recon": 0.9938211503358854,
+      "rho_cond": 0.773298739857635,
+      "rho_CH_ctl_radius": 0.7959665323411267,
+      "rho_CH_ctl_radius_recon": 0.7896353326237969
+    },
+    {
+      "pair": "1-2",
+      "seed_a": 1,
+      "seed_b": 2,
+      "rho_CH": 0.881358737168263,
+      "pearson_rank_CH": 0.8813587371682632,
+      "median_cos_HS": 0.8780326144977072,
+      "median_rel_norm": 0.04549907984387624,
+      "rho_recon": 0.9919058669790916,
+      "rho_cond": 0.7511192900916676,
+      "rho_CH_ctl_radius": 0.8345527596102126,
+      "rho_CH_ctl_radius_recon": 0.8283753404630297
+    }
+  ],
+  "median_rho_CH": 0.881358737168263,
+  "median_cos_HS": 0.8780326144977072,
+  "pass_rho": true,
+  "pass_cos": true,
+  "passed": true,
+  "n_seeds": 3,
+  "gate_rho": 0.7,
+  "gate_cos": 0.8,
+  "best_seed_selected": false,
+  "consensus_is_median_rank": true
+}

@@ -1,0 +1,209 @@
+{
+  "colleague": {
+    "name": "Austin Lutterbach",
+    "email": "rmhslutterbach@gmail.com",
+    "role": "Author of notebooks/pu_manifold/decoder_curvature.py (phase 02.6) and of the d=16 cubic/ridge fidelity table 09-FIXTURE-FIDELITY-D16.md on origin/fixture-validity-audit. Not the nested-chart K_H^cross / local-quadratic estimator on curvature-experiments."
+  },
+  "curvature_experiments_sha": "97efb2eb6cd7dec7f2c568f53c534752ff3c32c8",
+  "fixture_validity_audit_sha": "dcd2208803f27224ee182cce47fdee21c1bc6ba5",
+  "named_sources": {
+    "02.6-FINDINGS": {
+      "path": ".planning/phases/02.6-decoder-substrate-screening/02.6-FINDINGS.md",
+      "on_curvature_experiments": true,
+      "note": "150-epoch Swiss-roll decoder screening. Not the R1 300-epoch numbers."
+    },
+    "Supp. 02 brief": {
+      "path": "notebooks/.planning or papers: 09-SUPPLEMENT-02-INSTRUMENT-ADJUDICATION.md",
+      "on_branch": "origin/fixture-validity-audit",
+      "sha": "dcd2208803f27224ee182cce47fdee21c1bc6ba5",
+      "note": "R1 table 0.553 / 0.9998 / 1.046 labeled ours H_tan; swiss-roll runner scores ambient H_vec."
+    },
+    "09-FIXTURE-FIDELITY-D16": {
+      "path": "09-FIXTURE-FIDELITY-D16.md",
+      "on_branch": "origin/fixture-validity-audit",
+      "sha": "dcd2208803f27224ee182cce47fdee21c1bc6ba5",
+      "note": "Exact R2\u2013R5 plain-decoder table."
+    },
+    "07_plain_decoder_sweep": {
+      "path": "notebooks/diagnostics/07_instrument_fixture_sweep_run.py",
+      "on_branch": "origin/fixture-validity-audit",
+      "default_d": 20,
+      "d16_flag": "--d 16"
+    },
+    "07_low_spread_control": {
+      "path": "notebooks/diagnostics/07_instrument_low_spread_control_run.py",
+      "on_branch": "origin/fixture-validity-audit"
+    },
+    "Supp. 03": {
+      "path": "03-08-SUPPLEMENT-03.md",
+      "note": "Exists; not the cubic/ridge d=16 table."
+    }
+  },
+  "estimator_files": {
+    "plain_decoder_curvature": "notebooks/pu_manifold/decoder_curvature.py",
+    "decoder_curvature_commit_note": "Present on both branches; Austin Lutterbach authorship (577c3e3).",
+    "fixtures_R2_R4": "experiments/geometry/pointwise_decoder_curvature_reproduction/vendor_varying_ii_controls.py",
+    "fixtures_source": "origin/fixture-validity-audit:notebooks/pu_manifold/varying_ii_controls.py",
+    "vendor_change": "import rewritten from relative to `from pu_manifold import curvature_probe, synthetic_controls`",
+    "training": "notebooks/pu_manifold/cae.py::train_plain_ae / PlainAutoEncoder",
+    "truth_graphs": "notebooks/pu_manifold/curvature_probe.py::graph_mean_curvature",
+    "truth_swiss": "notebooks/pu_manifold/decoder_curvature.py::swiss_roll_analytic_H_vector"
+  },
+  "fixture_generator": {
+    "R1": {
+      "fn": "sklearn.datasets.make_swiss_roll",
+      "n": 3000,
+      "noise": 0.0,
+      "random_state": 0,
+      "normalization": "centre, then divide by one global std (scalar)"
+    },
+    "R2_R5": {
+      "fn": "varying_ii_controls.FAMILIES[cubic|ridge](n=5000, d=16, D, seed=20260816)",
+      "sampling": "uniform box in parameter domain (cubic radius 1.5, ridge as module default)",
+      "embed": "graph assembly then synthetic_controls.rotate_and_pad",
+      "normalization": "rotate_and_pad's own global_std (single scalar)"
+    }
+  },
+  "split": {
+    "R1": {
+      "algorithm": "np.random.default_rng(20260813).permutation(n); first round(n*0.2) holdout",
+      "train_on": "train split only",
+      "eval_anchors": "256 holdout rows via subsample.draw_row_indices(..., seed=20260902), then sort"
+    },
+    "R2_R4": {
+      "train_on": "all n=5000 points",
+      "eval_on": "all n=5000 points"
+    }
+  },
+  "architecture": {
+    "encoder_decoder": "cae.PlainAutoEncoder",
+    "hidden": [
+      250,
+      250,
+      250
+    ],
+    "activation": "silu",
+    "latent_dim": {
+      "R1": 2,
+      "R2_R4": 16
+    },
+    "output_normalization": "none on R1\u2013R4 (raw decode)"
+  },
+  "training": {
+    "loss": "mean of per-row ||x-y||^2 (sum over dim, mean over batch)",
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch": 128,
+    "epochs": {
+      "R1": 300,
+      "R2_R4": 400
+    },
+    "early_stop": "disabled (patience > max_epochs)",
+    "seeds": {
+      "R1_torch_init": 0,
+      "R1_train_cfg_seed": 0,
+      "R2_R4_torch_init": 0,
+      "R2_R4_train_cfg_seed": 20260816,
+      "R2_R4_data": 20260816
+    },
+    "checkpoint": "in-memory last epoch; no .pt written by the historical runners"
+  },
+  "autodiff": {
+    "precision": "float64 required (_assert_float64)",
+    "map": "model.decode only, never forward",
+    "jacobian": "torch.func.vmap(jacrev) \u2014 J shape (D, d), columns are coordinate partials",
+    "hessian": "torch.func.vmap(hessian) \u2014 Q shape (D, d, d)",
+    "chunk": 32
+  },
+  "formulas": {
+    "I": "g = J^T J",
+    "P_T": "J g^{-1} J^T",
+    "II": "(I - P_T) D^2 F   i.e. full Euclidean second fundamental form",
+    "II_removes_sphere_radial": false,
+    "H": "g^{ab} II_ab  (UNNORMALIZED trace; no 1/d)",
+    "H_is_averaged_1_over_d": false,
+    "F_differentiated_after_normalization": false,
+    "implementation_trick": "trace-first-then-project: raw = g^{jk} Hess_jk, then subtract tangent component"
+  },
+  "explicit_answers": {
+    "reported_H_equals": "g^{ab} II_ab   (NOT (1/d) g^{ab} II_ab)",
+    "II_equals": "(I - P_T) D^2 F   (NOT (I - xx^T - P_T) D^2 F)",
+    "F_differentiated": "before output normalization (raw decode) on R1\u2013R4"
+  },
+  "metrics": {
+    "variance_explained": "1 - mean(||x-y||^2) / mean(||x||^2)  \u2014 NOT centered R^2",
+    "rho": "Spearman of ||H_est|| vs ||H_true|| (scipy.stats.spearmanr .statistic)",
+    "cosine": "median over points of <H_est,H_true> / (||H_est|| ||H_true||)",
+    "ratio": "median over points of ||H_est|| / ||H_true||",
+    "R1_scorer": "09 swiss-roll runner uses synthetic_control_run._fidelity_axes (chart_curvature.curvature_fidelity_report + spearman_gate_statistic). On the Swiss roll this coincides with the 07 axes() formulas up to excluding ||H_true||<=1e-12, which does not occur.",
+    "true_H_spread": "not a reported 07 column; ii_variation.hess_fro_cv is the fixture II-variation diagnostic",
+    "aggregation": "single seed; median over anchors/points; no multi-seed mean"
+  },
+  "tolerances_frozen": {
+    "var_explained": 0.002,
+    "rho": 0.03,
+    "rho_r1": 0.05,
+    "cosine": 0.01,
+    "ratio": 0.05
+  },
+  "historical_targets": {
+    "R1": {
+      "fixture": "swiss_roll",
+      "d": 2,
+      "D": 3,
+      "n": 3000,
+      "var_explained": null,
+      "rho": 0.553,
+      "cosine": 0.9998,
+      "ratio": 1.046,
+      "source": "09-SUPPLEMENT-02-INSTRUMENT-ADJUDICATION.md \u00a73 (orchestrator brief, not JSONL)",
+      "note": "Quoted there as ours H_tan (d=2, k=256, 256 anchors). The swiss-roll runner actually scores ambient H_vec (no sphere projection) via _fidelity_axes. SWISS_EPOCHS=300. k is for the Q arm / knn panel, not the decoder."
+    },
+    "R2": {
+      "fixture": "cubic",
+      "d": 16,
+      "D": 28,
+      "n": 5000,
+      "var_explained": 0.9989458270763205,
+      "rho": 0.9422766741710669,
+      "cosine": 0.9932794885913858,
+      "ratio": 0.9610396277738668,
+      "source": "09-FIXTURE-FIDELITY-D16.md table, plain-decoder arm"
+    },
+    "R3": {
+      "fixture": "ridge",
+      "d": 16,
+      "D": 28,
+      "n": 5000,
+      "var_explained": 0.9994405376046311,
+      "rho": 0.987230725569229,
+      "cosine": 0.9995659766206267,
+      "ratio": 0.9923055974100696,
+      "source": "09-FIXTURE-FIDELITY-D16.md table, plain-decoder arm"
+    },
+    "R4": {
+      "fixture": "ridge",
+      "d": 16,
+      "D": 768,
+      "n": 5000,
+      "var_explained": 0.9993710455021906,
+      "rho": 0.9881738890309554,
+      "cosine": 0.9994735427208619,
+      "ratio": 0.9853165903890537,
+      "source": "09-FIXTURE-FIDELITY-D16.md table, plain-decoder arm"
+    },
+    "R5": {
+      "fixture": "cubic",
+      "d": 16,
+      "D": 768,
+      "n": 5000,
+      "var_explained": 0.9985989197885459,
+      "rho": 0.8376129732485188,
+      "cosine": 0.9719196818369312,
+      "ratio": 0.9972002312554775,
+      "source": "09-FIXTURE-FIDELITY-D16.md table, plain-decoder arm",
+      "optional": true
+    }
+  }
+}
