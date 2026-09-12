@@ -64,7 +64,36 @@ on a whim. If it grows past ~15 cells, it has drifted from its purpose.
 
 ## General
 
-- Never delete or rewrite existing notebooks or runner scripts to make room for new work —
+- Never delete or rewrite existing notebooks or runner scripts to make room for new work 
   additive only, unless explicitly asked.
 - Do not modify `src/effdim/` during the v1.1 milestone.
 - Notebooks are committed with their outputs, executed end to end.
+- KEEP THINGS SIMPLE FIRST. Only add complexity upon my request. When attempting to solve a problem, focus on the simplest implementation. Then, as issues arise, we will slowly add complexity as needed to solve the problem. Do not try to one shot every edge case and counterexample.
+
+## Remote compute (EleutherAI pod `universetbd-0`, `root@216.153.49.26`)
+
+**Before running ANY command on the SSH server, read `docs/remote-compute/eleutherai-pod-user-guide.md`
+in full. First, every session, no exceptions.** It is a verbatim copy of the pod's own
+`/root/user-guide.md` (sha256 `5e94dd31…3dc4053b`). If the remote copy has changed, re-fetch it
+and re-read before proceeding.
+
+The rules that bite hardest, so they are not missed:
+
+- `/root` is ephemeral and wiped on random, unannounced pod restarts. Clones, venvs, pip
+  installs, and outputs go under `/mnt/ssd-cluster` (private, persistent, 500 GB). Nothing we
+  care about lives in `/root`.
+- Long jobs run inside `tmux`. A foreground job dies with the SSH session.
+- No concurrent `find` / `ls -R` on `/mnt/*`; always `-maxdepth` and `timeout`. Heavy I/O can
+  hang the NVMe mounts and force a pod restart.
+- `/mnt/ssd-1..4` and `/mnt/datasets` are shared with every user on the cluster. Do not write
+  to `/mnt/datasets`. Do not delete anything you did not create.
+- The pod is a shared root account with other people's projects in `/root`
+  (`AstroJEPA`, `Astro-Worldmodels`, `kshitij/`, `translation/`, …). Touch only
+  `/mnt/ssd-cluster/EffDim` and paths the phase runbook names.
+- Guide says 30 CPU cores by default; `nproc` reports 128. Verify the effective cgroup limit
+  before trusting any `--threads` value.
+
+## Spike findings
+
+- **Spike findings for EffDim** (curvature-estimator validation protocol, measured `d=20` dead
+  ends, the open saddle-fixture question) → `Skill("spike-findings-effdim")`
