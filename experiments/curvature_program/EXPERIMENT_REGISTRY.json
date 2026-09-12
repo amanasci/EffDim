@@ -1,0 +1,1002 @@
+{
+  "created_for": "curvature_program_handoff",
+  "source_of_truth": [
+    "COMPLETE.json",
+    "decision.json",
+    "summary.json",
+    "tables",
+    "REPORT.md",
+    "METHODS.md",
+    "manuscript",
+    "notes"
+  ],
+  "worktree_head": "dabe5e2",
+  "experiments": [
+    {
+      "name": "physics_curvature_probe_submission_validation",
+      "code_path": "experiments/geometry/physics_curvature_probe_submission_validation",
+      "runner": "experiments/geometry/run_curvature_probe_submission_validation.py",
+      "output_path": "outputs/geometry/physics_curvature_probe_submission_validation",
+      "git_commit": null,
+      "completion_status": "decision.json_present_no_COMPLETE",
+      "completion_note": "Protocol uses decision.json; synthesis flagged missing COMPLETE.json. Treat as complete-for-decision but not COMPLETE-marked.",
+      "decision_label": "claim_supported_but_scale_dependent",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": null,
+      "estimator": "KHcross",
+      "primary_outcomes": [
+        "global OOF MSE/SSE/NMSE vs KHcross at d=16",
+        "scale dependence"
+      ],
+      "primary_numerical_results": {
+        "rho16_KH_mse": 0.2270478922763529,
+        "rho16_KH_nmse": 0.2404841119636992,
+        "scale_sign_frac_mid_upper": 1.0
+      },
+      "runtime_s": null,
+      "limitations": [
+        "single encoder",
+        "no adaptation",
+        "no COMPLETE.json"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "frozen Q features / embeddings on host"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "outputs/geometry/physics_curvature_probe_submission_validation/decision.json"
+      ],
+      "hashes": {
+        "decision.json": "faca61f24be364090ca6a8ef0f86dcaf7b4ae5cd6aa9935df5a7c29b0f8fe17c"
+      }
+    },
+    {
+      "name": "physics_local_probe_adaptation",
+      "code_path": "experiments/geometry/physics_local_probe_adaptation",
+      "runner": "experiments/geometry/run_local_probe_adaptation.py",
+      "output_path": "outputs/geometry/physics_local_probe_adaptation",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "curvature_predicts_local_direction_adaptation",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "KHcross",
+      "primary_outcomes": [
+        "rho_ctl(KH,R_G^2)",
+        "rho_ctl(KH,MSE_G)",
+        "rho_ctl(KH,Delta_adapt)"
+      ],
+      "primary_numerical_results": {
+        "rho_ctl_KH_R2G": -0.2404841119636992,
+        "rho_ctl_KH_MSE_G": 0.22704789227635297,
+        "rho_ctl_KH_Delta_adapt": 0.15334238492921803,
+        "mean_Delta_adapt": -0.10119904692121723,
+        "p_ctl_R2G": 3.6028687450798254e-08
+      },
+      "runtime_s": 1133.8583009243011,
+      "limitations": [
+        "host-only outputs in this worktree",
+        "superseded smoke label local_probe_result_unresolved retained"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "host output tree",
+        "ViT-B embeddings/neighbours"
+      ],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "host COMPLETE.json",
+        "host decision.json",
+        "host parity.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "38ac67b483362cb62b923e5ddb2dd4c8399e288541ca25750ba00d3667c8c48a",
+        "decision.json": "4184db5470c19051dc299d6b781d2f266730a62e2d948da1c64b1746e3162970",
+        "parity.json": "eaaacf3ad9e2cbba64efb703fb5c6a4bd5a1efc6968ab4fcd70bfd21c413152b"
+      },
+      "number_source": "outputs/geometry/physics_local_probe_adaptation/parity.json"
+    },
+    {
+      "name": "physics_quadratic_label_chart_alignment",
+      "code_path": "experiments/geometry/physics_quadratic_label_chart_alignment",
+      "runner": "experiments/geometry/run_quadratic_label_chart_alignment.py",
+      "output_path": "outputs/geometry/physics_quadratic_label_chart_alignment",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "quadratic_chart_link_unresolved",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "Delta_Q and KHcross",
+      "primary_outcomes": [
+        "held-out unrestricted quadratic label gain",
+        "KH vs Delta_Q"
+      ],
+      "primary_numerical_results": {
+        "median_delta_Q": 0.020581617601622228,
+        "rho_KH_delta_Q": 0.111248619551161,
+        "synth_ok": false
+      },
+      "runtime_s": 159.53816390037537,
+      "limitations": [
+        "synthetic shuffle gate failed",
+        "B^S map later audited as full rank 136"
+      ],
+      "class": "exploratory",
+      "present_locally": true,
+      "required_external": [
+        "host output tree"
+      ],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "host decision.json",
+        "features.py Frobenius convention"
+      ],
+      "hashes": {
+        "decision.json": "eef821efb95fe9ed293511ffc71d426ad091a9d555e81625682877bd2223b629",
+        "COMPLETE.json": "78a00ba43cfe7c634bfa2fc6059387b462bb3901ea9a0b9ff944c9cc5f335efe",
+        "summary.json": "c708d4f2ba3dae0c0f475e03597dde84ef4d10f88a2704d3e36a04000a9dcea2",
+        "parity.json": "da2d3212ff6ff5fba47242645ef9ed6cc36ac475ead687945d42449e179d53e2"
+      },
+      "number_source": "outputs/geometry/physics_quadratic_label_chart_alignment/decision.json"
+    },
+    {
+      "name": "physics_quadratic_label_chart_alignment_audit",
+      "code_path": "experiments/geometry/physics_quadratic_label_chart_alignment_audit",
+      "runner": "experiments/geometry/run_quadratic_label_chart_alignment_audit.py",
+      "output_path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "geometry_regularized_quadratic_decoding",
+      "decision_label_source": "COMPLETE.json audit_interpretation only; parent decision.json unchanged",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "B^S quadratic-feature rank",
+      "primary_outcomes": [
+        "numerical rank of fitted B^S in quadratic-feature space"
+      ],
+      "primary_numerical_results": {
+        "median_numerical_rank": 136,
+        "n_quad_d16": 136
+      },
+      "runtime_s": 8273.176621437073,
+      "limitations": [
+        "does not overwrite quadratic_chart_link_unresolved"
+      ],
+      "class": "secondary",
+      "present_locally": true,
+      "required_external": [
+        "host output tree"
+      ],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "host COMPLETE.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "545bbe41086dc1d78cecf9b6ebd66fc533948398cbbdd0f81cdf11744c6aa5ad"
+      },
+      "number_source": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/COMPLETE.json"
+    },
+    {
+      "name": "physics_cross_model_curvature_local_adaptation",
+      "code_path": "experiments/geometry/physics_cross_model_curvature_local_adaptation",
+      "runner": "experiments/geometry/run_cross_model_curvature_local_adaptation.py",
+      "output_path": "outputs/geometry/physics_cross_model_curvature_local_adaptation",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "representation_specific_effect",
+      "models": [
+        "vit_base",
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "KHcross",
+      "primary_outcomes": [
+        "joint global-penalty plus positive adaptation law"
+      ],
+      "primary_numerical_results": {
+        "models_with_both": [
+          "vit_base"
+        ],
+        "C_G_vit_base": 0.22704789227635297,
+        "C_A_vit_base": 0.15334238492921803,
+        "C_G_dinov3": -0.12981029199711608,
+        "C_A_dinov3": -0.04471491943328641,
+        "C_G_clip": -0.27375793579267804,
+        "C_A_clip": -0.17898726196198259,
+        "C_G_convnext": -0.18663614658793098,
+        "C_A_convnext": -0.2548593766093315,
+        "C_G_vit_large": -0.03830513069202687,
+        "C_A_vit_large": 0.18130031843306899,
+        "mean_Delta_adapt_vit_base": -0.10119904692121723
+      },
+      "runtime_s": 46601.62622714043,
+      "limitations": [
+        "not a universal law",
+        "authoritative table is per_model_primary.json"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "host output tree",
+        "five-encoder embeddings"
+      ],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "host per_model_primary.json"
+      ],
+      "hashes": {
+        "decision.json": "96a9d81ca51df8c71aed02b7d539ca794c0267b33e6664a13bb5a083249e3b7b",
+        "COMPLETE.json": "bedf25c4e943347da40d7ff39af174ae7dcfa6489a201f647efe6d7f3ed757c2",
+        "parity.json": "08d36b1a113f8c73c062df043b7082849d8f8078295b82abe0de53aa0417d567"
+      },
+      "number_source": "outputs/geometry/physics_cross_model_curvature_local_adaptation/per_model_primary.json"
+    },
+    {
+      "name": "physics_cross_model_full_curvature_reconciliation",
+      "code_path": "experiments/geometry/physics_cross_model_full_curvature_reconciliation",
+      "runner": "experiments/geometry/run_full_curvature_reconciliation.py",
+      "output_path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "full_curvature_partial_cross_model_replication",
+      "models": [
+        "vit_base",
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "Kdircross vs KHcross",
+      "primary_outcomes": [
+        "trace vs full directional statistic"
+      ],
+      "primary_numerical_results": {
+        "vitb_rho_Kdir_Delta_adapt": -0.1594762627172955,
+        "vitb_rho_KH_Delta_adapt": 0.15334238492921803,
+        "vitb_rho_Kdir_MSEG": 0.21662907983428892,
+        "vitb_rho_KH_MSEG": 0.22704789227635297
+      },
+      "runtime_s": 9673.020702838898,
+      "limitations": [
+        "does not overwrite representation_specific_effect"
+      ],
+      "class": "secondary",
+      "present_locally": true,
+      "required_external": [
+        "host output tree"
+      ],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "host central_comparison_table.csv"
+      ],
+      "hashes": {
+        "decision.json": "5df16157678b84460472df93e5fcf8948d2e40901031384db765a5ac08e78816",
+        "COMPLETE.json": "d16e90b88ae6a21e94e204ba86e583c003750423e9e2f27b028f91b840277d8c",
+        "summary.json": "e1b72c265faee02e4befcc7b6f2e763f42340977939344dc4f7473ebaf570dc1",
+        "parity.json": "9b059a0d7b716cfa5909861f6f037b92c7593e8f35f9e4316838ba69a9228bde"
+      },
+      "number_source": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/central_comparison_table.csv"
+    },
+    {
+      "name": "pointwise_decoder_curvature_reproduction",
+      "code_path": "experiments/geometry/pointwise_decoder_curvature_reproduction",
+      "runner": "experiments/geometry/run_pointwise_decoder_curvature_reproduction.py",
+      "output_path": "outputs/geometry/pointwise_decoder_curvature_reproduction",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "colleague_decoder_results_reproduced",
+      "models": [
+        "synthetic_decoder_fixtures"
+      ],
+      "targets": [
+        "R1_swiss",
+        "R2_cubic",
+        "R3_ridge",
+        "R4"
+      ],
+      "anchors": null,
+      "d": 16,
+      "k": null,
+      "estimator": "D_full",
+      "primary_outcomes": [
+        "historical D-full formula/protocol reproduction"
+      ],
+      "primary_numerical_results": {
+        "n_primary_cells_passed": 3,
+        "runtime_s": 834.2675635814667
+      },
+      "runtime_s": 834.2675635814667,
+      "limitations": [
+        "Swiss-roll Spearman disagrees with historical 0.553; reproduction_cells.csv is numerical authority"
+      ],
+      "class": "mechanical",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "outputs/geometry/pointwise_decoder_curvature_reproduction/decision.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "6ed1330ccf61f4b2b4702859bac12f7271f1f8ebaacb6fe756d5fe30ccb442b1",
+        "decision.json": "b4af6a3b115b2c2dd121e22f1f03dd30059c9b21ea1b6e6ce1fc77b684cf3dac"
+      }
+    },
+    {
+      "name": "known_curvature_point_patch_fixture_audit",
+      "code_path": "experiments/geometry/known_curvature_point_patch_fixture_audit",
+      "runner": "experiments/geometry/run_known_curvature_point_patch_fixture_audit.py",
+      "output_path": "outputs/geometry/known_curvature_point_patch_fixture_audit",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "mean_vs_full_curvature_divergence",
+      "models": [
+        "analytic_fixtures"
+      ],
+      "targets": [
+        "F0-F4"
+      ],
+      "anchors": null,
+      "d": 16,
+      "k": null,
+      "estimator": "mixed D/Q (historical mixed estimand)",
+      "primary_outcomes": [
+        "mean vs full curvature divergence on fixtures"
+      ],
+      "primary_numerical_results": {
+        "F0_decoder_Kdir": 8.467652068555033
+      },
+      "runtime_s": 4.234332323074341,
+      "limitations": [
+        "mixed estimands; later dual-estimator separates II^E vs B^S"
+      ],
+      "class": "mechanical",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "decision.json",
+        "summary.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "c234000f1730a3da7f90e46b2c7a751be5752211059b5f970b26c90f41e85192",
+        "decision.json": "ad76f47ec6ac2589053ef63076835862a875c680f89892f383e0950818fdcd43",
+        "summary.json": "f88235351e2f4b50ae8cad740b44dbba00d101c8bfd0207b1ffff9f5c5beedaf"
+      }
+    },
+    {
+      "name": "known_curvature_dual_estimator_robustness",
+      "code_path": "experiments/geometry/known_curvature_dual_estimator_robustness",
+      "runner": "experiments/geometry/run_known_curvature_dual_estimator_robustness.py",
+      "output_path": "outputs/geometry/known_curvature_dual_estimator_robustness",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "neither_estimator_validated",
+      "models": [
+        "analytic_fixtures"
+      ],
+      "targets": [
+        "F0-F4 matched D-full / D-residual / Q"
+      ],
+      "anchors": null,
+      "d": 16,
+      "k": 1024,
+      "estimator": "D_full, D_residual, Q",
+      "primary_outcomes": [
+        "historical tensor gates"
+      ],
+      "primary_numerical_results": {
+        "decoder_residual_clean_ok": true,
+        "decoder_residual_stress_ok": true,
+        "decoder_full_clean_ok": false,
+        "quadratic_pointwise_residual_ok": false
+      },
+      "runtime_s": 612.1608238220215,
+      "limitations": [
+        "label answers historical gates, not operational uselessness of D-residual or Q-vs-T2 rank"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "decision.json",
+        "decoder_residual_metrics.csv"
+      ],
+      "hashes": {
+        "COMPLETE.json": "1f3fb1f4d98a582acf91de6c116f1d9782592367fb5f37750d759a0fde9f0daf",
+        "decision.json": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059",
+        "summary.json": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059"
+      }
+    },
+    {
+      "name": "known_curvature_estimator_operating_characteristics",
+      "code_path": "experiments/geometry/known_curvature_estimator_operating_characteristics",
+      "runner": "experiments/geometry/run_known_curvature_estimator_operating_characteristics.py",
+      "output_path": "outputs/geometry/known_curvature_estimator_operating_characteristics",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "d_full_useful_on_non_spherical_clean_geometry / q_moderately_informative_sampling_dependent_statistic / d_residual_useful_but_stress_sensitive",
+      "models": [
+        "analytic_fixtures"
+      ],
+      "targets": [
+        "F4 operating curves"
+      ],
+      "anchors": null,
+      "d": 16,
+      "k": 1024,
+      "estimator": "D_full, D_residual, Q",
+      "primary_outcomes": [
+        "rank/reliability under stress"
+      ],
+      "primary_numerical_results": {
+        "d_residual_f4_clean_rho": 0.8193223443223443,
+        "d_residual_f4_stress_rho": 0.7369047619047618,
+        "q_t2_kh_clean_rho": 0.5232142857142856,
+        "prior_label_not_overwritten": "neither_estimator_validated"
+      },
+      "runtime_s": null,
+      "limitations": [
+        "does not overwrite neither_estimator_validated"
+      ],
+      "class": "secondary",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "decision.json",
+        "operating_curves.csv"
+      ],
+      "hashes": {
+        "COMPLETE.json": "a58ed4efa2d9167bd8e64b9bc0538adecb9d98da8f687cab12828c5fad6b516b",
+        "decision.json": "e78b1d29928c040518831a73f90dac17d4df11931647e342f5536bbae04f418c",
+        "summary.json": "38c68080516c994763977716e16d69a7c2a91bbea25b11842826c301992fc7df",
+        "parity.json": "4d3e74df883b3ce415fd64d019abadccd602663bb1ba1993c173de24b1682916"
+      }
+    },
+    {
+      "name": "physics_pointwise_residual_curvature_probe_relation",
+      "code_path": "experiments/geometry/physics_pointwise_residual_curvature_probe_relation",
+      "runner": "experiments/geometry/run_pointwise_residual_curvature_probe_relation.py",
+      "output_path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "pointwise_residual_probe_relation_unresolved",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": null,
+      "estimator": "D_residual C_H",
+      "primary_outcomes": [
+        "C_H vs R_G^2 / R_P^2 / Delta_adapt"
+      ],
+      "primary_numerical_results": {
+        "P1_rho_ctl_CH_R2G": 0.02970575697233952,
+        "P2_rho_ctl_CH_R2P": -0.21959123336308806,
+        "rho_ctl_CH_Delta_adapt": -0.2073438626532083
+      },
+      "runtime_s": 731.4623050689697,
+      "limitations": [
+        "does not reproduce the Q global-error/adaptation story"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "ViT-B AE checkpoints / embeddings"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json",
+        "parity.json"
+      ],
+      "hashes": {
+        "decision.json": "9b7f842c31ff98f2437c875ffea774d67ad577170245ecb5e0b343d025f4f267",
+        "COMPLETE.json": "2ed3d9e9fe210d5270837462d83323cf1e430fd55098897031a99e0a21ac07f9",
+        "summary.json": "d23e9c55ec0aadd54d234fe3e75eecc4b6490be21a9787a86bb98b8f5d4fcd38",
+        "parity.json": "02559a4ea37bc1bfc67ce631bcfa20caab438329a62ebcb585bb7deee2284e7b"
+      }
+    },
+    {
+      "name": "physics_q_geometry_resampling_stability",
+      "code_path": "experiments/geometry/physics_q_geometry_resampling_stability",
+      "runner": "experiments/geometry/run_q_geometry_resampling_stability.py",
+      "output_path": "outputs/geometry/physics_q_geometry_resampling_stability",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "q_global_and_adaptation_associations_geometry_robust",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "KHcross",
+      "primary_outcomes": [
+        "32+32 geometry-resampling stability"
+      ],
+      "primary_numerical_results": {
+        "original_rho_ctl_R2G": -0.2404841119636992,
+        "original_rho_ctl_MSE_G": 0.22704789227635297,
+        "original_rho_ctl_Delta_adapt": 0.15334238492921803,
+        "conditional_frac_original_sign": 1.0
+      },
+      "runtime_s": 1678.8757109642029,
+      "limitations": [
+        "same representation population; not a new survey"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "source Q features"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json",
+        "association_stability.csv"
+      ],
+      "hashes": {
+        "COMPLETE.json": "092cd5c10beeb038ba6dc912ba81a1be58755bde768ed883c4aea915b296ca56",
+        "decision.json": "4aa2b0dfa5aca06d34f62409a2b169fc6c47c37218b9663364c3755019929a0a",
+        "summary.json": "0fe888ee2ce80b9df716c7f4f5f9a7e417e19ad2aa2e62dfcfebce3ef6c74c03",
+        "parity.json": "0e8cc30927898f6e7afb1bda8e939412819d0138a907e1bc91437cca7a70a5be"
+      }
+    },
+    {
+      "name": "physics_task_aligned_curvature",
+      "code_path": "experiments/geometry/physics_task_aligned_curvature",
+      "runner": "experiments/geometry/run_physics_task_aligned_curvature.py",
+      "output_path": "outputs/geometry/physics_task_aligned_curvature",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "quadratic_task_aligned_effect_only",
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi",
+        "photo_z",
+        "smooth_fraction",
+        "stellar_mass"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "E_Q_task_aligned and E_D_task_aligned",
+      "primary_outcomes": [
+        "leakage-safe probe-aligned energy vs held-out global MSE"
+      ],
+      "primary_numerical_results": {
+        "P1_bar_rho_D": -0.0016449827122028832,
+        "P2_bar_rho_Q": 0.11614541311898466,
+        "P2_ci95": [
+          0.062027437327914936,
+          0.15559769877589985
+        ],
+        "P2_p_holm": 0.00019998000199980003,
+        "per_target_Q": {
+          "mag_r_desi": -0.03686164970073586,
+          "photo_z": 0.1740391038955837,
+          "smooth_fraction": 0.20223387735892243,
+          "stellar_mass": 0.12517032092216843
+        }
+      },
+      "runtime_s": 2196.230945110321,
+      "limitations": [
+        "ViT-B only",
+        "mag_r flips",
+        "historical +0.347/+0.328 not recoverable as leakage-safe"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "embeddings, neighbours, frozen Q charts, AE checkpoints"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json",
+        "algebra.py"
+      ],
+      "hashes": {
+        "COMPLETE.json": "3ca9585fad7ac6f026524cdeee549ee85f09373f28a2ff9a3ce27f1aacc82490",
+        "decision.json": "fba78e1bc820bda922eea11505481d6161a0c37057f8de141402aeade7b99608",
+        "summary.json": "92113bf95a352740b6ba119fca0e3ff426f95b893d131a6553bbcc6c9a0910d2",
+        "parity.json": "a6b4f928ee730c4386a3d98e1f97944d0e3e0ae75ecb8c5dffe8a9d61f5dde3c"
+      }
+    },
+    {
+      "name": "physics_cross_model_task_aligned_curvature",
+      "code_path": "experiments/geometry/physics_cross_model_task_aligned_curvature",
+      "runner": "experiments/geometry/run_physics_cross_model_task_aligned_curvature.py",
+      "output_path": "outputs/geometry/physics_cross_model_task_aligned_curvature",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "q_task_aligned_replicates_across_models",
+      "models": [
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large"
+      ],
+      "targets": [
+        "mag_r_desi",
+        "photo_z",
+        "smooth_fraction",
+        "stellar_mass"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "E_Q_task_aligned",
+      "primary_outcomes": [
+        "equal-weight bar_rho_Q excluding ViT-B"
+      ],
+      "primary_numerical_results": {
+        "R1": 0.05794641314866791,
+        "R1_ci95": [
+          0.028825112512558707,
+          0.07912640311445503
+        ],
+        "per_model": {
+          "dinov3": 0.1355938719515684,
+          "clip_base": -0.033280059988727524,
+          "convnext_base": 0.028151433270676696,
+          "vit_large": 0.10132040736115402
+        },
+        "vitb_reference_excluded": 0.11614541311898466
+      },
+      "runtime_s": 4194.220579385757,
+      "limitations": [
+        "model-majority not four-target-uniform",
+        "CLIP negative",
+        "decoder skipped"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "four-encoder embeddings and Q charts"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "447f477ab0231d12fff8ccc7439d965f16f4340ba908e6ffdbc06ff59f6bca27",
+        "decision.json": "21b4b59d43c01a4b8cdccf51c22450893b0db5e48e2a2c875b43335ab939891f",
+        "summary.json": "e2d669ae8617ff498afddbf8d3c171df72e3e14109eb64a1bc61a8611a558e5e",
+        "parity.json": "94707e44773a2d7fbe5897488a3ee22d6d3ed44ee3a0a53baf65ae1e878df298"
+      }
+    },
+    {
+      "name": "physics_cross_model_pointwise_residual_curvature",
+      "code_path": "experiments/geometry/physics_cross_model_pointwise_residual_curvature",
+      "runner": "experiments/geometry/run_physics_cross_model_pointwise_residual_curvature.py",
+      "output_path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "cross_model_pointwise_patch_degradation_only",
+      "models": [
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large",
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": null,
+      "estimator": "D_residual",
+      "primary_outcomes": [
+        "H1 patch degradation",
+        "H2 adaptation",
+        "H3 contrast"
+      ],
+      "primary_numerical_results": {
+        "H1_bar_C_P": -0.20682288626818188,
+        "H2_bar_C_A": 0.008133382829219169,
+        "H3_bar_delta_C_PG": -0.12749872564783346
+      },
+      "runtime_s": 3084.1787531375885,
+      "limitations": [
+        "ViT-B excluded from replication aggregate",
+        "not a Q law"
+      ],
+      "class": "confirmatory",
+      "present_locally": true,
+      "required_external": [
+        "decoder checkpoints"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "9ec96c3e00ecc0e24fac91b6162eae70e893f7ff815f961c6c779ec587a78196",
+        "decision.json": "c0a87a29831d70eafc3b17d3dcd7da62f4d278d9b5b6185535292cd0c506f91e",
+        "summary.json": "5940e44351fc2059cf08ae0de43d0f2ed0d1172495a8f25bacdd67b337440f9b",
+        "parity.json": "6728ee67508c51c401ea2e13a8e7f827f7480e8c8a671c099c8c0b5b0b59661c"
+      }
+    },
+    {
+      "name": "physics_cross_model_hessian_mismatch",
+      "code_path": "experiments/geometry/physics_cross_model_hessian_mismatch",
+      "runner": "experiments/geometry/run_physics_cross_model_hessian_mismatch.py",
+      "output_path": "outputs/geometry/physics_cross_model_hessian_mismatch",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "label_hessian_unreliable",
+      "models": [
+        "vit_base",
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large"
+      ],
+      "targets": [
+        "mag_r_desi",
+        "photo_z",
+        "smooth_fraction",
+        "stellar_mass"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "M_delta / A_full",
+      "primary_outcomes": [
+        "mismatch-size vs MSE",
+        "Hy\u2013Bw alignment",
+        "Hy reliability"
+      ],
+      "primary_numerical_results": {
+        "P1_bar_rho_Delta": 0.10804301439243084,
+        "P2_bar_rho_A": -0.011993127617845984,
+        "P1_pass_holm": true,
+        "P2_pass_holm": false
+      },
+      "runtime_s": 5156.878960609436,
+      "limitations": [
+        "Hy reliability gate failed; do not interpret P1 mechanistically",
+        "136 quadratic coefficients at d=16"
+      ],
+      "class": "exploratory",
+      "present_locally": true,
+      "required_external": [
+        "embeddings, labels, Q/D fields"
+      ],
+      "external_present_locally": false,
+      "reusable_artifacts": [
+        "decision.json",
+        "parity.json"
+      ],
+      "hashes": {
+        "COMPLETE.json": "a1020ea7d3961dcfcbba7a3014fcc8a202442a830d1637ddae03ca5241957c07",
+        "decision.json": "f009f42dbd56aeac58d819ba835b72b89aa6bb36b15edbd1d9ee33ba37823d5e",
+        "summary.json": "8336683131f9a14feb94791aebb0079bc9c03244e66291c6a3d7d24bb97e3272",
+        "parity.json": "a1e924e34f164309f3f37f8762b79dc5df6c6ab22d80d27a4a507784a140196c"
+      }
+    },
+    {
+      "name": "physics_curvature_component_predictive_decomposition",
+      "code_path": "experiments/geometry/physics_curvature_component_predictive_decomposition",
+      "runner": "experiments/geometry/run_curvature_component_predictive_decomposition.py",
+      "output_path": "outputs/geometry/physics_curvature_component_predictive_decomposition",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "distinct_mean_and_traceless_predictive_roles",
+      "models": [
+        "vit_base",
+        "dinov3",
+        "clip_base",
+        "convnext_base",
+        "vit_large"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": 512,
+      "d": 16,
+      "k": 2048,
+      "estimator": "KHcross vs traceless Q",
+      "primary_outcomes": [
+        "unique KH vs unique KTF roles"
+      ],
+      "primary_numerical_results": {
+        "exploratory": true
+      },
+      "runtime_s": 3672.6632719039917,
+      "limitations": [
+        "exploratory flag true"
+      ],
+      "class": "exploratory",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "decision.json"
+      ],
+      "hashes": {
+        "decision.json": "004ba33deae19c771e06e06b7187534b31dadc1cfb03d0165c6725b6d08621b0",
+        "COMPLETE.json": "c18237dc6a585c0657ecff07715d7a3e21f7b2a283915fbbc8cc28b767331986",
+        "summary.json": "5ad26615b3797b0cf2bd51b749cdfe94ec91a9b901d004a47dcc3aee7bae821b",
+        "parity.json": "992220ba7ed0197556c27f6670fff1d89a4ba31be7518a01a1ff68da49d6d09e"
+      }
+    },
+    {
+      "name": "curvature_program_synthesis",
+      "code_path": "experiments/geometry/curvature_program_synthesis",
+      "runner": null,
+      "output_path": "outputs/geometry/curvature_program_synthesis",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": null,
+      "models": null,
+      "targets": null,
+      "anchors": null,
+      "d": null,
+      "k": null,
+      "estimator": null,
+      "primary_outcomes": [
+        "documentation-only claim matrix of 32 pre-task-aligned claims"
+      ],
+      "primary_numerical_results": {
+        "n_claims": 32,
+        "n_conflicts": 9,
+        "experiments_run": false
+      },
+      "runtime_s": null,
+      "limitations": [
+        "predates task-aligned / Hessian-mismatch / cross-model D-residual trees"
+      ],
+      "class": "mechanical",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "CURVATURE_PROGRAM_SUMMARY.md",
+        "SOURCE_MANIFEST.json",
+        "CLAIM_MATRIX.csv"
+      ],
+      "hashes": {
+        "COMPLETE.json": "4db26586887603e45c2bb8094c90cda72cef6c857f468b3a00e7247d8262446f"
+      }
+    },
+    {
+      "name": "physics_ae_local_patch_scale_match",
+      "code_path": "experiments/geometry/run_ae_local_patch_scale_match.py",
+      "runner": "experiments/geometry/run_ae_local_patch_scale_match.py",
+      "output_path": "outputs/geometry/physics_ae_local_patch_scale_match",
+      "git_commit": null,
+      "completion_status": "incomplete",
+      "decision_label": null,
+      "models": [
+        "vit_base"
+      ],
+      "targets": [
+        "mag_r_desi"
+      ],
+      "anchors": null,
+      "d": null,
+      "k": null,
+      "estimator": "historical_AE_H_not_D_residual",
+      "primary_outcomes": [
+        "incompatible 600-epoch AE protocol"
+      ],
+      "primary_numerical_results": {
+        "rho_point_R2": -0.019
+      },
+      "runtime_s": 258.89889001846313,
+      "limitations": [
+        "no COMPLETE.json / decision.json; not the D-residual protocol"
+      ],
+      "class": "exploratory",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "summary.json"
+      ],
+      "hashes": {
+        "summary.json": "d691a9b945692ac84e36ab3b7ae7ec03d2a29df6b5a0ced4719b3cf40bfc7e3a"
+      }
+    },
+    {
+      "name": "known_curvature_instrument_failure_localization",
+      "code_path": "experiments/geometry/known_curvature_instrument_failure_localization",
+      "runner": "experiments/geometry/run_known_curvature_instrument_failure_localization.py",
+      "output_path": "outputs/geometry/known_curvature_instrument_failure_localization",
+      "git_commit": null,
+      "completion_status": "complete",
+      "decision_label": "quadratic_tangent_estimation_failure",
+      "models": [
+        "analytic_fixtures"
+      ],
+      "targets": [
+        "F0-F4"
+      ],
+      "anchors": null,
+      "d": 16,
+      "k": null,
+      "estimator": "Q ablation",
+      "primary_outcomes": [
+        "PCA tangent is principal Q loss"
+      ],
+      "primary_numerical_results": {
+        "q1_ok": true,
+        "pca_fail": true
+      },
+      "runtime_s": null,
+      "limitations": [
+        "local METHODS.md/REPORT.md pre-existed and were not overwritten; COMPLETE/decision filled from host"
+      ],
+      "class": "mechanical",
+      "present_locally": true,
+      "required_external": [],
+      "external_present_locally": true,
+      "reusable_artifacts": [
+        "decision.json",
+        "q_ablation_table.csv"
+      ],
+      "hashes": {
+        "COMPLETE.json": "2d653839a6bd84827c28bdc50acd80c24312cc6e0cbb5cfdddfa81d7e03a5929",
+        "decision.json": "fa64474b6fcb70caf60d0ac21a2ff0ae76d3b5424571579bf6889ad0af608689",
+        "summary.json": "0145e59f6bc3809f3dfe606ba74e117c958a4541fdb9b4dc650bd37384c742d7",
+        "parity.json": "50110393bb22714c388151b65d72f2cc9ac58504965cc4dc93639cb8a088e931"
+      }
+    }
+  ]
+}

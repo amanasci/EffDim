@@ -1,0 +1,27 @@
+# Frozen leakage-safe task-aligned Q / D protocol on ViT-B.
+# READ-ONLY. Probe refits and Q contractions are expensive if re-run.
+name: task_aligned_vitb
+estimator: E_Q_task_aligned
+status: frozen
+expensive_if_rerun: true
+model: vit_base
+targets: [mag_r_desi, photo_z, smooth_fraction, stellar_mass]
+d: 16
+k: 2048
+n_anchors: 512
+probe:
+  alpha: 100.0
+  train_frac: 0.60
+  split_salt: "task_aligned_curvature_v1:{target}:{sample_id}"
+  leakage_safe: true
+q_energy:
+  split_half: true
+  average_then_square: false
+  clamp_negative: false
+paths:
+  outputs: "${PLATONIC_OUTPUTS}/physics_task_aligned_curvature"
+  cross_model: "${PLATONIC_OUTPUTS}/physics_cross_model_task_aligned_curvature"
+notes:
+  - "Decision label: quadratic_task_aligned_effect_only"
+  - "P2 bar_rho_Q = +0.11614541311898466; P1 bar_rho_D is null."
+  - "mag_r_desi flips sign. Do not claim all labels behave identically."

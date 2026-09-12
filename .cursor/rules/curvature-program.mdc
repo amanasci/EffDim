@@ -1,0 +1,26 @@
+---
+description: Safety rules for the curvature / probe geometry programme
+globs:
+  - experiments/geometry/curvature/**
+  - experiments/geometry/physics_*curvature*
+  - experiments/geometry/physics_*probe*
+  - experiments/geometry/known_curvature*
+  - experiments/geometry/pointwise_decoder_curvature_reproduction/**
+  - experiments/geometry/curvature_program_synthesis/**
+  - experiments/curvature_program/**
+  - configs/curvature_handoff/**
+  - outputs/geometry/**
+---
+
+# Curvature programme
+
+Read `experiments/curvature_program/AGENT_CONTEXT.md` before changing geometry code or proposing a run.
+
+- Treat every existing `outputs/` tree as immutable. New work gets a new output path.
+- Inspect frozen `COMPLETE.json` / `decision.json` / tables; do not reuse remembered numbers.
+- Do not train autoencoders, refit Q charts, or rerun permutations/bootstraps unless explicitly authorized.
+- Keep signed split-half estimates; do not clamp; do not average-then-square.
+- Name the estimator (D-full, D-residual, Q `KHcross`, `Kdircross`, task-aligned, mismatch). Do not write a generic `curvature()`.
+- Preserve `sample_id` joins. Use leakage-safe \(w\) and train-only \(H_y\).
+- Stop when a reliability gate fails. The Hessian-mismatch label is `label_hessian_unreliable`.
+- Never edit a manuscript automatically. Never modify `src/effdim/` for this work.

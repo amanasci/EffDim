@@ -1,0 +1,111 @@
+{
+  "completion_timestamp": "2026-09-12T17:55:00Z",
+  "source_commit": "dabe5e2",
+  "dirty_worktree_status": true,
+  "dirty_worktree_before_handoff": true,
+  "files_created": [
+    "AGENTS.md",
+    ".cursor/rules/curvature-program.mdc",
+    "configs/curvature_handoff/README.md",
+    "configs/curvature_handoff/vitb_q_frozen.yaml",
+    "configs/curvature_handoff/vitb_decoder_residual.yaml",
+    "configs/curvature_handoff/task_aligned_vitb.yaml",
+    "configs/curvature_handoff/cross_model_hessian_mismatch.yaml",
+    "docs/handoffs/curvature_program/REPOSITORY_AUDIT.md",
+    "docs/handoffs/curvature_program/EXPERIMENT_REGISTRY.md",
+    "docs/handoffs/curvature_program/EXPERIMENT_REGISTRY.json",
+    "docs/handoffs/curvature_program/CLAIM_MATRIX.csv",
+    "docs/handoffs/curvature_program/ARTIFACT_MANIFEST.json",
+    "docs/handoffs/curvature_program/AGENT_CONTEXT.md",
+    "docs/handoffs/curvature_program/README.md",
+    "docs/handoffs/curvature_program/BUNDLE_MANIFEST.json",
+    "docs/handoffs/curvature_program/HANDOFF_COMPLETE.json",
+    "experiments/geometry/AGENTS.md",
+    "experiments/geometry/run_curvature_handoff.py",
+    "experiments/geometry/curvature/__init__.py",
+    "experiments/geometry/curvature/__main__.py",
+    "experiments/geometry/curvature/types.py",
+    "experiments/geometry/curvature/metric.py",
+    "experiments/geometry/curvature/decoder.py",
+    "experiments/geometry/curvature/quadratic.py",
+    "experiments/geometry/curvature/probe_aligned.py",
+    "experiments/geometry/curvature/label_hessian.py",
+    "experiments/geometry/curvature/statistics.py",
+    "experiments/geometry/curvature/alignment.py",
+    "experiments/geometry/curvature/artifacts.py",
+    "experiments/geometry/curvature/definitions.py",
+    "experiments/geometry/curvature/cli.py",
+    "experiments/geometry/curvature/bin/verify-curvature-artifacts",
+    "experiments/geometry/curvature/bin/reproduce-curvature-headlines",
+    "experiments/geometry/curvature/bin/inspect-curvature-definition",
+    "experiments/geometry/curvature/bin/curvature-handoff-smoke",
+    "tests/test_curvature_handoff.py",
+    "dist/curvature_program_handoff_dabe5e2.tar.gz"
+  ],
+  "files_modified": [
+    "pyproject.toml"
+  ],
+  "existing_files_modified": [
+    "pyproject.toml"
+  ],
+  "intentionally_not_modified": [
+    "CONTEXT.md",
+    "CLAUDE.md",
+    "src/effdim/",
+    "outputs/",
+    "paper/",
+    "papers/",
+    "submissions/"
+  ],
+  "tests_run": [
+    "tests/test_curvature_handoff.py",
+    "import geometry.curvature",
+    "CLI --help x4",
+    "curvature-handoff-smoke",
+    "reproduce-curvature-headlines (read-only)",
+    "bundle extract: unit tests + --help + smoke"
+  ],
+  "test_results": {
+    "worktree_unit": "18 passed, 1 skipped (QLCA historical parity needs matplotlib)",
+    "worktree_import": "ok",
+    "worktree_cli_help": "ok",
+    "worktree_smoke": "ok",
+    "frozen_headline_parity": "passed against local decision.json files",
+    "bundle_unit": "16 passed, 3 skipped (no historical packages / no outputs)",
+    "bundle_smoke": "ok",
+    "git_diff_check_handoff_paths": "clean",
+    "documentation_links": "all resolved"
+  },
+  "archive_path": "dist/curvature_program_handoff_dabe5e2.tar.gz",
+  "archive_sha256": "dfe433f2b5e1e9b3c68895ae74992d509a734b7ac4cf365c301b6337c5427456",
+  "frozen_output_integrity_result": "unchanged",
+  "manuscript_integrity_result": "unchanged",
+  "scientific_experiments_run": false,
+  "unresolved_missing_artifacts": [
+    "embeddings / kNN graphs / catalogue tables",
+    "autoencoder checkpoints",
+    "outputs/geometry/physics_multimodel_graph_prior_quadratic (276MB data source; no COMPLETE)",
+    "physics_curvature_probe_submission_validation/COMPLETE.json (decision.json used as protocol marker)"
+  ],
+  "host_pull": {
+    "timestamp": "2026-09-12T18:00:00Z",
+    "source": "angus@100.97.36.119:/home/angus/platonic-universe/outputs/geometry",
+    "trees": [
+      "physics_local_probe_adaptation",
+      "physics_local_probe_adaptation_audit",
+      "physics_quadratic_label_chart_alignment",
+      "physics_quadratic_label_chart_alignment_audit",
+      "physics_cross_model_curvature_local_adaptation",
+      "physics_cross_model_full_curvature_reconciliation",
+      "known_curvature_instrument_failure_localization (missing files only; existing METHODS.md/REPORT.md not overwritten)"
+    ],
+    "hash_parity_vs_synthesis_SOURCE_MANIFEST": "match"
+  },
+  "parity_failures": [],
+  "notes": [
+    "Reusable package lives under experiments/geometry/curvature because CLAUDE.md forbids writing src/effdim/ and the repo already imports geometry.* via PYTHONPATH=experiments.",
+    "Historical runners were not rewritten.",
+    "CONTEXT.md was already dirty and was not overwritten.",
+    "No commit or push was made."
+  ]
+}

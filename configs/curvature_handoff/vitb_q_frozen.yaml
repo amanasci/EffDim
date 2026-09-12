@@ -1,0 +1,22 @@
+# Frozen ViT-B finite-patch Q protocol (KHcross).
+# READ-ONLY example. Re-fitting Q is expensive and is not part of this handoff.
+name: vitb_q_frozen
+estimator: KHcross
+status: frozen
+expensive_if_rerun: true
+model: vit_base
+targets: [mag_r_desi]
+d: 16
+k: 2048
+n_anchors: 512
+split_half: true
+clamp_negative: false
+paths:
+  outputs: "${PLATONIC_OUTPUTS}/physics_q_geometry_resampling_stability"
+  source_q: "${PLATONIC_OUTPUTS}/physics_multimodel_graph_prior_quadratic"
+  submission_validation: "${PLATONIC_OUTPUTS}/physics_curvature_probe_submission_validation"
+  local_probe_adaptation: "${PLATONIC_OUTPUTS}/physics_local_probe_adaptation"
+notes:
+  - "Primary statistic is signed split-half K_H^{cross}, not K_dir^{cross}."
+  - "Headline rho_ctl(KHcross, R_G^2) = -0.2404841119636992 from frozen decision/parity tables."
+  - "Do not refit. Use verify-curvature-artifacts and reproduce-curvature-headlines."

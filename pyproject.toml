@@ -26,6 +26,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "black", "mypy"]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
+curvature = ["pandas", "pyyaml"]
+curvature-torch = ["pandas", "pyyaml", "torch"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

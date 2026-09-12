@@ -1,0 +1,630 @@
+{
+  "note": "Local frozen artifacts after host pull. Still missing locally: embeddings, checkpoints, physics_multimodel_graph_prior_quadratic.",
+  "n": 104,
+  "files": [
+    {
+      "tree": "physics_curvature_probe_submission_validation",
+      "path": "outputs/geometry/physics_curvature_probe_submission_validation/decision.json",
+      "sha256": "faca61f24be364090ca6a8ef0f86dcaf7b4ae5cd6aa9935df5a7c29b0f8fe17c",
+      "bytes": 1313
+    },
+    {
+      "tree": "pointwise_decoder_curvature_reproduction",
+      "path": "outputs/geometry/pointwise_decoder_curvature_reproduction/COMPLETE.json",
+      "sha256": "6ed1330ccf61f4b2b4702859bac12f7271f1f8ebaacb6fe756d5fe30ccb442b1",
+      "bytes": 1146
+    },
+    {
+      "tree": "pointwise_decoder_curvature_reproduction",
+      "path": "outputs/geometry/pointwise_decoder_curvature_reproduction/decision.json",
+      "sha256": "b4af6a3b115b2c2dd121e22f1f03dd30059c9b21ea1b6e6ce1fc77b684cf3dac",
+      "bytes": 1003
+    },
+    {
+      "tree": "known_curvature_point_patch_fixture_audit",
+      "path": "outputs/geometry/known_curvature_point_patch_fixture_audit/COMPLETE.json",
+      "sha256": "c234000f1730a3da7f90e46b2c7a751be5752211059b5f970b26c90f41e85192",
+      "bytes": 187
+    },
+    {
+      "tree": "known_curvature_point_patch_fixture_audit",
+      "path": "outputs/geometry/known_curvature_point_patch_fixture_audit/decision.json",
+      "sha256": "ad76f47ec6ac2589053ef63076835862a875c680f89892f383e0950818fdcd43",
+      "bytes": 1883
+    },
+    {
+      "tree": "known_curvature_point_patch_fixture_audit",
+      "path": "outputs/geometry/known_curvature_point_patch_fixture_audit/summary.json",
+      "sha256": "f88235351e2f4b50ae8cad740b44dbba00d101c8bfd0207b1ffff9f5c5beedaf",
+      "bytes": 2285
+    },
+    {
+      "tree": "known_curvature_point_patch_fixture_audit",
+      "path": "outputs/geometry/known_curvature_point_patch_fixture_audit/REPORT.md",
+      "sha256": "fbd2e56c3dbd8741ab4010c2d7aa87a9315614712db846137d6b83e4dafd560a",
+      "bytes": 1954
+    },
+    {
+      "tree": "known_curvature_point_patch_fixture_audit",
+      "path": "outputs/geometry/known_curvature_point_patch_fixture_audit/METHODS.md",
+      "sha256": "490be8748e2452f034aca60d59a01d5633cd67ad866189abc6e34121b124f568",
+      "bytes": 3765
+    },
+    {
+      "tree": "known_curvature_dual_estimator_robustness",
+      "path": "outputs/geometry/known_curvature_dual_estimator_robustness/COMPLETE.json",
+      "sha256": "1f3fb1f4d98a582acf91de6c116f1d9782592367fb5f37750d759a0fde9f0daf",
+      "bytes": 803
+    },
+    {
+      "tree": "known_curvature_dual_estimator_robustness",
+      "path": "outputs/geometry/known_curvature_dual_estimator_robustness/decision.json",
+      "sha256": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059",
+      "bytes": 635
+    },
+    {
+      "tree": "known_curvature_dual_estimator_robustness",
+      "path": "outputs/geometry/known_curvature_dual_estimator_robustness/summary.json",
+      "sha256": "2ae07905204820e36bc7f3935a63fdfc61e13b85dcbb14510bf0871bcbfc4059",
+      "bytes": 635
+    },
+    {
+      "tree": "known_curvature_dual_estimator_robustness",
+      "path": "outputs/geometry/known_curvature_dual_estimator_robustness/REPORT.md",
+      "sha256": "c15e767aa3a740acf345a65b458e58de7c4303e8ab2d365fdf3061c2ba97eb65",
+      "bytes": 4033
+    },
+    {
+      "tree": "known_curvature_dual_estimator_robustness",
+      "path": "outputs/geometry/known_curvature_dual_estimator_robustness/METHODS.md",
+      "sha256": "4b5d2f14ccd16a87e3fd7faee3b750bbf01e8e78a2ab1f7b1d328a5c43907cc1",
+      "bytes": 696
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/COMPLETE.json",
+      "sha256": "a58ed4efa2d9167bd8e64b9bc0538adecb9d98da8f687cab12828c5fad6b516b",
+      "bytes": 399
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/decision.json",
+      "sha256": "e78b1d29928c040518831a73f90dac17d4df11931647e342f5536bbae04f418c",
+      "bytes": 2074
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/summary.json",
+      "sha256": "38c68080516c994763977716e16d69a7c2a91bbea25b11842826c301992fc7df",
+      "bytes": 3398
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/parity.json",
+      "sha256": "4d3e74df883b3ce415fd64d019abadccd602663bb1ba1993c173de24b1682916",
+      "bytes": 2061
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/REPORT.md",
+      "sha256": "9569415d62ec96fbfb6fc413ddbc4e2ea3c5eece49a9fd29d01649a7bd80683d",
+      "bytes": 4193
+    },
+    {
+      "tree": "known_curvature_estimator_operating_characteristics",
+      "path": "outputs/geometry/known_curvature_estimator_operating_characteristics/METHODS.md",
+      "sha256": "22a7d19bec6211de8819d11936e9f0988539c59f546ba9f1de9a16c6686bc6e7",
+      "bytes": 2750
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/COMPLETE.json",
+      "sha256": "2ed3d9e9fe210d5270837462d83323cf1e430fd55098897031a99e0a21ac07f9",
+      "bytes": 153
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/decision.json",
+      "sha256": "9b7f842c31ff98f2437c875ffea774d67ad577170245ecb5e0b343d025f4f267",
+      "bytes": 1975
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/summary.json",
+      "sha256": "d23e9c55ec0aadd54d234fe3e75eecc4b6490be21a9787a86bb98b8f5d4fcd38",
+      "bytes": 5761
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/parity.json",
+      "sha256": "02559a4ea37bc1bfc67ce631bcfa20caab438329a62ebcb585bb7deee2284e7b",
+      "bytes": 1955
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/REPORT.md",
+      "sha256": "e7ba99bd074a5dfc01304bd266aac2c52ee0395f3df8eafebc40ba4e1a8e57d2",
+      "bytes": 858
+    },
+    {
+      "tree": "physics_pointwise_residual_curvature_probe_relation",
+      "path": "outputs/geometry/physics_pointwise_residual_curvature_probe_relation/METHODS.md",
+      "sha256": "99e328c916c0696501f6c106a755aab92789db12b5abe288ebb6d897115a149f",
+      "bytes": 1453
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/COMPLETE.json",
+      "sha256": "092cd5c10beeb038ba6dc912ba81a1be58755bde768ed883c4aea915b296ca56",
+      "bytes": 213
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/decision.json",
+      "sha256": "4aa2b0dfa5aca06d34f62409a2b169fc6c47c37218b9663364c3755019929a0a",
+      "bytes": 4544
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/summary.json",
+      "sha256": "0fe888ee2ce80b9df716c7f4f5f9a7e417e19ad2aa2e62dfcfebce3ef6c74c03",
+      "bytes": 6653
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/parity.json",
+      "sha256": "0e8cc30927898f6e7afb1bda8e939412819d0138a907e1bc91437cca7a70a5be",
+      "bytes": 2475
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/REPORT.md",
+      "sha256": "ca832572cae5cdaccc347d4ef63f6402e4bbd58cf955d2b699ff30b1da99e4bf",
+      "bytes": 3346
+    },
+    {
+      "tree": "physics_q_geometry_resampling_stability",
+      "path": "outputs/geometry/physics_q_geometry_resampling_stability/METHODS.md",
+      "sha256": "4be63f837dbdd9df9e930fa90124908ff328c5cb5aaf514e4695bb2594335f63",
+      "bytes": 2066
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/COMPLETE.json",
+      "sha256": "3ca9585fad7ac6f026524cdeee549ee85f09373f28a2ff9a3ce27f1aacc82490",
+      "bytes": 281
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/decision.json",
+      "sha256": "fba78e1bc820bda922eea11505481d6161a0c37057f8de141402aeade7b99608",
+      "bytes": 1364
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/summary.json",
+      "sha256": "92113bf95a352740b6ba119fca0e3ff426f95b893d131a6553bbcc6c9a0910d2",
+      "bytes": 3237
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/parity.json",
+      "sha256": "a6b4f928ee730c4386a3d98e1f97944d0e3e0ae75ecb8c5dffe8a9d61f5dde3c",
+      "bytes": 1204
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/REPORT.md",
+      "sha256": "f028d09c45374a43da170d73fab5e45f67e607edae8263a54467a78271d21e8b",
+      "bytes": 3680
+    },
+    {
+      "tree": "physics_task_aligned_curvature",
+      "path": "outputs/geometry/physics_task_aligned_curvature/METHODS.md",
+      "sha256": "37546544823a030f790582265b471544db99ef7f0936c03cd139132ca5b03a80",
+      "bytes": 993
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/COMPLETE.json",
+      "sha256": "447f477ab0231d12fff8ccc7439d965f16f4340ba908e6ffdbc06ff59f6bca27",
+      "bytes": 164
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/decision.json",
+      "sha256": "21b4b59d43c01a4b8cdccf51c22450893b0db5e48e2a2c875b43335ab939891f",
+      "bytes": 1903
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/summary.json",
+      "sha256": "e2d669ae8617ff498afddbf8d3c171df72e3e14109eb64a1bc61a8611a558e5e",
+      "bytes": 2051
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/parity.json",
+      "sha256": "94707e44773a2d7fbe5897488a3ee22d6d3ed44ee3a0a53baf65ae1e878df298",
+      "bytes": 1533
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/REPORT.md",
+      "sha256": "a96706d18131eeb2fef07baf682588473294e110aebc84295888b670c98d1244",
+      "bytes": 4692
+    },
+    {
+      "tree": "physics_cross_model_task_aligned_curvature",
+      "path": "outputs/geometry/physics_cross_model_task_aligned_curvature/METHODS.md",
+      "sha256": "65ef69f0b288365ef4a0e330998bb5adef354fa61bbfb4658342c2c35c681ee2",
+      "bytes": 678
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/COMPLETE.json",
+      "sha256": "9ec96c3e00ecc0e24fac91b6162eae70e893f7ff815f961c6c779ec587a78196",
+      "bytes": 263
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/decision.json",
+      "sha256": "c0a87a29831d70eafc3b17d3dcd7da62f4d278d9b5b6185535292cd0c506f91e",
+      "bytes": 1534
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/summary.json",
+      "sha256": "5940e44351fc2059cf08ae0de43d0f2ed0d1172495a8f25bacdd67b337440f9b",
+      "bytes": 1785
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/parity.json",
+      "sha256": "6728ee67508c51c401ea2e13a8e7f827f7480e8c8a671c099c8c0b5b0b59661c",
+      "bytes": 7194
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/REPORT.md",
+      "sha256": "337970d3472de8bedf1f8cd9d97652ea51609b5ff2e44eac8d628c36b34cedad",
+      "bytes": 7167
+    },
+    {
+      "tree": "physics_cross_model_pointwise_residual_curvature",
+      "path": "outputs/geometry/physics_cross_model_pointwise_residual_curvature/METHODS.md",
+      "sha256": "142d253c76e3060e15e56f7650f0fe22ceeb9cbf1762a0952db57b533bd5656d",
+      "bytes": 794
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/COMPLETE.json",
+      "sha256": "a1020ea7d3961dcfcbba7a3014fcc8a202442a830d1637ddae03ca5241957c07",
+      "bytes": 158
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/decision.json",
+      "sha256": "f009f42dbd56aeac58d819ba835b72b89aa6bb36b15edbd1d9ee33ba37823d5e",
+      "bytes": 3498
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/summary.json",
+      "sha256": "8336683131f9a14feb94791aebb0079bc9c03244e66291c6a3d7d24bb97e3272",
+      "bytes": 3508
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/parity.json",
+      "sha256": "a1e924e34f164309f3f37f8762b79dc5df6c6ab22d80d27a4a507784a140196c",
+      "bytes": 1825
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/REPORT.md",
+      "sha256": "bd3ea86c77aa65b0284cb39744f5125ddc0c21470f257da76e65d0810c8c2ecf",
+      "bytes": 4718
+    },
+    {
+      "tree": "physics_cross_model_hessian_mismatch",
+      "path": "outputs/geometry/physics_cross_model_hessian_mismatch/METHODS.md",
+      "sha256": "bcd355ca85b5db3e75bf404f2a431b8b6730ad1bf6b2164086e109795e144046",
+      "bytes": 748
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/COMPLETE.json",
+      "sha256": "c18237dc6a585c0657ecff07715d7a3e21f7b2a283915fbbc8cc28b767331986",
+      "bytes": 233
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/decision.json",
+      "sha256": "004ba33deae19c771e06e06b7187534b31dadc1cfb03d0165c6725b6d08621b0",
+      "bytes": 706
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/summary.json",
+      "sha256": "5ad26615b3797b0cf2bd51b749cdfe94ec91a9b901d004a47dcc3aee7bae821b",
+      "bytes": 3281
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/parity.json",
+      "sha256": "992220ba7ed0197556c27f6670fff1d89a4ba31be7518a01a1ff68da49d6d09e",
+      "bytes": 3861
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/REPORT.md",
+      "sha256": "88295fbe47de00889b293b99bdbca36aad42f178614f302b56e8a8848fa07d3e",
+      "bytes": 2106
+    },
+    {
+      "tree": "physics_curvature_component_predictive_decomposition",
+      "path": "outputs/geometry/physics_curvature_component_predictive_decomposition/METHODS.md",
+      "sha256": "fd4ff102f21034709a169529ec3e2881a4c3eb976c4ef4443039010287df7bcb",
+      "bytes": 3584
+    },
+    {
+      "tree": "curvature_program_synthesis",
+      "path": "outputs/geometry/curvature_program_synthesis/COMPLETE.json",
+      "sha256": "4db26586887603e45c2bb8094c90cda72cef6c857f468b3a00e7247d8262446f",
+      "bytes": 5633
+    },
+    {
+      "tree": "physics_ae_local_patch_scale_match",
+      "path": "outputs/geometry/physics_ae_local_patch_scale_match/summary.json",
+      "sha256": "d691a9b945692ac84e36ab3b7ae7ec03d2a29df6b5a0ced4719b3cf40bfc7e3a",
+      "bytes": 815
+    },
+    {
+      "tree": "physics_ae_local_patch_scale_match",
+      "path": "outputs/geometry/physics_ae_local_patch_scale_match/REPORT.md",
+      "sha256": "c0ccbe9d2c81080968286df828bac509957f2df6bae02104392eca39af5392d4",
+      "bytes": 820
+    },
+    {
+      "tree": "curvature_program_synthesis",
+      "path": "outputs/geometry/curvature_program_synthesis/CURVATURE_PROGRAM_SUMMARY.md",
+      "sha256": "56d4813d7dfea2e1adde4f7fbfaf44401ca5d25f2430026fb9f5e2c479cb67ef",
+      "bytes": 43111
+    },
+    {
+      "tree": "curvature_program_synthesis",
+      "path": "outputs/geometry/curvature_program_synthesis/SOURCE_MANIFEST.json",
+      "sha256": "b76a36ae31eb800483a1007d50b660f87baa897a4f8c8d61e33b29f03be40a50",
+      "bytes": 52797
+    },
+    {
+      "tree": "curvature_program_synthesis",
+      "path": "outputs/geometry/curvature_program_synthesis/CLAIM_MATRIX.csv",
+      "sha256": "128be543c8a40e1c7f7677b91146e09c8114866a535e7002849d1c298b6fec97",
+      "bytes": 16243
+    },
+    {
+      "tree": "physics_local_probe_adaptation",
+      "path": "outputs/geometry/physics_local_probe_adaptation/COMPLETE.json",
+      "sha256": "38ac67b483362cb62b923e5ddb2dd4c8399e288541ca25750ba00d3667c8c48a",
+      "bytes": 128
+    },
+    {
+      "tree": "physics_local_probe_adaptation",
+      "path": "outputs/geometry/physics_local_probe_adaptation/decision.json",
+      "sha256": "4184db5470c19051dc299d6b781d2f266730a62e2d948da1c64b1746e3162970",
+      "bytes": 1664
+    },
+    {
+      "tree": "physics_local_probe_adaptation",
+      "path": "outputs/geometry/physics_local_probe_adaptation/parity.json",
+      "sha256": "eaaacf3ad9e2cbba64efb703fb5c6a4bd5a1efc6968ab4fcd70bfd21c413152b",
+      "bytes": 666
+    },
+    {
+      "tree": "physics_local_probe_adaptation",
+      "path": "outputs/geometry/physics_local_probe_adaptation/REPORT.md",
+      "sha256": "3a5c72a722f7fbfc27f823c38bd86f6384385c9862a477fc0e876527003a50ce",
+      "bytes": 1423
+    },
+    {
+      "tree": "physics_local_probe_adaptation",
+      "path": "outputs/geometry/physics_local_probe_adaptation/METHODS.md",
+      "sha256": "14ae92672dae19aef33c848da8cf461073690814da319066aaccaff7a0b53d33",
+      "bytes": 637
+    },
+    {
+      "tree": "physics_local_probe_adaptation_audit",
+      "path": "outputs/geometry/physics_local_probe_adaptation_audit/COMPLETE.json",
+      "sha256": "798d25958e8d81a4ff3f9e2e0d376cdd23f6e305ccce2a91f5b4a91db444d19d",
+      "bytes": 127
+    },
+    {
+      "tree": "physics_local_probe_adaptation_audit",
+      "path": "outputs/geometry/physics_local_probe_adaptation_audit/decision.json",
+      "sha256": "4ff20a0fad4faa16389d68d5a58b80679eb56ce79959dfd6e2460983690ba58b",
+      "bytes": 1195
+    },
+    {
+      "tree": "physics_local_probe_adaptation_audit",
+      "path": "outputs/geometry/physics_local_probe_adaptation_audit/parity.json",
+      "sha256": "0ea74c04ef194bd5908572baf6a2545f5040260ac1782013a4dc1c228b6e1278",
+      "bytes": 1229
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/COMPLETE.json",
+      "sha256": "78a00ba43cfe7c634bfa2fc6059387b462bb3901ea9a0b9ff944c9cc5f335efe",
+      "bytes": 182
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/decision.json",
+      "sha256": "eef821efb95fe9ed293511ffc71d426ad091a9d555e81625682877bd2223b629",
+      "bytes": 562
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/summary.json",
+      "sha256": "c708d4f2ba3dae0c0f475e03597dde84ef4d10f88a2704d3e36a04000a9dcea2",
+      "bytes": 261
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/parity.json",
+      "sha256": "da2d3212ff6ff5fba47242645ef9ed6cc36ac475ead687945d42449e179d53e2",
+      "bytes": 748
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/REPORT.md",
+      "sha256": "1d97a6a1240b4512b0095b0952cb1cf62e3d2654743531c2ca3610934ae4f42f",
+      "bytes": 555
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment/METHODS.md",
+      "sha256": "59ebf4b6dd3fbb7798acfdd395adf68714f3251e0f2cdfef63aab074de882201",
+      "bytes": 388
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment_audit",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/COMPLETE.json",
+      "sha256": "545bbe41086dc1d78cecf9b6ebd66fc533948398cbbdd0f81cdf11744c6aa5ad",
+      "bytes": 236
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment_audit",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/METHODS.md",
+      "sha256": "1b279fcfc105667c37fa9388aae02da959bd2b873ed31c82046898f0644ab4ca",
+      "bytes": 1194
+    },
+    {
+      "tree": "physics_quadratic_label_chart_alignment_audit",
+      "path": "outputs/geometry/physics_quadratic_label_chart_alignment_audit/phase5_v2_decision.json",
+      "sha256": "a56165f2fb12d789a276a13c5c0aae36e8b91c82f56f503025748d6813c3d710",
+      "bytes": 846
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/COMPLETE.json",
+      "sha256": "bedf25c4e943347da40d7ff39af174ae7dcfa6489a201f647efe6d7f3ed757c2",
+      "bytes": 460
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/decision.json",
+      "sha256": "96a9d81ca51df8c71aed02b7d539ca794c0267b33e6664a13bb5a083249e3b7b",
+      "bytes": 2871
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/parity.json",
+      "sha256": "08d36b1a113f8c73c062df043b7082849d8f8078295b82abe0de53aa0417d567",
+      "bytes": 1594
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/REPORT.md",
+      "sha256": "ab7d031f9ec48d31b05a5f341a637c4a752679a4f5f2570d1cbe92744a305517",
+      "bytes": 1838
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/METHODS.md",
+      "sha256": "80f361b9d0c16c0630cf72ed0d58185db3871105282fbea8c186805674ee3945",
+      "bytes": 1263
+    },
+    {
+      "tree": "physics_cross_model_curvature_local_adaptation",
+      "path": "outputs/geometry/physics_cross_model_curvature_local_adaptation/per_model_primary.json",
+      "sha256": "a2c151b88b8dd88b45b146d3f935d9d3c90c94d9dc8b1130195621be2c8e7cf1",
+      "bytes": 7272
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/COMPLETE.json",
+      "sha256": "d16e90b88ae6a21e94e204ba86e583c003750423e9e2f27b028f91b840277d8c",
+      "bytes": 115
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/decision.json",
+      "sha256": "5df16157678b84460472df93e5fcf8948d2e40901031384db765a5ac08e78816",
+      "bytes": 1013
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/summary.json",
+      "sha256": "e1b72c265faee02e4befcc7b6f2e763f42340977939344dc4f7473ebaf570dc1",
+      "bytes": 1518
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/parity.json",
+      "sha256": "9b059a0d7b716cfa5909861f6f037b92c7593e8f35f9e4316838ba69a9228bde",
+      "bytes": 5835
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/REPORT.md",
+      "sha256": "262f5e2538f63eca3cdf1a969a16ed365975f8bca300bcd0163c75b623aa6c95",
+      "bytes": 2387
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/METHODS.md",
+      "sha256": "f610e4bc03525be5e6c11a1230048169edeefa24469358a664838e1dda5c0c0f",
+      "bytes": 1744
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/per_model_primary.json",
+      "sha256": "b7188cdaf020db6b153f9af4411453e0abe23b2fa514d25621414239ab1dd5e1",
+      "bytes": 43991
+    },
+    {
+      "tree": "physics_cross_model_full_curvature_reconciliation",
+      "path": "outputs/geometry/physics_cross_model_full_curvature_reconciliation/central_comparison_table.csv",
+      "sha256": "f092ec6dcc6d9ddc6b872e247153060738c65a5933f61f2624d95a8400c7e6f1",
+      "bytes": 1784
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/COMPLETE.json",
+      "sha256": "2d653839a6bd84827c28bdc50acd80c24312cc6e0cbb5cfdddfa81d7e03a5929",
+      "bytes": 124
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/decision.json",
+      "sha256": "fa64474b6fcb70caf60d0ac21a2ff0ae76d3b5424571579bf6889ad0af608689",
+      "bytes": 458
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/summary.json",
+      "sha256": "0145e59f6bc3809f3dfe606ba74e117c958a4541fdb9b4dc650bd37384c742d7",
+      "bytes": 5224
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/parity.json",
+      "sha256": "50110393bb22714c388151b65d72f2cc9ac58504965cc4dc93639cb8a088e931",
+      "bytes": 10296
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/REPORT.md",
+      "sha256": "b4b21ad17b5721124644752831edad8aa9150390301278b3eb149d9250a7a63f",
+      "bytes": 6219
+    },
+    {
+      "tree": "known_curvature_instrument_failure_localization",
+      "path": "outputs/geometry/known_curvature_instrument_failure_localization/METHODS.md",
+      "sha256": "b23a8367436bb5609b94829375017786c33adf4f81e75c8563be490bcbb47d94",
+      "bytes": 1637
+    }
+  ]
+}

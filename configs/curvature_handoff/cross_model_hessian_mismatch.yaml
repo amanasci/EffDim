@@ -1,0 +1,25 @@
+# Frozen cross-model label-Hessian mismatch protocol.
+# READ-ONLY. Estimating 136 quadratic coefficients per anchor is expensive
+# and the frozen reliability gate failed.
+name: cross_model_hessian_mismatch
+estimator: M_delta
+status: frozen
+expensive_if_rerun: true
+decision_label: label_hessian_unreliable
+models: [vit_base, dinov3, clip_base, convnext_base, vit_large]
+targets: [mag_r_desi, photo_z, smooth_fraction, stellar_mass]
+d: 16
+k: 2048
+n_anchors: 512
+n_quadratic_coefficients: 136
+label_hessian:
+  train_only: true
+  reliability_gate: split_half_cosine
+  gate_threshold: 0.20
+paths:
+  outputs: "${PLATONIC_OUTPUTS}/physics_cross_model_hessian_mismatch"
+  embeddings: "${PLATONIC_EMBEDDINGS}"
+notes:
+  - "P1 bar_rho(M_delta, MSE) = +0.10804301439243084 Holm-pass but MUST NOT be interpreted mechanistically."
+  - "P2 alignment is null. Decision remains label_hessian_unreliable."
+  - "Preferred next experiment is the 1-D residual-direction test, not another 136-parameter Hy fit."
