@@ -30,23 +30,32 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
-Page-count status (2026-09-12, after the probe-facing split and the Eq. (2) correction):
-- `check.sh` now builds with XeLaTeX + Liberation Serif (metric-compatible with Times New Roman; Adobe
-  Times in the official build differs by under 1 %) and gates on that: main text must end on page 4.
-  Current: PASS, main text ends on page 4 with about 4 lines to spare (`preview_times_metric.pdf`);
-  References start on page 5. The Computer Modern fallback (`preview_cm_fallback.pdf`) is informational
-  only: it overstates length by roughly 20 lines over four pages, not the 45 assumed earlier.
-  MUST still be confirmed on Overleaf with the official style (Adobe Times) before submission.
-  First cuts if it does not fit: Figure 1 to 0.48 textwidth; Table 1's CKA column; the Validation
-  paragraph's cubic/ridge clause.
-- Table 2 and Figure 1(b) are decoder-only and read from `notebooks/.cache/09_physics_probe_facing_split.jsonl`
-  (sha256 09e869ff…7be65, pod run 2026-09-12, runner `09_physics_probe_facing_split_run.py`, labels from the
-  hf_hub_download'ed shards, sha256 60f2f82e…); Figure 1(a) reads `09_fixture_probe_facing.jsonl` and
-  `09_fixture_probe_decodability*.jsonl`; the sphere-term identification of panel (a) is from
-  `09_fixture_probe_facing_split.jsonl`. The quadratic-chart estimator is one clause in Section 5, from
-  `09_physics_probe_facing.jsonl` (sha256 aefe4474…1a4b31).
-- Eq. (2) was corrected 2026-09-12 (missing `c s^2 tr Δ` cross term; now `c̄² + s²‖δ‖² + ½s⁴‖Δ‖²_F`),
-  verified by Monte Carlo; no table value depended on the old form.
+Page-count status (2026-09-13, after folding the cross-encoder evidence and the relative-II pilot in):
+- `check.sh` builds with XeLaTeX + Liberation Serif (Times metrics) and passes when the References
+  heading lands on page 4 or main text ends on page 4. Current: PASS, References begin on page 4 with
+  11 reference lines on that page (about 11 lines of margin); bibliography runs onto page 5, which the
+  4-pages-excluding-references rule allows (`preview_times_metric.pdf`). MUST still be confirmed on
+  Overleaf with the official style (Adobe Times). First cuts if it does not fit: Figure 1 to 0.40
+  textwidth; the Validation paragraph's noise clause; the Known-surface paragraph's last sentence.
+- Table 1 (alignment numbers) was folded into the Section 3 text on 2026-09-13; every number is the
+  same as the former table (records: 07_crossmodal_curvature.jsonl, 07.1_density_stratified_null.jsonl,
+  08_* records as before).
+- Table 2 and Figure 1(b) read `notebooks/.cache/09_physics_probe_facing_split.jsonl` (sha256
+  09e869ff…7be65); Figure 1(a) reads `09_fixture_probe_facing.jsonl` and `09_fixture_probe_decodability*.jsonl`;
+  the sphere-term identification of panel (a) is from `09_fixture_probe_facing_split.jsonl`.
+- "Across encoders" paragraph: the five density-controlled associations (−0.24, 0.00, +0.27, +0.23,
+  −0.19; column C_R2 vs local OOF R² of the mag_r probe; ViT-B, DINOv3, CLIP-B, ConvNeXt-B, ViT-L; d=16,
+  k=2048, 512 anchors) are copied from `outputs/geometry/curvature_program_synthesis/CURVATURE_PROGRAM_SUMMARY.md`
+  §6 on branch `origin/curvature-experiments` at `dabe5e2` (mirrored in
+  `experiments/curvature_program/EXPERIMENT_REGISTRY.md`). The "136-coefficient fit failed a split-half
+  reliability gate" limitation is that branch's `physics_cross_model_hessian_mismatch` decision
+  (`label_hessian_unreliable`, gate cosine 0.20). The estimator is written up as "the quadratic-chart
+  estimator" per the no-personal-language rule.
+- Relative-II pilot sentence (Discussion): `notebooks/.cache/08_relative_ii_d20.jsonl` (sha256
+  48b3322d…9652f), runner `08_relative_ii_run.py`, pod run 2026-09-12 (d=20, 2,048 anchors, multi-scale
+  control values: II_rel +0.036/+0.048 n.s. at k=20/50, II_rel_loc −0.176/−0.239, II_rel_emp +0.131/+0.134,
+  tan_resid median 0.439, alignment R² holdout 0.636). d=25 was not run to completion.
+- Eq. (2) corrected 2026-09-12 (missing `c s² tr Δ` cross term); Eq. (3) is now inline in Section 4.
 
 Open items before submission:
 - Author affiliation and names are only needed for the camera-ready `final` build.

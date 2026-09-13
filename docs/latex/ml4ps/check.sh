@@ -24,9 +24,9 @@ PY
 errs=$(grep -c "^!" "$B/build.log"); echo "LaTeX errors: $errs"; [ "$errs" -eq 0 ] || fail=1
 grep -i "undefined" "$B/build.log" | head -3
 pages=$(pdfinfo "$B/main.pdf" | awk '/Pages/{print $2}'); echo "pages: $pages"
-spill=$(pdftotext -f 5 -l 5 "$B/main.pdf" - 2>/dev/null | awk '/^References/{exit} !/^[0-9 ]*$/{n++} END{print n+0}')
-refpage=$(for pg in 4 5; do pdftotext -f $pg -l $pg "$B/main.pdf" - | grep -q '^References' && echo $pg; done | head -1)
-echo "text lines on page 5 before References (Times-metric): $spill   [must be 0: References must start on page 4 or main text end on page 4]"
+refpage=$(for pg in 3 4 5 6; do pdftotext -f $pg -l $pg "$B/main.pdf" - 2>/dev/null | grep -q '^References' && echo $pg; done | head -1)
+if [ "${refpage:-5}" -le 4 ]; then spill=0; else spill=$(pdftotext -f 5 -l 5 "$B/main.pdf" - 2>/dev/null | awk '/^References/{exit} !/^[0-9 ]*$/{n++} END{print n+0}'); fi
+echo "References start on page ${refpage:-?}; main-text lines on page 5 (Times-metric): $spill   [must be 0]"
 [ "$spill" -eq 0 ] || { echo "TOO LONG"; fail=1; }
 cp "$B/main.pdf" preview_times_metric.pdf
 echo "== CM fallback preview (pdflatex, wider font; informational) =="
