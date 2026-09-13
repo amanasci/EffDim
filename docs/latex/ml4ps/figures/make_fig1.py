@@ -16,8 +16,8 @@ pf.sort(key=lambda r: r["coupling_rho_H_tan_log_r"])
 x = np.array([r["coupling_rho_H_tan_log_r"] for r in pf])
 gam = [r["gamma"] for r in pf]
 ser_A = [
-    ("exact $\\|H_{\\mathrm{tan}}\\|$", [r["partials"]["exact_H_tan"]["partial"] for r in pf], "#000000", "o", "-"),
-    ("decoder $\\|H_{\\mathrm{tan}}\\|$", [dec[g]["decoder_H_tan"] for g in gam], "#0072B2", "s", "--"),
+    ("exact $\\|H^{S}\\|$", [r["partials"]["exact_H_tan"]["partial"] for r in pf], "#000000", "o", "-"),
+    ("decoder $\\|H^{S}\\|$", [dec[g]["decoder_H_tan"] for g in gam], "#0072B2", "s", "--"),
     ("exact $\\|\\langle w_N,\\mathrm{II}\\rangle\\|$ (here the sphere term $\\sqrt{d}\\,|\\hat y-b_0|$)", [r["partials"]["pf_curv"]["partial"] for r in pf], "#009E73", "D", "-"),
     ("exact $\\|\\Delta\\|$ (Hessian mismatch)", [r["partials"]["hess_mismatch"]["partial"] for r in pf], "#999999", "v", ":"),
 ]
@@ -25,7 +25,7 @@ ser_A = [
 ph = [r for r in rows("09_physics_probe_facing_split.jsonl") if r["row"] == "result"]
 labels = ["mag_r", "photo_z", "smooth_fraction", "stellar_mass"]
 ser_B = [  # (column, color, marker, filled, legend)
-    ("H_tan_norm", "#0072B2", "s", True, "decoder $\\|H_{\\mathrm{tan}}\\|$"),
+    ("H_tan_norm", "#0072B2", "s", True, "decoder $\\|H^{S}\\|$"),
     ("pf_tan", "#009E73", "o", False, "decoder $\\|\\langle w_N,\\mathrm{II}^S\\rangle\\|$ (shape)"),
     ("pf_rad", "#D55E00", "^", False, "sphere term $\\sqrt{d}\\,|\\hat y-b_0|$"),
 ]
@@ -35,7 +35,7 @@ fig, (ax, bx) = plt.subplots(1, 2, figsize=(5.5, 2.75), layout="constrained", gr
 ax.axhline(0, color="#444444", lw=0.6)
 for name, y, c, m, ls in ser_A:
     ax.plot(x, y, marker=m, color=c, ls=ls, label=name, markeredgecolor=c, markerfacecolor=c if m != "D" else c)
-ax.set_xlabel("sample coupling $\\rho(\\|H_{\\mathrm{tan}}\\|, \\log r_k)$")
+ax.set_xlabel("sample coupling $\\rho(\\|H^{S}\\|, \\log r_k)$")
 ax.set_ylabel("controlled partial vs local $R^2$")
 ax.set_ylim(-0.9, 0.45); ax.invert_xaxis()
 ax.set_title("(a) known surface, intrinsic-linear label", loc="left", fontsize=8)

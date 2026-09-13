@@ -44,7 +44,7 @@ for r in rows(C + "09_physics_probe_facing_split_alpha1.jsonl"):
     if r.get("row") == "result": al[(r["d"], r["label"])] = r
 if xf or al:
     out.append(r"""\section*{Appendix B: sensitivity of the mismatch and sphere columns}
-Cross-fitting: each 2{,}048-patch is split at random into halves; $\operatorname{Hess}_M y$ is fitted on one half and local $R^2$ scored on the other (both directions shown), so the Hessian estimate and the outcome share no rows. The split-half cosine between the two Hessian estimates is the reliability of the estimate. Weak ridge: the probe refit at $\alpha=1$ instead of 100 (global out-of-sample $R^2$ rises by 0.10 to 0.15), which removes most shrinkage of extreme predictions; the sphere term is recomputed from that probe.
+Cross-fitting: each 2{,}048-patch is split at random into halves; $\operatorname{Hess}_M y$ is fitted on one half and local $R^2$ scored on the other (both directions shown), so the Hessian estimate and the outcome share no rows. The split-half cosine between the two Hessian estimates is the reliability of the estimate. Weak ridge: the probe refit at $\alpha=1$ instead of 100 (global out-of-sample $R^2$ rises by 0.10 to 0.15), which substantially reduces the shrinkage of extreme predictions; the sphere term is recomputed from that probe.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llcccccc}
