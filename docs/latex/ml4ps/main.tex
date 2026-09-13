@@ -170,6 +170,28 @@ stellar\_mass & shape & $+0.00^{*}$ & $-0.06^{*}$ & $+0.05^{*}$ & $+0.09$ \\
 \caption{Decoder ablations, $d=16$, 512 anchors, multi-scale density control. $^{*}$ not significant at 0.05.}
 \label{tab:ablate}
 \end{table}
+\section*{Appendix B: sensitivity of the mismatch and sphere columns}
+Cross-fitting: each 2{,}048-patch is split at random into halves; $\operatorname{Hess}_M y$ is fitted on one half and local $R^2$ scored on the other (both directions shown), so the Hessian estimate and the outcome share no rows. The split-half cosine between the two Hessian estimates is the reliability of the estimate. Weak ridge: the probe refit at $\alpha=1$ instead of 100 (global out-of-sample $R^2$ rises by 0.10 to 0.15), which removes most shrinkage of extreme predictions; the sphere term is recomputed from that probe.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llcccccc}
+\toprule
+ & & \multicolumn{2}{c}{mismatch, cross-fit} & \multicolumn{2}{c}{alignment, cross-fit} & Hess.\ split cos & sphere, $\alpha=1$ \\
+label & $d$ & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p50 & (main: $\alpha=100$) \\
+\midrule
+mag\_r & 16 & $-0.38$ & $-0.34$ & $+0.33$ & $+0.31$ & +0.35 & $-0.21$ ($-0.26$) \\
+mag\_r & 20 & $-0.43$ & $-0.40$ & $+0.39$ & $+0.37$ & +0.24 & $-0.22$ ($-0.26$) \\
+photo\_z & 16 & $-0.42$ & $-0.36$ & $+0.23$ & $+0.20$ & +0.32 & $+0.05^{*}$ ($-0.33$) \\
+photo\_z & 20 & $-0.42$ & $-0.42$ & $+0.22$ & $+0.22$ & +0.20 & $+0.03^{*}$ ($-0.36$) \\
+smooth\_fraction & 16 & $-0.10$ & $-0.17$ & $+0.17$ & $+0.19$ & +0.33 & $-0.12$ ($-0.13$) \\
+smooth\_fraction & 20 & $-0.15$ & $-0.21$ & $+0.05^{*}$ & $+0.03^{*}$ & +0.23 & $-0.13$ ($-0.15$) \\
+stellar\_mass & 16 & $+0.01^{*}$ & $-0.04^{*}$ & $-0.03^{*}$ & $+0.06^{*}$ & +0.31 & $-0.02^{*}$ ($-0.35$) \\
+stellar\_mass & 20 & $-0.06^{*}$ & $-0.07^{*}$ & $+0.01^{*}$ & $-0.00^{*}$ & +0.19 & $-0.02^{*}$ ($-0.35$) \\
+\bottomrule
+\end{tabular}
+\caption{Cross-fitted mismatch and alignment partials (multi-scale control), split-half reliability of the label Hessian, and the sphere-term partial under a weak-ridge probe.}
+\label{tab:sens}
+\end{table}
 \section*{Appendix C: relative second fundamental form, pilot}
 Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$, the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
 \begin{table}[h]
@@ -179,6 +201,7 @@ Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a globa
 run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\ resid & $\mathrm{II}_{\mathrm{rel}}$ & $\mathrm{II}_{\mathrm{rel}}$ (local $L$) & $\mathrm{II}_{\mathrm{rel}}$ (data) \\
 \midrule
 $d=20$, seed 0 & 0.64 & 0.44 & $-0.15$ & $+0.04^{*}$ & $-0.18$ & $+0.04^{*}$ & $-0.18$ & $+0.13$ \\
+$d=20$, seed 1 & 0.64 & 0.44 & $-0.11$ & $+0.05$ & $-0.19$ & $+0.04$ & $-0.20$ & $+0.14$ \\
 \bottomrule
 \end{tabular}
 \caption{Relative-II pilot. $^{*}$ not significant at 0.05.}
