@@ -175,6 +175,9 @@ def main() -> None:
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--seed", type=int, default=20260905, help="smoke fixture seed only")
     p.add_argument("--n-permutations", type=int, default=None)
+    p.add_argument("--fit-seed", type=int, default=None, help="physics: refit the decoder with this torch init seed instead of loading stored geometry")
+    p.add_argument("--hidden", type=str, default=None, help="physics: decoder hidden widths, e.g. 400,400,400 (with --fit-seed)")
+    p.add_argument("--geometry-out", type=str, default=None, help="physics: where to save the refit geometry npz")
     p.add_argument("--label-table", type=str, default=None,
                    help="parquet of the label columns (LABEL_REPO@LABEL_REVISION shards, column-projected, concatenated in "
                         "shard order) to read instead of streaming the shards over hf://; sha256 is recorded")
@@ -214,7 +217,7 @@ def main() -> None:
     ppf._append({"experiment": EXPERIMENT, "row": "environment", "mode": args.mode, "timestamp": _utc_now(),
                  "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "d_values": d_values,
                  "labels": list(labels), "n": n, "k": k, "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm,
-                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "numpy": np.__version__, "torch": torch.__version__,
+                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "numpy": np.__version__, "torch": torch.__version__,
                  "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
 
     split = pcp.anchor_indices(n, pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)
@@ -242,7 +245,22 @@ def main() -> None:
 
     for d in d_values:
         print("\n" + "=" * 78 + f"\nd={d}\n" + "=" * 78, flush=True)
-        if args.mode == "physics":
+        if args.mode == "physics" and args.fit_seed is not None:
+            pcp.TORCH_INIT_SEED = int(args.fit_seed)
+            if args.hidden:
+                pcp.AE_HIDDEN = tuple(int(v) for v in args.hidden.split(","))
+            fit = ppf.fit_decoder(X, d, in_dim, pcp.MAX_EPOCHS)
+            with torch.no_grad():
+                z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long)])
+            geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor)
+            print(f"[geometry] refit seed={args.fit_seed} hidden={pcp.AE_HIDDEN} var_explained={fit['var_explained']:.5f} fit {fit['wallclock_fit_s']:.0f}s", flush=True)
+            if args.geometry_out:
+                Path(args.geometry_out).mkdir(parents=True, exist_ok=True)
+                np.savez_compressed(Path(args.geometry_out) / f"09_probe_facing_geometry_d{d}_seed{args.fit_seed}.npz", anchor_idx=a,
+                                    J=geo["J"].astype(np.float32), Hess=geo["Hess"].astype(np.float32), image=geo["image"].astype(np.float32))
+            ppf._append({"experiment": EXPERIMENT, "row": "fit", "mode": args.mode, "d": d, "fit_seed": args.fit_seed, "hidden": list(pcp.AE_HIDDEN),
+                         "var_explained": fit["var_explained"], "wallclock_fit_s": fit["wallclock_fit_s"], "timestamp": _utc_now()}, record_path)
+        elif args.mode == "physics":
             path = geometry_root / f"09_probe_facing_geometry_d{d}.npz"
             z = np.load(path)
             assert np.array_equal(z["anchor_idx"], a), "anchor draw differs from the stored geometry"

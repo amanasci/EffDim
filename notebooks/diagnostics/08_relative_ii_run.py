@@ -145,8 +145,10 @@ def decoder_geometry(curv_model: torch.nn.Module, z: torch.Tensor) -> Dict[str, 
 
 
 def fro_g(T: np.ndarray, ginv: np.ndarray) -> np.ndarray:
-    """Frobenius norm of a (b, D, d, d) normal-valued 2-tensor: sum over ambient, g^{-1} on both slots."""
-    return np.sqrt(np.maximum(np.einsum("baij,bjk,bakl,bli->b", T, ginv, T, ginv), 0.0))
+    """Frobenius norm of a (b, D, d, d) 2-tensor: Euclidean over ambient, g^{-1} on both slots,
+    ||T||^2 = sum_a tr(g^-1 T_a g^-1 T_a); computed as two batched matmuls (never a 4-index einsum)."""
+    Tg = np.matmul(T, ginv[:, None])                                                   # T_a g^-1
+    return np.sqrt(np.maximum(np.einsum("baij,baji->b", Tg, Tg), 0.0))
 
 
 def quad_design(u: np.ndarray) -> np.ndarray:
@@ -174,10 +176,12 @@ def relative_columns(gF: Dict[str, np.ndarray], gG: Dict[str, np.ndarray], A: np
     L = np.einsum("bia,baj->bij", JG_pinv, AJF)                                        # (b, d, d)
     JGL = np.einsum("bak,bkj->baj", JG, L)
     tan_resid = np.linalg.norm((AJF - JGL).reshape(n, -1), axis=1) / np.maximum(np.linalg.norm(AJF.reshape(n, -1), axis=1), 1e-300)
-    PN_G = lambda T: T - np.einsum("bak,bkc,bcij->baij", JG, JG_pinv, T)                # project onto N_G
+    def PN_G(T: np.ndarray) -> np.ndarray:                                             # project onto N_G, two-step
+        coef = np.einsum("bkc,bcij->bkij", JG_pinv, T)
+        return T - np.einsum("bak,bkij->baij", JG, coef)
 
     def rel(IIF: np.ndarray, IIG: np.ndarray, Lmap: np.ndarray) -> np.ndarray:
-        lift = np.einsum("bakl,bki,blj->baij", IIG, Lmap, Lmap)                        # II_G(Lu, Lu)
+        lift = np.einsum("bail,blj->baij", np.einsum("bakl,bki->bail", IIG, Lmap), Lmap)   # II_G(Lu, Lu)
         push = np.einsum("ab,cbij->caij", A, IIF)                                       # A II_F(u,u)
         return fro_g(lift - PN_G(push), ginvF)
 
@@ -199,7 +203,8 @@ def relative_columns(gF: Dict[str, np.ndarray], gG: Dict[str, np.ndarray], A: np
         r = XG[idx] - (XF[idx] @ A.T + b[None, :])
         coef = np.linalg.lstsq(quad_design(u), r, rcond=None)[0]                        # (q, D)
         B = unpack_sym_batch(coef[1 + d:], d)[None]                                    # (1, D, d, d)
-        II_rel_emp[i] = fro_g((B[0] - np.einsum("ak,kc,cij->aij", JG[i], JG_pinv[i], B[0]))[None], ginvF[i:i + 1])[0]
+        coef_i = np.einsum("kc,cij->kij", JG_pinv[i], B[0])
+        II_rel_emp[i] = fro_g((B[0] - np.einsum("ak,kij->aij", JG[i], coef_i))[None], ginvF[i:i + 1])[0]
         align_resid[i] = float(np.sqrt((r ** 2).sum(axis=1).mean()))
     return {"H_tan_F": gF["H_tan_norm"], "H_tan_G": gG["H_tan_norm"],
             "II_F": fro_g(gF["II"], ginvF), "II_G": fro_g(gG["II"], ginvG),
@@ -246,6 +251,7 @@ def main() -> None:
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--seed", type=int, default=20260905, help="smoke generator seed")
     p.add_argument("--max-epochs", type=int, default=None)
+    p.add_argument("--fit-seed", type=int, default=None, help="torch init seed for both decoders (default: Phase 7 TORCH_INIT_SEED)")
     p.add_argument("--n-permutations", type=int, default=None)
     args = p.parse_args()
     assert r7._THREADS == args.threads, (r7._THREADS, args.threads)
@@ -254,6 +260,8 @@ def main() -> None:
         raise SystemExit(f"refusing to write to a production record path: {record_path}")
     n_perm = args.n_permutations if args.n_permutations is not None else (200 if args.mode == "smoke" else 2000)
     max_epochs = args.max_epochs if args.max_epochs is not None else (30 if args.mode == "smoke" else cc.MAX_EPOCHS)
+    if args.fit_seed is not None:
+        cc.TORCH_INIT_SEED = int(args.fit_seed)
     d = adj.SMOKE["d"] if args.mode == "smoke" else args.d
     n_anchors = 128 if args.mode == "smoke" else args.n_anchors
     k_align = min(args.k_align, 64) if args.mode == "smoke" else args.k_align
@@ -271,7 +279,7 @@ def main() -> None:
              "k_align": k_align, "k_emp": k_emp, "alpha_align": args.alpha_align, "density_ks": list(DENSITY_KS), "mknn_k": [cc.HEADLINE_K, 50],
              "n_permutations": n_perm, "max_epochs": max_epochs, "pair_source": data["source"], "pair_sha256": data["sha256"],
              "row_norm_range_F": [float(normsF.min()), float(normsF.max())], "row_norm_range_G": [float(normsG.min()), float(normsG.max())],
-             "anchor_seed": ANCHOR_SEED, "columns": COLUMNS, "torch": torch.__version__, "numpy": np.__version__,
+             "anchor_seed": ANCHOR_SEED, "fit_seed": cc.TORCH_INIT_SEED, "columns": COLUMNS, "torch": torch.__version__, "numpy": np.__version__,
              "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
 
     # agreement and density
