@@ -13,7 +13,7 @@ Rules recorded from the guidelines page:
 - Footer must read exactly: "Submitted to the 9th Workshop on Machine Learning and the Physical Sciences (ML4PS 2026). Do not distribute."
 - Review: double-blind (single-blind optional for the Evaluations & Benchmarks track). Outside that track, fully anonymized: names, code links, text, figures.
 - Checklist: not required for workshop submissions.
-- Deadline: Saturday 12 September 2026, 23:59 AoE. Notification 10 October 2026. Workshop 11 December 2026.
+- Deadline: Saturday 19 September 2026, 23:59 AoE (extended by one week from 12 September; page re-checked 2026-09-13). Notification 10 October 2026. Workshop 11 December 2026.
 - Submission via OpenReview: https://openreview.net/group?id=ML4PS/2026/Workshop
 - Tracks named on the call: Research, Evaluations & Datasets, Perspectives.
 - Reviewing criteria: novelty, correctness, relevance, potential impact.
