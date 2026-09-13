@@ -120,13 +120,13 @@ stellar\_mass & $-0.02^{*}$ & $-0.00^{*}$ & $+0.00^{*}$ & $+0.03^{*}$ & $-0.35$ 
 \label{tab:real}
 \end{table}
 
-\paragraph{Galaxies.} Here the two terms of Eq.~\eqref{eq:split} trade places: the shape term dominates the probe-facing Hessian (rank $0.96$--$0.99$ with the full norm). To read it through Eq.~\eqref{eq:resid} we estimate $\operatorname{Hess}_M y$ per anchor by a least-squares quadratic of the label on the tangent-projected coordinates $u = g^{-1}J^{\top}(x - x_0)$ of its 2{,}048 neighbours, where, at the anchor, the Christoffel symbols vanish to the needed order and the quadratic coefficient is the covariant Hessian. Three regularities (Table~\ref{tab:real}). The sphere term is negative on every label and both $d$ ($-0.13$ to $-0.36$), as on the fixture. Wherever the label has local structure (magnitude, redshift, smooth fraction; stellar mass is indistinguishable from zero throughout) the mismatch is negative ($-0.09$ to $-0.45$) and the alignment $\cos_g(\operatorname{Hess}_M y,\langle w_N,\mathrm{II}\rangle)$ positive ($+0.07$ to $+0.43$): local $R^2$ is higher where the manifold bends in the readout's direction the way the label bends. The shape term alone is label-signed (positive for magnitude and smooth fraction, null to weakly negative for redshift), consistent with Eq.~\eqref{eq:resid}: it is one of three terms in $\norm{\Delta}^2 = \norm{\operatorname{Hess}_M y}^2 - 2\langle\operatorname{Hess}_M y,\langle w_N,\mathrm{II}\rangle\rangle + \norm{\langle w_N,\mathrm{II}\rangle}^2$, so raising it can shrink or enlarge the mismatch depending on its alignment with the label Hessian; empirically its sign follows the cross term's where that is nonzero and the remaining square where it is null. $\norm{\Htan}$ changes sign between $d=16$ and $20$ for magnitude: it sits on the curve of Figure~\ref{fig:main}a (coupling to radius $-0.60$). The same regression applied to the readout $w\cdot x$ returns the point cloud's own $\langle w_N,\mathrm{II}\rangle$ (median metric cosine with the decoder's $0.55$--$0.65$), and an independent split-half quadratic-chart estimator of $\mathrm{II}$ gives the same shape-term sign on three of four labels.
+\paragraph{Galaxies.} Here the two terms of Eq.~\eqref{eq:split} trade places: the shape term dominates the probe-facing Hessian (rank $0.96$--$0.99$ with the full norm). To read it through Eq.~\eqref{eq:resid} we estimate $\operatorname{Hess}_M y$ per anchor by a least-squares quadratic of the label on the tangent-projected coordinates $u = g^{-1}J^{\top}(x - x_0)$ of its 2{,}048 neighbours, where, at the anchor, the Christoffel symbols vanish to the needed order and the quadratic coefficient is the covariant Hessian. Three regularities (Table~\ref{tab:real}; other decoder seeds and widths in Appendix~A). The sphere term is negative on every label and both $d$ ($-0.13$ to $-0.36$), as on the fixture. Wherever the label has local structure (magnitude, redshift, smooth fraction; stellar mass is indistinguishable from zero throughout) the mismatch is negative ($-0.09$ to $-0.45$) and the alignment $\cos_g(\operatorname{Hess}_M y,\langle w_N,\mathrm{II}\rangle)$ positive ($+0.07$ to $+0.43$): local $R^2$ is higher where the manifold bends in the readout's direction the way the label bends. The shape term alone is label-signed (positive for magnitude and smooth fraction, null to weakly negative for redshift), consistent with Eq.~\eqref{eq:resid}: it is one of three terms in $\norm{\Delta}^2 = \norm{\operatorname{Hess}_M y}^2 - 2\langle\operatorname{Hess}_M y,\langle w_N,\mathrm{II}\rangle\rangle + \norm{\langle w_N,\mathrm{II}\rangle}^2$, so raising it can shrink or enlarge the mismatch depending on its alignment with the label Hessian; empirically its sign follows the cross term's where that is nonzero and the remaining square where it is null. $\norm{\Htan}$ changes sign between $d=16$ and $20$ for magnitude: it sits on the curve of Figure~\ref{fig:main}a (coupling to radius $-0.60$). The same regression applied to the readout $w\cdot x$ returns the point cloud's own $\langle w_N,\mathrm{II}\rangle$ (median metric cosine with the decoder's $0.55$--$0.65$), and an independent split-half quadratic-chart estimator of $\mathrm{II}$ gives the same shape-term sign on three of four labels.
 
 \paragraph{Across encoders.} The quadratic-chart estimator's mean-bending trace, run on five encoders at the same 512 anchors ($d=16$, $k=2{,}048$: ViT-B, DINOv3, CLIP-B, ConvNeXt-B, ViT-L), gives density-controlled associations with the magnitude probe's local $R^2$ of $-0.24$, $0.00$, $+0.27$, $+0.23$ and $-0.19$. A trace statistic has no encoder-stable sign, as Eq.~\eqref{eq:hess} predicts; a cross-encoder test should carry the terms of Eq.~\eqref{eq:resid}.
 
 \section{Discussion}
 
-A decoder yields a pointwise second fundamental form at production scale whose readout-facing component agrees with an independent estimator and with the data. The residual expansion names what a linear map responds to, and on galaxies its terms behave as predicted: the sphere term and the Hessian mismatch carry the predicted negative sign, and the shape term is label-signed because it enters through its alignment with the label's own Hessian. The same expansion explains why mean-curvature statistics disagree across estimators and encoders: they are traces of a tensor that each map contracts differently. MKNN and CKA are invariant to rigid motions of either embedding, so if weak convergence is attributed to the failure of a linear alignment map, one embedding's mean curvature is not the relevant second-order quantity; after tangent alignment the relevant normal term is $\mathrm{II}_G - P_N^G A\,\mathrm{II}_F$, which needs both embeddings' second fundamental forms and a map between tangent frames. Our pilot at $d=20$ (2{,}048 anchors) supplies both and finds, for the fitted global ridge alignment, substantial mismatch already at first order: it carries HSC tangent frames into the Legacy embedding with 44\% residual, and the second-order term shows no density-free association yet ($+0.04$, n.s.; alternative estimators $-0.24$ to $+0.13$). In sum, mean curvature of a single representation does not explain weak Platonic convergence; the obstruction is relative and, for the fitted linear alignment, already first order; testing it means aligning tangent frames first and then the relative second fundamental form, for which the instrument is in hand.
+A decoder yields a pointwise second fundamental form at production scale whose readout-facing component agrees with an independent estimator and with the data. The residual expansion names what a linear map responds to, and on galaxies its terms behave as predicted: the sphere term and the Hessian mismatch carry the predicted negative sign, and the shape term is label-signed because it enters through its alignment with the label's own Hessian. The same expansion explains why mean-curvature statistics disagree across estimators and encoders: they are traces of a tensor that each map contracts differently. MKNN and CKA are invariant to rigid motions of either embedding, so if weak convergence is attributed to the failure of a linear alignment map, one embedding's mean curvature is not the relevant second-order quantity; after tangent alignment the relevant normal term is $\mathrm{II}_G - P_N^G A\,\mathrm{II}_F$, which needs both embeddings' second fundamental forms and a map between tangent frames. Our pilot at $d=20$ (2{,}048 anchors) supplies both and finds, for the fitted global ridge alignment, substantial mismatch already at first order: it carries HSC tangent frames into the Legacy embedding with 44\% residual, and the second-order term shows no density-free association yet ($+0.04$, n.s.; alternative estimators $-0.24$ to $+0.13$; Appendix~C). In sum, mean curvature of a single representation does not explain weak Platonic convergence; the obstruction is relative and, for the fitted linear alignment, already first order; testing it means aligning tangent frames first and then the relative second fundamental form, for which the instrument is in hand.
 
 \emph{Limitations.} One survey pair. The label's Hessian is a local estimate ($R^2$ gain over linear 0.10--0.17); a same-size fit in the quadratic-chart estimator's frame failed a split-half gate at cosine 0.20. The sphere term is not separated from ridge shrinkage of extreme predictions. Permutation $p$-values assume anchor exchangeability under overlapping patches.
 
@@ -135,4 +135,54 @@ A decoder yields a pointwise second fundamental form at production scale whose r
 \bibliography{references}
 }
 
+\appendix
+% BEGIN APPENDIX AUTOGEN
+\section*{Appendix A: decoder ablations}
+Table~\ref{tab:ablate} repeats the four quantities of Table~\ref{tab:real} at $d=16$ under the multi-scale density control for two further decoder initialisation seeds and for a decoder of width $400^3$ instead of $250^3$ (all fits reach variance explained 0.952). Every significant sign of the main table is retained.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llcccc}
+\toprule
+label & quantity & seed 0 & seed 1 & seed 2 & $400^3$ \\
+\midrule
+mag\_r & shape & $+0.12$ & $+0.05^{*}$ & $+0.12$ & $+0.05^{*}$ \\
+ & sphere & $-0.26$ & $-0.26$ & $-0.27$ & $-0.26$ \\
+ & mismatch & $-0.39$ & $-0.35$ & $-0.34$ & $-0.34$ \\
+ & alignment & $+0.35$ & $+0.31$ & $+0.37$ & $+0.41$ \\
+\addlinespace[2pt]
+photo\_z & shape & $-0.06^{*}$ & $-0.09^{*}$ & $-0.09$ & $-0.06^{*}$ \\
+ & sphere & $-0.33$ & $-0.35$ & $-0.34$ & $-0.35$ \\
+ & mismatch & $-0.45$ & $-0.43$ & $-0.42$ & $-0.41$ \\
+ & alignment & $+0.26$ & $+0.24$ & $+0.25$ & $+0.25$ \\
+\addlinespace[2pt]
+smooth\_fraction & shape & $+0.07^{*}$ & $+0.20$ & $+0.15$ & $+0.10$ \\
+ & sphere & $-0.13$ & $-0.15$ & $-0.14$ & $-0.11$ \\
+ & mismatch & $-0.09^{*}$ & $-0.05^{*}$ & $-0.08^{*}$ & $-0.07^{*}$ \\
+ & alignment & $+0.19$ & $+0.14$ & $+0.09$ & $+0.10$ \\
+\addlinespace[2pt]
+stellar\_mass & shape & $+0.00^{*}$ & $-0.06^{*}$ & $+0.05^{*}$ & $+0.09$ \\
+ & sphere & $-0.35$ & $-0.35$ & $-0.35$ & $-0.35$ \\
+ & mismatch & $-0.04^{*}$ & $+0.03^{*}$ & $+0.02^{*}$ & $+0.03^{*}$ \\
+ & alignment & $+0.01^{*}$ & $-0.02^{*}$ & $+0.03^{*}$ & $-0.02^{*}$ \\
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}
+\caption{Decoder ablations, $d=16$, 512 anchors, multi-scale density control. $^{*}$ not significant at 0.05.}
+\label{tab:ablate}
+\end{table}
+\section*{Appendix C: relative second fundamental form, pilot}
+Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$, the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lcccccccc}
+\toprule
+run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\ resid & $\mathrm{II}_{\mathrm{rel}}$ & $\mathrm{II}_{\mathrm{rel}}$ (local $L$) & $\mathrm{II}_{\mathrm{rel}}$ (data) \\
+\midrule
+$d=20$, seed 0 & 0.64 & 0.44 & $-0.15$ & $+0.04^{*}$ & $-0.18$ & $+0.04^{*}$ & $-0.18$ & $+0.13$ \\
+\bottomrule
+\end{tabular}
+\caption{Relative-II pilot. $^{*}$ not significant at 0.05.}
+\label{tab:relii}
+\end{table}
+% END APPENDIX AUTOGEN
 \end{document}
