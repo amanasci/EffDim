@@ -178,10 +178,15 @@ def main() -> None:
     p.add_argument("--fit-seed", type=int, default=None, help="physics: refit the decoder with this torch init seed instead of loading stored geometry")
     p.add_argument("--hidden", type=str, default=None, help="physics: decoder hidden widths, e.g. 400,400,400 (with --fit-seed)")
     p.add_argument("--geometry-out", type=str, default=None, help="physics: where to save the refit geometry npz")
+    p.add_argument("--alpha", type=float, default=None, help="override the probe ridge alpha (sealed: 100); sensitivity to shrinkage")
+    p.add_argument("--hessian-xfit", action="store_true", help="split each patch into halves; fit Hess_M y on one half, score local R^2 on the other")
     p.add_argument("--label-table", type=str, default=None,
                    help="parquet of the label columns (LABEL_REPO@LABEL_REVISION shards, column-projected, concatenated in "
                         "shard order) to read instead of streaming the shards over hf://; sha256 is recorded")
     args = p.parse_args()
+    if args.alpha is not None:
+        pcp.ALPHA_RIDGE = float(args.alpha)
+        print(f"probe ridge alpha overridden -> {pcp.ALPHA_RIDGE}")
     label_table_sha = None
     if args.label_table:
         import hashlib
@@ -217,7 +222,7 @@ def main() -> None:
     ppf._append({"experiment": EXPERIMENT, "row": "environment", "mode": args.mode, "timestamp": _utc_now(),
                  "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "d_values": d_values,
                  "labels": list(labels), "n": n, "k": k, "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm,
-                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "numpy": np.__version__, "torch": torch.__version__,
+                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "alpha": pcp.ALPHA_RIDGE, "hessian_xfit": args.hessian_xfit, "numpy": np.__version__, "torch": torch.__version__,
                  "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
 
     split = pcp.anchor_indices(n, pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)
@@ -310,6 +315,42 @@ def main() -> None:
                          "align_cos_full_p25_p50_p75": [float(v) for v in np.nanpercentile(cols["align_cos_full"], [25, 50, 75])],
                          "align_cos_tan_p25_p50_p75": [float(v) for v in np.nanpercentile(cols["align_cos_tan"], [25, 50, 75])],
                          "columns": rows}, record_path)
+        if args.hessian_xfit:
+            rng = np.random.default_rng(20260913)
+            idx = panel["indices"]
+            perm = np.array([rng.permutation(idx.shape[1]) for _ in range(idx.shape[0])])
+            half = idx.shape[1] // 2
+            neigh_A = np.take_along_axis(idx, perm[:, :half], axis=1); neigh_B = np.take_along_axis(idx, perm[:, half:], axis=1)
+            targets_y = {f"y:{name}": L["y"] for name, L in per_label.items()}
+            lqA = local_quadratics(X, a, neigh_A, geo, targets_y, pcp.MIN_FINITE_NEIGHBOURS)
+            lqB = local_quadratics(X, a, neigh_B, geo, targets_y, pcp.MIN_FINITE_NEIGHBOURS)
+
+            def r2_half(y, y_hat, neigh):
+                out = np.full(neigh.shape[0], np.nan)
+                for i in range(neigh.shape[0]):
+                    yy = y[neigh[i]]; hh = y_hat[neigh[i]]; m = np.isfinite(yy) & np.isfinite(hh)
+                    if m.sum() >= pcp.MIN_FINITE_NEIGHBOURS:
+                        out[i] = 1.0 - float(((yy[m] - hh[m]) ** 2).sum() / max(((yy[m] - yy[m].mean()) ** 2).sum(), 1e-300))
+                return out
+            for name, L in per_label.items():
+                y_hat = runner._oof_predictions_for_label(X, L["y"], pcp.ALPHA_RIDGE, pcp.N_OOF_FOLDS, pcp.OOF_FOLD_SEED)
+                r2A, r2B = r2_half(L["y"], y_hat, neigh_A), r2_half(L["y"], y_hat, neigh_B)
+                HA, HB = lqA["hess"][f"y:{name}"], lqB["hess"][f"y:{name}"]
+                scA = split_columns(geo, L["w"], L["b0"], HA, lq["hess"][f"p:{name}"], d)["cols"]
+                scB = split_columns(geo, L["w"], L["b0"], HB, lq["hess"][f"p:{name}"], d)["cols"]
+                rel = g_inner(HA, HB, geo["ginv"]) / np.maximum(ppf.metric_norms(HA, geo["ginv"])["fro"] * ppf.metric_norms(HB, geo["ginv"])["fro"], 1e-300)
+                xrows = {}
+                for c in ("hess_mismatch_dec", "align_cos_tan", "hess_label"):
+                    pAB = ppf.partial_row(scA[c], r2B, L["Z_multi"], n_perm); pBA = ppf.partial_row(scB[c], r2A, L["Z_multi"], n_perm)
+                    same = ppf.partial_row(scA[c], r2A, L["Z_multi"], n_perm)
+                    xrows[c] = {"fitA_scoreB": pAB, "fitB_scoreA": pBA, "fitA_scoreA": same}
+                    print(f"[xfit d={d}] {name:16s} {c:18s} A->B {pAB['partial']:+.3f} (p={pAB['p']:.3f})  B->A {pBA['partial']:+.3f} (p={pBA['p']:.3f})  A->A {same['partial']:+.3f}", flush=True)
+                print(f"[xfit d={d}] {name:16s} split-half Hessian cosine p25/p50/p75 {np.nanpercentile(rel, 25):+.2f}/{np.nanpercentile(rel, 50):+.2f}/{np.nanpercentile(rel, 75):+.2f}; "
+                      f"rho(||Hess_A||,||Hess_B||) {ppf._spearman(scA['hess_label'], scB['hess_label']):+.2f}; rho(r2_A, r2_B) {ppf._spearman(r2A, r2B):+.2f}", flush=True)
+                ppf._append({"experiment": EXPERIMENT, "row": "xfit", "mode": args.mode, "d": d, "label": name, "timestamp": _utc_now(),
+                             "half": int(half), "hessian_split_half_cos_p25_p50_p75": [float(v) for v in np.nanpercentile(rel, [25, 50, 75])],
+                             "rho_hess_norm_A_B": ppf._spearman(scA["hess_label"], scB["hess_label"]), "rho_r2_A_B": ppf._spearman(r2A, r2B),
+                             "columns": xrows}, record_path)
     print("\nDONE")
 
 
