@@ -1,0 +1,2556 @@
+{
+ "OA1": {
+  "query": "linear probe accuracy manifold curvature representation",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W1897763870",
+    "title": "$M$-theory dynamics on a manifold of $G_2$ holonomy",
+    "year": 2002,
+    "cites": 354,
+    "doi": "https://doi.org/10.4310/atmp.2002.v6.n1.a1",
+    "venue": "Advances in Theoretical and Mathematical Physics"
+   },
+   {
+    "id": "https://openalex.org/W2757803490",
+    "title": "Advanced capabilities for materials modelling with Q uantum ESPRESSO",
+    "year": 2017,
+    "cites": 7791,
+    "doi": "https://doi.org/10.1088/1361-648x/aa8f79",
+    "venue": "Journal of Physics Condensed Matter"
+   },
+   {
+    "id": "https://openalex.org/W2890572668",
+    "title": "Probing variability in a cognitive map using manifold inference from neural dynamics",
+    "year": 2018,
+    "cites": 78,
+    "doi": "https://doi.org/10.1101/418939",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W2070707213",
+    "title": "Background independent quantum gravity: a status report",
+    "year": 2004,
+    "cites": 1970,
+    "doi": "https://doi.org/10.1088/0264-9381/21/15/r01",
+    "venue": "Classical and Quantum Gravity"
+   },
+   {
+    "id": "https://openalex.org/W2023313243",
+    "title": "Object representation by cores: Identifying and representing primitive spatial regions",
+    "year": 1995,
+    "cites": 154,
+    "doi": "https://doi.org/10.1016/0042-6989(94)00286-u",
+    "venue": "Vision Research"
+   },
+   {
+    "id": "https://openalex.org/W2911557950",
+    "title": "A process account of the uncontrolled manifold structure of joint space variance in pointing movements",
+    "year": 2019,
+    "cites": 84,
+    "doi": "https://doi.org/10.1007/s00422-019-00794-w",
+    "venue": "Biological Cybernetics"
+   },
+   {
+    "id": "https://openalex.org/W4410362977",
+    "title": "Emergence of Calabi\u2013Yau manifolds in high-precision black-hole scattering",
+    "year": 2025,
+    "cites": 72,
+    "doi": "https://doi.org/10.1038/s41586-025-08984-2",
+    "venue": "Nature"
+   },
+   {
+    "id": "https://openalex.org/W2115171731",
+    "title": "Eigenvalues and eigenfunctions of the scalar Laplace operator on Calabi-Yau manifolds",
+    "year": 2008,
+    "cites": 62,
+    "doi": "https://doi.org/10.1088/1126-6708/2008/07/120",
+    "venue": "Journal of High Energy Physics"
+   },
+   {
+    "id": "https://openalex.org/W2411961892",
+    "title": "Representation of Maximally Regular Textures in Human Visual Cortex",
+    "year": 2016,
+    "cites": 116,
+    "doi": "https://doi.org/10.1523/jneurosci.2962-15.2016",
+    "venue": "Journal of Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W1516725721",
+    "title": "Manifold Learning in MR spectroscopy using nonlinear dimensionality reduction and unsupervised clustering",
+    "year": 2014,
+    "cites": 44,
+    "doi": "https://doi.org/10.1002/mrm.25447",
+    "venue": "Magnetic Resonance in Medicine"
+   },
+   {
+    "id": "https://openalex.org/W1969196674",
+    "title": "Probing principles of large\u2010scale object representation: Category preference and location encoding",
+    "year": 2012,
+    "cites": 52,
+    "doi": "https://doi.org/10.1002/hbm.22020",
+    "venue": "Human Brain Mapping"
+   },
+   {
+    "id": "https://openalex.org/W4384651987",
+    "title": "Nonlinear manifolds underlie neural population activity during behaviour",
+    "year": 2023,
+    "cites": 53,
+    "doi": "https://doi.org/10.1101/2023.07.18.549575",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W2555618718",
+    "title": "Manifold learning and maximum likelihood estimation for hyperbolic network embedding",
+    "year": 2016,
+    "cites": 46,
+    "doi": "https://doi.org/10.1007/s41109-016-0013-0",
+    "venue": "Applied Network Science"
+   },
+   {
+    "id": "https://openalex.org/W2384004114",
+    "title": "Geometry of the scalar sector",
+    "year": 2016,
+    "cites": 147,
+    "doi": "https://doi.org/10.1007/jhep08(2016)101",
+    "venue": "Journal of High Energy Physics"
+   },
+   {
+    "id": "https://openalex.org/W2171017401",
+    "title": "Ultrafast collinear scattering and carrier multiplication in graphene",
+    "year": 2013,
+    "cites": 586,
+    "doi": "https://doi.org/10.1038/ncomms2987",
+    "venue": "Nature Communications"
+   },
+   {
+    "id": "https://openalex.org/W2142319084",
+    "title": "Minimal Length Scale Scenarios for Quantum Gravity",
+    "year": 2013,
+    "cites": 714,
+    "doi": "https://doi.org/10.12942/lrr-2013-2",
+    "venue": "Living Reviews in Relativity"
+   },
+   {
+    "id": "https://openalex.org/W2949621915",
+    "title": "M-Theory Dynamics On A Manifold Of G_2 Holonomy",
+    "year": 2001,
+    "cites": 41,
+    "doi": "https://doi.org/10.48550/arxiv.hep-th/0107177",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2890896355",
+    "title": "Shape from Contour: Computation and Representation",
+    "year": 2018,
+    "cites": 58,
+    "doi": "https://doi.org/10.1146/annurev-vision-091517-034110",
+    "venue": "Annual Review of Vision Science"
+   },
+   {
+    "id": "https://openalex.org/W4392589850",
+    "title": "How multiscale curvature couples forces to cellular functions",
+    "year": 2024,
+    "cites": 50,
+    "doi": "https://doi.org/10.1038/s42254-024-00700-9",
+    "venue": "Nature Reviews Physics"
+   },
+   {
+    "id": "https://openalex.org/W3037850448",
+    "title": "Anderson transitions",
+    "year": 2008,
+    "cites": 2117,
+    "doi": "https://doi.org/10.1103/revmodphys.80.1355",
+    "venue": "Reviews of Modern Physics"
+   }
+  ]
+ },
+ "OA2": {
+  "query": "extrinsic curvature neural representation manifold linear decoding",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W4412692346",
+    "title": "A neural manifold view of the brain",
+    "year": 2025,
+    "cites": 87,
+    "doi": "https://doi.org/10.1038/s41593-025-02031-z",
+    "venue": "Nature Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W2074725578",
+    "title": "Mathematical framework for large-scale brain network modeling in The Virtual Brain",
+    "year": 2015,
+    "cites": 396,
+    "doi": "https://doi.org/10.1016/j.neuroimage.2015.01.002",
+    "venue": "NeuroImage"
+   },
+   {
+    "id": "https://openalex.org/W2261736307",
+    "title": "Hand synergies: Integration of robotics and neuroscience for understanding the control of biological and artificial hands",
+    "year": 2016,
+    "cites": 307,
+    "doi": "https://doi.org/10.1016/j.plrev.2016.02.001",
+    "venue": "Physics of Life Reviews"
+   },
+   {
+    "id": "https://openalex.org/W3023671316",
+    "title": "Sentience and the Origins of Consciousness: From Cartesian Duality to Markovian Monism",
+    "year": 2020,
+    "cites": 203,
+    "doi": "https://doi.org/10.3390/e22050516",
+    "venue": "Entropy"
+   },
+   {
+    "id": "https://openalex.org/W1980405727",
+    "title": "Multiple sparse priors for the M/EEG inverse problem",
+    "year": 2007,
+    "cites": 626,
+    "doi": "https://doi.org/10.1016/j.neuroimage.2007.09.048",
+    "venue": "NeuroImage"
+   },
+   {
+    "id": "https://openalex.org/W2039968258",
+    "title": "Global cortical activity predicts shape of hand during grasping",
+    "year": 2015,
+    "cites": 94,
+    "doi": "https://doi.org/10.3389/fnins.2015.00121",
+    "venue": "Frontiers in Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W4221052305",
+    "title": "From Parametric Representation to Dynamical System: Shifting Views of the Motor Cortex in Motor Control",
+    "year": 2022,
+    "cites": 43,
+    "doi": "https://doi.org/10.1007/s12264-022-00832-x",
+    "venue": "Neuroscience Bulletin"
+   },
+   {
+    "id": "https://openalex.org/W2434994865",
+    "title": "Bayesian Inference on Matrix Manifolds for Linear Dimensionality Reduction",
+    "year": 2016,
+    "cites": 7,
+    "doi": "https://doi.org/10.48550/arxiv.1606.04478",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2070231119",
+    "title": "Describing the Brain in Autism in Five Dimensions\u2014Magnetic Resonance Imaging-Assisted Diagnosis of Autism Spectrum Disorder Using a Multiparameter Classification Approach",
+    "year": 2010,
+    "cites": 421,
+    "doi": "https://doi.org/10.1523/jneurosci.5413-09.2010",
+    "venue": "Journal of Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W4320169516",
+    "title": "Thermodynamics-informed neural networks for physically realistic mixed reality",
+    "year": 2023,
+    "cites": 26,
+    "doi": "https://doi.org/10.1016/j.cma.2023.115912",
+    "venue": "Computer Methods in Applied Mechanics and Engineering"
+   },
+   {
+    "id": "https://openalex.org/W3008606616",
+    "title": "A Comprehensive Survey on Geometric Deep Learning",
+    "year": 2020,
+    "cites": 134,
+    "doi": "https://doi.org/10.1109/access.2020.2975067",
+    "venue": "IEEE Access"
+   },
+   {
+    "id": "https://openalex.org/W2789616359",
+    "title": "3D Point Cloud Denoising using Graph Laplacian Regularization of a Low Dimensional Manifold Model",
+    "year": 2018,
+    "cites": 18,
+    "doi": "https://doi.org/10.48550/arxiv.1803.07252",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2739479161",
+    "title": "Cusps enable line attractors for neural computation",
+    "year": 2017,
+    "cites": 13,
+    "doi": "https://doi.org/10.1103/physreve.96.052308",
+    "venue": "Physical review. E"
+   },
+   {
+    "id": "https://openalex.org/W3137767720",
+    "title": "Beyond linear subspace clustering: A comparative study of nonlinear manifold clustering algorithms",
+    "year": 2021,
+    "cites": 5,
+    "doi": "https://doi.org/10.1016/j.cosrev.2021.100435",
+    "venue": "Computer Science Review"
+   },
+   {
+    "id": "https://openalex.org/W2051833129",
+    "title": "Population Coding of Visual Space: Modeling",
+    "year": 2011,
+    "cites": 31,
+    "doi": "https://doi.org/10.3389/fncom.2010.00155",
+    "venue": "Frontiers in Computational Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W3157152805",
+    "title": "Data Augmentation in High Dimensional Low Sample Size Setting Using a Geometry-Based Variational Autoencoder",
+    "year": 2022,
+    "cites": 103,
+    "doi": "https://doi.org/10.1109/tpami.2022.3185773",
+    "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence"
+   },
+   {
+    "id": "https://openalex.org/W2165697275",
+    "title": "Population Coding of Visual Space: Comparison of Spatial Representations in Dorsal and Ventral Pathways",
+    "year": 2011,
+    "cites": 64,
+    "doi": "https://doi.org/10.3389/fncom.2010.00159",
+    "venue": "Frontiers in Computational Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W4372270457",
+    "title": "Representation Learning via Manifold Flattening and Reconstruction",
+    "year": 2023,
+    "cites": 2,
+    "doi": "https://doi.org/10.48550/arxiv.2305.01777",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W4293658370",
+    "title": "Bayesian Inference on Matrix Manifolds for Linear Dimensionality\\n Reduction",
+    "year": 2016,
+    "cites": 4,
+    "doi": "https://doi.org/10.48550/arxiv.1606.04478",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W4383987257",
+    "title": "A Survey on Graph Neural Networks for Time Series: Forecasting, Classification, Imputation, and Anomaly Detection",
+    "year": 2023,
+    "cites": 32,
+    "doi": "https://doi.org/10.48550/arxiv.2307.03759",
+    "venue": "arXiv (Cornell University)"
+   }
+  ]
+ },
+ "OA3": {
+  "query": "second fundamental form linear readout embedding Hessian label",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W1993717184",
+    "title": "Physics of thin-film ferroelectric oxides",
+    "year": 2005,
+    "cites": 2281,
+    "doi": "https://doi.org/10.1103/revmodphys.77.1083",
+    "venue": "Reviews of Modern Physics"
+   },
+   {
+    "id": "https://openalex.org/W4213212652",
+    "title": "Noisy intermediate-scale quantum algorithms",
+    "year": 2022,
+    "cites": 1788,
+    "doi": "https://doi.org/10.1103/revmodphys.94.015004",
+    "venue": "Reviews of Modern Physics"
+   },
+   {
+    "id": "https://openalex.org/W3124474911",
+    "title": "Towards multi-modal causability with Graph Neural Networks enabling information fusion for explainable AI",
+    "year": 2021,
+    "cites": 359,
+    "doi": "https://doi.org/10.1016/j.inffus.2021.01.008",
+    "venue": "Information Fusion"
+   },
+   {
+    "id": "https://openalex.org/W2127928040",
+    "title": "Experimental quantum simulations of many-body physics with trapped ions",
+    "year": 2012,
+    "cites": 368,
+    "doi": "https://doi.org/10.1088/0034-4885/75/2/024401",
+    "venue": "Reports on Progress in Physics"
+   },
+   {
+    "id": "https://openalex.org/W4302007808",
+    "title": "Dynamics of a dispersively coupled transmon qubit in the presence of a noise source embedded in the control line",
+    "year": 2022,
+    "cites": 20,
+    "doi": "https://doi.org/10.1103/physreva.106.042605",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2974470694",
+    "title": "Ab initio theory of the nitrogen\u2010vacancy center in diamond",
+    "year": 2018,
+    "cites": 287,
+    "doi": "https://doi.org/10.1515/nanoph-2019-0154",
+    "venue": "Nanophotonics"
+   },
+   {
+    "id": "https://openalex.org/W4385473770",
+    "title": "Tackling Sampling Noise in Physical Systems for Machine Learning Applications: Fundamental Limits and Eigentasks",
+    "year": 2023,
+    "cites": 23,
+    "doi": "https://doi.org/10.1103/physrevx.13.041020",
+    "venue": "Physical Review X"
+   },
+   {
+    "id": "https://openalex.org/W3000478925",
+    "title": "Building attention and edge message passing neural networks for bioactivity and physical\u2013chemical property prediction",
+    "year": 2020,
+    "cites": 258,
+    "doi": "https://doi.org/10.1186/s13321-019-0407-y",
+    "venue": "Journal of Cheminformatics"
+   },
+   {
+    "id": "https://openalex.org/W4383999302",
+    "title": "Superresolution structured illumination microscopy reconstruction algorithms: a review",
+    "year": 2023,
+    "cites": 236,
+    "doi": "https://doi.org/10.1038/s41377-023-01204-4",
+    "venue": "Light Science & Applications"
+   },
+   {
+    "id": "https://openalex.org/W3009272685",
+    "title": "Synaptic metaplasticity in binarized neural networks",
+    "year": 2021,
+    "cites": 74,
+    "doi": "https://doi.org/10.1038/s41467-021-22768-y",
+    "venue": "Nature Communications"
+   },
+   {
+    "id": "https://openalex.org/W4415848603",
+    "title": "Label-free linear and non-linear vibrational spectroscopy for functional materials: state-of-the-art and future perspectives",
+    "year": 2025,
+    "cites": 2,
+    "doi": "https://doi.org/10.1039/d5sc04114g",
+    "venue": "Chemical Science"
+   },
+   {
+    "id": "https://openalex.org/W4200197520",
+    "title": "Survey of NISQ Era Hybrid Quantum-Classical Machine Learning Research",
+    "year": 2021,
+    "cites": 62,
+    "doi": "https://doi.org/10.37965/jait.2021.12002",
+    "venue": "Journal of Artificial Intelligence and Technology"
+   },
+   {
+    "id": "https://openalex.org/W3112235292",
+    "title": "Vibrational and vibronic structure of isolated point defects: The nitrogen-vacancy center in diamond",
+    "year": 2021,
+    "cites": 72,
+    "doi": "https://doi.org/10.1103/physrevb.104.045303",
+    "venue": "Physical review. B./Physical review. B"
+   },
+   {
+    "id": "https://openalex.org/W2062492715",
+    "title": "Vibrational structure in inner shell photoionization of molecules",
+    "year": 2004,
+    "cites": 113,
+    "doi": "https://doi.org/10.1088/0953-4075/37/12/r01",
+    "venue": "Journal of Physics B Atomic Molecular and Optical Physics"
+   },
+   {
+    "id": "https://openalex.org/W4385194706",
+    "title": "A Smart Contract Vulnerability Detection Mechanism Based on Deep Learning and Expert Rules",
+    "year": 2023,
+    "cites": 49,
+    "doi": "https://doi.org/10.1109/access.2023.3298048",
+    "venue": "IEEE Access"
+   },
+   {
+    "id": "https://openalex.org/W3068032521",
+    "title": "Microcanonical and finite-temperature ab initio molecular dynamics simulations on quantum computers",
+    "year": 2021,
+    "cites": 40,
+    "doi": "https://doi.org/10.1103/physrevresearch.3.013125",
+    "venue": "Physical Review Research"
+   },
+   {
+    "id": "https://openalex.org/W4226047355",
+    "title": "On Neural Differential Equations",
+    "year": 2022,
+    "cites": 123,
+    "doi": "https://doi.org/10.48550/arxiv.2202.02435",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2035446706",
+    "title": "Dynamic single photon emission computed tomography\u2014basic principles and cardiac applications",
+    "year": 2010,
+    "cites": 118,
+    "doi": "https://doi.org/10.1088/0031-9155/55/20/r01",
+    "venue": "Physics in Medicine and Biology"
+   },
+   {
+    "id": "https://openalex.org/W4386794237",
+    "title": "Simultaneous inference for generalized linear models with unmeasured confounders",
+    "year": 2023,
+    "cites": 4,
+    "doi": "https://doi.org/10.48550/arxiv.2309.07261",
+    "venue": "PubMed"
+   },
+   {
+    "id": "https://openalex.org/W4406932322",
+    "title": "Understanding Machine Learning Principles: Learning, Inference, Generalization, and Computational Learning Theory",
+    "year": 2025,
+    "cites": 24,
+    "doi": "https://doi.org/10.3390/math13030451",
+    "venue": "Mathematics"
+   }
+  ]
+ },
+ "OA4": {
+  "query": "decoder second fundamental form autoencoder pointwise curvature",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W3159156584",
+    "title": "Unsupervised Learning Methods for Molecular Simulation Data",
+    "year": 2021,
+    "cites": 427,
+    "doi": "https://doi.org/10.1021/acs.chemrev.0c01195",
+    "venue": "Chemical Reviews"
+   },
+   {
+    "id": "https://openalex.org/W4205175531",
+    "title": "Hyperbolic Deep Neural Networks: A Survey",
+    "year": 2021,
+    "cites": 179,
+    "doi": "https://doi.org/10.1109/tpami.2021.3136921",
+    "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence"
+   },
+   {
+    "id": "https://openalex.org/W4389098833",
+    "title": "A Survey on Graph Representation Learning Methods",
+    "year": 2023,
+    "cites": 211,
+    "doi": "https://doi.org/10.1145/3633518",
+    "venue": "ACM Transactions on Intelligent Systems and Technology"
+   },
+   {
+    "id": "https://openalex.org/W4397032511",
+    "title": "A comprehensive overview of deep learning techniques for 3D point cloud classification and semantic segmentation",
+    "year": 2024,
+    "cites": 84,
+    "doi": "https://doi.org/10.1007/s00138-024-01543-1",
+    "venue": "Machine Vision and Applications"
+   },
+   {
+    "id": "https://openalex.org/W4281488222",
+    "title": "A Survey of Non\u2010Rigid 3D Registration",
+    "year": 2022,
+    "cites": 110,
+    "doi": "https://doi.org/10.1111/cgf.14502",
+    "venue": "Computer Graphics Forum"
+   },
+   {
+    "id": "https://openalex.org/W2461758788",
+    "title": "Local Background Enclosure for RGB-D Salient Object Detection",
+    "year": 2016,
+    "cites": 230,
+    "doi": "https://doi.org/10.1109/cvpr.2016.257",
+    "venue": null
+   },
+   {
+    "id": "https://openalex.org/W4400520849",
+    "title": "Advancements in point cloud-based 3D defect classification and segmentation for industrial systems: A comprehensive survey",
+    "year": 2024,
+    "cites": 54,
+    "doi": "https://doi.org/10.1016/j.inffus.2024.102575",
+    "venue": "Information Fusion"
+   },
+   {
+    "id": "https://openalex.org/W4394726731",
+    "title": "Deep Learning for Exploring Landslides with Remote Sensing and Geo-Environmental Data: Frameworks, Progress, Challenges, and Opportunities",
+    "year": 2024,
+    "cites": 105,
+    "doi": "https://doi.org/10.3390/rs16081344",
+    "venue": "Remote Sensing"
+   },
+   {
+    "id": "https://openalex.org/W4366772049",
+    "title": "Graph Representation Learning and Its Applications: A Survey",
+    "year": 2023,
+    "cites": 54,
+    "doi": "https://doi.org/10.3390/s23084168",
+    "venue": "Sensors"
+   },
+   {
+    "id": "https://openalex.org/W4213415874",
+    "title": "Traffic state estimation of urban road networks by multi-source data fusion: Review and new insights",
+    "year": 2022,
+    "cites": 108,
+    "doi": "https://doi.org/10.1016/j.physa.2022.127079",
+    "venue": "Physica A Statistical Mechanics and its Applications"
+   },
+   {
+    "id": "https://openalex.org/W4401588759",
+    "title": "Synthesizing realistic sand assemblies with denoising diffusion in latent space",
+    "year": 2024,
+    "cites": 12,
+    "doi": "https://doi.org/10.1002/nag.3818",
+    "venue": "International Journal for Numerical and Analytical Methods in Geomechanics"
+   },
+   {
+    "id": "https://openalex.org/W4391313182",
+    "title": "Deep learning based computer vision under the prism of 3D point clouds: a systematic review",
+    "year": 2024,
+    "cites": 32,
+    "doi": "https://doi.org/10.1007/s00371-023-03237-7",
+    "venue": "The Visual Computer"
+   },
+   {
+    "id": "https://openalex.org/W4388019052",
+    "title": "Deep-Learning-Based 3-D Surface Reconstruction\u2014A Survey",
+    "year": 2023,
+    "cites": 40,
+    "doi": "https://doi.org/10.1109/jproc.2023.3321433",
+    "venue": "Proceedings of the IEEE"
+   },
+   {
+    "id": "https://openalex.org/W4394903686",
+    "title": "PlantSegNet: 3D point cloud instance segmentation of nearby plant organs with identical semantics",
+    "year": 2024,
+    "cites": 32,
+    "doi": "https://doi.org/10.1016/j.compag.2024.108922",
+    "venue": "Computers and Electronics in Agriculture"
+   },
+   {
+    "id": "https://openalex.org/W3094115835",
+    "title": "DeepFuseOSV: online signature verification using hybrid feature fusion and depthwise separable convolution neural network architecture",
+    "year": 2020,
+    "cites": 21,
+    "doi": "https://doi.org/10.1049/iet-bmt.2020.0032",
+    "venue": "IET Biometrics"
+   },
+   {
+    "id": "https://openalex.org/W3009996294",
+    "title": "Geometric Back-projection Network for Point Cloud Classification",
+    "year": 2019,
+    "cites": 17,
+    "doi": "https://doi.org/10.48550/arxiv.1911.12885",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W4402147840",
+    "title": "Comparison of data -driven methods for the prediction of flows about a wing",
+    "year": 2024,
+    "cites": 1,
+    "doi": "https://doi.org/10.23967/eccomas.2024.159",
+    "venue": null
+   },
+   {
+    "id": "https://openalex.org/W4283218429",
+    "title": "Adapting the Linearised Laplace Model Evidence for Modern Deep Learning",
+    "year": 2022,
+    "cites": 5,
+    "doi": "https://doi.org/10.48550/arxiv.2206.08900",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W3120443143",
+    "title": "Hyperbolic Deep Neural Networks: A Survey",
+    "year": 2021,
+    "cites": 11,
+    "doi": "https://doi.org/10.48550/arxiv.2101.04562",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W3013693561",
+    "title": "A Survey on Trajectory Data Management, Analytics, and Learning",
+    "year": 2020,
+    "cites": 26,
+    "doi": "https://doi.org/10.48550/arxiv.2003.11547",
+    "venue": "arXiv (Cornell University)"
+   }
+  ]
+ },
+ "OA5": {
+  "query": "platonic representation hypothesis geometry curvature convergence",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2754494509",
+    "title": "Deformation mechanics of non-planar topologically interlocked assemblies with structural hierarchy and varying geometry",
+    "year": 2017,
+    "cites": 76,
+    "doi": "https://doi.org/10.1038/s41598-017-12147-3",
+    "venue": "Scientific Reports"
+   },
+   {
+    "id": "https://openalex.org/W2152196960",
+    "title": "Geometrization of 3-dimensional orbifolds",
+    "year": 2005,
+    "cites": 169,
+    "doi": "https://doi.org/10.4007/annals.2005.162.195",
+    "venue": "Annals of Mathematics"
+   },
+   {
+    "id": "https://openalex.org/W3103180204",
+    "title": "Spectral dimension of quantum geometries",
+    "year": 2014,
+    "cites": 23,
+    "doi": null,
+    "venue": "MPG.PuRe (Max Planck Society)"
+   },
+   {
+    "id": "https://openalex.org/W2094871015",
+    "title": "Delaunay ends of constant mean curvature surfaces",
+    "year": 2008,
+    "cites": 10,
+    "doi": "https://doi.org/10.1112/s0010437x07003119",
+    "venue": "Compositio Mathematica"
+   },
+   {
+    "id": "https://openalex.org/W3156278692",
+    "title": "Operationalism: An Interpretation of the Philosophy of Ancient Greek Geometry",
+    "year": 2021,
+    "cites": 9,
+    "doi": "https://doi.org/10.1007/s10699-021-09791-4",
+    "venue": "Foundations of Science"
+   },
+   {
+    "id": "https://openalex.org/W2751075861",
+    "title": "Construction of constant mean curvature n-noids using the DPW method",
+    "year": 2017,
+    "cites": 5,
+    "doi": "https://doi.org/10.48550/arxiv.1709.00924",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W1902329636",
+    "title": "Construction of a fetal spatio-temporal cortical surface atlas from in utero MRI: Application of spectral surface matching",
+    "year": 2015,
+    "cites": 56,
+    "doi": "https://doi.org/10.1016/j.neuroimage.2015.05.087",
+    "venue": "NeuroImage"
+   },
+   {
+    "id": "https://openalex.org/W2148676644",
+    "title": "Topological pattern recognition for point cloud data",
+    "year": 2014,
+    "cites": 243,
+    "doi": "https://doi.org/10.1017/s0962492914000051",
+    "venue": "Acta Numerica"
+   },
+   {
+    "id": "https://openalex.org/W2073939854",
+    "title": "83 years of general relativity and cosmology: progress and problems",
+    "year": 1999,
+    "cites": 50,
+    "doi": "https://doi.org/10.1088/0264-9381/16/12a/303",
+    "venue": "Classical and Quantum Gravity"
+   },
+   {
+    "id": "https://openalex.org/W193235695",
+    "title": "3D MODEL-BASED COLLABORATION IN DESIGN DEVELOPMENT AND CONSTRUCTION OF COMPLEX SHAPED BUILDINGS",
+    "year": 2008,
+    "cites": 43,
+    "doi": null,
+    "venue": "Journal of Information Technology in Construction"
+   },
+   {
+    "id": "https://openalex.org/W2119500584",
+    "title": "The structure of the world from pure numbers",
+    "year": 2005,
+    "cites": 45,
+    "doi": "https://doi.org/10.1088/0034-4885/68/4/r04",
+    "venue": "Reports on Progress in Physics"
+   },
+   {
+    "id": "https://openalex.org/W2300443430",
+    "title": "Acceleration and higher order schemes of a characteristic solver for the solution of the neutron transport equation in 3D axial geometries",
+    "year": 2015,
+    "cites": 3,
+    "doi": null,
+    "venue": "HAL (Le Centre pour la Communication Scientifique Directe)"
+   },
+   {
+    "id": "https://openalex.org/W2285402285",
+    "title": "Contributions to morphometrics",
+    "year": 1993,
+    "cites": 181,
+    "doi": "https://doi.org/10.5962/bhl.title.15368",
+    "venue": null
+   },
+   {
+    "id": "https://openalex.org/W2753337581",
+    "title": "Marriages of mathematics and physics: A challenge for biology",
+    "year": 2017,
+    "cites": 16,
+    "doi": "https://doi.org/10.1016/j.pbiomolbio.2017.09.006",
+    "venue": "Progress in Biophysics and Molecular Biology"
+   },
+   {
+    "id": "https://openalex.org/W2010492113",
+    "title": "Mathematics and the Theory of Multiplicities: Badiou and Deleuze Revisited",
+    "year": 2003,
+    "cites": 52,
+    "doi": "https://doi.org/10.1111/j.2041-6962.2003.tb00960.x",
+    "venue": "The Southern Journal of Philosophy"
+   },
+   {
+    "id": "https://openalex.org/W2022968976",
+    "title": "On exceptional quotient singularities",
+    "year": 2011,
+    "cites": 42,
+    "doi": "https://doi.org/10.2140/gt.2011.15.1843",
+    "venue": "Geometry & Topology"
+   },
+   {
+    "id": "https://openalex.org/W4306321786",
+    "title": "Physics of creation - Symmetry breaking, (en)active inference, and unfolding statespaces",
+    "year": 2022,
+    "cites": 6,
+    "doi": "https://doi.org/10.31219/osf.io/68947",
+    "venue": null
+   },
+   {
+    "id": "https://openalex.org/W4297789282",
+    "title": "Study of classical and quantum phase transitions on non-Euclidean geometries in higher dimensions",
+    "year": 2020,
+    "cites": 1,
+    "doi": null,
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W2227423757",
+    "title": "ASSUME A SPHERICAL COW: STUDIES ON REPRESENTATION AND IDEALIZATION",
+    "year": 2015,
+    "cites": 1,
+    "doi": null,
+    "venue": "D-Scholarship@Pitt (University of Pittsburgh)"
+   },
+   {
+    "id": "https://openalex.org/W2796683039",
+    "title": "Moral Reality Revisited",
+    "year": 1992,
+    "cites": 120,
+    "doi": "https://doi.org/10.2307/1289577",
+    "venue": "Michigan Law Review"
+   }
+  ]
+ },
+ "OA6": {
+  "query": "manifold capacity curvature linear classification neural",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2112796928",
+    "title": "Gradient-based learning applied to document recognition",
+    "year": 1998,
+    "cites": 59590,
+    "doi": "https://doi.org/10.1109/5.726791",
+    "venue": "Proceedings of the IEEE"
+   },
+   {
+    "id": "https://openalex.org/W3183048323",
+    "title": "A survey of uncertainty in deep neural networks",
+    "year": 2023,
+    "cites": 1345,
+    "doi": "https://doi.org/10.1007/s10462-023-10562-9",
+    "venue": "Artificial Intelligence Review"
+   },
+   {
+    "id": "https://openalex.org/W3004639598",
+    "title": "Separability and geometry of object manifolds in deep neural networks",
+    "year": 2020,
+    "cites": 189,
+    "doi": "https://doi.org/10.1038/s41467-020-14578-5",
+    "venue": "Nature Communications"
+   },
+   {
+    "id": "https://openalex.org/W4205175531",
+    "title": "Hyperbolic Deep Neural Networks: A Survey",
+    "year": 2021,
+    "cites": 179,
+    "doi": "https://doi.org/10.1109/tpami.2021.3136921",
+    "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence"
+   },
+   {
+    "id": "https://openalex.org/W4324325927",
+    "title": "Bayesian learning for neural networks: an algorithmic survey",
+    "year": 2023,
+    "cites": 156,
+    "doi": "https://doi.org/10.1007/s10462-023-10443-1",
+    "venue": "Artificial Intelligence Review"
+   },
+   {
+    "id": "https://openalex.org/W4224324682",
+    "title": "A Review of the Methods on Cobb Angle Measurements for Spinal Curvature",
+    "year": 2022,
+    "cites": 99,
+    "doi": "https://doi.org/10.3390/s22093258",
+    "venue": "Sensors"
+   },
+   {
+    "id": "https://openalex.org/W3003265726",
+    "title": "A Survey on Knowledge Graphs: Representation, Acquisition, and Applications",
+    "year": 2021,
+    "cites": 2890,
+    "doi": "https://doi.org/10.1109/tnnls.2021.3070843",
+    "venue": "IEEE Transactions on Neural Networks and Learning Systems"
+   },
+   {
+    "id": "https://openalex.org/W4376613177",
+    "title": "Deep neural networks in the cloud: Review, applications, challenges and research directions",
+    "year": 2023,
+    "cites": 197,
+    "doi": "https://doi.org/10.1016/j.neucom.2023.126327",
+    "venue": "Neurocomputing"
+   },
+   {
+    "id": "https://openalex.org/W3199720170",
+    "title": "Peak learning of mass spectrometry imaging data using artificial neural networks",
+    "year": 2021,
+    "cites": 108,
+    "doi": "https://doi.org/10.1038/s41467-021-25744-8",
+    "venue": "Nature Communications"
+   },
+   {
+    "id": "https://openalex.org/W2946788465",
+    "title": "Separability and Geometry of Object Manifolds in Deep Neural Networks",
+    "year": 2019,
+    "cites": 18,
+    "doi": "https://doi.org/10.1101/644658",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W3175039957",
+    "title": "Three-Dimensional Structural Geological Modeling Using Graph Neural Networks",
+    "year": 2021,
+    "cites": 88,
+    "doi": "https://doi.org/10.1007/s11004-021-09945-x",
+    "venue": "Mathematical Geosciences"
+   },
+   {
+    "id": "https://openalex.org/W2113299665",
+    "title": "Invariant Visual Object and Face Recognition: Neural and Computational Bases, and a Model, VisNet",
+    "year": 2012,
+    "cites": 175,
+    "doi": "https://doi.org/10.3389/fncom.2012.00035",
+    "venue": "Frontiers in Computational Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W3090232286",
+    "title": "Rotation Equivariant Convolutional Neural Networks for Hyperspectral Image Classification",
+    "year": 2020,
+    "cites": 40,
+    "doi": "https://doi.org/10.1109/access.2020.3027776",
+    "venue": "IEEE Access"
+   },
+   {
+    "id": "https://openalex.org/W4210770595",
+    "title": "Diffusion wavelets",
+    "year": 2006,
+    "cites": 491,
+    "doi": "https://doi.org/10.1016/j.acha.2006.04.004",
+    "venue": "Applied and Computational Harmonic Analysis"
+   },
+   {
+    "id": "https://openalex.org/W1808678438",
+    "title": "Regularized Principal Manifolds",
+    "year": 1999,
+    "cites": 34,
+    "doi": "https://doi.org/10.1007/3-540-49097-3_17",
+    "venue": "Lecture notes in computer science"
+   },
+   {
+    "id": "https://openalex.org/W4210572383",
+    "title": "Enhanced TabNet: Attentive Interpretable Tabular Learning for Hyperspectral Image Classification",
+    "year": 2022,
+    "cites": 82,
+    "doi": "https://doi.org/10.3390/rs14030716",
+    "venue": "Remote Sensing"
+   },
+   {
+    "id": "https://openalex.org/W1985124628",
+    "title": "Neural network modelling",
+    "year": 1991,
+    "cites": 61,
+    "doi": "https://doi.org/10.1088/0031-9155/36/10/001",
+    "venue": "Physics in Medicine and Biology"
+   },
+   {
+    "id": "https://openalex.org/W4393078436",
+    "title": "Color-CADx: a deep learning approach for colorectal cancer classification through triple convolutional neural networks and discrete cosine transform",
+    "year": 2024,
+    "cites": 59,
+    "doi": "https://doi.org/10.1038/s41598-024-56820-w",
+    "venue": "Scientific Reports"
+   },
+   {
+    "id": "https://openalex.org/W4290043201",
+    "title": "Digital Twins: A Maturity Model for Their Classification and Evaluation",
+    "year": 2022,
+    "cites": 128,
+    "doi": "https://doi.org/10.1109/access.2022.3186353",
+    "venue": "IEEE Access"
+   },
+   {
+    "id": "https://openalex.org/W2167608136",
+    "title": "Kernel Methods for Deep Learning",
+    "year": 2009,
+    "cites": 491,
+    "doi": null,
+    "venue": "eScholarship (California Digital Library)"
+   }
+  ]
+ },
+ "OA7": {
+  "query": "curvature of representation manifold predicts linear probe performance",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2757803490",
+    "title": "Advanced capabilities for materials modelling with Q uantum ESPRESSO",
+    "year": 2017,
+    "cites": 7791,
+    "doi": "https://doi.org/10.1088/1361-648x/aa8f79",
+    "venue": "Journal of Physics Condensed Matter"
+   },
+   {
+    "id": "https://openalex.org/W2169203808",
+    "title": "Lanthanide complexes as chiral probes exploiting circularly polarized luminescence",
+    "year": 2012,
+    "cites": 776,
+    "doi": "https://doi.org/10.1039/c2cs35242g",
+    "venue": "Chemical Society Reviews"
+   },
+   {
+    "id": "https://openalex.org/W2154281919",
+    "title": "Cortical Folding Patterns and Predicting Cytoarchitecture",
+    "year": 2007,
+    "cites": 800,
+    "doi": "https://doi.org/10.1093/cercor/bhm225",
+    "venue": "Cerebral Cortex"
+   },
+   {
+    "id": "https://openalex.org/W2890572668",
+    "title": "Probing variability in a cognitive map using manifold inference from neural dynamics",
+    "year": 2018,
+    "cites": 78,
+    "doi": "https://doi.org/10.1101/418939",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W4412692346",
+    "title": "A neural manifold view of the brain",
+    "year": 2025,
+    "cites": 87,
+    "doi": "https://doi.org/10.1038/s41593-025-02031-z",
+    "venue": "Nature Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W4211161891",
+    "title": "Topological photonics",
+    "year": 2019,
+    "cites": 3712,
+    "doi": "https://doi.org/10.1103/revmodphys.91.015006",
+    "venue": "Reviews of Modern Physics"
+   },
+   {
+    "id": "https://openalex.org/W4385330196",
+    "title": "Microfluidic Devices: A Tool for Nanoparticle Synthesis and Performance Evaluation",
+    "year": 2023,
+    "cites": 372,
+    "doi": "https://doi.org/10.1021/acsnano.3c01117",
+    "venue": "ACS Nano"
+   },
+   {
+    "id": "https://openalex.org/W2023313243",
+    "title": "Object representation by cores: Identifying and representing primitive spatial regions",
+    "year": 1995,
+    "cites": 154,
+    "doi": "https://doi.org/10.1016/0042-6989(94)00286-u",
+    "venue": "Vision Research"
+   },
+   {
+    "id": "https://openalex.org/W2132932168",
+    "title": "The fully connectedN-dimensional skeleton: probing the evolution of the cosmic web",
+    "year": 2009,
+    "cites": 70,
+    "doi": "https://doi.org/10.1111/j.1365-2966.2008.14244.x",
+    "venue": "Monthly Notices of the Royal Astronomical Society"
+   },
+   {
+    "id": "https://openalex.org/W4410362977",
+    "title": "Emergence of Calabi\u2013Yau manifolds in high-precision black-hole scattering",
+    "year": 2025,
+    "cites": 72,
+    "doi": "https://doi.org/10.1038/s41586-025-08984-2",
+    "venue": "Nature"
+   },
+   {
+    "id": "https://openalex.org/W1989674304",
+    "title": "Perceptual-cognitive universals as reflections of the world",
+    "year": 1994,
+    "cites": 314,
+    "doi": "https://doi.org/10.3758/bf03200759",
+    "venue": "Psychonomic Bulletin & Review"
+   },
+   {
+    "id": "https://openalex.org/W4384651987",
+    "title": "Nonlinear manifolds underlie neural population activity during behaviour",
+    "year": 2023,
+    "cites": 53,
+    "doi": "https://doi.org/10.1101/2023.07.18.549575",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W1969196674",
+    "title": "Probing principles of large\u2010scale object representation: Category preference and location encoding",
+    "year": 2012,
+    "cites": 52,
+    "doi": "https://doi.org/10.1002/hbm.22020",
+    "venue": "Human Brain Mapping"
+   },
+   {
+    "id": "https://openalex.org/W2029611498",
+    "title": "Separation of chromosomal DNA molecules from yeast by orthogonal-field-alternation gel electrophoresis",
+    "year": 1984,
+    "cites": 884,
+    "doi": "https://doi.org/10.1093/nar/12.14.5647",
+    "venue": "Nucleic Acids Research"
+   },
+   {
+    "id": "https://openalex.org/W2890896355",
+    "title": "Shape from Contour: Computation and Representation",
+    "year": 2018,
+    "cites": 58,
+    "doi": "https://doi.org/10.1146/annurev-vision-091517-034110",
+    "venue": "Annual Review of Vision Science"
+   },
+   {
+    "id": "https://openalex.org/W2555618718",
+    "title": "Manifold learning and maximum likelihood estimation for hyperbolic network embedding",
+    "year": 2016,
+    "cites": 46,
+    "doi": "https://doi.org/10.1007/s41109-016-0013-0",
+    "venue": "Applied Network Science"
+   },
+   {
+    "id": "https://openalex.org/W4392589850",
+    "title": "How multiscale curvature couples forces to cellular functions",
+    "year": 2024,
+    "cites": 50,
+    "doi": "https://doi.org/10.1038/s42254-024-00700-9",
+    "venue": "Nature Reviews Physics"
+   },
+   {
+    "id": "https://openalex.org/W2288834924",
+    "title": "Adiabatic Developing Two-Phase Refrigerant Flow in Manifolds of Heat Exchangers",
+    "year": 2004,
+    "cites": 41,
+    "doi": null,
+    "venue": "Illinois Digital Environment for Access to Learning and Scholarship (University of Illinois at Urbana-Champaign)"
+   },
+   {
+    "id": "https://openalex.org/W3207642814",
+    "title": "Prognostics and Health Management (PHM): Where are we and where do we (need to) go in theory and practice",
+    "year": 2021,
+    "cites": 705,
+    "doi": "https://doi.org/10.1016/j.ress.2021.108119",
+    "venue": "Reliability Engineering & System Safety"
+   },
+   {
+    "id": "https://openalex.org/W2142039948",
+    "title": "Neural masses and fields in dynamic causal modeling",
+    "year": 2013,
+    "cites": 294,
+    "doi": "https://doi.org/10.3389/fncom.2013.00057",
+    "venue": "Frontiers in Computational Neuroscience"
+   }
+  ]
+ },
+ "OA8": {
+  "query": "perceptual straightening curvature neural trajectories decoding",
+  "n": 20,
+  "rows": [
+   {
+    "id": "https://openalex.org/W4318719691",
+    "title": "Minimizing Trajectory Curvature of ODE-based Generative Models",
+    "year": 2023,
+    "cites": 6,
+    "doi": "https://doi.org/10.48550/arxiv.2301.12003",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W4391946035",
+    "title": "Orthogonal neural representations support perceptual judgements of natural stimuli",
+    "year": 2024,
+    "cites": 3,
+    "doi": "https://doi.org/10.1101/2024.02.14.580134",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W3156721287",
+    "title": "Neural tuning and representational geometry",
+    "year": 2021,
+    "cites": 8,
+    "doi": "https://doi.org/10.48550/arxiv.2104.09743",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W3154632195",
+    "title": "Neural population geometry: An approach for understanding biological and artificial neural networks",
+    "year": 2021,
+    "cites": 8,
+    "doi": "https://doi.org/10.1016/j.conb.2021.10.010",
+    "venue": "Current Opinion in Neurobiology"
+   },
+   {
+    "id": "https://openalex.org/W4407399461",
+    "title": "Orthogonal neural representations support perceptual judgments of natural stimuli",
+    "year": 2025,
+    "cites": 2,
+    "doi": "https://doi.org/10.1038/s41598-025-88910-8",
+    "venue": "Scientific Reports"
+   },
+   {
+    "id": "https://openalex.org/W4366817311",
+    "title": "Efficient coding of natural scenes improves neural system identification",
+    "year": 2023,
+    "cites": 17,
+    "doi": "https://doi.org/10.1371/journal.pcbi.1011037",
+    "venue": "PLoS Computational Biology"
+   },
+   {
+    "id": "https://openalex.org/W2084495011",
+    "title": "Heterogeneous Attractor Cell Assemblies for Motor Planning in Premotor Cortex",
+    "year": 2013,
+    "cites": 96,
+    "doi": "https://doi.org/10.1523/jneurosci.4664-12.2013",
+    "venue": "Journal of Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W4223950704",
+    "title": "Symmetry-Based Representations for Artificial and Biological General Intelligence",
+    "year": 2022,
+    "cites": 38,
+    "doi": "https://doi.org/10.3389/fncom.2022.836498",
+    "venue": "Frontiers in Computational Neuroscience"
+   },
+   {
+    "id": "https://openalex.org/W3108850524",
+    "title": "Understanding transformation tolerant visual object representations in the human brain and convolutional neural networks",
+    "year": 2020,
+    "cites": 3,
+    "doi": "https://doi.org/10.1101/2020.08.11.246934",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W4409258293",
+    "title": "Firing rates in visual cortex show representational drift, while temporal spike sequences remain stable",
+    "year": 2025,
+    "cites": 11,
+    "doi": "https://doi.org/10.1016/j.celrep.2025.115547",
+    "venue": "Cell Reports"
+   },
+   {
+    "id": "https://openalex.org/W4391473083",
+    "title": "Factorized visual representations in the primate visual system and deep neural networks",
+    "year": 2024,
+    "cites": 1,
+    "doi": "https://doi.org/10.7554/elife.91685.1",
+    "venue": "eLife"
+   },
+   {
+    "id": "https://openalex.org/W3118438167",
+    "title": "The geometry of the representation of decision variable and stimulus difficulty in the parietal cortex",
+    "year": 2021,
+    "cites": 9,
+    "doi": "https://doi.org/10.1101/2021.01.04.425244",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W4280556445",
+    "title": "Correlated expression of the body, face, and voice during character portrayal in actors",
+    "year": 2022,
+    "cites": 14,
+    "doi": "https://doi.org/10.1038/s41598-022-12184-7",
+    "venue": "Scientific Reports"
+   },
+   {
+    "id": "https://openalex.org/W4392362062",
+    "title": "Topological structure of population activity in mouse visual cortex encodes densely sampled stimulus rotations",
+    "year": 2024,
+    "cites": 8,
+    "doi": "https://doi.org/10.1016/j.isci.2024.109370",
+    "venue": "iScience"
+   },
+   {
+    "id": "https://openalex.org/W3152028911",
+    "title": "A Neural Network Model for Learning 3D Object Representations Through Haptic Exploration",
+    "year": 2021,
+    "cites": 1,
+    "doi": "https://doi.org/10.3389/fnbot.2021.639001",
+    "venue": "Frontiers in Neurorobotics"
+   },
+   {
+    "id": "https://openalex.org/W3158045900",
+    "title": "Auxiliary Tasks and Exploration Enable ObjectNav",
+    "year": 2021,
+    "cites": 15,
+    "doi": "https://doi.org/10.48550/arxiv.2104.04112",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W4320723784",
+    "title": "Topological Structure of Population Activity in Mouse Visual Cortex Encodes Visual Scene Rotations",
+    "year": 2023,
+    "cites": 2,
+    "doi": "https://doi.org/10.1101/2023.02.13.528247",
+    "venue": "bioRxiv (Cold Spring Harbor Laboratory)"
+   },
+   {
+    "id": "https://openalex.org/W3025690428",
+    "title": "Tutorial Review of Bio-Inspired Approaches to Robotic Manipulation for Space Debris Salvage",
+    "year": 2020,
+    "cites": 21,
+    "doi": "https://doi.org/10.3390/biomimetics5020019",
+    "venue": "Biomimetics"
+   },
+   {
+    "id": "https://openalex.org/W4384648648",
+    "title": "Flow Matching in Latent Space",
+    "year": 2023,
+    "cites": 6,
+    "doi": "https://doi.org/10.48550/arxiv.2307.08698",
+    "venue": "arXiv (Cornell University)"
+   },
+   {
+    "id": "https://openalex.org/W7170164080",
+    "title": "Benchmarking and Improving Perceptual Straightening for Robust AI-Generated Video Detection",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.3390/electronics15153245",
+    "venue": "Electronics"
+   }
+  ]
+ },
+ "oa_title_T1": {
+  "query": "curvature probe",
+  "n": 127,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2621590149",
+    "title": "Nanoscale manipulation of membrane curvature for probing endocytosis in live cells",
+    "year": 2017,
+    "cites": 327,
+    "doi": "https://doi.org/10.1038/nnano.2017.98"
+   },
+   {
+    "id": "https://openalex.org/W2883575330",
+    "title": "Probing the Berry curvature and Fermi arcs of a Weyl circuit",
+    "year": 2019,
+    "cites": 151,
+    "doi": "https://doi.org/10.1103/physrevb.99.020302"
+   },
+   {
+    "id": "https://openalex.org/W3148028169",
+    "title": "Non-parametric spatial curvature inference using late-Universe cosmological probes",
+    "year": 2021,
+    "cites": 145,
+    "doi": "https://doi.org/10.1093/mnrasl/slab058"
+   },
+   {
+    "id": "https://openalex.org/W1995469784",
+    "title": "Atom probe informed simulations of dislocation\u2013precipitate interactions reveal the importance of local interface curvature",
+    "year": 2015,
+    "cites": 104,
+    "doi": "https://doi.org/10.1016/j.actamat.2015.03.050"
+   },
+   {
+    "id": "https://openalex.org/W2573909105",
+    "title": "High-Curvature Nanostructuring Enhances Probe Display for Biomolecular Detection",
+    "year": 2017,
+    "cites": 83,
+    "doi": "https://doi.org/10.1021/acs.nanolett.6b05153"
+   },
+   {
+    "id": "https://openalex.org/W4320914808",
+    "title": "Black-hole ringdown as a probe of higher-curvature gravity theories",
+    "year": 2023,
+    "cites": 77,
+    "doi": "https://doi.org/10.1103/physrevd.107.044030"
+   },
+   {
+    "id": "https://openalex.org/W3102159404",
+    "title": "Generating a Topological Anomalous Hall Effect in a Nonmagnetic Conductor: An In-Plane Magnetic Field as a Direct Probe of the Berry Curvature",
+    "year": 2021,
+    "cites": 65,
+    "doi": "https://doi.org/10.1103/physrevlett.126.256601"
+   },
+   {
+    "id": "https://openalex.org/W2714109968",
+    "title": "Dynamical Birefringence: Electron-Hole Recollisions as Probes of Berry Curvature",
+    "year": 2017,
+    "cites": 64,
+    "doi": "https://doi.org/10.1103/physrevx.7.041042"
+   },
+   {
+    "id": "https://openalex.org/W2259221361",
+    "title": "Dodging the cosmic curvature to probe the constancy of the speed of light",
+    "year": 2016,
+    "cites": 45,
+    "doi": "https://doi.org/10.1088/1475-7516/2016/08/016"
+   },
+   {
+    "id": "https://openalex.org/W1951842551",
+    "title": "Adhesive Nanoparticles as Local Probes of Membrane Curvature",
+    "year": 2015,
+    "cites": 45,
+    "doi": "https://doi.org/10.1021/acs.nanolett.5b03475"
+   },
+   {
+    "id": "https://openalex.org/W1216863441",
+    "title": "Mechanism of polymorphism and curvature of HIV capsid assemblies probed by 3D simulations with a novel coarse grain model",
+    "year": 2015,
+    "cites": 37,
+    "doi": "https://doi.org/10.1016/j.bbagen.2015.08.017"
+   },
+   {
+    "id": "https://openalex.org/W1826148079",
+    "title": "Probing the very high energy \u03b3-ray spectral curvature in the blazar PG 1553+113 with the MAGIC telescopes",
+    "year": 2015,
+    "cites": 31,
+    "doi": "https://doi.org/10.1093/mnras/stv811"
+   },
+   {
+    "id": "https://openalex.org/W4317937514",
+    "title": "Self-Assembly and Disassembly of Membrane Curvature-Sensing Peptide-Based Deep-Red Fluorescent Probe for Highly Sensitive Sensing of Exosomes",
+    "year": 2023,
+    "cites": 29,
+    "doi": "https://doi.org/10.1021/acssensors.2c02498"
+   },
+   {
+    "id": "https://openalex.org/W4283070910",
+    "title": "Probing effects of the SARS-CoV-2 E protein on membrane curvature and intracellular calcium",
+    "year": 2022,
+    "cites": 28,
+    "doi": "https://doi.org/10.1016/j.bbamem.2022.183994"
+   },
+   {
+    "id": "https://openalex.org/W4205357155",
+    "title": "Ultrasonic Inspection for Welds with Irregular Curvature Geometry Using Flexible Phased Array Probes and Semi-Auto Scanners: A Feasibility Study",
+    "year": 2022,
+    "cites": 28,
+    "doi": "https://doi.org/10.3390/app12020748"
+   },
+   {
+    "id": "https://openalex.org/W4310009879",
+    "title": "Second harmonic Hall responses of insulators as a probe of Berry curvature dipole",
+    "year": 2022,
+    "cites": 24,
+    "doi": "https://doi.org/10.1038/s42005-022-01086-9"
+   },
+   {
+    "id": "https://openalex.org/W3093489705",
+    "title": "Amphipathic helical peptide-based fluorogenic probes for a marker-free analysis of exosomes based on membrane-curvature sensing",
+    "year": 2020,
+    "cites": 24,
+    "doi": "https://doi.org/10.1039/d0ra07763a"
+   },
+   {
+    "id": "https://openalex.org/W4386907092",
+    "title": "Polarized signatures of orbiting hot spots: Special relativity impact and probe of spacetime curvature",
+    "year": 2024,
+    "cites": 21,
+    "doi": "https://doi.org/10.1051/0004-6361/202348016"
+   },
+   {
+    "id": "https://openalex.org/W4221163379",
+    "title": "Strongly lensed type Ia supernovae as a precise late-Universe probe of measuring the Hubble constant and cosmic curvature",
+    "year": 2022,
+    "cites": 19,
+    "doi": "https://doi.org/10.1103/physrevd.106.023520"
+   },
+   {
+    "id": "https://openalex.org/W2200463659",
+    "title": "Probing strongly coupled anisotropic plasmas from higher curvature gravity",
+    "year": 2016,
+    "cites": 19,
+    "doi": "https://doi.org/10.1140/epjc/s10052-016-4153-2"
+   },
+   {
+    "id": "https://openalex.org/W4224085538",
+    "title": "Multiple Measurements of Gravitational Waves Acting as Standard Probes: Model-independent Constraints on the Cosmic Curvature with DECIGO",
+    "year": 2022,
+    "cites": 18,
+    "doi": "https://doi.org/10.3847/1538-4357/ac641e"
+   },
+   {
+    "id": "https://openalex.org/W3025203806",
+    "title": "Prospects for probing ultralight primordial black holes using the stochastic gravitational-wave background induced by primordial curvature perturbations",
+    "year": 2020,
+    "cites": 18,
+    "doi": "https://doi.org/10.1103/physrevd.101.123535"
+   },
+   {
+    "id": "https://openalex.org/W4293464040",
+    "title": "Gate tunable anomalous Hall effect: Berry curvature probe at oxides interfaces",
+    "year": 2022,
+    "cites": 17,
+    "doi": "https://doi.org/10.1103/physrevb.106.075430"
+   },
+   {
+    "id": "https://openalex.org/W4206580408",
+    "title": "Quantum probe of space-time curvature",
+    "year": 2022,
+    "cites": 14,
+    "doi": "https://doi.org/10.1126/science.abm6854"
+   },
+   {
+    "id": "https://openalex.org/W2941902696",
+    "title": "Probe of the Randall-Sundrum-like model with the small curvature via light-by-light scattering at the LHC",
+    "year": 2019,
+    "cites": 14,
+    "doi": "https://doi.org/10.1103/physrevd.100.095004"
+   }
+  ]
+ },
+ "oa_title_T2": {
+  "query": "second fundamental form neural",
+  "n": 0,
+  "rows": []
+ },
+ "oa_title_T3": {
+  "query": "extrinsic curvature neural",
+  "n": 3,
+  "rows": [
+   {
+    "id": "https://openalex.org/W4385800627",
+    "title": "Quantifying Extrinsic Curvature in Neural Manifolds",
+    "year": 2023,
+    "cites": 6,
+    "doi": "https://doi.org/10.1109/cvprw59228.2023.00068"
+   },
+   {
+    "id": "https://openalex.org/W4414492503",
+    "title": "Dextr: Zero-Shot Neural Architecture Search with Singular Value Decomposition and Extrinsic Curvature",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2508.12977"
+   },
+   {
+    "id": "https://openalex.org/W4312107250",
+    "title": "Quantifying Extrinsic Curvature in Neural Manifolds",
+    "year": 2022,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2212.10414"
+   }
+  ]
+ },
+ "oa_title_T4": {
+  "query": "platonic representation",
+  "n": 29,
+  "rows": [
+   {
+    "id": "https://openalex.org/W4396914181",
+    "title": "The Platonic Representation Hypothesis",
+    "year": 2024,
+    "cites": 27,
+    "doi": "https://doi.org/10.48550/arxiv.2405.07987"
+   },
+   {
+    "id": "https://openalex.org/W4417142359",
+    "title": "Platonic representation of foundation machine learning interatomic potentials",
+    "year": 2026,
+    "cites": 1,
+    "doi": "https://doi.org/10.1038/s42256-026-01235-7"
+   },
+   {
+    "id": "https://openalex.org/W4417182563",
+    "title": "Proof of a perfect platonic representation hypothesis",
+    "year": 2025,
+    "cites": 1,
+    "doi": "https://doi.org/10.48550/arxiv.2507.01098"
+   },
+   {
+    "id": "https://openalex.org/W7204245914",
+    "title": "Platonic Representation Hypothesis on World Models",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2608.23720"
+   },
+   {
+    "id": "https://openalex.org/W7167629551",
+    "title": "Platonic Projection Structures: Operator-Induced Observability in Representation Learning",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2607.05175"
+   },
+   {
+    "id": "https://openalex.org/W7167472690",
+    "title": "Platonic Projection Structures: Operator-Induced Observability in Representation Learning",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.3390/e28070768"
+   },
+   {
+    "id": "https://openalex.org/W7167486672",
+    "title": "The Platonic Dialogue as a Form of Representation of Philosophical Thought: The Poetics of the Text and an Atomistic Reading of the Corpus",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.18522/2415-8682-2026-15-7-14"
+   },
+   {
+    "id": "https://openalex.org/W7165619010",
+    "title": "Chentsov uniqueness forces metric-level agreement of the platonic representation of foundation models, and carries its scaling as the weight-1 Yukawa--WDVV ratio",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.20806271"
+   },
+   {
+    "id": "https://openalex.org/W7163549162",
+    "title": "Chentsov uniqueness forces metric-level agreement of the platonic representation of foundation models, and carries its scaling as the weight-1 Yukawa--WDVV ratio",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.20535026"
+   },
+   {
+    "id": "https://openalex.org/W7161629677",
+    "title": "Platonic Projection Structures: Operator-Induced Observability in Representation Learning",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.21203/rs.3.rs-9749304/v1"
+   },
+   {
+    "id": "https://openalex.org/W7154449421",
+    "title": "Towards Platonic Representation for Table Reasoning: A Foundation for Permutation-Invariant Retrieval",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2604.12133"
+   },
+   {
+    "id": "https://openalex.org/W7154656326",
+    "title": "Towards Platonic Representation for Table Reasoning: A Foundation for Permutation-Invariant Retrieval",
+    "year": 2026,
+    "cites": 0,
+    "doi": null
+   },
+   {
+    "id": "https://openalex.org/W7129494248",
+    "title": "Revisiting the Platonic Representation Hypothesis: An Aristotelian View",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2602.14486"
+   },
+   {
+    "id": "https://openalex.org/W7130236396",
+    "title": "Revisiting the Platonic Representation Hypothesis: An Aristotelian View",
+    "year": 2026,
+    "cites": 0,
+    "doi": null
+   },
+   {
+    "id": "https://openalex.org/W7128304008",
+    "title": "The Inevitability of Convergence: A Ramsey-Theoretic Foundation for the Platonic Representation Hypothesis",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.13140/rg.2.2.16195.46888"
+   },
+   {
+    "id": "https://openalex.org/W7128705323",
+    "title": "Artificial Intelligence as Functional Organization: Abstraction, Representation, and Platonic Attractors",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.13140/rg.2.2.29115.89128"
+   },
+   {
+    "id": "https://openalex.org/W7130849486",
+    "title": "The Inevitability of Convergence: A Ramsey-Theoretic Foundation for the Platonic Representation Hypothesis",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.13140/rg.2.2.24969.92005"
+   },
+   {
+    "id": "https://openalex.org/W7154714908",
+    "title": "The Inevitability of Convergence: A Ramsey-Theoretic Foundation for the Platonic Representation Hypothesis",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.2139/ssrn.6474658"
+   },
+   {
+    "id": "https://openalex.org/W7201889528",
+    "title": "PlatoNT: Learning a Platonic Representation for Unified Network Tomography",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.1109/ton.2026.3721803"
+   },
+   {
+    "id": "https://openalex.org/W7106826899",
+    "title": "Platonic representation of foundation machine learning interatomic potentials",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.17721681"
+   },
+   {
+    "id": "https://openalex.org/W7106850734",
+    "title": "Platonic representation of foundation machine learning interatomic potentials",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.17721680"
+   },
+   {
+    "id": "https://openalex.org/W7106318746",
+    "title": "PLATONT: Learning a Platonic Representation for Unified Network Tomography",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2511.15251"
+   },
+   {
+    "id": "https://openalex.org/W7106475749",
+    "title": "PLATONT: Learning a Platonic Representation for Unified Network Tomography",
+    "year": 2025,
+    "cites": 0,
+    "doi": null
+   },
+   {
+    "id": "https://openalex.org/W4407683605",
+    "title": "Neuron Platonic Intrinsic Representation From Dynamics Using Contrastive Learning",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2502.10425"
+   },
+   {
+    "id": "https://openalex.org/W4410309975",
+    "title": "The Ontological Reversal of Visual Representation\u2014From Platonic Shadows, Visual Spectacles, to the Metaverse",
+    "year": 2025,
+    "cites": 0,
+    "doi": "https://doi.org/10.12677/acpp.2025.145212"
+   }
+  ]
+ },
+ "oa_title_T5": {
+  "query": "curvature representations linear",
+  "n": 0,
+  "rows": []
+ },
+ "oa_title_T6": {
+  "query": "manifold capacity",
+  "n": 72,
+  "rows": [
+   {
+    "id": "https://openalex.org/W3111553414",
+    "title": "Minimising hulls, p-capacity and isoperimetric inequality on complete Riemannian manifolds",
+    "year": 2022,
+    "cites": 38,
+    "doi": "https://doi.org/10.1016/j.jfa.2022.109638"
+   },
+   {
+    "id": "https://openalex.org/W2979858600",
+    "title": "Capacity-Resolution Trade-Off in the Optimal Learning of Multiple Low-Dimensional Manifolds by Attractor Neural Networks",
+    "year": 2020,
+    "cites": 21,
+    "doi": "https://doi.org/10.1103/physrevlett.124.048302"
+   },
+   {
+    "id": "https://openalex.org/W4405011363",
+    "title": "Multi-objective optimization of an immersion cooling battery module with manifold jet impingement: Based on precision model for high-capacity batteries",
+    "year": 2024,
+    "cites": 18,
+    "doi": "https://doi.org/10.1016/j.icheatmasstransfer.2024.108448"
+   },
+   {
+    "id": "https://openalex.org/W2317249904",
+    "title": "The p-Harmonic Capacity of an Asymptotically Flat 3-Manifold with Non-negative Scalar Curvature",
+    "year": 2016,
+    "cites": 13,
+    "doi": "https://doi.org/10.1007/s00023-016-0475-8"
+   },
+   {
+    "id": "https://openalex.org/W3157382715",
+    "title": "Continuous solutions to Monge\u2013Amp\u00e8re equations on Hermitian manifolds for measures dominated by capacity",
+    "year": 2021,
+    "cites": 7,
+    "doi": "https://doi.org/10.1007/s00526-021-01944-4"
+   },
+   {
+    "id": "https://openalex.org/W4396620736",
+    "title": "Flow analysis of internal manifold-type SOFC stacks based on electrical capacity",
+    "year": 2024,
+    "cites": 6,
+    "doi": "https://doi.org/10.1007/s12206-024-0444-y"
+   },
+   {
+    "id": "https://openalex.org/W2955119406",
+    "title": "The Concept and Criteria of the Capacitive Type of the Non-Compact Riemannian Manifold Based on the Generalized Capacity",
+    "year": 2019,
+    "cites": 6,
+    "doi": "https://doi.org/10.15688/mpcm.jvolsu.2019.2.2"
+   },
+   {
+    "id": "https://openalex.org/W4323571911",
+    "title": "Learning Efficient Coding of Natural Images with Maximum Manifold Capacity Representations",
+    "year": 2023,
+    "cites": 5,
+    "doi": "https://doi.org/10.48550/arxiv.2303.03307"
+   },
+   {
+    "id": "https://openalex.org/W4406792645",
+    "title": "Comparison results for relative Robin p-capacity on complete Riemannian manifolds",
+    "year": 2025,
+    "cites": 4,
+    "doi": "https://doi.org/10.1016/j.jde.2025.01.059"
+   },
+   {
+    "id": "https://openalex.org/W3011760327",
+    "title": "Continuous solutions to Monge-Amp\u00e8re equations on Hermitian manifolds for measures dominated by capacity",
+    "year": 2020,
+    "cites": 4,
+    "doi": "https://doi.org/10.48550/arxiv.2003.05061"
+   },
+   {
+    "id": "https://openalex.org/W4404652480",
+    "title": "ADM mass, area and capacity in asymptotically flat 3-manifolds with nonnegative scalar curvature",
+    "year": 2024,
+    "cites": 3,
+    "doi": "https://doi.org/10.1142/s0219199725500117"
+   },
+   {
+    "id": "https://openalex.org/W7133223223",
+    "title": "Learning Efficient Coding of Natural Images with Maximum Manifold Capacity Representations",
+    "year": 2023,
+    "cites": 3,
+    "doi": "https://doi.org/10.52202/075280-1047"
+   },
+   {
+    "id": "https://openalex.org/W2951965850",
+    "title": "A Rapid and Simple Manifold to Study Exchangeable Cations and Cation Exchange Capacity in 24 Soil Samples Simultaneously",
+    "year": 2019,
+    "cites": 3,
+    "doi": "https://doi.org/10.1080/00103624.2019.1631329"
+   },
+   {
+    "id": "https://openalex.org/W2904868877",
+    "title": "The sharp energy\u2013capacity inequality on convex symplectic manifolds",
+    "year": 2018,
+    "cites": 2,
+    "doi": "https://doi.org/10.1007/s11784-018-0650-2"
+   },
+   {
+    "id": "https://openalex.org/W2888627788",
+    "title": "Capacity inequalities and rigidity of cornered/conical manifolds",
+    "year": 2018,
+    "cites": 2,
+    "doi": "https://doi.org/10.1007/s10455-018-9626-0"
+   },
+   {
+    "id": "https://openalex.org/W4410947097",
+    "title": "Capacity Boundary Elements in Riemannian Manifolds and Generalized Boundaries",
+    "year": 2025,
+    "cites": 1,
+    "doi": "https://doi.org/10.1134/s0037446625030140"
+   },
+   {
+    "id": "https://openalex.org/W4386690903",
+    "title": "Load capacity of penstock manifolds subjected to increasing settlements at the vertical supports",
+    "year": 2023,
+    "cites": 1,
+    "doi": "https://doi.org/10.1002/cepa.2565"
+   },
+   {
+    "id": "https://openalex.org/W4382490988",
+    "title": "Capacity for minimal graphs over manifolds and the half-space property",
+    "year": 2023,
+    "cites": 1,
+    "doi": "https://doi.org/10.48550/arxiv.2306.15137"
+   },
+   {
+    "id": "https://openalex.org/W4292104483",
+    "title": "ADM mass, area and capacity in asymptotically flat $3$-manifolds with nonnegative scalar curvature",
+    "year": 2022,
+    "cites": 1,
+    "doi": "https://doi.org/10.48550/arxiv.2208.06688"
+   },
+   {
+    "id": "https://openalex.org/W2952512958",
+    "title": "The sharp energy-capacity inequality on convex symplectic manifolds",
+    "year": 2019,
+    "cites": 1,
+    "doi": "https://doi.org/10.48550/arxiv.1903.07051"
+   },
+   {
+    "id": "https://openalex.org/W7212030390",
+    "title": "Mass-Capacity Rigidity for Asymptotically Flat Manifolds with Arbitrary Ends",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.48550/arxiv.2609.08579"
+   },
+   {
+    "id": "https://openalex.org/W7211895248",
+    "title": "Topological Resolution of the GKLS Singularity Theorem Exact Quantum Dissipation via the Finite-Capacity Heegner-Vorton Manifold",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.13140/rg.2.2.16564.62088"
+   },
+   {
+    "id": "https://openalex.org/W7210266850",
+    "title": "Topological Manifold Persistence and Projective Shannon Capacity in Human Cortical Electrophysiology: Sub-Nyquist Neural Compression and Robust Motor Decoding in Subdural ECoG Arrays",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.22438267"
+   },
+   {
+    "id": "https://openalex.org/W7210278175",
+    "title": "Topological Manifold Persistence and Projective Shannon Capacity in Human Cortical Electrophysiology: Sub-Nyquist Neural Compression and Robust Motor Decoding in Subdural ECoG Arrays",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.5281/zenodo.22438266"
+   },
+   {
+    "id": "https://openalex.org/W7204131574",
+    "title": "The Tri-Polar Compute Manifold: State Capacity, Control Loops, and Grand Strategy in Major-Power Competition",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.33774/coe-2026-724x8"
+   }
+  ]
+ },
+ "oa_title_T7": {
+  "query": "curvature latent space decoder",
+  "n": 0,
+  "rows": []
+ },
+ "oa_title_T8": {
+  "query": "perceptual straightening",
+  "n": 6,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2941161300",
+    "title": "Perceptual straightening of natural videos",
+    "year": 2019,
+    "cites": 83,
+    "doi": "https://doi.org/10.1038/s41593-019-0377-4"
+   },
+   {
+    "id": "https://openalex.org/W3206718933",
+    "title": "Improving the Visual Quality of Video Frame Prediction Models Using the Perceptual Straightening Hypothesis",
+    "year": 2021,
+    "cites": 5,
+    "doi": "https://doi.org/10.1109/lsp.2021.3118639"
+   },
+   {
+    "id": "https://openalex.org/W7196937366",
+    "title": "AI-Generated Video Detection via Perceptual Straightening",
+    "year": 2025,
+    "cites": 3,
+    "doi": "https://doi.org/10.52202/085713-0697"
+   },
+   {
+    "id": "https://openalex.org/W2946410362",
+    "title": "Author Correction: Perceptual straightening of natural videos",
+    "year": 2019,
+    "cites": 2,
+    "doi": "https://doi.org/10.1038/s41593-019-0420-5"
+   },
+   {
+    "id": "https://openalex.org/W2753862030",
+    "title": "Perceptual straightening of natural video trajectories",
+    "year": 2017,
+    "cites": 2,
+    "doi": "https://doi.org/10.1167/17.10.402"
+   },
+   {
+    "id": "https://openalex.org/W7170164080",
+    "title": "Benchmarking and Improving Perceptual Straightening for Robust AI-Generated Video Detection",
+    "year": 2026,
+    "cites": 0,
+    "doi": "https://doi.org/10.3390/electronics15153245"
+   }
+  ]
+ },
+ "cites_PU_W4387510461": {
+  "n": 2,
+  "rows": [
+   {
+    "id": "https://openalex.org/W2981047784",
+    "title": "Polycl\u00e8te et les Pr\u00e9socratiques",
+    "publication_year": 2002,
+    "cited_by_count": 4
+   },
+   {
+    "id": "https://openalex.org/W4254738316",
+    "title": "II. Masters, Hands and Freestanding Sculpture",
+    "publication_year": 1991,
+    "cited_by_count": 0
+   }
+  ]
+ },
+ "cites_PU_W575364995": {
+  "n": 0,
+  "rows": []
+ },
+ "cites_PU_W4416479895": {
+  "n": 0,
+  "rows": []
+ },
+ "cites_PU_W2488847151": {
+  "n": 1,
+  "rows": [
+   {
+    "id": "https://openalex.org/W4317524711",
+    "title": "Jung\u2019s Reading of Plato and the Timaeus",
+    "publication_year": 2022,
+    "cited_by_count": 0
+   }
+  ]
+ },
+ "cites_PU_W2537250668": {
+  "n": 1,
+  "rows": [
+   {
+    "id": "https://openalex.org/W1529567224",
+    "title": "The Prehistory of the Steady State Theory",
+    "publication_year": 2003,
+    "cited_by_count": 0
+   }
+  ]
+ },
+ "s2_curvature linear probe represe": {
+  "query": "curvature linear probe representation manifold label",
+  "rows": [
+   {
+    "paperId": "30ee9a3025c8aa085fd5b18a710c761ed42e15bb",
+    "externalIds": {
+     "DBLP": "journals/apin/BaiW25",
+     "DOI": "10.1007/s10489-024-06116-3",
+     "CorpusId": 274958596
+    },
+    "title": "Graph-based multi-label feature selection with dynamic graph constraints and latent representation learning",
+    "venue": "Applied intelligence (Boston)",
+    "year": 2024,
+    "citationCount": 8
+   },
+   {
+    "paperId": "c9f6d6485556b6214360f6b3f630c829176fc1ec",
+    "externalIds": {
+     "ArXiv": "2605.05115",
+     "DBLP": "journals/corr/abs-2605-05115",
+     "DOI": "10.48550/arXiv.2605.05115",
+     "CorpusId": 287988518
+    },
+    "title": "Manifold Steering Reveals the Shared Geometry of Neural Network Representation and Behavior",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 19
+   },
+   {
+    "paperId": "ce87a60ac61b8220a9d01aed3a7b0ff4d029cef3",
+    "externalIds": {
+     "DBLP": "journals/jksucis/WangZHZ26",
+     "DOI": "10.1007/s44443-026-01033-6",
+     "CorpusId": 290125523
+    },
+    "title": "Multi-label feature selection via label orthogonal embedding and feature self-representation",
+    "venue": "Journal of King Saud University: Computer and Information Sciences",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "2ee7147606ed8f2f9d4eb01b104b46622f316841",
+    "externalIds": {
+     "DOI": "10.1784/insi.2024.66.12.747",
+     "CorpusId": 274851135
+    },
+    "title": "Manifold learning-empowered lightweight unsupervised deep representation for edge-side fault detection",
+    "venue": "Insight - Non-Destructive Testing and Condition Monitoring",
+    "year": 2024,
+    "citationCount": 0
+   },
+   {
+    "paperId": "1b67239d9e51e87e60813f9173a0c58e164432f9",
+    "externalIds": {
+     "DOI": "10.37256/cm.6520257932",
+     "CorpusId": 281802491
+    },
+    "title": "Complex Geodesic Curvature for Real-Time LiDAR Feature Classification",
+    "venue": "Contemporary Mathematics",
+    "year": 2025,
+    "citationCount": 1
+   },
+   {
+    "paperId": "30f5751d5cbe1a6b23c1a89743d4897e13ad6056",
+    "externalIds": {
+     "DOI": "10.65115/7dnryk35",
+     "CorpusId": 282071350
+    },
+    "title": "Multi-class classification framework for ear imaging using attention-based hybrid dense CNN and non-linear manifold approximation",
+    "venue": "Samarra Journal of Engineering Science and Research",
+    "year": 2025,
+    "citationCount": 1
+   },
+   {
+    "paperId": "37c22a7bc7a955966e0a7cbaa5decc38b4dc0a2c",
+    "externalIds": {
+     "DBLP": "conf/eccv/AnYDFD24",
+     "ArXiv": "2407.17331",
+     "DOI": "10.1007/978-3-031-73383-3_25",
+     "CorpusId": 271404330
+    },
+    "title": "Multi-label Cluster Discrimination for Visual Representation Learning",
+    "venue": "European Conference on Computer Vision",
+    "year": 2024,
+    "citationCount": 19
+   },
+   {
+    "paperId": "b356dbb38d030b64721531f4dab65b66c0e4f110",
+    "externalIds": {
+     "ArXiv": "2506.06853",
+     "DBLP": "conf/icml/KaufmanA25",
+     "DOI": "10.48550/arXiv.2506.06853",
+     "CorpusId": 279250379
+    },
+    "title": "Curvature Enhanced Data Augmentation for Regression",
+    "venue": "International Conference on Machine Learning",
+    "year": 2025,
+    "citationCount": 1
+   },
+   {
+    "paperId": "4a3eefb297de8891cb80573481194a326d760673",
+    "externalIds": {
+     "DBLP": "conf/ijcai/GaoGHP025",
+     "ArXiv": "2505.23228",
+     "DOI": "10.48550/arXiv.2505.23228",
+     "CorpusId": 278996292
+    },
+    "title": "Graph Random Walk with Feature-Label Space Alignment: A Multi-Label Feature Selection Method",
+    "venue": "International Joint Conference on Artificial Intelligence",
+    "year": 2025,
+    "citationCount": 3
+   },
+   {
+    "paperId": "4bbcd9a95dad8009d36d1a1007b3a1b8018becb3",
+    "externalIds": {
+     "DOI": "10.1109/ICEI68356.2025.11603756",
+     "CorpusId": 290429956
+    },
+    "title": "Unveiling Phishing Attacks Through Manifold Embedding and Geodesic Features: A Transparent Learning Framework",
+    "venue": "2025 IEEE Conference on Engineering Informatics (ICEI)",
+    "year": 2025,
+    "citationCount": 0
+   },
+   {
+    "paperId": "bbf753eb4e65a596c3f689fe4ee86d14522a4f41",
+    "externalIds": {
+     "DBLP": "journals/tai/ZhangFB26",
+     "DOI": "10.1109/TAI.2026.3665660",
+     "CorpusId": 285845563
+    },
+    "title": "Adaptive Geometric Representation Learning Through Mixed-Curvature Mixture-of-Experts Diffusion for Link Prediction",
+    "venue": "IEEE Transactions on Artificial Intelligence",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "6cef5123e48dc8713458873786587a8d4791e8d4",
+    "externalIds": {
+     "ArXiv": "2608.27813",
+     "CorpusId": 291470177
+    },
+    "title": "Representation of syntax in LLMs through the lens of linear distance and similarity-aware entropy",
+    "venue": "",
+    "year": 2026,
+    "citationCount": 0
+   }
+  ]
+ },
+ "s2_extrinsic curvature neural man": {
+  "query": "extrinsic curvature neural manifold linear readout",
+  "rows": [
+   {
+    "paperId": "aed43a377439c81eb53dc614940ee3816a957281",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2602-22937",
+     "ArXiv": "2602.22937",
+     "DOI": "10.48550/arXiv.2602.22937",
+     "CorpusId": 286083150
+    },
+    "title": "MSINO: Curvature-Aware Sobolev Optimization for Manifold Neural Networks",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "e326299b8a5d363e360c727a96ad8c20e779ba0e",
+    "externalIds": {
+     "ArXiv": "2307.02478",
+     "DBLP": "journals/corr/abs-2307-02478",
+     "DOI": "10.48550/arXiv.2307.02478",
+     "CorpusId": 259342708
+    },
+    "title": "Linear Regression on Manifold Structured Data: the Impact of Extrinsic Geometry on Solutions",
+    "venue": "TAG-ML",
+    "year": 2023,
+    "citationCount": 3
+   },
+   {
+    "paperId": "540e9ca2b2aca34e089748cdde0239795951efa0",
+    "externalIds": {
+     "ArXiv": "2212.10414",
+     "DBLP": "conf/cvpr/AcostaSDMM23",
+     "DOI": "10.1109/CVPRW59228.2023.00068",
+     "CorpusId": 258309824
+    },
+    "title": "Quantifying Extrinsic Curvature in Neural Manifolds",
+    "venue": "2023 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)",
+    "year": 2022,
+    "citationCount": 12
+   },
+   {
+    "paperId": "717aa2cd8495ac3681b84f9879ce7dac3e3a1019",
+    "externalIds": {
+     "CorpusId": 254877657
+    },
+    "title": "Quantifying Local Extrinsic Curvature in Neural Manifolds",
+    "venue": "",
+    "year": 2022,
+    "citationCount": 1
+   },
+   {
+    "paperId": "3629e1c2bb0332eff10fcc443230ca6e12ce4a4a",
+    "externalIds": {
+     "DBLP": "conf/wacv/SafavigerdiniYSP26",
+     "DOI": "10.1109/WACVW68408.2026.00145",
+     "CorpusId": 290847629
+    },
+    "title": "OrthoMDA: Curvature-Preserving Manifold Visualization for Regression Networks via Gram-Schmidt Orthogonalization",
+    "venue": "2026 IEEE/CVF Winter Conference on Applications of Computer Vision Workshops (WACVW)",
+    "year": 2026,
+    "citationCount": 1
+   },
+   {
+    "paperId": "c9f6d6485556b6214360f6b3f630c829176fc1ec",
+    "externalIds": {
+     "ArXiv": "2605.05115",
+     "DBLP": "journals/corr/abs-2605-05115",
+     "DOI": "10.48550/arXiv.2605.05115",
+     "CorpusId": 287988518
+    },
+    "title": "Manifold Steering Reveals the Shared Geometry of Neural Network Representation and Behavior",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 19
+   },
+   {
+    "paperId": "90b6d838d22402398ffa364a475ae60943bbce31",
+    "externalIds": {
+     "DOI": "10.2139/ssrn.6393860",
+     "CorpusId": 287116541
+    },
+    "title": "The Geometry of Alpha\u00a0\nManifold Learning, Topological Data Analysis, and Non-Linear Factor Structures in Global Equity Markets",
+    "venue": "Social Science Research Network",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "423a1994b83fb22acec076e222381be184d8a6f5",
+    "externalIds": {
+     "ArXiv": "2603.10956",
+     "CorpusId": 286462613
+    },
+    "title": "Linear Readout of Neural Manifolds with Continuous Variables",
+    "venue": "",
+    "year": 2026,
+    "citationCount": 1
+   },
+   {
+    "paperId": "8a629105fb2b231e62273c26b80287fe5a19a919",
+    "externalIds": {
+     "ArXiv": "2010.07502",
+     "MAG": "3092844423",
+     "DOI": "10.2140/pjm.2021.314.411",
+     "CorpusId": 222377927
+    },
+    "title": "Extrinsic curvature and conformal Gauss\u2013Bonnet\nfor four-manifolds with corner",
+    "venue": "Pacific Journal of Mathematics",
+    "year": 2020,
+    "citationCount": 2
+   },
+   {
+    "paperId": "e81b74e89412a145fa362a3b8091be9ac754071a",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2603-28937",
+     "ArXiv": "2603.28937",
+     "DOI": "10.48550/arXiv.2603.28937",
+     "CorpusId": 286976863
+    },
+    "title": "A Neural Tension Operator for Curve Subdivision across Constant Curvature Geometries",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 2
+   },
+   {
+    "paperId": "a2a29f7717045bb37f863dfa26673a7d05a51979",
+    "externalIds": {
+     "DOI": "10.1101/2023.03.11.532146",
+     "CorpusId": 257535737
+    },
+    "title": "Comparing Sites of Plasticity in Models of Adaptation to Manifold-Based Perturbations in Brain-Computer Interfaces",
+    "venue": "bioRxiv",
+    "year": 2026,
+    "citationCount": 5
+   },
+   {
+    "paperId": "7214f82f2b017b8e8cd33b401ee4589c4daf4172",
+    "externalIds": {
+     "DOI": "10.64898/2026.03.23.713692",
+     "CorpusId": 286792380
+    },
+    "title": "Manifold geometry underlies a unified code for category and category-independent features",
+    "venue": "bioRxiv",
+    "year": 2026,
+    "citationCount": 0
+   }
+  ]
+ },
+ "s2_second fundamental form linear": {
+  "query": "second fundamental form linear readout neural representation",
+  "rows": [
+   {
+    "paperId": "7a144a0e508f1dde777fe11ed69886058940b6a4",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2604-20308",
+     "ArXiv": "2604.20308",
+     "DOI": "10.48550/arXiv.2604.20308",
+     "CorpusId": 287668561
+    },
+    "title": "Sheaf Neural Networks on SPD Manifolds: Second-Order Geometric Representation Learning",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 2
+   },
+   {
+    "paperId": "781dd30efcf54688bfd40f816c22ffb570e71de9",
+    "externalIds": {
+     "DBLP": "journals/tmm/GuoWLXCW25",
+     "DOI": "10.1109/TMM.2023.3330338",
+     "CorpusId": 265166289
+    },
+    "title": "Steerable Graph Neural Network on Point Clouds via Second-Order Random Walks",
+    "venue": "IEEE transactions on multimedia",
+    "year": 2025,
+    "citationCount": 8
+   },
+   {
+    "paperId": "09b8c32e3914bc25c54cd5e92c3764a656d2d65e",
+    "externalIds": {
+     "DBLP": "journals/ml/QianY24",
+     "DOI": "10.1007/s10994-024-06523-0",
+     "CorpusId": 269473980
+    },
+    "title": "Semantic-enhanced graph neural networks with global context representation",
+    "venue": "Machine-mediated learning",
+    "year": 2024,
+    "citationCount": 3
+   },
+   {
+    "paperId": "02c977e3438c3dd04ea4b8b7e98268a57bfab2ab",
+    "externalIds": {
+     "ArXiv": "2602.05906",
+     "CorpusId": 285304359
+    },
+    "title": "Explicit representation of solutions to a linear wave equation with time delay",
+    "venue": "",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "d54ca756f302122e84f75c26937e6b0275add739",
+    "externalIds": {
+     "DBLP": "journals/pami/ChenLC25",
+     "DOI": "10.1109/TPAMI.2025.3548620",
+     "CorpusId": 276810449,
+     "PubMed": "40042958"
+    },
+    "title": "On the Upper Bounds of Number of Linear Regions and Generalization Error of Deep Convolutional Neural Networks",
+    "venue": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+    "year": 2025,
+    "citationCount": 2
+   },
+   {
+    "paperId": "6d820827d44159c5e0cc6c65065a41ab4a4bd14c",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2106-00651",
+     "ArXiv": "2106.00651",
+     "DOI": "10.1088/1742-5468/ac98a6",
+     "CorpusId": 235265812
+    },
+    "title": "Asymptotics of representation learning in finite Bayesian neural networks",
+    "venue": "Neural Information Processing Systems",
+    "year": 2021,
+    "citationCount": 46
+   },
+   {
+    "paperId": "46261a2a93c569e841c6af7af2149ed557d9d2be",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2512-11776",
+     "ArXiv": "2512.11776",
+     "DOI": "10.48550/arXiv.2512.11776",
+     "CorpusId": 283883813
+    },
+    "title": "The Adaptive Vekua Cascade: A Differentiable Spectral-Analytic Solver for Physics-Informed Representation",
+    "venue": "arXiv.org",
+    "year": 2025,
+    "citationCount": 1
+   },
+   {
+    "paperId": "a0be06063bea9eec6528b04269ee7b942beec797",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2605-12683",
+     "ArXiv": "2605.12683",
+     "DOI": "10.48550/arXiv.2605.12683",
+     "CorpusId": 288259811
+    },
+    "title": "Parallel-in-Time Training of Recurrent Neural Networks for Dynamical Systems Reconstruction",
+    "venue": "arXiv.org",
+    "year": 2026,
+    "citationCount": 1
+   },
+   {
+    "paperId": "3e0d9d79e533cf3c3058d97efe296634a434d7b8",
+    "externalIds": {
+     "ArXiv": "2605.23383",
+     "CorpusId": 288649909
+    },
+    "title": "On modular forms of rational weight satisfying the canonical second-order linear modular differential equation",
+    "venue": "",
+    "year": 2026,
+    "citationCount": 0
+   },
+   {
+    "paperId": "fee1799c28567dd8faf5010a6bd72f9ceabd1b2a",
+    "externalIds": {
+     "MAG": "3105673225",
+     "ArXiv": "2011.06066",
+     "DOI": "10.1103/PHYSREVRESEARCH.3.013176",
+     "CorpusId": 226306711
+    },
+    "title": "Quality of internal representation shapes learning performance in feedback neural networks",
+    "venue": "Physical Review Research",
+    "year": 2020,
+    "citationCount": 25
+   },
+   {
+    "paperId": "e11dd0a1529284d93032250af57617c8044a6381",
+    "externalIds": {
+     "DBLP": "journals/staeors/GaoTZCH24",
+     "DOI": "10.1109/JSTARS.2024.3474849",
+     "CorpusId": 273143305
+    },
+    "title": "Road Topology Extraction Based on Point of Interest Guidance and Graph Convolutional Neural Network From High-Resolution Remote Sensing Images",
+    "venue": "IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing",
+    "year": 2024,
+    "citationCount": 3
+   },
+   {
+    "paperId": "e62b8f8ef5e8c626c0769c1e7b51540a32a1dcbc",
+    "externalIds": {
+     "DOI": "10.1063/5.0100608",
+     "CorpusId": 253281809
+    },
+    "title": "Linear quaternion-valued difference equations: Representation of solutions, controllability, and observability",
+    "venue": "Journal of Mathematics and Physics",
+    "year": 2022,
+    "citationCount": 14
+   }
+  ]
+ },
+ "s2_Platonic Universe galaxy embed": {
+  "query": "Platonic Universe galaxy embeddings convergence",
+  "rows": [
+   {
+    "paperId": "d94056a6454017c9164ae8fbf48cfb9c83b9d0db",
+    "externalIds": {
+     "DBLP": "journals/corr/abs-2509-19453",
+     "ArXiv": "2509.19453",
+     "DOI": "10.48550/arXiv.2509.19453",
+     "CorpusId": 281506111
+    },
+    "title": "The Platonic Universe: Do Foundation Models See the Same Sky?",
+    "venue": "arXiv.org",
+    "year": 2025,
+    "citationCount": 4
+   },
+   {
+    "paperId": "58a150770f17220d4acf95054ea505e4c40146c5",
+    "externalIds": {
+     "ArXiv": "2212.10594",
+     "DOI": "10.1093/mnras/stad623",
+     "CorpusId": 254926453
+    },
+    "title": "Local and large-scale effects on the astrophysics of void galaxies",
+    "venue": "Monthly notices of the Royal Astronomical Society",
+    "year": 2022,
+    "citationCount": 5
+   },
+   {
+    "paperId": "30217687fdc583e54413f48ed63c9d084b873a6b",
+    "externalIds": {
+     "MAG": "2529636237",
+     "DOI": "10.1007/978-3-319-42571-9_9",
+     "CorpusId": 125123050
+    },
+    "title": "The Efficiency of Next-Generation Gibbs-Type Samplers: An Illustration Using a Hierarchical Model in Cosmology",
+    "venue": "",
+    "year": 2016,
+    "citationCount": 1
+   },
+   {
+    "paperId": "545e3b5cd04078737fd5a46eb6f155fa76110856",
+    "externalIds": {
+     "MAG": "1638827696",
+     "CorpusId": 118806561
+    },
+    "title": "The internal structure of Cold Dark Matter Haloes",
+    "venue": "",
+    "year": 2010,
+    "citationCount": 0
+   },
+   {
+    "paperId": "de928a2a1312fa0b52c24d6eed3a19f97eeec7b9",
+    "externalIds": {
+     "MAG": "2153905920",
+     "CorpusId": 14368122
+    },
+    "title": "3D mapping of CDM substructure at submillimeter wavelengths",
+    "venue": "",
+    "year": 2005,
+    "citationCount": 0
+   },
+   {
+    "paperId": "ec45200594cf235169cb3b85a2668531d3c9775a",
+    "externalIds": {
+     "MAG": "1818318771",
+     "CorpusId": 120423142
+    },
+    "title": "MHD numerical simulations in a cosmological context",
+    "venue": "",
+    "year": 2011,
+    "citationCount": 0
+   },
+   {
+    "paperId": "3af7311fc4e60f5b4cf9ea74938c2d6ab2387cb8",
+    "externalIds": {
+     "CorpusId": 160005095
+    },
+    "title": "Is Fractality : The Electrical Mechanism of Gravity , ( and Perception and Color Descrimination )",
+    "venue": "",
+    "year": 2008,
+    "citationCount": 0
+   },
+   {
+    "paperId": "b9e95718ae4a51c9fd1cdddf1d5f3d947a41e06d",
+    "externalIds": {
+     "DOI": "10.1088/0264-9381/25/22/229003",
+     "CorpusId": 250911392
+    },
+    "title": "Cosmology",
+    "venue": "",
+    "year": 2008,
+    "citationCount": 0
+   }
+  ]
+ },
+ "cites_liu2023_W4383474007": []
+}
