@@ -30,8 +30,12 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-15, later: Appendix E and the intervention sentence in Section 5 and the abstract added;
+six further cuts incl. the two decoder-curvature related-work citations and the CKA-strata clause): `check.sh` PASS;
+References begin on page 4 with 13 reference lines on that page.
+
 Page-count status (2026-09-15, after Appendix D, the cross-encoder sentence and the Limitations sentence on
-the known-surface demo): `check.sh` PASS; References begin on page 4 with 12 reference lines on that page
+the known-surface demo; superseded above): `check.sh` PASS; References begin on page 4 with 12 reference lines on that page
 (Times metric); CM fallback spills 12 lines. Fourteen trims were made to pay for the two additions
 (Figure 1a cross-reference sentence, Section 4 summary opening, "In sum" sentence, Known-surface last
 sentence, pilot numbers, noise clause, in-sphere ratio clause, density formula, and shorter phrasings).

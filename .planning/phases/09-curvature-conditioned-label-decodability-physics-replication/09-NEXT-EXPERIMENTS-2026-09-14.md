@@ -101,3 +101,10 @@ Appendix D (two generated tables), "Across encoders" paragraph extended, one cla
 Discussion; `check.sh` passes. Prediction of this doc's §X met in full (mismatch and alignment
 encoder-stable, shape term free). Pod: tmux sessions exited; nothing left running; outputs remain under
 `/mnt/ssd-cluster/effdim/xenc-out/`.
+
+**Route 1 (counterfactual normal scaling) run 15:41–15:51 UTC**, `09_physics_normal_scaling_run.py` (new,
+additive), six runs (five encoders d=16, ViT-B d=20), records `notebooks/.cache/09_physics_normal_scaling_*`.
+Decoder second-order term helps at 79–99% of anchors (median ΔR² +0.013…+0.031), its mirror hurts at
+97–100% (−0.025…−0.055), random normal direction at chance; t* median 1.5–3.6 (ridge undershoots).
+Supplement 12; Appendix E (generated); one sentence in Section 5, one clause in the abstract; Limitations
+reworded. This, not the fixture, is what supports "bending toward helps, away hurts".

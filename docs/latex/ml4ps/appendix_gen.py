@@ -143,6 +143,40 @@ encoder & label & fit A/score B & fit B/score A & fit A/score B & fit B/score A 
 \caption{Cross-fitted mismatch and alignment partials per encoder (multi-scale control) and split-half reliability of the label Hessian.}
 \label{tab:xencx}
 \end{table}""")
+# --- E: counterfactual normal scaling (from the per-anchor arrays)
+import numpy as np
+runs = [("ViT-B", 16, "vit_base_d16"), ("ViT-B", 20, "vit_base_d20"), ("DINOv3", 16, "dinov3_vitb16_d16"), ("CLIP-B", 16, "clip_base_d16"),
+        ("ConvNeXt-B", 16, "convnext_base_d16"), ("ViT-L", 16, "vit_large_d16")]
+erows = []
+for enc, d, stem in runs:
+    f = C + f"09_physics_normal_scaling_{stem}.npz"
+    if not os.path.exists(f): continue
+    z = np.load(f)
+    for lab in labels:
+        cells = []
+        for var in ("S_model", "random"):
+            eq, qq, cv = z[f"{lab}:{var}:eq"], z[f"{lab}:{var}:qq"], z[f"{lab}:{var}:r2_curve"]
+            m = np.isfinite(eq); dp = cv[m, 4] - cv[m, 2]; dm = cv[m, 0] - cv[m, 2]; ts = eq[m] / np.maximum(qq[m], 1e-300)
+            cells += [f"{np.mean(dp > 0):.2f}", f"{np.mean(dm < 0):.2f}", f"${np.median(dp):+.3f}$", f"${np.median(dm):+.3f}$"]
+            if var == "S_model": cells += [f"{np.median(ts):.1f}"]
+        erows.append((f"{enc}, $d={d}$" if lab == labels[0] else "") + f" & {lab_tex[lab]} & " + " & ".join(cells) + r" \\")
+    erows.append(r"\addlinespace[2pt]")
+if erows:
+    out.append(r"""\section*{Appendix E: intervening on the readout's normal component}
+The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether bending away from the label's curvature hurts relative to no bending, since no anchor is flat. Here the readout is changed at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$, and the readout $w_T + w_{\mathrm{rad}} + t\,q$ is scored on the anchor's 2{,}048 neighbours with the local intercept refit, where $q$ is the decoder's second-order term $\tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ in the anchor's chart coordinates: $t=1$ is the manifold bending as it does in the probe's normal direction, $t=-1$ the mirror-image bending, $t=0$ flat. The local sum of squares is an exact quadratic in $t$ with minimum $t^{*}$. Columns: fraction of anchors where $t=1$ beats flat (help) and where $t=-1$ is worse than flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction of the same norm as $w_S$.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llccccc|cccc}
+\toprule
+ & & \multicolumn{5}{c|}{decoder second-order term} & \multicolumn{4}{c}{random normal direction} \\
+run & label & help & hurt & $\Delta R^2(+1)$ & $\Delta R^2(-1)$ & $t^{*}$ & help & hurt & $\Delta R^2(+1)$ & $\Delta R^2(-1)$ \\
+\midrule""")
+    out += erows
+    out.append(r"""\bottomrule
+\end{tabular}
+\caption{Counterfactual scaling of the readout's in-sphere normal component, 512 anchors per run. Bending as the manifold does helps at nearly every anchor, the mirror-image bending hurts at nearly every anchor, a random normal direction does neither; $t^{*}>1$ throughout, so the ridge-shrunk normal component undershoots.}
+\label{tab:cf}
+\end{table}""")
 tex = "\n".join(out) + "\n"
 p = "docs/latex/ml4ps/main.tex"; s = open(p).read()
 B, E = "% BEGIN APPENDIX AUTOGEN", "% END APPENDIX AUTOGEN"
@@ -150,4 +184,4 @@ if B not in s:
     s = s.replace("\\end{document}", f"\\appendix\n{B}\n{E}\n\\end{{document}}")
 i, j = s.index(B) + len(B), s.index(E)
 s = s[:i] + "\n" + tex + s[j:]
-open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", f"{len(have)} encoders;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha", len(rrows), "relii rows")
+open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", f"{len(have)} encoders;", f"{len(erows)} cf rows;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha", len(rrows), "relii rows")
