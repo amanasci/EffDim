@@ -91,6 +91,57 @@ run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\
 \caption{Relative-II pilot. $^{*}$ not significant at 0.05.}
 \label{tab:relii}
 \end{table}""")
+# --- D: cross-encoder probe-facing test (d=16, seed 0, cross-fit on)
+encs = [("ViT-B", C + "09_physics_probe_facing_split.jsonl"), ("DINOv3", C + "09_physics_probe_facing_split_dinov3_vitb16.jsonl"),
+        ("CLIP-B", C + "09_physics_probe_facing_split_clip_base.jsonl"), ("ConvNeXt-B", C + "09_physics_probe_facing_split_convnext_base.jsonl"),
+        ("ViT-L", C + "09_physics_probe_facing_split_vit_large.jsonl")]
+er, ex = {}, {}
+for name, f in encs:
+    for r in rows(f):
+        if r.get("d") != 16: continue
+        if r.get("row") == "result": er[(name, r["label"])] = r
+        if r.get("row") == "xfit": ex[(name, r["label"])] = r
+have = [n for n, _ in encs if any((n, l) in er for l in labels)]
+if len(have) > 1:
+    out.append(r"""\section*{Appendix D: the same test on four further encoders}
+Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{ll""" + "c" * len(have) + r"""}
+\toprule
+label & quantity & """ + " & ".join(have) + r""" \\
+\midrule""")
+    for lab in labels:
+        r2 = [f"{er[(n, lab)]['global_oof_r2']:.2f}" if (n, lab) in er else "--" for n in have]
+        out.append(lab_tex[lab] + " & global $R^2$ & " + " & ".join(r2) + r" \\")
+        for qn, qc in quant:
+            cells = [cell(er[(n, lab)]["columns"][qc]["multiscale"]) if (n, lab) in er else "--" for n in have]
+            out.append(f" & {qn} & " + " & ".join(cells) + r" \\")
+        out.append(r"\addlinespace[2pt]")
+    out.append(r"""\bottomrule
+\end{tabular}
+\caption{Cross-encoder replication, $d=16$, multi-scale density control. $^{*}$ not significant at 0.05.}
+\label{tab:xenc}
+\end{table}
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llccccc}
+\toprule
+ & & \multicolumn{2}{c}{mismatch, cross-fit} & \multicolumn{2}{c}{alignment, cross-fit} & Hess.\ split cos \\
+encoder & label & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p50 \\
+\midrule""")
+    for n in have:
+        for lab in labels:
+            x = ex.get((n, lab))
+            if x is None: continue
+            m = x["columns"]["hess_mismatch_dec"]; g = x["columns"]["align_cos_tan"]
+            out.append(f"{n if lab == labels[0] else ''} & {lab_tex[lab]} & {cell(m.get('fitA_scoreB'))} & {cell(m.get('fitB_scoreA'))} & {cell(g.get('fitA_scoreB'))} & {cell(g.get('fitB_scoreA'))} & {x['hessian_split_half_cos_p25_p50_p75'][1]:+.2f} \\\\")
+        out.append(r"\addlinespace[2pt]")
+    out.append(r"""\bottomrule
+\end{tabular}
+\caption{Cross-fitted mismatch and alignment partials per encoder (multi-scale control) and split-half reliability of the label Hessian.}
+\label{tab:xencx}
+\end{table}""")
 tex = "\n".join(out) + "\n"
 p = "docs/latex/ml4ps/main.tex"; s = open(p).read()
 B, E = "% BEGIN APPENDIX AUTOGEN", "% END APPENDIX AUTOGEN"
@@ -98,4 +149,4 @@ if B not in s:
     s = s.replace("\\end{document}", f"\\appendix\n{B}\n{E}\n\\end{{document}}")
 i, j = s.index(B) + len(B), s.index(E)
 s = s[:i] + "\n" + tex + s[j:]
-open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha", len(rrows), "relii rows")
+open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", f"{len(have)} encoders;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha", len(rrows), "relii rows")

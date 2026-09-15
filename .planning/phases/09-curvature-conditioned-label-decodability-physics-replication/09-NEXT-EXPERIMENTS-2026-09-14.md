@@ -74,3 +74,20 @@ embeddings read that way in ≈10 s on 2026-09-12). Runner is ready: `--parquet-
 (e.g. `clip_base_galaxies`; confirm column names from the parquet schema), and a loader shim that accepts
 widths ≠ 768 (sealed loader hard-codes 768). Row-count gate 86,471 is enforced by the shim; row *order*
 must still be checked against the ViT-B file (same `test` split; compare an id column if present).
+
+## Status 2026-09-15 (second session)
+
+**K closed, partial negative.** Runner gained `--scale-mult/--width-mult/--amp-mult` and the `bumpamb_β`
+label family (ambient-linear part + standardised bump-alt part). Sixteen d=16 fixture variants and the
+d=4 smoke: mismatch partial negative in all 40 cells (−0.14 to −0.88); alignment partial has no stable sign
+(one cell pair passes at +0.39/+0.35, its neighbours reverse or null it; wide-bump geometries negative).
+Pass rule not met. Written up as `09-SUPPLEMENT-10-KNOWN-SURFACE-ALIGNMENT-DEMO.md`; one sentence added to
+the manuscript's Limitations; no Section 5 sentence. Do not re-open without a different surface
+(e.g. bumps confined to two latent coordinates so anchors resolve individual bumps at d=16).
+
+**X running.** Download completed (hf_hub_download, all five parquets 86,471 rows, single column
+`<enc>_galaxies`, no id column; row order is checked by the probes' global OOF R² of 0.49–0.59 per encoder,
+which a misaligned join would collapse). Four tmux sessions `effdim-x-<enc>` launched 02:58 UTC; Ceph
+D-state waits were transient (loading finished by 03:10). Records
+`/mnt/ssd-cluster/effdim/xenc-out/09_physics_probe_facing_split_<enc>.jsonl`. Appendix D block already in
+`appendix_gen.py` (guarded: emits only when >1 encoder record is present).

@@ -115,10 +115,16 @@ def run_gamma(gamma: float, cfg: Dict[str, Any], pool: Dict[str, Any], G: Any, a
     a2 = lrng.standard_normal(d); a2 /= np.linalg.norm(a2)
     w_true = lrng.standard_normal(D); w_true /= np.linalg.norm(w_true)
     labels = fx.make_labels(z, X, np.random.default_rng(args.seed + 7))
+    s_lin = float(np.std(labels["ambient_linear_null"])); s_bump = float(np.std(bumpalt(G, z, 1.0)["val"]))
     for name in args.labels.split(","):
         if name.startswith("bumpalt_"):
             beta = float(name.split("_", 1)[1])
             labels[name] = z @ a1 + bumpalt(G, z, beta)["val"]
+        if name.startswith("bumpamb_"):
+            # ambient-linear part (exactly linearly readable; its Hess_M equals <w_N, II> identically) plus the
+            # bump-alt part, both standardised so beta is the bump-to-linear standard-deviation ratio.
+            beta = float(name.split("_", 1)[1])
+            labels[name] = labels["ambient_linear_null"] / s_lin + beta * bumpalt(G, z, 1.0)["val"] / s_bump
         y = labels[name]
         out = fx.probe_outcome(X, y, panel)
         r2, Z = out["r2"], out["Z"]
@@ -127,6 +133,12 @@ def run_gamma(gamma: float, cfg: Dict[str, Any], pool: Dict[str, Any], G: Any, a
         if name.startswith("bumpalt_"):
             ba = bumpalt(G, z[a], float(name.split("_", 1)[1]))
             lab = {"grad": ba["grad"] + a1[None, :], "hess": ba["hess"]}
+        elif name.startswith("bumpamb_"):
+            beta = float(name.split("_", 1)[1])
+            la = pf.label_derivatives("ambient_linear_null", z[a], X[a], geo, Qt18, a1, a2, w_true)
+            ba = bumpalt(G, z[a], 1.0)
+            lab = {"grad": la["grad"] / s_lin + beta * ba["grad"] / s_bump, "hess": la["hess"] / s_lin + beta * ba["hess"] / s_bump}
+            print(f"[{name}] label scales: std(lin)={s_lin:.4g} std(bump)={s_bump:.4g}", flush=True)
         else:
             lab = pf.label_derivatives(name, z[a], X[a], geo, Qt18, a1, a2, w_true)
         sc = split_columns(geo, w18, float(ridge.intercept_), y[a], x18, lab, d)
@@ -161,17 +173,25 @@ def main() -> None:
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--seed", type=int, default=20260905)
     p.add_argument("--n-permutations", type=int, default=None)
+    p.add_argument("--scale-mult", type=float, default=1.0, help="multiply the fixture's latent scale_choices (alignment-demo redesign)")
+    p.add_argument("--amp-mult", type=float, default=1.0, help="multiply the fixture's bump_amps (alignment-demo redesign)")
+    p.add_argument("--width-mult", type=float, default=1.0, help="multiply the fixture's bump_widths (alignment-demo redesign)")
     args = p.parse_args()
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
     record_path = Path(args.record_path).resolve()
     fx._refuse_production_record(record_path)
-    cfg = fx.SMOKE if args.mode == "smoke" else fx.FULL
+    cfg = dict(fx.SMOKE if args.mode == "smoke" else fx.FULL)
+    cfg["scale_choices"] = tuple(float(v) * args.scale_mult for v in cfg["scale_choices"])
+    cfg["bump_amps"] = tuple(float(v) * args.amp_mult for v in cfg["bump_amps"])
+    cfg["bump_widths"] = tuple(float(v) * args.width_mult for v in cfg["bump_widths"])
     n_perm = args.n_permutations if args.n_permutations is not None else (200 if args.mode == "smoke" else 2000)
     gammas = [float(g) for g in args.gammas.split(",")]
     print(f"record -> {record_path}\nNOT PRE-REGISTERED; GATES NOTHING.\nmode={args.mode} gammas={gammas} n_perm={n_perm}")
     fx._append({"experiment": EXPERIMENT, "row": "environment", "mode": args.mode, "timestamp": pf._utc_now(),
                 "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "seed": args.seed, "gammas": gammas,
-                "n_permutations": n_perm, "numpy": np.__version__, "python": sys.version.split()[0], "fd_step": fx.FD_STEP,
+                "n_permutations": n_perm, "scale_mult": args.scale_mult, "amp_mult": args.amp_mult, "width_mult": args.width_mult,
+                "scale_choices": cfg["scale_choices"], "bump_amps": cfg["bump_amps"], "bump_widths": cfg["bump_widths"],
+                "numpy": np.__version__, "python": sys.version.split()[0], "fd_step": fx.FD_STEP,
                 "columns": COLUMNS, "pre_registered": False, "gates": "nothing"}, record_path)
     d, D = cfg["d"], cfg["D"]
     G = adj.InSphereGenerator(d, D, cfg["a"], cfg["bump_widths"], cfg["bump_amps"], seed=args.seed)
