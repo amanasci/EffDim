@@ -95,16 +95,17 @@ run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\
 encs = [("ViT-B", C + "09_physics_probe_facing_split.jsonl"), ("DINOv3", C + "09_physics_probe_facing_split_dinov3_vitb16.jsonl"),
         ("CLIP-B", C + "09_physics_probe_facing_split_clip_base.jsonl"), ("ConvNeXt-B", C + "09_physics_probe_facing_split_convnext_base.jsonl"),
         ("ViT-L", C + "09_physics_probe_facing_split_vit_large.jsonl")]
-er, ex = {}, {}
+er, ex, ve = {}, {}, {}
 for name, f in encs:
     for r in rows(f):
         if r.get("d") != 16: continue
         if r.get("row") == "result": er[(name, r["label"])] = r
         if r.get("row") == "xfit": ex[(name, r["label"])] = r
+        if r.get("row") == "fit": ve[name] = r["var_explained"]
 have = [n for n, _ in encs if any((n, l) in er for l in labels)]
 if len(have) > 1:
     out.append(r"""\section*{Appendix D: the same test on four further encoders}
-Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
+Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0; variance explained """ + ", ".join(f"{ve[n]:.3f}" for n in have if n in ve) + r""" for the four new fits), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{tabular}{ll""" + "c" * len(have) + r"""}

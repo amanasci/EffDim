@@ -91,3 +91,13 @@ which a misaligned join would collapse). Four tmux sessions `effdim-x-<enc>` lau
 D-state waits were transient (loading finished by 03:10). Records
 `/mnt/ssd-cluster/effdim/xenc-out/09_physics_probe_facing_split_<enc>.jsonl`. Appendix D block already in
 `appendix_gen.py` (guarded: emits only when >1 encoder record is present).
+
+**X complete (03:50 UTC).** All four runs EXIT=0, 48–52 min wall; records and logs fetched to
+`notebooks/.cache/09_physics_probe_facing_split_<enc>.jsonl` / `09_xenc_<enc>.log`, sha256 verified both
+sides. Mismatch negative for mag_r and photo_z on all five encoders (−0.32 to −0.61; cross-fitted −0.28 to
+−0.62); alignment positive for mag_r on all five (+0.13 to +0.53), photo_z four of five; shape-term sign
+encoder-dependent; stellar_mass null except one mismatch cell (CLIP-B −0.12). Written up as `09-SUPPLEMENT-11-CROSS-ENCODER-PROBE-FACING.md`;
+Appendix D (two generated tables), "Across encoders" paragraph extended, one clause each in abstract and
+Discussion; `check.sh` passes. Prediction of this doc's §X met in full (mismatch and alignment
+encoder-stable, shape term free). Pod: tmux sessions exited; nothing left running; outputs remain under
+`/mnt/ssd-cluster/effdim/xenc-out/`.

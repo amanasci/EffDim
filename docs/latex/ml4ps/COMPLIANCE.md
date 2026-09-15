@@ -30,7 +30,13 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
-Page-count status (2026-09-13, after folding the cross-encoder evidence and the relative-II pilot in):
+Page-count status (2026-09-15, after Appendix D, the cross-encoder sentence and the Limitations sentence on
+the known-surface demo): `check.sh` PASS; References begin on page 4 with 12 reference lines on that page
+(Times metric); CM fallback spills 12 lines. Fourteen trims were made to pay for the two additions
+(Figure 1a cross-reference sentence, Section 4 summary opening, "In sum" sentence, Known-surface last
+sentence, pilot numbers, noise clause, in-sphere ratio clause, density formula, and shorter phrasings).
+
+Page-count status (2026-09-13, after folding the cross-encoder evidence and the relative-II pilot in; superseded above):
 - `check.sh` builds with XeLaTeX + Liberation Serif (Times metrics) and passes when the References
   heading lands on page 4 or main text ends on page 4. Current: PASS, References begin on page 4 with
   11 reference lines on that page (about 11 lines of margin); bibliography runs onto page 5, which the
