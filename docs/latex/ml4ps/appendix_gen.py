@@ -154,7 +154,7 @@ for enc, d, stem in runs:
     z = np.load(f)
     for lab in labels:
         cells = []
-        for var in ("S_model", "random"):
+        for var in ("S_model", "random_matched"):
             eq, qq, cv = z[f"{lab}:{var}:eq"], z[f"{lab}:{var}:qq"], z[f"{lab}:{var}:r2_curve"]
             m = np.isfinite(eq); dp = cv[m, 4] - cv[m, 2]; dm = cv[m, 0] - cv[m, 2]; ts = eq[m] / np.maximum(qq[m], 1e-300)
             cells += [f"{np.mean(dp > 0):.2f}", f"{np.mean(dm < 0):.2f}", f"${np.median(dp):+.3f}$", f"${np.median(dm):+.3f}$"]
@@ -163,18 +163,18 @@ for enc, d, stem in runs:
     erows.append(r"\addlinespace[2pt]")
 if erows:
     out.append(r"""\section*{Appendix E: intervening on the readout's normal component}
-The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether bending away from the label's curvature hurts relative to no bending, since no anchor is flat. Here the readout is changed at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$, and the readout $w_T + w_{\mathrm{rad}} + t\,q$ is scored on the anchor's 2{,}048 neighbours with the local intercept refit, where $q$ is the decoder's second-order term $\tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ in the anchor's chart coordinates: $t=1$ is the manifold bending as it does in the probe's normal direction, $t=-1$ the mirror-image bending, $t=0$ flat. The local sum of squares is an exact quadratic in $t$ with minimum $t^{*}$. Columns: fraction of anchors where $t=1$ beats flat (help) and where $t=-1$ is worse than flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction of the same norm as $w_S$.
+The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here a counterfactual local second-order surrogate of the readout is scored at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; the anchor's 2{,}048 neighbours are scored by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). The local sum of squares is an exact quadratic in $t$ with minimum $t^{*}$; with $R$ the residual of the shape-flat readout, $t=1$ beats shape-flat iff $2\langle R,q\rangle > \langle q,q\rangle$. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ rescaled so that $\norm{\langle v,\mathrm{II}^S\rangle}_g = \norm{\langle w_S,\mathrm{II}^S\rangle}_g$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; Supplement 12).
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{llccccc|cccc}
 \toprule
- & & \multicolumn{5}{c|}{decoder second-order term} & \multicolumn{4}{c}{random normal direction} \\
+ & & \multicolumn{5}{c|}{decoder in-sphere shape term} & \multicolumn{4}{c}{random normal direction, matched $\norm{\langle v,\mathrm{II}^S\rangle}_g$} \\
 run & label & help & hurt & $\Delta R^2(+1)$ & $\Delta R^2(-1)$ & $t^{*}$ & help & hurt & $\Delta R^2(+1)$ & $\Delta R^2(-1)$ \\
 \midrule""")
     out += erows
     out.append(r"""\bottomrule
 \end{tabular}
-\caption{Counterfactual scaling of the readout's in-sphere normal component, 512 anchors per run. Bending as the manifold does helps at nearly every anchor, the mirror-image bending hurts at nearly every anchor, a random normal direction does neither; $t^{*}>1$ throughout, so the ridge-shrunk normal component undershoots.}
+\caption{Counterfactual scaling of the in-sphere shape term in a local second-order surrogate of the readout, 512 anchors per run. The manifold's bending as seen in the readout's normal direction helps at nearly every anchor, its sign reversal hurts at nearly every anchor, a random normal direction with matched contracted norm does neither; $t^{*}>1$ throughout, consistent with the globally ridge-regularized probe under-using a locally beneficial term.}
 \label{tab:cf}
 \end{table}""")
 tex = "\n".join(out) + "\n"

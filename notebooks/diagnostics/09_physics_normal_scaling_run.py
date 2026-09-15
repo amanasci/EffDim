@@ -13,7 +13,8 @@ squares an exact quadratic in ``t``: ``SS(t) = |e0 - t q|^2`` with ``e0`` the ce
 fitted normal component (``t = 1``) beats the flat one (``t = 0``) iff ``2<e0,q> > <q,q>`` -- the data-side
 analogue of the improvement condition ``2<Hess_M y, K> > |K|^2`` of the manuscript. Per anchor we record
 ``t*``, the change in local R^2 from ``t = 0`` to ``t = 1``, the same for the full normal part
-(``w(t) = w_T + t w_N``), a random in-sphere normal direction of the same norm as a null, and the
+(``w(t) = w_T + t w_N``), a random in-sphere normal direction as a null (matched on the contracted tensor's
+metric norm ``|<v, II^S>|_g``, not on ``|v|``; the ``|v|``-matched version is kept for comparison), and the
 decoder's own cross term ``<Hess_M y, <w_N, II^S>>_g`` so its predicted sign can be checked against
 the counterfactual outcome. Predictions: ``t* > 0`` for most anchors; ``2<e0,q> > <q,q>`` more often
 where the decoder cross term is positive than where it is negative; the random direction never helps.
@@ -57,7 +58,7 @@ from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 EXPERIMENT = "physics-normal-scaling"
 DEFAULT_RECORD_PATH = NOTEBOOK_ROOT / ".cache" / "09_physics_normal_scaling.jsonl"
 T_GRID = (-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0)
-VARIANTS = ("S", "full", "random", "S_model", "S_proj", "full_model")
+VARIANTS = ("S", "full", "random_wnorm", "random_matched", "S_model", "S_proj", "full_model")
 
 
 def scaling_at_anchor(Xn: np.ndarray, yn: np.ndarray, x0: np.ndarray, w: np.ndarray, J: np.ndarray, g: np.ndarray, ginv: np.ndarray,
@@ -80,9 +81,16 @@ def scaling_at_anchor(Xn: np.ndarray, yn: np.ndarray, x0: np.ndarray, w: np.ndar
     II_tan = II - np.einsum("a,ij->aij", xhat, np.einsum("aij,a->ij", II, xhat))
     A_S = np.einsum("aij,a->ij", II_tan, wS); A_N = np.einsum("aij,a->ij", II, wN)
     qS = 0.5 * np.einsum("ki,ij,kj->k", u, A_S, u); qN = 0.5 * np.einsum("ki,ij,kj->k", u, A_N, u)
+    # random control matched on what the theory says matters: the contracted tensor's metric Frobenius norm |<v, II^S>|_g,
+    # not |v| (in codimension ~750 a random normal direction is nearly orthogonal to the <= d(d+1)/2 directions II^S spans)
+    gnorm = lambda A: float(np.sqrt(max(np.einsum("ij,jk,kl,li->", ginv, A, ginv, A), 0.0)))
+    A_r = np.einsum("aij,a->ij", II_tan, r)
+    rand_ratio = gnorm(A_r) / max(gnorm(A_S), 1e-300)                            # |<r,II^S>|_g / |<w_S,II^S>|_g at equal |r| = |w_S|
+    q_rm = 0.5 * np.einsum("ki,ij,kj->k", u, A_r / max(rand_ratio, 1e-300), u)     # rescaled so |<v,II^S>|_g = |<w_S,II^S>|_g
     base_proj = u @ (J.T @ wT) - 0.5 * float(wN @ xhat) * np.einsum("ki,ij,kj->k", u, g, u)   # model first order + sphere term
-    out: Dict[str, Any] = {"sst": sst, "wS_norm": float(np.linalg.norm(wS)), "wN_norm": float(np.linalg.norm(wN))}
-    for name, base, q in (("S", Xn @ (wT + w_rad), Xn @ wS), ("full", Xn @ wT, Xn @ wN), ("random", Xn @ (wT + w_rad), Xn @ r),
+    out: Dict[str, Any] = {"sst": sst, "wS_norm": float(np.linalg.norm(wS)), "wN_norm": float(np.linalg.norm(wN)), "rand_ratio": rand_ratio}
+    for name, base, q in (("S", Xn @ (wT + w_rad), Xn @ wS), ("full", Xn @ wT, Xn @ wN), ("random_wnorm", Xn @ (wT + w_rad), Xn @ r),
+                          ("random_matched", Xn @ (wT + w_rad), q_rm),
                           ("S_model", Xn @ (wT + w_rad), qS), ("S_proj", base_proj, qS), ("full_model", Xn @ wT, qN)):
         e0 = yn - base; e0 = e0 - e0.mean()
         q = q - q.mean()
@@ -108,7 +116,7 @@ def summarise(name: str, v: Dict[str, np.ndarray], cross_dec: np.ndarray, t_dec:
          "frac_t_star_pos_dec_pos": float(np.mean(v["t_star"][pos] > 0)) if pos.any() else None,
          "frac_t_star_pos_dec_neg": float(np.mean(v["t_star"][neg] > 0)) if neg.any() else None,
          "sign_concordance_eq_vs_dec_cross": float(np.mean(np.sign(v["eq"][m]) == np.sign(cross_dec[m]))),
-         "rho_t_star_vs_t_dec": float(spearmanr(v["t_star"][m], t_dec[m]).statistic) if name != "random" else None,
+         "rho_t_star_vs_t_dec": float(spearmanr(v["t_star"][m], t_dec[m]).statistic) if not name.startswith("random") else None,
          "rho_dR2_vs_log_r": float(spearmanr(v["dR2"][m], log_r[m]).statistic),
          "rho_dR2_vs_dec_cross": float(spearmanr(v["dR2"][m], cross_dec[m]).statistic)}
     return s
@@ -221,20 +229,20 @@ def main() -> None:
         rng = np.random.default_rng(args.seed)
         per = {v: {"t_star": np.full(n_anchors, np.nan), "dR2": np.full(n_anchors, np.nan), "eq": np.full(n_anchors, np.nan),
                    "qq": np.full(n_anchors, np.nan), "r2_curve": np.full((n_anchors, len(T_GRID)), np.nan)} for v in VARIANTS}
-        wS_norm = np.full(n_anchors, np.nan); wN_norm = np.full(n_anchors, np.nan)
+        wS_norm = np.full(n_anchors, np.nan); wN_norm = np.full(n_anchors, np.nan); rand_ratio = np.full(n_anchors, np.nan)
         for i in range(n_anchors):
             idx = neigh[i]; yn = y[idx]; m = np.isfinite(yn)
             if m.sum() < pcp.MIN_FINITE_NEIGHBOURS:
                 continue
             sc = scaling_at_anchor(X[idx][m], yn[m], X[a[i]], w, geo["J"][i], geo["g"][i], geo["ginv"][i], geo["II"][i], xhat[i], rng)
-            wS_norm[i], wN_norm[i] = sc["wS_norm"], sc["wN_norm"]
+            wS_norm[i], wN_norm[i], rand_ratio[i] = sc["wS_norm"], sc["wN_norm"], sc["rand_ratio"]
             for v in VARIANTS:
                 for key in ("t_star", "dR2", "eq", "qq"):
                     per[v][key][i] = sc[v][key]
                 per[v]["r2_curve"][i] = sc[v]["r2_curve"]
         summ = {v: summarise(v, per[v], cross_dec, t_dec, log_r) for v in VARIANTS}
         print(f"\n[{name}] global in-sample R2 {ridge.score(X[fin], y[fin]):.3f}; |w_S|/|w| p50 {np.nanmedian(wS_norm) / np.linalg.norm(w):.3f}; "
-              f"|w_N|/|w| p50 {np.nanmedian(wN_norm) / np.linalg.norm(w):.3f}; decoder cross term > 0 at {summ['S']['n_dec_pos']} anchors, < 0 at {summ['S']['n_dec_neg']}; {time.monotonic() - t0:.0f}s")
+              f"|w_N|/|w| p50 {np.nanmedian(wN_norm) / np.linalg.norm(w):.3f}; random |<r,II>|/|<w_S,II>| at equal norm p50 {np.nanmedian(rand_ratio):.3f}; decoder cross term > 0 at {summ['S']['n_dec_pos']} anchors, < 0 at {summ['S']['n_dec_neg']}; {time.monotonic() - t0:.0f}s")
         print(f"{'variant':8s} {'t*>0':>6s} {'helps':>6s} {'dR2 p50':>9s} | {'helps|dec+':>10s} {'helps|dec-':>10s} {'dR2|dec+':>9s} {'dR2|dec-':>9s} | {'t*>0|dec+':>9s} {'t*>0|dec-':>9s} | {'sgn agree':>9s} {'rho t*':>7s} | median R2 curve over t=" + ",".join(f"{t:g}" for t in T_GRID))
         for v in VARIANTS:
             s = summ[v]
@@ -245,11 +253,12 @@ def main() -> None:
         ppf._append({"experiment": EXPERIMENT, "row": "result", "mode": args.mode, "d": d, "label": name, "timestamp": pfs._utc_now(),
                      "global_insample_r2": float(ridge.score(X[fin], y[fin])), "wS_over_w_p50": float(np.nanmedian(wS_norm) / np.linalg.norm(w)),
                      "wN_over_w_p50": float(np.nanmedian(wN_norm) / np.linalg.norm(w)),
+                     "random_contracted_norm_ratio_p25_p50_p75": [float(v) for v in np.nanpercentile(rand_ratio, [25, 50, 75])],
                      "align_cos_tan_p50": float(np.nanmedian(align)), "variants": summ}, record_path)
         for v in VARIANTS:
             for key in ("t_star", "dR2", "eq", "qq", "r2_curve"):
                 arrays[f"{name}:{v}:{key}"] = per[v][key]
-        arrays[f"{name}:dec_cross_tan"] = cross_dec; arrays[f"{name}:dec_t_star"] = t_dec; arrays[f"{name}:align_cos_tan"] = align
+        arrays[f"{name}:rand_ratio"] = rand_ratio; arrays[f"{name}:dec_cross_tan"] = cross_dec; arrays[f"{name}:dec_t_star"] = t_dec; arrays[f"{name}:align_cos_tan"] = align
     if args.arrays_out:
         Path(args.arrays_out).parent.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(args.arrays_out, **arrays)

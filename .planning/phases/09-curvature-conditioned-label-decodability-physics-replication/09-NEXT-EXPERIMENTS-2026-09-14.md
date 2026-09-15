@@ -108,3 +108,8 @@ Decoder second-order term helps at 79–99% of anchors (median ΔR² +0.013…+0
 97–100% (−0.025…−0.055), random normal direction at chance; t* median 1.5–3.6 (ridge undershoots).
 Supplement 12; Appendix E (generated); one sentence in Section 5, one clause in the abstract; Limitations
 reworded. This, not the fixture, is what supports "bending toward helps, away hurts".
+
+**Route 1 v2 (21:09 UTC), after external review:** t=0 renamed shape-flat, condition restated with
+R = Hess_M y − K_sph, framing as a counterfactual local second-order surrogate, random control matched on
+‖⟨v,II^S⟩‖_g (unmatched control's contracted norm was only 0.26–0.38 of the fitted one). Reruns identical for
+the model term; matched random hurts at both signs. Supplement 12 revised; Appendix E regenerated.

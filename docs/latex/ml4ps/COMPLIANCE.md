@@ -30,6 +30,12 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-15, review-fix pass: intervention paragraph rewritten as a counterfactual local
+second-order surrogate with shape-flat baseline, condition 2<R,K_S> > |K_S|^2, matched random control, and
+"consistent with" wording for t*>1; Section 4 residual wording, Galaxies infinitesimal-vs-finite sentence,
+Discussion agreement wording; fifteen compressions): `check.sh` PASS; References begin on page 4 with 14
+reference lines on that page.
+
 Page-count status (2026-09-15, citations pass: eight verified references added for the novelty review — Liu+23,
 Chung+16, Slatton+26, Psenka+24, Kaufman&Azencot 23, Cheng&Wu 13, Bangachev+26, Acosta+23 published record —
 cited in Section 2, the Section 5 intervention paragraph and the Discussion; paid for by cutting the Discussion
