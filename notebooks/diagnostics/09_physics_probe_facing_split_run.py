@@ -178,12 +178,34 @@ def main() -> None:
     p.add_argument("--fit-seed", type=int, default=None, help="physics: refit the decoder with this torch init seed instead of loading stored geometry")
     p.add_argument("--hidden", type=str, default=None, help="physics: decoder hidden widths, e.g. 400,400,400 (with --fit-seed)")
     p.add_argument("--geometry-out", type=str, default=None, help="physics: where to save the refit geometry npz")
+    p.add_argument("--parquet-path", type=str, default=None, help="physics: embeddings parquet (local path) for another encoder")
+    p.add_argument("--embedding-column", type=str, default=None, help="physics: column name in that parquet (e.g. clip_base_galaxies)")
     p.add_argument("--alpha", type=float, default=None, help="override the probe ridge alpha (sealed: 100); sensitivity to shrinkage")
     p.add_argument("--hessian-xfit", action="store_true", help="split each patch into halves; fit Hess_M y on one half, score local R^2 on the other")
     p.add_argument("--label-table", type=str, default=None,
                    help="parquet of the label columns (LABEL_REPO@LABEL_REVISION shards, column-projected, concatenated in "
                         "shard order) to read instead of streaming the shards over hf://; sha256 is recorded")
     args = p.parse_args()
+    if args.parquet_path:
+        ppf.pl.PHYSICS_PARQUET_PATH = args.parquet_path
+        if args.embedding_column:
+            ppf.pl.PHYSICS_COLUMN = args.embedding_column
+        print(f"embeddings <- {ppf.pl.PHYSICS_PARQUET_PATH} column {ppf.pl.PHYSICS_COLUMN}")
+
+        def _load_embeddings(parquet_path=None, column=None, expected_rows=None, normalize=True):
+            # runner-level shim: the sealed loader hard-codes width 768; other encoders have 512/1024
+            import pyarrow.parquet as pq
+            path = parquet_path or ppf.pl.PHYSICS_PARQUET_PATH; col = column or ppf.pl.PHYSICS_COLUMN
+            tbl = pq.read_table(path, columns=[col])
+            raw = np.stack([np.asarray(v, dtype=np.float64) for v in tbl.column(col).to_pylist()])
+            want = expected_rows or ppf.pl.EXPECTED_N_PHYSICS_ROWS
+            if raw.shape[0] != want:
+                raise RuntimeError(f"{path}: {raw.shape[0]} rows, expected {want}")
+            norms = np.linalg.norm(raw, axis=1, keepdims=True)
+            X = raw / np.maximum(norms, 1e-12) if normalize else raw
+            print(f"[shim] {path} -> {X.shape}, row norms {norms.min():.4f}-{norms.max():.4f}")
+            return {"X": X, "n_rows": int(X.shape[0]), "n_features": int(X.shape[1])}
+        ppf.pl.load_physics_embeddings = _load_embeddings
     if args.alpha is not None:
         pcp.ALPHA_RIDGE = float(args.alpha)
         print(f"probe ridge alpha overridden -> {pcp.ALPHA_RIDGE}")
@@ -214,7 +236,7 @@ def main() -> None:
     print(f"record -> {record_path}\nNOT PRE-REGISTERED; GATES NOTHING.\nmode={args.mode} d={d_values} n_perm={n_perm} geometry={geometry_root}")
 
     data = ppf.load_physics(args) if args.mode == "physics" else ppf.load_smoke(args)
-    X, labels, in_dim = data["X"], data["labels"], data["in_dim"]
+    X, labels, in_dim = data["X"], data["labels"], data["X"].shape[1]
     n = X.shape[0]
     k = pcp.K_NEIGHBOURS if args.mode == "physics" else adj.SMOKE["k"]
     n_anchors = pcp.N_ANCHORS if args.mode == "physics" else adj.SMOKE["n_anchors"]
@@ -222,7 +244,7 @@ def main() -> None:
     ppf._append({"experiment": EXPERIMENT, "row": "environment", "mode": args.mode, "timestamp": _utc_now(),
                  "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "d_values": d_values,
                  "labels": list(labels), "n": n, "k": k, "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm,
-                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "alpha": pcp.ALPHA_RIDGE, "hessian_xfit": args.hessian_xfit, "numpy": np.__version__, "torch": torch.__version__,
+                 "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "alpha": pcp.ALPHA_RIDGE, "hessian_xfit": args.hessian_xfit, "parquet_path": args.parquet_path, "embedding_column": args.embedding_column, "in_dim": int(data["X"].shape[1]), "numpy": np.__version__, "torch": torch.__version__,
                  "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
 
     split = pcp.anchor_indices(n, pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)

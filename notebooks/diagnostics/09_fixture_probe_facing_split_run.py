@@ -77,6 +77,23 @@ def split_columns(geo: Dict[str, np.ndarray], w18: np.ndarray, b0: float, y_anch
     return {"cols": cols, "checks": checks}
 
 
+BUMP_FLIP = np.array([1.0, -1.0, -1.0, 1.0])
+
+
+def bumpalt(G: Any, z: np.ndarray, beta: float) -> Dict[str, np.ndarray]:
+    """Alignment-demo label piece beta*h_alt(z): the generator's Gaussian bumps with two amplitude signs
+    flipped, so the label's Hessian matches the surface's in-sphere bending near two bumps and opposes it
+    near the other two. Not linearly readable from the ambient coordinates. Analytic chart derivatives."""
+    c = G.centres.numpy(); w = G.widths.numpy(); A = G.amps.numpy() * BUMP_FLIP[: len(w)]
+    diff = z[:, None, :] - c[None, :, :]                                              # (b, m, d)
+    e = np.exp(-(diff ** 2).sum(-1) / (2 * w ** 2)) * A                              # (b, m)
+    val = beta * e.sum(-1)
+    grad = beta * np.einsum("bm,bmi->bi", e, -diff / (w ** 2)[None, :, None])
+    hess = beta * (np.einsum("bm,bmi,bmj->bij", e / (w ** 4)[None, :], diff, diff)
+                   - np.einsum("bm,ij->bij", e / (w ** 2)[None, :], np.eye(z.shape[1])))
+    return {"val": val, "grad": grad, "hess": hess}
+
+
 def run_gamma(gamma: float, cfg: Dict[str, Any], pool: Dict[str, Any], G: Any, args: argparse.Namespace,
               record_path: Path, n_perm: int) -> None:
     d, D, n, k, n_anchors = cfg["d"], cfg["D"], cfg["n"], cfg["k"], cfg["n_anchors"]
@@ -99,12 +116,19 @@ def run_gamma(gamma: float, cfg: Dict[str, Any], pool: Dict[str, Any], G: Any, a
     w_true = lrng.standard_normal(D); w_true /= np.linalg.norm(w_true)
     labels = fx.make_labels(z, X, np.random.default_rng(args.seed + 7))
     for name in args.labels.split(","):
+        if name.startswith("bumpalt_"):
+            beta = float(name.split("_", 1)[1])
+            labels[name] = z @ a1 + bumpalt(G, z, beta)["val"]
         y = labels[name]
         out = fx.probe_outcome(X, y, panel)
         r2, Z = out["r2"], out["Z"]
         ridge = Ridge(alpha=pcp.ALPHA_RIDGE).fit(X, y)
         w18 = Qt18 @ ridge.coef_
-        lab = pf.label_derivatives(name, z[a], X[a], geo, Qt18, a1, a2, w_true)
+        if name.startswith("bumpalt_"):
+            ba = bumpalt(G, z[a], float(name.split("_", 1)[1]))
+            lab = {"grad": ba["grad"] + a1[None, :], "hess": ba["hess"]}
+        else:
+            lab = pf.label_derivatives(name, z[a], X[a], geo, Qt18, a1, a2, w_true)
         sc = split_columns(geo, w18, float(ridge.intercept_), y[a], x18, lab, d)
         cols = sc["cols"]
         m = np.isfinite(r2)

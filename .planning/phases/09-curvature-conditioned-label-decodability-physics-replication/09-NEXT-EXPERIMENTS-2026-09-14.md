@@ -46,3 +46,31 @@ Appendix D table (encoder × label: mismatch, alignment, shape, sphere); Supplem
 Run K first (cheap, decides whether the alignment mechanism is real with exact geometry). If K fails,
 X is still worth running but the paper's alignment sentence must be softened further. Then X.
 Everything is additive: no sealed module edits, new records only.
+
+## Status 2026-09-15 (session end)
+
+**K, first attempt (run, negative for the fixture, not for the mechanism).** Labels `bumpalt_{0.3,1.0}` =
+a·z + β h_alt(z) added to `09_fixture_probe_facing_split_run.py` (h_alt = generator bumps with amplitude
+signs [1,−1,−1,1]). Record `notebooks/.cache/09_fixture_alignment_demo.jsonl` (γ = −1, 0.6; 1,000 draws).
+- d=4 smoke fixture (n=4000, D=64, k=128): alignment partial **+0.43 / +0.45** (p=0.005), mismatch
+  −0.64 / −0.60, shape term n.s. — the mechanism shows where bending is resolvable
+  (median pf_tan 0.31–0.37 vs label Hessian 2.4–2.5, ratio ≈ 1:7).
+- d=16 production fixture, γ=−1: alignment **−0.03 (n.s.)** at both β; mismatch −0.71; shape term −0.41
+  (sampling-coupled). Medians: pf_tan 0.04–0.05 vs hess_label 24.6, ratio ≈ 1:500. The stereographic chart's
+  Christoffel term makes the covariant Hessian of any z-dependent label ≈ 25, so the in-sphere bending is
+  invisible to the alignment cosine (median 0.09). This is a fixture-scale limitation, already stated in the
+  paper ("cannot resolve the shape term").
+- **Redesign to try (cheap):** add runner options to override `adj.FIXTURE`: `scale_choices` ×0.25 (latents
+  nearer the origin, near-flat chart, small Γ) and bump amplitude `a` ×5–10 (larger in-sphere II), keep
+  n, k, anchors. Target ratio pf_tan : hess_label ≳ 1:5 as in the smoke. Then re-run `bumpalt_{0.3,1.0}`
+  at γ ∈ {−1, 0.6}. Pass = alignment partial positive, mismatch negative, at both γ.
+
+**X, blocked at download.** `dl_enc.py` (hf_hub_download of dinov3_vitb16 / clip_base / convnext_base /
+vit_large / vit_base physics parquets into `/mnt/ssd-cluster/effdim/hf-cache`) sat in Ceph metadata wait
+(`ceph_mdsc_wait_r`, D state) for >5 min with no bytes written; tmux `effdim-dlenc`. Do not stack
+filesystem commands on `/mnt/ssd-cluster` while it is in that state (guide). If it never completes, kill it
+and read each parquet by streaming `pq.read_table("hf://…", columns=[col])` inside the runner (the ViT-B
+embeddings read that way in ≈10 s on 2026-09-12). Runner is ready: `--parquet-path`, `--embedding-column`
+(e.g. `clip_base_galaxies`; confirm column names from the parquet schema), and a loader shim that accepts
+widths ≠ 768 (sealed loader hard-codes 768). Row-count gate 86,471 is enforced by the shim; row *order*
+must still be checked against the ViT-B file (same `test` split; compare an id column if present).
