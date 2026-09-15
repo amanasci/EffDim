@@ -30,7 +30,13 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
-Page-count status (2026-09-15, latest: manuscript restructured so the headline is "a linear readout gains
+Page-count status (2026-09-15, citations pass: eight verified references added for the novelty review — Liu+23,
+Chung+16, Slatton+26, Psenka+24, Kaufman&Azencot 23, Cheng&Wu 13, Bangachev+26, Acosta+23 published record —
+cited in Section 2, the Section 5 intervention paragraph and the Discussion; paid for by cutting the Discussion
+secondary-terms sentence, the Section 4 intuition sentence, the trace-statistic sentence, and Figure 1 at 0.25
+textwidth): `check.sh` PASS; References begin on page 4 with 14 reference lines on that page.
+
+Page-count status (2026-09-15, earlier: manuscript restructured so the headline is "a linear readout gains
 where the manifold bends toward the label and loses where it bends away" — new title, abstract sentence,
 contribution (iv), Section 5 heading and a dedicated paragraph, Discussion opening; ~20 compressions elsewhere
 paid for it): `check.sh` PASS; References begin on page 4 with 14 reference lines on that page.
