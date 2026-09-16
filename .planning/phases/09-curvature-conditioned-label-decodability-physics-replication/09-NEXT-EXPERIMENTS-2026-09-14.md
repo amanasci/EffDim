@@ -113,3 +113,8 @@ reworded. This, not the fixture, is what supports "bending toward helps, away hu
 R = Hess_M y − K_sph, framing as a counterfactual local second-order surrogate, random control matched on
 ‖⟨v,II^S⟩‖_g (unmatched control's contracted norm was only 0.26–0.38 of the fitted one). Reruns identical for
 the model term; matched random hurts at both signs. Supplement 12 revised; Appendix E regenerated.
+
+**Route 1 v3 (2026-09-15 23:28 UTC):** random control matched on the centred quadratic amplitude ‖q_c‖₂ (help
+22–36%, hurt 64–80%, t*≈0; same picture as the tensor-matched v2). Manuscript states the exact finite-sample criterion
+2⟨r0,q_c⟩ > ‖q_c‖² separately from the tensor condition; encoder naming fixed (readout set = supervised ImageNet-21k
+ViT-B/16, cross-survey set = DINOv3 ViT-B/16); within-anchor vs cross-anchor distinction stated (stellar mass).

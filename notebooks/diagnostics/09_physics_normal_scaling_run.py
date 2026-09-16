@@ -58,7 +58,7 @@ from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 EXPERIMENT = "physics-normal-scaling"
 DEFAULT_RECORD_PATH = NOTEBOOK_ROOT / ".cache" / "09_physics_normal_scaling.jsonl"
 T_GRID = (-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0)
-VARIANTS = ("S", "full", "random_wnorm", "random_matched", "S_model", "S_proj", "full_model")
+VARIANTS = ("S", "full", "random_wnorm", "random_matched", "random_qmatched", "S_model", "S_proj", "full_model")
 
 
 def scaling_at_anchor(Xn: np.ndarray, yn: np.ndarray, x0: np.ndarray, w: np.ndarray, J: np.ndarray, g: np.ndarray, ginv: np.ndarray,
@@ -87,10 +87,12 @@ def scaling_at_anchor(Xn: np.ndarray, yn: np.ndarray, x0: np.ndarray, w: np.ndar
     A_r = np.einsum("aij,a->ij", II_tan, r)
     rand_ratio = gnorm(A_r) / max(gnorm(A_S), 1e-300)                            # |<r,II^S>|_g / |<w_S,II^S>|_g at equal |r| = |w_S|
     q_rm = 0.5 * np.einsum("ki,ij,kj->k", u, A_r / max(rand_ratio, 1e-300), u)     # rescaled so |<v,II^S>|_g = |<w_S,II^S>|_g
+    # strongest finite-sample control: same centred quadratic amplitude on the actual neighbours, |q_v - mean|_2 = |q_S - mean|_2
+    q_rq = q_rm * (np.linalg.norm(qS - qS.mean()) / max(np.linalg.norm(q_rm - q_rm.mean()), 1e-300))
     base_proj = u @ (J.T @ wT) - 0.5 * float(wN @ xhat) * np.einsum("ki,ij,kj->k", u, g, u)   # model first order + sphere term
     out: Dict[str, Any] = {"sst": sst, "wS_norm": float(np.linalg.norm(wS)), "wN_norm": float(np.linalg.norm(wN)), "rand_ratio": rand_ratio}
     for name, base, q in (("S", Xn @ (wT + w_rad), Xn @ wS), ("full", Xn @ wT, Xn @ wN), ("random_wnorm", Xn @ (wT + w_rad), Xn @ r),
-                          ("random_matched", Xn @ (wT + w_rad), q_rm),
+                          ("random_matched", Xn @ (wT + w_rad), q_rm), ("random_qmatched", Xn @ (wT + w_rad), q_rq),
                           ("S_model", Xn @ (wT + w_rad), qS), ("S_proj", base_proj, qS), ("full_model", Xn @ wT, qN)):
         e0 = yn - base; e0 = e0 - e0.mean()
         q = q - q.mean()

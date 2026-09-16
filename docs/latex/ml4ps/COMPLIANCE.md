@@ -30,6 +30,12 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-16, second review-fix pass: exact finite-sample criterion with centred q_c, q-matched
+random control, encoder naming made explicit (supervised ImageNet-21k ViT-B for the readout set vs DINOv3 ViT-B/16 for
+the cross-survey set), within-anchor vs cross-anchor sentence, abstract PRH sentence, "dominated by", connection
+mismatch retained in the Discussion; Probe/Result paragraphs merged, Figure 1 at 0.22 textwidth, ~15 compressions):
+`check.sh` PASS; References begin on page 4 with 12 reference lines on that page.
+
 Page-count status (2026-09-15, review-fix pass: intervention paragraph rewritten as a counterfactual local
 second-order surrogate with shape-flat baseline, condition 2<R,K_S> > |K_S|^2, matched random control, and
 "consistent with" wording for t*>1; Section 4 residual wording, Galaxies infinitesimal-vs-finite sentence,
