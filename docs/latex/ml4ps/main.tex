@@ -98,7 +98,7 @@ Statistic: five-fold out-of-fold ridge probe~\citep{alain2017probes} at the pre-
 \label{fig:main}
 \end{figure}
 
-\paragraph{Known surface.} Resampling the validation surface with weight $\norm{\Htan}^\gamma$ (Figure~\ref{fig:main}a) moves the $\norm{\Htan}$ partial from $-0.29$ to $+0.22$, reproduced by the decoder, while $\norm{\langle w_N,\mathrm{II}\rangle}$ holds at $-0.74$ to $-0.80$, there dominated by the sphere term of Eq.~\eqref{eq:split}.
+\paragraph{Known surface.} Resampling the validation surface with weight $\norm{\Htan}^\gamma$ (Figure~\ref{fig:main}a) moves the $\norm{\Htan}$ partial from $-0.29$ to $+0.26$, reproduced by the decoder, while $\norm{\langle w_N,\mathrm{II}\rangle}$ holds at $-0.74$ to $-0.80$, there dominated by the sphere term of Eq.~\eqref{eq:split}.
 
 \begin{table}[t]
 \centering
@@ -129,7 +129,7 @@ stellar\_mass & $-0.02^{*}$ & $-0.00^{*}$ & $+0.00^{*}$ & $+0.03^{*}$ & $-0.35$ 
 
 A linear readout of a galaxy embedding gains accuracy where the manifold, seen in the readout's normal direction, bends toward the label's curvature and loses it where that bending is reversed, at nearly every anchor and on five encoders. The residual expansion names the quantity, $\langle w_N,\mathrm{II}\rangle$ against $\operatorname{Hess}_M y$, and a decoder's pointwise second fundamental form measures it at production scale, validated against analytic truth for $\Htan$ and in substantial agreement with the data for the contracted Hessian. For a linear alignment map, the structure recent accounts rest alignment on~\citep{bangachev2026linear}, the relevant second-order extrinsic normal term is $\mathrm{II}_G - P_N^G A\,\mathrm{II}_F$, not one embedding's mean curvature; the full residual also carries the connection mismatch; our pilot (Appendix~C) finds a 44\% first-order tangent-frame residual and no estimator-stable second-order association. On this survey pair, single-model mean curvature has no robust density-controlled association with cross-survey convergence.
 
-\emph{Limitations.} One survey pair. The label's Hessian is a local estimate ($R^2$ gain over linear 0.10--0.17); its norm is reliably ranked (split-half $\rho$ 0.92) but its direction only moderately (tensor cosine 0.19--0.35). On a synthetic surface with known curvature the mismatch partial reproduces ($-0.14$ to $-0.88$) but the alignment partial has no stable sign; Appendix~E, not the fixture, ties alignment to local $R^2$. Mismatch and alignment are the primary hypotheses, the rest exploratory. Permutation $p$-values assume anchor exchangeability under overlapping patches.
+\emph{Limitations.} One survey pair. The label's Hessian is a local estimate ($R^2$ gain over linear 0.10--0.17); its norm is reliably ranked (split-half $\rho$ 0.91--0.94) but its direction only moderately (tensor cosine 0.19--0.35). On a synthetic surface with known curvature the mismatch partial reproduces ($-0.14$ to $-0.88$) but the alignment partial has no stable sign; Appendix~E, not the fixture, ties alignment to local $R^2$. Mismatch and alignment are the primary hypotheses, the rest exploratory. Permutation $p$-values assume anchor exchangeability under overlapping patches.
 
 \bibliographystyle{unsrtnat}
 {\small
