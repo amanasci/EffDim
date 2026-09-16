@@ -118,3 +118,7 @@ the model term; matched random hurts at both signs. Supplement 12 revised; Appen
 22–36%, hurt 64–80%, t*≈0; same picture as the tensor-matched v2). Manuscript states the exact finite-sample criterion
 2⟨r0,q_c⟩ > ‖q_c‖² separately from the tensor condition; encoder naming fixed (readout set = supervised ImageNet-21k
 ViT-B/16, cross-survey set = DINOv3 ViT-B/16); within-anchor vs cross-anchor distinction stated (stellar mass).
+
+**Significance with dependent anchors (2026-09-16):** `09_physics_normal_scaling_thin_run.py` saves each run's 512×512
+neighbourhood-overlap matrix; Appendix E now reports sign tests on a maximal independent set at ≤5% pairwise overlap
+(19–21 anchors per run): t=+1 beats shape-flat at 81–100% (p ≤ 10⁻³ every cell), t=−1 worse at 95–100% (p ≤ 10⁻⁵).

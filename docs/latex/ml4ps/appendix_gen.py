@@ -161,9 +161,34 @@ for enc, d, stem in runs:
             if var == "S_model": cells += [f"{np.median(ts):.1f}"]
         erows.append((f"{enc}, $d={d}$" if lab == labels[0] else "") + f" & {lab_tex[lab]} & " + " & ".join(cells) + r" \\")
     erows.append(r"\addlinespace[2pt]")
+# thinned-anchor sign tests: min-degree greedy independent set on the graph "pairwise neighbourhood overlap > 5% of k"
+from scipy.stats import binomtest
+def _indep(ov, thr):
+    A = ov > thr; np.fill_diagonal(A, False); alive = np.ones(ov.shape[0], bool); keep = np.zeros(ov.shape[0], bool)
+    while alive.any():
+        deg = (A & alive[None, :]).sum(1); deg[~alive] = 10**9
+        i = int(np.argmin(deg)); keep[i] = True; alive[i] = False; alive[A[i]] = False
+    return keep
+def _ptex(p):
+    return "10^{%d}" % int(np.floor(np.log10(p)))
+thin = {"n": [], "p_help": [], "p_hurt": [], "help": [], "hurt": []}
+for enc, d, stem in runs:
+    f = C + f"09_physics_normal_scaling_{stem}.npz"; ft = C + f"09_physics_normal_scaling_{stem}_thin.npz"
+    if not (os.path.exists(f) and os.path.exists(ft)): continue
+    z = np.load(f); keep = _indep(np.load(ft)["overlap"].astype(float), 0.05)
+    for lab in labels:
+        cv = z[f"{lab}:S_model:r2_curve"]; m = keep & np.isfinite(cv[:, 0]); n = int(m.sum())
+        kh = int((cv[m, 4] > cv[m, 2]).sum()); ku = int((cv[m, 0] < cv[m, 2]).sum())
+        thin["n"].append(n); thin["help"].append(kh / n); thin["hurt"].append(ku / n)
+        thin["p_help"].append(binomtest(kh, n, 0.5, alternative="greater").pvalue); thin["p_hurt"].append(binomtest(ku, n, 0.5, alternative="greater").pvalue)
+thin_tex = ""
+if thin["n"]:
+    thin_tex = (" The anchors' neighbourhoods overlap (each point lies in about twelve of them), so the fractions are not counts of independent trials; a maximal set of anchors whose pairwise overlap is at most 5\\%% of $k$ has %d--%d members per run, on which $t=1$ beats shape-flat at %d--%d\\%% (one-sided sign test $p \\le %s$ in every cell) and $t=-1$ is worse at %d--%d\\%% ($p \\le %s$)."
+                % (min(thin["n"]), max(thin["n"]), round(100 * min(thin["help"])), round(100 * max(thin["help"])), _ptex(max(thin["p_help"])),
+                   round(100 * min(thin["hurt"])), round(100 * max(thin["hurt"])), _ptex(max(thin["p_hurt"]))))
 if erows:
     out.append(r"""\section*{Appendix E: intervening on the readout's normal component}
-The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here a counterfactual local second-order surrogate of the readout is scored at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; the anchor's 2{,}048 neighbours are scored by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_F > \norm{K_S}_F^2$ of Section~5, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12).
+The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here a counterfactual local second-order surrogate of the readout is scored at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; the anchor's 2{,}048 neighbours are scored by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_F > \norm{K_S}_F^2$ of Section~5, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12).""" + thin_tex + r"""
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{llccccc|cccc}

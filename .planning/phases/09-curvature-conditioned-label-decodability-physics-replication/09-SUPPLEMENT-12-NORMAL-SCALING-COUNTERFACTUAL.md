@@ -84,6 +84,18 @@ The sign of the estimated alignment cosine therefore does not predict the anchor
 intervention uses the raw local residual and needs no label-Hessian estimate, whose direction is the
 unreliable part (split-half tensor cosine 0.19–0.35, Supplement 09).
 
+## Significance with dependent anchors (added 2026-09-16)
+Over all 512 anchors the sign tests are absurdly small (largest one-sided binomial p across the 24 cells: 4×10⁻⁴² for
+"t = +1 beats shape-flat", 2×10⁻¹²⁶ for "t = −1 worse", Wilcoxon on ΔR²(+1) ≤ 4×10⁻³³, paired fitted-vs-q-matched-random
+≤ 4×10⁻⁶⁸) and not to be trusted as such: 512 neighbourhoods of 2,048 on 86,471 points put each point in ≈ 12
+neighbourhoods (pairwise overlap median ≈ 0, p90 ≈ 0.12, max 0.90–0.94 of k). `09_physics_normal_scaling_thin_run.py`
+recomputes each run's panel and saves the 512×512 overlap matrix (`*_thin.npz`, sha256 verified); exact disjointness from
+the union of kept sets leaves only 6–7 anchors (a few kept sets already cover ~14% of the data), so the paper uses a
+maximal independent set of the graph "pairwise overlap > 5% of k" (min-degree greedy, computed in `appendix_gen.py`):
+19–21 anchors per run, t = +1 beats shape-flat at 81–100% (one-sided sign test p ≤ 10⁻³ in every cell), t = −1 worse at
+95–100% (p ≤ 10⁻⁵). At 1% / 2% / 10% thresholds the sets have 12–14 / 13–16 / 30–34 members with the same picture.
+These are the p-values to quote; the 512-anchor ones are not.
+
 ## Reading
 - **The probe-facing shape term helps, its sign reversal hurts — at the anchor level, all five encoders, both d,
   all four labels.** Adding the decoder's in-sphere second-order term to the shape-flat surrogate raises local R²
