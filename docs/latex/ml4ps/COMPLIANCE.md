@@ -30,6 +30,8 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-16, freeze pass: "under first-order tangent matching" in abstract and Discussion, |K|_g^2, g-subscripts in known-surface paragraph and Table 1, k=30 density definition restored, stellar-mass sentence scoped; sixteen trims, Figure 1 at 0.17 textwidth): `check.sh` PASS; References begin on page 4 with 13 reference lines there.
+
 Page-count status (2026-09-16, geometry-audit follow-up: Appendix C chart-dependence justification, g-subscripts on every tensor norm, w_S in Eq. (split) and Table 1, "large majority" for the help result, stellar-mass sentence scoped to mismatch/alignment; nine trims, Figure 1 at 0.19 textwidth): `check.sh` PASS; References begin on page 4 with 14 reference lines there.
 
 Page-count status (2026-09-16, geometry-audit pass: immersion condition, unnormalized-trace convention, radial
