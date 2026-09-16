@@ -78,7 +78,7 @@ for name, f in runs:
             rrows.append(f"{name} & {r['align_r2_holdout']:.2f} & {c['tan_resid']['median']:.2f} & " + " & ".join(cell(c[k]["multiscale"]) for k in ("H_tan_F", "H_tan_G", "tan_resid", "II_rel", "II_rel_loc", "II_rel_emp")) + r" \\")
 if rrows:
     out.append(r"""\section*{Appendix C: relative second fundamental form, pilot}
-Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$, the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
+Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$ (with the first-order matching $AJ_F = J_G$ failing at the 44\% level, this is an extrinsic diagnostic, not the complete target-normal quadratic residual, which also receives $P_N^G A J_F \Gamma^F$), the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{lcccccccc}
@@ -170,7 +170,9 @@ def _indep(ov, thr):
         i = int(np.argmin(deg)); keep[i] = True; alive[i] = False; alive[A[i]] = False
     return keep
 def _ptex(p):
-    return "10^{%d}" % int(np.floor(np.log10(p)))
+    e = int(np.floor(np.log10(p))); c = int(np.ceil(p / 10 ** e - 1e-9))   # upper bound c x 10^e with c in 1..9
+    if c == 10: c, e = 1, e + 1
+    return ("%d\\times 10^{%d}" % (c, e)) if c > 1 else "10^{%d}" % e
 thin = {"n": [], "p_help": [], "p_hurt": [], "help": [], "hurt": []}
 for enc, d, stem in runs:
     f = C + f"09_physics_normal_scaling_{stem}.npz"; ft = C + f"09_physics_normal_scaling_{stem}_thin.npz"

@@ -30,6 +30,14 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-16, geometry-audit pass: immersion condition, unnormalized-trace convention, radial
+component of the Euclidean mean-curvature vector, H_tan as non-radial mean-curvature component, Section 3 'subtracting
+the radial projection of H_raw', metric inner product defined once, Monge coordinates as estimator, 'within the
+quadratic surrogate', sign reversal of the probe-facing shape quadratic, Appendix C relative-II qualified as an
+extrinsic diagnostic, abstract 'does not in general determine either'; p-bounds in Appendix E now true upper bounds
+(4e-3, 3e-5); sixteen compressions, Figure 1 at 0.20 textwidth): `check.sh` PASS; References begin on page 4 with 12
+reference lines on that page.
+
 Page-count status (2026-09-16, second review-fix pass: exact finite-sample criterion with centred q_c, q-matched
 random control, encoder naming made explicit (supervised ImageNet-21k ViT-B for the readout set vs DINOv3 ViT-B/16 for
 the cross-survey set), within-anchor vs cross-anchor sentence, abstract PRH sentence, "dominated by", connection
