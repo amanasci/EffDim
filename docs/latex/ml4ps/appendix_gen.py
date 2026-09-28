@@ -18,7 +18,7 @@ for name, f in variants:
     for r in rows(f):
         if r.get("row") == "result" and r["d"] == 16: res[(name, r["label"])] = r
 out.append(r"""\section*{Appendix A: decoder ablations}
-Table~\ref{tab:ablate} repeats the four quantities of Table~\ref{tab:real} at $d=16$ under the multi-scale density control for two further decoder initialisation seeds and for a decoder of width $400^3$ instead of $250^3$ (all fits reach variance explained 0.952). Every significant sign of the main table is retained.
+Table~\ref{tab:ablate} repeats the four quantities of Tables~\ref{tab:real} and~\ref{tab:meancurv} at $d=16$ under the multi-scale density control for two further decoder initialisation seeds and for a decoder of width $400^3$ instead of $250^3$ (all fits reach variance explained 0.952). Every significant sign of the main table is retained.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llcccc}
@@ -68,7 +68,9 @@ label & $d$ & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p5
 \caption{Cross-fitted mismatch and alignment partials (multi-scale control), split-half reliability of the label Hessian, and the sphere-term partial under a weak-ridge probe.}
 \label{tab:sens}
 \end{table}""")
-# --- C: relative II
+# --- C: relative II (two-embedding alignment pilot; off since the 2026-09-18 reframe dropped the cross-survey
+#         application from the manuscript. Set True to regenerate it.)
+INCLUDE_RELATIVE_II = False
 runs = [("$d=20$, seed 0", C + "08_relative_ii_d20.jsonl"), ("$d=25$, seed 0", C + "08_relative_ii_d25_seed0.jsonl"), ("$d=20$, seed 1", C + "08_relative_ii_d20_seed1.jsonl")]
 rrows = []
 for name, f in runs:
@@ -76,8 +78,8 @@ for name, f in runs:
         if r.get("row") == "result" and r["mknn_k"] == 20:
             c = r["columns"]
             rrows.append(f"{name} & {r['align_r2_holdout']:.2f} & {c['tan_resid']['median']:.2f} & " + " & ".join(cell(c[k]["multiscale"]) for k in ("H_tan_F", "H_tan_G", "tan_resid", "II_rel", "II_rel_loc", "II_rel_emp")) + r" \\")
-if rrows:
-    out.append(r"""\section*{Appendix C: relative second fundamental form, pilot}
+if rrows and INCLUDE_RELATIVE_II:
+    out.append(r"""\section*{Appendix X: relative second fundamental form, pilot}  % disabled block; reletter before re-enabling
 Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$ (because first-order matching $AJ_F = J_G$ fails at the 44\% level, the second derivative of the alignment residual is not coordinate invariant; in the decoder chart its target-normal quadratic coefficient additionally contains $-P_N^G A J_F \Gamma^F$, so relative II is reported only as an extrinsic diagnostic), the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3.5pt}
@@ -104,7 +106,7 @@ for name, f in encs:
         if r.get("row") == "fit": ve[name] = r["var_explained"]
 have = [n for n, _ in encs if any((n, l) in er for l in labels)]
 if len(have) > 1:
-    out.append(r"""\section*{Appendix D: the same test on four further encoders}
+    out.append(r"""\section*{Appendix C: the same test on four further encoders}
 Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0; variance explained """ + ", ".join(f"{ve[n]:.3f}" for n in have if n in ve) + r""" for the four new fits), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
@@ -189,8 +191,8 @@ if thin["n"]:
                 % (min(thin["n"]), max(thin["n"]), round(100 * min(thin["help"])), round(100 * max(thin["help"])), _ptex(max(thin["p_help"])),
                    round(100 * min(thin["hurt"])), round(100 * max(thin["hurt"])), _ptex(max(thin["p_hurt"]))))
 if erows:
-    out.append(r"""\section*{Appendix E: intervening on the readout's normal component}
-The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here we score a counterfactual local second-order surrogate of the readout at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; we score the anchor's 2{,}048 neighbours by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_g > \norm{K_S}_g^2$ of Section~5, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12).""" + thin_tex + r"""
+    out.append(r"""\section*{Appendix D: intervening on the readout's normal component}
+The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here we score a counterfactual local second-order surrogate of the readout at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; we score the anchor's 2{,}048 neighbours by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_g > \norm{K_S}_g^2$ of Section~\ref{sec:theory}, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12).""" + thin_tex + r"""
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{llccccc|cccc}

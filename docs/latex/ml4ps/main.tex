@@ -28,11 +28,9 @@
 \usepackage{graphicx}
 
 \newcommand{\Htan}{H^{S}}
-\newcommand{\Hraw}{H_{\mathrm{raw}}}
-\newcommand{\Hrad}{H_{\mathrm{rad}}}
 \newcommand{\norm}[1]{\lVert #1 \rVert}
 
-\title{Linear Probes on Curved Latent Spaces: Probe-Facing Curvature Predicts Local Readout Accuracy}
+\title{Linear Probes on Curved Latent Spaces}
 
 \author{%
   Anonymous Author(s)\\
@@ -45,41 +43,120 @@
 \maketitle
 
 \begin{abstract}
-Linear probes are the standard way to read physical quantities out of foundation-model embeddings, yet the embedding manifold is curved and the probe is not. We ask which curvature a linear readout pays for and where on the manifold it can be trusted. Restricted to the manifold, a linear function has Hessian $\langle w_N,\mathrm{II}\rangle$, the second fundamental form contracted with the probe's normal component; we turn this classical identity into a per-point measurement on galaxy embeddings from five encoders, using a decoder-based estimate of $\mathrm{II}$ validated on a synthetic surface of known curvature. Compared with the label's Hessian along the manifold (how the physical quantity itself curves over the embedding), the probe-facing curvature predicts local readout accuracy: accuracy is higher where the two agree and lower where they disagree, robustly under cross-fitting and across encoders, and a counterfactual that reverses the probe-facing shape term at a fixed manifold lowers local accuracy at nearly every anchor while a random orientation of matched strength does not reproduce the gain. Mean curvature, the usual scalar summary, keeps only the trace of $\mathrm{II}$ and does not in general determine this; as an application, a pre-registered mean-curvature statistic shows no density-controlled association with cross-survey neighbour agreement. The mismatch tensor is a per-object diagnostic of where a linear readout of a given physical quantity is locally reliable, and of which quantities an embedding carries linearly at all.
+Linear probes are commonly used to evaluate learned representations and infer physical quantities for objects without direct measurements. However, their global predictive performance does not reveal where individual predictions are locally reliable or how the geometry of the learned representation contributes to their errors. Here we identify a geometric source of local readout error. Although a linear probe is affine in the ambient space, its restriction to a curved embedding manifold has a nonzero intrinsic Hessian given by $\langle w_N,\mathrm{II}\rangle$, the manifold's bending contracted with the probe's normal component. We turn this classical identity into a per-object measurement on galaxy embeddings from five encoders, using a decoder-based estimate of the second fundamental form validated on a synthetic surface of known curvature. Comparing this probe-facing curvature with the intrinsic Hessian of the physical target, we find that their mismatch predicts local readout accuracy for magnitude and photometric redshift, robustly under cross-fitting and across encoders. A counterfactual intervention on a local second-order surrogate further shows that reversing the probe-facing bending reduces local accuracy at nearly every anchor, whereas randomly oriented bending of matched strength does not exhibit the same asymmetry. The resulting tensor mismatch provides a geometric diagnostic of local linear-readout reliability and helps identify which physical quantities exhibit geometry-associated variation in prediction accuracy.
 \end{abstract}
 
 \section{Introduction}
 
-Foundation-model embeddings of galaxy images are read out with linear probes: a ridge regression from the embedding to a catalogue quantity such as magnitude, redshift or stellar mass~\citep{smith2024astropt,duraphe2025platonic}. A probe returns a number for every object but no statement of where on the embedding manifold that number can be trusted, and the manifold is curved while the probe is not. We ask which curvature a linear readout pays for, and find it is a specific tensor whose agreement with the curvature of the physical quantity itself decides local accuracy. That makes the disagreement between the two a per-object diagnostic of readout reliability and, across quantities, an indication of which physical properties an embedding carries linearly.
+Linear probes evaluate learned representations by measuring how accurately targets can be recovered from frozen embeddings~\citep{alain2017probes}. Their global performance, however, does not reveal where individual predictions are reliable or how representation geometry contributes to their errors. This matters in physical science, where probes infer quantities without direct measurements. For galaxy images, linear probes predict catalogue quantities such as magnitude, redshift and stellar mass~\citep{smith2024astropt}, but offer no local reliability diagnostic. We show that an ambient affine probe inherits curvature from the embedding manifold in its normal direction. The mismatch between this probe-facing curvature and the target's intrinsic Hessian captures a local source of prediction error.
 
-We contribute (i) a decoder-based pointwise mean-curvature and second-fundamental-form instrument, validated on a synthetic surface of known curvature; (ii) the classical identity $\operatorname{Hess}_M(w\!\cdot\!x) = \langle w_N,\mathrm{II}\rangle$ applied to a fitted probe on learned manifolds; (iii) evidence on 86{,}471 labelled galaxies and five encoders that the tensor mismatch between probe-facing curvature and the label's Hessian predicts local readout accuracy, and an intervention on that tensor with a matched control that tests the mechanism; and (iv) as an application, a pre-registered density-controlled test in which mean curvature has no robust association with cross-survey representational convergence.
+We contribute (i) a decoder-based pointwise estimate of the second fundamental form, validated on a synthetic surface of known curvature; (ii) the application of the classical identity $\operatorname{Hess}_M(w\cdot x)=\langle w_N,\mathrm{II}\rangle$ to a fitted probe, with a residual expansion identifying its second-order approximation error; and (iii) evidence from 86{,}471 galaxies and five encoders that curvature mismatch predicts local readout accuracy for magnitude and redshift, supported by an intervention on a local second-order surrogate with a matched random-direction control.
+
 
 \section{Pointwise curvature from a decoder}
 \label{sec:instr}
 
-\paragraph{Data.} The readout experiments use 86{,}471 single-survey galaxies embedded by a supervised ImageNet-21k ViT-B/16 (``ViT-B'' below; not DINOv3) with catalogue labels ($r$-band magnitude, photometric redshift, smooth fraction, stellar mass; the AstroPT galaxy set~\citep{smith2024astropt}), and the same galaxies under four further encoders (Section~\ref{sec:real}). The application of Section~\ref{sec:align} uses DINOv3~\citep{simeoni2025dinov3} ViT-B/16 embeddings of 101{,}725 galaxies imaged by both HSC~\citep{aihara2018hsc} and the Legacy Survey~\citep{dey2019legacy} (Platonic Universe release~\citep{duraphe2025platonic}); we draw 10{,}000 rows once with a recorded seed. We unit-normalize embeddings (data on $S^{767}$).
+\paragraph{Data.} 86{,}471 galaxies from the AstroPT galaxy set~\citep{smith2024astropt} with catalogue labels ($r$-band magnitude, photometric redshift, smooth fraction, stellar mass), embedded by a supervised ImageNet-21k ViT-B/16 (``ViT-B'' below) and by four further encoders (Section~\ref{sec:real}); embeddings from the Platonic Universe release~\citep{duraphe2025platonic}. We unit-normalize embeddings (data on $S^{D-1}$; $D=768$ for ViT-B).
 
-\paragraph{Instrument.} Let $F:\mathbb{R}^d\to\mathbb{R}^{768}$ be the decoder of a plain auto-encoder (three hidden layers of width 250, SiLU), fit on 80\% of rows; we evaluate curvature on held-out rows. With $J = DF(z)$, metric $g = J^{\top}J$, normal projector $P_N = I - Jg^{-1}J^{\top}$ and second fundamental form $\mathrm{II} = P_N D^2F(z)$, the mean-curvature vector of the raw decoder surface is $\Hraw = \operatorname{tr}_g \mathrm{II}$ (unnormalized trace; some authors divide by $d$), by automatic differentiation (cf.~\citep{lee2023curvature,acosta2023extrinsic}), at points where $DF$ has full column rank $d$ (likewise $D(F/\norm{F})$ after projection). On the unit sphere the Euclidean mean-curvature vector of every $d$-submanifold has the universal radial component $-d\,\hat x$, which says nothing about shape; differentiating $F/\norm{F}$ instead splits $H$ exactly as $-d\,\hat x + \Htan$ ($\Hrad = -d$ to $10^{-14}$), and $\Htan$ carries the non-radial mean-curvature component. Sections~\ref{sec:theory}--\ref{sec:real} use the projected decoder; the application of Section~\ref{sec:align} uses the pre-registered $\norm{\Hraw}$.
+\paragraph{Instrument.} Let $F:\mathbb{R}^d\to\mathbb{R}^{D}$ be the decoder of a plain auto-encoder (three hidden layers of width 250, SiLU), fit on 80\% of rows; we evaluate curvature on held-out rows. With $J = DF(z)$, metric $g = J^{\top}J$, normal projector $P_N = I - Jg^{-1}J^{\top}$ and second fundamental form $\mathrm{II} = P_N D^2F(z)$, all by automatic differentiation (cf.~\citep{lee2023curvature,acosta2023extrinsic}) at points where $DF$ has full column rank $d$. We differentiate the projected decoder $F/\norm{F}$, whose image lies on the unit sphere, so that $\mathrm{II}$ splits exactly into the sphere's universal radial part and an in-sphere shape part (Eq.~\eqref{eq:split}; Appendix~E).
 
-\paragraph{Validation.} Against closed-form curvature, at $D=768$ an in-sphere surface $G(z) = Q\,\mathrm{normalize}([\phi(z);\,0.8\,h(z);\,0\ldots])$ ($\phi$ inverse stereographic $\mathbb{R}^{16}\to S^{16}$, $h$ four Gaussian bumps, $Q$ a rotation) gives rank 0.94 against the true $\norm{\Htan}$, direction cosine 0.999, magnitude ratio 1.00.
+\paragraph{Validation.} On a synthetic in-sphere surface at $D=768$ with closed-form $\mathrm{II}$ (Appendix~E), the decoder's estimate matches the true trace of $\mathrm{II}$ in direction (cosine 0.999), magnitude (ratio 1.00) and rank across points (0.94).
 
-\section{What a linear map sees on a curved manifold}
+\section{What a linear readout sees on a curved manifold}
 \label{sec:theory}
 
-Let $M\subset\mathbb{R}^D$ be a $d$-dimensional submanifold, $d<D$; at $x_0$ take an orthonormal tangent frame $J$, the second fundamental form $\mathrm{II}$ (normal-valued, symmetric $d\times d$), $H = \operatorname{tr}\mathrm{II}$, and for a vector $w$ its tangent and normal parts $w_T + w_N$. In normal coordinates $u$ at $x_0$, $M$ is $x_0 + Ju + \tfrac12\mathrm{II}(u,u) + O(|u|^3)$~\citep{lee2018riemannian}, so
+
+\paragraph{Notation.}
+Let $M\subset\mathbb{R}^D$ be a $d$-dimensional
+smooth embedded manifold, $d<D$, with anchor
+$x_0\in M$. Let $J$ be an orthonormal tangent
+frame at $x_0$ and $u$ normal coordinates in
+this frame, so that locally
+$x(u)=x_0+Ju+\tfrac12\mathrm{II}(u,u)
++O(\|u\|^3)$~\citep{lee2018riemannian}, where $\mathrm{II}$ is the
+normal-valued second fundamental form. In
+the numerical estimates, $J=DF$ is the
+decoder Jacobian, with metric $g=J^\top J$,
+and tangent-projected coordinates are used.
+A probe weight decomposes as $w=w_T+w_N$
+into tangent and normal components. On the
+unit sphere, $\mathrm{II}=\mathrm{II}^S-g\,x$
+separates the in-sphere shape from the
+universal radial bending, and $w_S$ is
+the component of $w_N$ orthogonal to $x$.
+Let $y$ be a smooth target on $M$ and
+$\hat y=w\cdot x+b_0$ a global affine probe.
+Tensor norms and inner products use
+$\langle A,B\rangle_g
+=g^{ia}g^{jb}A_{ij}B_{ab}$.
+
+Three facts follow. First, although the
+probe is affine in the ambient space, its
+restriction to $M$ is generally nonlinear
+in intrinsic coordinates:
 \begin{equation}
-[\nabla_M (w\!\cdot\! x)]_J = J^{\top}w,\qquad \operatorname{Hess}_M (w\!\cdot\! x) = \langle w_N, \mathrm{II}\rangle,\qquad \Delta_M (w\!\cdot\! x) = \langle w, H\rangle .
+(d\hat y)_J=J^\top w,\qquad
+\operatorname{Hess}_M\hat y
+=\langle w_N,\mathrm{II}\rangle=:K.
 \label{eq:hess}
 \end{equation}
-For $M\subset S^{D-1}$, $\mathrm{II} = \mathrm{II}^{S} - g\,\hat x$ splits off the sphere's radial direction, so
-$\operatorname{Hess}_M (w\!\cdot\! x) = \langle w_S, \mathrm{II}^{S}\rangle - (w\!\cdot\!\hat x)\,g$ \refstepcounter{equation}(\theequation)\label{eq:split}, with $w_S$ the part of $w_N$ orthogonal to $\hat x$: the sphere bends every readout of a unit-normalized embedding in proportion to its own value $\hat y - b_0$. For a label $y$ on $M$, a global affine probe $\hat y = w\cdot x + b_0$ and a patch $u\sim N(0, s^2 I_d)$ in normal coordinates, embedding and label locally $C^4$, with $\bar c$ the patch-mean residual, $\delta = [\nabla_M y]_J - J^{\top}w$, $\Delta = \operatorname{Hess}_M y - \langle w_N,\mathrm{II}\rangle$ (all tensor norms and cosines use $\langle A,B\rangle_g = g^{ia}g^{jb}A_{ij}B_{ab}$),
+We call $K$ the probe-facing curvature.
+Second, on the unit sphere it splits into
+an in-sphere shape term and a radial term:
 \begin{equation}
-\mathbb{E}_{\mathrm{patch}}\big[(y-\hat y)^2\big] = \bar c^{\,2} + s^2\norm{\delta}^2 + \tfrac{1}{2}s^4\norm{\Delta}_g^2 + O(s^4\norm{\delta}) + O(s^6).
+K=
+\underbrace{\langle w_S,\mathrm{II}^S
+\rangle}_{K_S}
++
+\underbrace{[-(\hat y-b_0)g]}_{K_{\mathrm{sph}}}.
+\label{eq:split}
+\end{equation}
+Thus, even an ambient affine readout
+inherits intrinsic curvature from the
+geometry of the representation.
+
+Third, consider an isotropic Gaussian
+patch $u\sim N(0,s^2I_d)$ in the
+orthonormal tangent frame. For sufficiently
+smooth embedding and target functions,
+with controlled higher derivatives, let
+$\bar c=\mathbb E_{\mathrm{patch}}[y-\hat y]$
+be the patch-mean residual,
+$\delta=(dy-d\hat y)_J$ the differential
+mismatch, and
+$\Delta=\operatorname{Hess}_M y-K$
+the Hessian mismatch. Then
+\begin{equation}
+\begin{aligned}
+\mathbb E_{\mathrm{patch}}
+[(y-\hat y)^2]
+={}&\bar c^{\,2}
++s^2\|\delta\|^2\\
+&+\tfrac12s^4\|\Delta\|_g^2
++O(s^4\|\delta\|)+O(s^6).
+\end{aligned}
 \label{eq:resid}
 \end{equation}
-(The same expansion for a linear map between two embeddings gives a connection-mismatch and a relative extrinsic term; Appendix~C.)
-
-So $\norm{H}$ need not correlate with $\langle w_N,\mathrm{II}\rangle$; and since the second-order term scales as $s^4$ with $s$ set by density at fixed $k$, patch-scored curvature effects are density-sensitive.
+The Hessian mismatch therefore determines
+the quadratic residual's contribution
+to centered local error under this model.
+Its contribution is smaller than at
+$K=0$ iff
+$2\langle\operatorname{Hess}_M y,K
+\rangle_g>\|K\|_g^2$: the probe-facing
+curvature must bend toward the target's
+curvature, without overshooting it.
+With the sphere term fixed, the
+corresponding condition for the shape
+term is
+$2\langle R,K_S\rangle_g>\|K_S\|_g^2$,
+where
+$R=\operatorname{Hess}_M y-K_{\mathrm{sph}}$.
+Section~\ref{sec:real} tests this
+relationship. Since the quadratic
+contribution scales as $s^4$, our
+empirical analysis controls for
+variation in local neighborhood scale.
 
 \section{Probe-facing curvature: bending toward the label helps, bending away hurts}
 \label{sec:real}
@@ -88,48 +165,148 @@ Statistic: five-fold out-of-fold ridge probe~\citep{alain2017probes} at the pre-
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.20\textwidth]{figures/fig1_probe_facing.pdf}
-\caption{(a) Known surface, linear label, exact geometry: three-control partial vs local $R^2$ as the density--curvature coupling is set by construction ($\gamma$ from $-1$ to $1$). (b) Galaxies, 512 anchors, $k=2{,}048$, multi-scale control: the decoder's $\norm{\Htan}$ (filled squares), shape term (open circles), sphere term (open triangles).}
+\includegraphics[width=\textwidth]{figures/fig1_intervention.pdf}
+\caption{Bending toward the label helps, bending away hurts. At each of 512 anchors the readout's in-sphere shape quadratic $\tfrac t2\langle w_S,\mathrm{II}^S\rangle(u,u)$ is scaled by $t$ in a local second-order surrogate at a fixed manifold; lines are the median over anchors of the change in local $R^2$ relative to shape-flat ($t=0$). $t=1$ is the manifold's own bending seen from the readout's normal direction, $t=-1$ its reversal. Blue: the decoder's shape term, one line per run (five encoders at $d=16$, ViT-B also at $d=20$). Grey dashed: a random in-sphere normal direction with matched quadratic amplitude $\norm{q_c}$. Fractions of anchors helped and hurt, and sign tests on non-overlapping anchors, in Appendix~D.}
 \label{fig:main}
 \end{figure}
 
-\paragraph{Known surface.} Resampling the validation surface with weight $\norm{\Htan}^\gamma$ (Figure~\ref{fig:main}a) moves the $\norm{\Htan}$ partial from $-0.29$ to $+0.26$ while $\norm{\langle w_N,\mathrm{II}\rangle}_g$ holds at $-0.74$ to $-0.80$, dominated by the sphere term of Eq.~\eqref{eq:split}.
+\paragraph{Galaxies.}
+We estimate $\operatorname{Hess}_M y$ at each
+anchor by fitting a least-squares quadratic
+to the labels of its 2{,}048 neighbours in
+tangent-projected coordinates
+$u=g^{-1}J^\top(x-x_0)$. These decoder-based
+Monge coordinates have vanishing Christoffel
+symbols at the anchor, so the quadratic
+coefficient estimates the covariant Hessian
+in the small-neighbourhood limit. For
+magnitude and redshift, the mismatch
+$\|\Delta\|_g$ is negatively associated with
+local $R^2$ ($-0.39$ to $-0.45$), while
+alignment
+$\cos_g(\operatorname{Hess}_M y,K)$
+is positively associated with it
+($+0.24$ to $+0.43$). These relationships
+persist under cross-fitting (Appendix~B).
+Smooth fraction exhibits weaker associations,
+while stellar mass shows no significant
+mismatch or alignment signal in this
+experiment (Table~\ref{tab:real}; decoder
+ablations, Appendix~A). Across five encoders, mismatch remains negatively associated with local accuracy for magnitude and redshift, while alignment is positive and significant for magnitude across all five and redshift across four (Appendix~C).
 
-\begin{table}[t]
-\centering
-\footnotesize
-\setlength{\tabcolsep}{3.4pt}
-\begin{tabular}{lcccccccccc}
-\toprule
- & \multicolumn{2}{c}{$\norm{\Htan}$} & \multicolumn{2}{c}{shape $\norm{\langle w_S,\mathrm{II}^S\rangle}$} & \multicolumn{2}{c}{sphere $\sqrt d\,|\hat y-b_0|$} & \multicolumn{2}{c}{mismatch $\norm{\Delta}_g$} & \multicolumn{2}{c}{alignment} \\
-label & $d{=}16$ & $d{=}20$ & 16 & 20 & 16 & 20 & 16 & 20 & 16 & 20 \\
-\midrule
-mag\_r & $+0.25$ & $-0.17$ & $+0.12$ & $+0.19$ & $-0.26$ & $-0.26$ & $-0.39$ & $-0.40$ & $+0.35$ & $+0.43$ \\
-photo\_z & $+0.28$ & $+0.13$ & $-0.06^{*}$ & $-0.12$ & $-0.33$ & $-0.36$ & $-0.45$ & $-0.44$ & $+0.26$ & $+0.24$ \\
-smooth\_fraction & $+0.21$ & $+0.15$ & $+0.07^{*}$ & $+0.16$ & $-0.13$ & $-0.15$ & $-0.09^{*}$ & $-0.17$ & $+0.19$ & $+0.07^{*}$ \\
-stellar\_mass & $-0.02^{*}$ & $-0.00^{*}$ & $+0.00^{*}$ & $+0.03^{*}$ & $-0.35$ & $-0.35$ & $-0.04^{*}$ & $-0.09^{*}$ & $+0.01^{*}$ & $+0.02^{*}$ \\
-\bottomrule
-\end{tabular}
-\caption{Galaxies, 512 anchors, $k=2{,}048$: rank-partial Spearman against local $R^2$ under the multi-scale density control. $^{*}$ not significant at 0.05.}
-\label{tab:real}
-\end{table}
+The shape term closely tracks the magnitude
+of the total probe-facing curvature on
+galaxies (rank correlation $0.96$--$0.99$),
+but its association with local accuracy
+varies across targets. This is consistent
+with Eq.~\eqref{eq:resid}, where the shape
+term's contribution to the quadratic
+mismatch depends on both its magnitude and
+its alignment with the remaining target
+curvature. The sphere term is negatively
+associated with local accuracy for all four
+targets in the main ViT-B experiment,
+although its association is sensitive to
+probe regularization for some targets
+(Appendix~E). Applying the same local
+quadratic regression to the probe predictions
+provides a decoder-independent estimate of
+$K$, with median tensor cosine
+$0.55$--$0.65$ relative to the
+decoder-based estimate.
 
-\paragraph{Galaxies.} Here the two terms of Eq.~\eqref{eq:split} trade places: the shape term dominates the probe-facing Hessian (rank $0.96$--$0.99$). We estimate $\operatorname{Hess}_M y$ per anchor by a least-squares quadratic of the label on the tangent-projected coordinates $u = g^{-1}J^{\top}(x - x_0)$ of its 2{,}048 neighbours (decoder-based Monge coordinates, so the finite-patch coefficient estimates the covariant Hessian). Three regularities follow (Table~\ref{tab:real}; Appendix~A); the sphere term is negative on every label and both $d$ ($-0.13$ to $-0.36$) under the sealed probe; with a weak-ridge probe ($\alpha=1$, Appendix~B) it stays negative for magnitude and smooth fraction ($-0.21$, $-0.12$) and vanishes for redshift and stellar mass. For magnitude, redshift and smooth fraction the mismatch is negative ($-0.09$ to $-0.45$; unchanged under cross-fitting, Appendix~B) and the alignment $\cos_g(\operatorname{Hess}_M y,\langle w_N,\mathrm{II}\rangle)$ positive ($+0.07$ to $+0.43$); stellar mass shows no mismatch or alignment signal here. The shape term alone is label-signed (positive for magnitude and smooth fraction, null to weakly negative for redshift): with $K = \langle w_N,\mathrm{II}\rangle$ the cross term of $\norm{\Delta}_g^2 = \norm{\operatorname{Hess}_M y}_g^2 - 2\langle\operatorname{Hess}_M y,K\rangle_g + \norm{K}_g^2$ decides its sign. The same regression on the readout $w\cdot x$ returns the point cloud's own $\langle w_N,\mathrm{II}\rangle$ (median cosine with the decoder's $0.55$--$0.65$).
+\paragraph{Relation to prior work.}
+The identity in Eq.~\eqref{eq:hess} is
+classical~\citep{milnor1963morse,chern1957total};
+related work derives a curvature-dependent
+normal weight for least-squares regression
+on hypersurfaces~\citep{liu2023linear}
+and documents the effects of curved
+representations on linear
+decoding~\citep{jurewicz2024irrational}.
+Other approaches study manifold
+capacity~\citep{chung2016linear,slatton2026linear},
+representation flattening~\citep{psenka2024flattening},
+curvature regularization~\citep{ma2023curvature},
+latent geometry~\citep{kaufman2023latent},
+local-regression bias~\citep{cheng2013local},
+and geometric indicators of
+generalization~\citep{chou2026diagnosing}.
+Our contribution is to estimate the
+pointwise probe-facing curvature tensor
+on a learned manifold, compare it with
+the target's intrinsic Hessian, and test
+its contribution to local readout accuracy
+through a controlled second-order intervention.
 
-\paragraph{Bending toward helps, bending away hurts.} Within the quadratic surrogate of Eq.~\eqref{eq:resid}, the Hessian-mismatch term is lower than at $K=0$ iff $2\langle\operatorname{Hess}_M y, K\rangle_g > \norm{K}_g^2$: the manifold must bend toward the label's own curvature, and not too far. (The identity is classical, and \citet{liu2023linear} already derive, for least squares on a hypersurface, a normal weight proportional to the label's second derivatives over curvature, the low-dimensional special case of this mechanism; curved representations distorting a linear decoder is documented~\citep{jurewicz2024irrational}, $\operatorname{Hess}_M y$ is a classical object~\citep{donoho2003hessian}, and manifold capacity~\citep{chung2016linear,slatton2026linear}, flattening~\citep{psenka2024flattening}, curvature regularization~\citep{ma2023curvature}, latent-curvature studies~\citep{kaufman2023latent}, local-regression bias~\citep{cheng2013local} and geometry markers of generalization~\citep{chou2026diagnosing} use dimension, radius or magnitude. New here is the estimated pointwise tensor $K$ on a learned manifold, its tensor comparison with $\operatorname{Hess}_M y$, and the intervention that follows.) No anchor is flat, so we test the condition with a counterfactual local second-order surrogate of the readout. Writing $K = K_S - (w\!\cdot\!\hat x)g$ with $K_S = \langle w_S,\mathrm{II}^S\rangle$ the in-sphere shape term, each anchor's 2{,}048 neighbours are scored by $\hat y_t(u) = c + a^{\top}u + \tfrac12 K_{\mathrm{sph}}(u,u) + \tfrac t2 K_S(u,u)$ with $a$ the readout's tangent gradient, $K_S$ from the decoder and $c$ refit: $t=1$ is the manifold's bending as seen in the readout's normal direction (``bending toward the label'' means $\langle R, K_S\rangle > 0$ for the remaining label curvature $R = \operatorname{Hess}_M y - K_{\mathrm{sph}}$), $t=-1$ the sign reversal of that probe-facing shape quadratic, $t=0$ shape-flat. In the Gaussian model $t=1$ beats shape-flat iff $2\langle R,K_S\rangle_g > \norm{K_S}_g^2$; on the actual neighbours, with $r_0$ the centred shape-flat residual and $q_c$ the centred quadratic $\tfrac12 K_S(u_i,u_i)$, the exact criterion is $2\langle r_0,q_c\rangle > \norm{q_c}^2$ with optimum $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ (Appendix~E). On five encoders and all four labels, $t=1$ beats shape-flat at 79--99\% of anchors and $t=-1$ is worse at 97--100\%, while a random orientation with the same centred quadratic amplitude shows no such asymmetry and is typically harmful under either sign ($t=1$ beats shape-flat at 22--36\% of anchors, $t^{*}\approx 0$; Appendix~E). The probe-selected shape quadratic is locally error-reducing; under the second-order model that is the signature of bending toward the remaining label curvature. This within-anchor question differs from Table~\ref{tab:real}'s cross-anchor one (does variation in mismatch explain variation in local $R^2$) and can hold where that has no signal, as for stellar mass. $t^{*}$ sits at 1.5 to 3.6 throughout, consistent with the globally ridge-regularized probe under-using a locally beneficial second-order term.
+\paragraph{Bending toward helps, bending away hurts.}
+To isolate the contribution of probe-facing
+shape curvature, we intervene on the
+in-sphere quadratic term of a local
+second-order surrogate while keeping the
+manifold, tangent readout, and sphere term
+fixed. Each anchor's 2{,}048 neighbours
+are scored by
+$\hat y_t(u)=c+a^\top u+
+\tfrac12K_{\mathrm{sph}}(u,u)+
+\tfrac t2K_S(u,u)$,
+where $a$ is the probe's tangent
+differential, $K_S$ is estimated from the
+decoder, and $c$ is refit for each $t$.
+Here $t=1$ retains the estimated shape
+quadratic of the original readout,
+$t=-1$ reverses its sign, and $t=0$
+removes it.
 
-\paragraph{Across encoders.} Across five encoders (the readout set's supervised ViT-B, DINOv3 ViT-B/16, CLIP-B, ConvNeXt-B, ViT-L; $d=16$) the quadratic-chart mean-bending trace has density-controlled associations with the magnitude probe's local $R^2$ of both signs ($-0.24$ to $+0.27$), as Eq.~\eqref{eq:hess} allows. Per encoder (Appendix~D) the decoder test is stable where the expansion predicts: the mismatch partial is negative for magnitude and redshift on all five encoders ($-0.32$ to $-0.61$; cross-fitted $-0.28$ to $-0.62$) and the alignment positive for magnitude on all five ($+0.13$ to $+0.53$) and for redshift on four; the shape term's sign varies with encoder as well as label; for the mismatch and alignment hypotheses stellar mass stays null but for one mismatch cell ($-0.12$).
+Under the isotropic Gaussian quadratic
+model, $t=1$ improves upon $t=0$ iff
+$2\langle R,K_S\rangle_g>\|K_S\|_g^2$.
+On the actual neighbours, let $r_0$ be
+the centred shape-flat residual and
+$q_c$ the centred quadratic contribution
+$\tfrac12K_S(u_i,u_i)$. After refitting
+the intercept, the exact finite-sample
+criterion is
+$2\langle r_0,q_c\rangle>\|q_c\|^2$,
+with optimum
+$t^*=\langle r_0,q_c\rangle/\|q_c\|^2$
+(Appendix~D).
 
-\section{Application: mean curvature and cross-survey convergence}
-\label{sec:align}
+Across five encoders and all four labels
+(Figure~\ref{fig:main}), $t=1$ improves
+local $R^2$ relative to the shape-flat
+surrogate at 79--99\% of anchors, while
+$t=-1$ reduces it at 97--100\%.
+A random in-sphere normal direction with
+matched centred quadratic amplitude shows
+no comparable directional asymmetry and
+is typically harmful under either sign
+($t=1$ improves upon shape-flat at
+22--36\% of anchors; Appendix~D).
 
-The Platonic Universe~\citep{duraphe2025platonic} asks whether different models see the same sky~\citep{huh2024platonic}, scoring per-galaxy agreement between HSC and Legacy Survey embeddings by the mutual $k$-nearest-neighbour score $\mathrm{MKNN}_i = |N_k(z_1)_i \cap N_k(z_2)_i|/k$ at $k=20$. If models disagreed most where the surface bends sharply, $\norm{\Hraw}$ should associate negatively with local agreement. The raw association is $-0.112$, $-0.128$ and $-0.024$ at $d=20,25,32$. But $k$-NN statistics are density-sensitive~\citep{radovanovic2010hubs}, and local density ($k=30$ estimate on the Legacy embedding) correlates with both agreement and $\norm{\Hraw}$: residualizing on it leaves $-0.024$, $-0.066$ and $-0.022$. Under a permutation null within density strata only $d=25$ survives ($p<5{\times}10^{-5}$), and subtracting the radial projection of $\Hraw$ (a projection, not a recomputation on $F/\norm{F}$) collapses it to $-0.023$.
+Thus, the probe-selected shape quadratic
+is locally error-reducing within the
+second-order surrogate. Under the quadratic
+Gaussian model, this is the signature of
+bending toward the target's remaining
+intrinsic curvature. This within-anchor
+comparison differs from the cross-anchor
+associations in Table~\ref{tab:real}
+and can hold even where the latter show
+no significant signal, as for stellar mass.
+The optimum $t^*$ lies between 1.5 and
+3.6 across runs, indicating that further
+amplification of the shape term reduces
+local surrogate error. 
 
 \section{Discussion}
 
-A linear readout of a galaxy embedding gains accuracy where the manifold, seen in the readout's normal direction, bends toward the label's curvature and loses it where that bending is reversed: gain at a large majority of anchors and loss at nearly every anchor, on five encoders. The residual expansion names the quantity, and a decoder's pointwise second fundamental form measures it at production scale, validated against a synthetic surface of known curvature for $\Htan$ and in substantial agreement with the data. Two consequences for practice. First, the mismatch tensor $\norm{\operatorname{Hess}_M y - \langle w_N,\mathrm{II}\rangle}_g$ is a per-object diagnostic: it says where a probe's prediction of a given physical quantity rests on geometry the readout can follow, the ingredient a local reliability estimate for probe-based inference needs. Second, across quantities it separates labels the embedding carries linearly (magnitude, redshift, smooth fraction) from those it does not (stellar mass). Mean curvature, the scalar usually reported, keeps only the trace of $\mathrm{II}$ and fails accordingly: it explains neither readout accuracy nor, in the application, cross-survey convergence.
+Our results identify a geometric source of local linear-probe error: the mismatch $\Delta=\operatorname{Hess}_M y-\langle w_N,\mathrm{II}\rangle$ between the target's intrinsic Hessian and the curvature induced by the probe. We estimate this mismatch using a decoder-based second fundamental form, validated on a synthetic surface and showing moderate agreement with a decoder-independent estimate on galaxy embeddings. Across five encoders, mismatch tracks local accuracy for magnitude and redshift, with weaker evidence for smooth fraction. A counterfactual intervention on the local second-order surrogate shows that the probe-selected shape term reduces error at most anchors, while reversing it generally increases error. Thus, manifold curvature can help rather than hinder linear decoding when it bends toward the target's curvature.
 
-\emph{Limitations.} One survey pair. The label's Hessian is a local estimate; its norm is reliably ranked (split-half $\rho$ 0.91--0.94) but its direction only moderately (tensor cosine 0.19--0.35). On a synthetic surface with known curvature the mismatch partial reproduces but the alignment partial has no stable sign; Appendix~E carries the alignment claim. The reliability reading is a diagnostic, not a calibrated interval. Mismatch and alignment are the primary hypotheses, the rest exploratory. Permutation $p$-values assume anchor exchangeability under overlapping patches.
+The mismatch can be estimated from labelled neighbours without knowing an object's target value, providing a local diagnostic of predictions that may warrant further scrutiny. It is not yet a calibrated per-object uncertainty estimate. For stellar mass, mismatch does not consistently track local accuracy despite the beneficial shape contribution, showing that a locally useful geometric effect need not explain variation in overall readout accuracy.
+
+\emph{Limitations.}
+We study one galaxy sample, four targets and five encoders. The label Hessian is estimated from finite neighbourhoods; its norm is reliably ranked (split-half $\rho=0.91$--$0.94$), but its direction is only moderately recovered (tensor cosine $0.19$--$0.35$). The synthetic surface does not independently corroborate the alignment association because its target has insufficient intrinsic curvature. The intervention modifies a local surrogate, not the encoder or manifold. Mismatch and alignment are the primary hypotheses; other analyses are exploratory. Overlapping neighbourhoods introduce anchor dependence that may affect permutation-test validity.
 
 \bibliographystyle{unsrtnat}
 {\small
@@ -139,7 +316,7 @@ A linear readout of a galaxy embedding gains accuracy where the manifold, seen i
 \appendix
 % BEGIN APPENDIX AUTOGEN
 \section*{Appendix A: decoder ablations}
-Table~\ref{tab:ablate} repeats the four quantities of Table~\ref{tab:real} at $d=16$ under the multi-scale density control for two further decoder initialisation seeds and for a decoder of width $400^3$ instead of $250^3$ (all fits reach variance explained 0.952). Every significant sign of the main table is retained.
+Table~\ref{tab:ablate} repeats the four quantities of Tables~\ref{tab:real} and~\ref{tab:meancurv} at $d=16$ under the multi-scale density control for two further decoder initialisation seeds and for a decoder of width $400^3$ instead of $250^3$ (all fits reach variance explained 0.952). Every significant sign of the main table is retained.
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llcccc}
@@ -193,26 +370,83 @@ stellar\_mass & 20 & $-0.06^{*}$ & $-0.07^{*}$ & $+0.01^{*}$ & $-0.00^{*}$ & +0.
 \caption{Cross-fitted mismatch and alignment partials (multi-scale control), split-half reliability of the label Hessian, and the sphere-term partial under a weak-ridge probe.}
 \label{tab:sens}
 \end{table}
-\section*{Appendix C: relative second fundamental form, pilot}
-Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$ (because first-order matching $AJ_F = J_G$ fails at the 44\% level, the second derivative of the alignment residual is not coordinate invariant; in the decoder chart its target-normal quadratic coefficient additionally contains $-P_N^G A J_F \Gamma^F$, so relative II is reported only as an extrinsic diagnostic), the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
+
+\section*{Appendix C: Main and cross-encoder results}
+
+\paragraph{Main results.}
+Table~\ref{tab:real} reports the associations
+between geometric mismatch, alignment and local
+readout accuracy for ViT-B at $d=16$ and $d=20$.
+Results use 512 anchors, $k=2{,}048$ neighbours
+and the multi-scale density control.
+
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lcccccccc}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabular}{lcccc}
 \toprule
-run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\ resid & $\mathrm{II}_{\mathrm{rel}}$ & $\mathrm{II}_{\mathrm{rel}}$ (local $L$) & $\mathrm{II}_{\mathrm{rel}}$ (data) \\
+ & \multicolumn{2}{c}{mismatch $\norm{\Delta}_g$}
+ & \multicolumn{2}{c}{alignment $\cos_g(\operatorname{Hess}_M y, K)$} \\
+label & $d{=}16$ & $d{=}20$ & $d{=}16$ & $d{=}20$ \\
 \midrule
-$d=20$, seed 0 & 0.64 & 0.44 & $-0.15$ & $+0.04^{*}$ & $-0.18$ & $+0.04^{*}$ & $-0.18$ & $+0.13$ \\
-$d=25$, seed 0 & 0.64 & 0.43 & $-0.10$ & $+0.06$ & $-0.16$ & $+0.05$ & $-0.23$ & $+0.13$ \\
-$d=20$, seed 1 & 0.64 & 0.44 & $-0.11$ & $+0.05$ & $-0.19$ & $+0.04$ & $-0.20$ & $+0.14$ \\
+mag\_r & $-0.39$ & $-0.40$ & $+0.35$ & $+0.43$ \\
+photo\_z & $-0.45$ & $-0.44$ & $+0.26$ & $+0.24$ \\
+smooth\_fraction & $-0.09^{*}$ & $-0.17$ & $+0.19$ & $+0.07^{*}$ \\
+stellar\_mass & $-0.04^{*}$ & $-0.09^{*}$ & $+0.01^{*}$ & $+0.02^{*}$ \\
 \bottomrule
 \end{tabular}
-\caption{Relative-II pilot. $^{*}$ not significant at 0.05.}
-\label{tab:relii}
+\caption{ViT-B: rank-partial Spearman correlations
+with local $R^2$ under the multi-scale density
+control. $^{*}$ Not significant at 0.05.
+Shape, sphere and mean-curvature results
+are reported in Appendix~E.}
+\label{tab:real}
 \end{table}
-\section*{Appendix D: the same test on four further encoders}
-Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0; variance explained 0.966, 0.985, 0.965, 0.968 for the four new fits), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
+
+\paragraph{Across encoders.}
+We repeat the geometric diagnostic at $d=16$
+on the same 86{,}471 galaxies using four further
+encoders from the Platonic Universe release:
+DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B and
+ViT-L (widths 768, 512, 1{,}024 and 1{,}024;
+all unit-normalized).
+A decoder of the same architecture and training
+protocol is fitted per encoder (seed 0;
+variance explained 0.966, 0.985, 0.965 and
+0.968, respectively). All analyses use
+512 anchors, $k=2{,}048$ and the multi-scale
+density control.
+
+For magnitude and redshift, mismatch is
+negatively associated with local $R^2$
+across all five encoders ($-0.32$ to $-0.61$;
+cross-fitted $-0.28$ to $-0.62$).
+Alignment is positive and significant for
+magnitude across all five ($+0.13$ to $+0.53$)
+and for redshift across four.
+Shape-term associations vary by encoder and
+target, while smooth fraction shows less
+consistent mismatch and alignment signals.
+For stellar mass, alignment is nonsignificant
+across encoders and mismatch significant in
+only one main comparison. Thus, the
+cross-anchor mismatch association varies by
+target, even where the shape term improves
+the local surrogate.
+
+Table~\ref{tab:xenc} reports the full
+cross-encoder results, including global
+out-of-sample probe $R^2$ in the first row
+for each label. Table~\ref{tab:xencx}
+reports cross-fitted mismatch and alignment
+associations and split-half reliability of
+the estimated label Hessian.
+
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{llccccc}
 \toprule
 label & quantity & ViT-B & DINOv3 & CLIP-B & ConvNeXt-B & ViT-L \\
@@ -243,15 +477,25 @@ stellar\_mass & global $R^2$ & 0.48 & 0.54 & 0.50 & 0.49 & 0.49 \\
 \addlinespace[2pt]
 \bottomrule
 \end{tabular}
-\caption{Cross-encoder replication, $d=16$, multi-scale density control. $^{*}$ not significant at 0.05.}
+\caption{Cross-encoder results at $d=16$:
+global probe $R^2$ and rank-partial Spearman
+correlations with local $R^2$ under the
+multi-scale density control.
+$^{*}$ Not significant at 0.05.}
 \label{tab:xenc}
 \end{table}
+
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llccccc}
 \toprule
- & & \multicolumn{2}{c}{mismatch, cross-fit} & \multicolumn{2}{c}{alignment, cross-fit} & Hess.\ split cos \\
-encoder & label & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p50 \\
+ & & \multicolumn{2}{c}{mismatch, cross-fit}
+ & \multicolumn{2}{c}{alignment, cross-fit}
+ & Hess.\ split cos \\
+encoder & label & fit A/score B & fit B/score A
+& fit A/score B & fit B/score A & p50 \\
 \midrule
 \addlinespace[2pt]
 DINOv3 & mag\_r & $-0.60$ & $-0.62$ & $+0.50$ & $+0.50$ & +0.35 \\
@@ -276,11 +520,15 @@ ViT-L & mag\_r & $-0.46$ & $-0.49$ & $+0.09^{*}$ & $+0.15$ & +0.30 \\
 \addlinespace[2pt]
 \bottomrule
 \end{tabular}
-\caption{Cross-fitted mismatch and alignment partials per encoder (multi-scale control) and split-half reliability of the label Hessian.}
+\caption{Cross-fitted mismatch and alignment
+partials under the multi-scale density
+control, with median split-half tensor
+cosine for the estimated label Hessian.
+$^{*}$ Not significant at 0.05.}
 \label{tab:xencx}
 \end{table}
-\section*{Appendix E: intervening on the readout's normal component}
-The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here we score a counterfactual local second-order surrogate of the readout at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; we score the anchor's 2{,}048 neighbours by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_g > \norm{K_S}_g^2$ of Section~5, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12). The anchors' neighbourhoods overlap (each point lies in about twelve of them), so the fractions are not counts of independent trials; a maximal set of anchors whose pairwise overlap is at most 5\% of $k$ has 19--21 members per run, on which $t=1$ beats shape-flat at 81--100\% (one-sided sign test $p \le 4\times 10^{-3}$ in every cell) and $t=-1$ is worse at 95--100\% ($p \le 3\times 10^{-5}$).
+\section*{Appendix D: intervening on the readout's normal component}
+The partials of Table~\ref{tab:real} compare anchors with one another and cannot say whether reversing the probe-facing shape term hurts relative to removing it, since no anchor is flat. Here we score a counterfactual local second-order surrogate of the readout at a fixed manifold. At each anchor the fitted ridge weight is split into tangent, radial and in-sphere normal parts $w = w_T + w_{\mathrm{rad}} + w_S$; we score the anchor's 2{,}048 neighbours by the data-side tangent-plus-sphere readout $(w_T + w_{\mathrm{rad}})\cdot x$ plus $t\,q$ with the local intercept refit, where $q = \tfrac12\langle w_S,\mathrm{II}^S\rangle(u,u)$ is the decoder's in-sphere second-order term in the anchor's chart coordinates: $t=1$ is the manifold's bending as seen in the readout's normal direction, $t=-1$ its sign reversal, $t=0$ shape-flat (the sphere term $-(w\!\cdot\!\hat x)g$ is kept in the base). Because the intercept is refit for every $t$, the local sum of squares is exactly $\mathrm{SSE}(t) = \norm{r_0 - t\,q_c}^2$ with $r_0$ the centred residual of the shape-flat predictor and $q_c = q - \bar q\mathbf 1$ the centred quadratic on the anchor's neighbours; hence $t^{*} = \langle r_0,q_c\rangle/\norm{q_c}^2$ and $t=1$ beats shape-flat iff $2\langle r_0,q_c\rangle > \norm{q_c}^2$. This is the finite-sample counterpart of the tensor-level condition $2\langle R,K_S\rangle_g > \norm{K_S}_g^2$ of Section~\ref{sec:theory}, not the same quantity: the tensor version needs the estimated label Hessian, the empirical one does not. Columns: fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse than shape-flat (hurt), the median change in local $R^2$ at $t=\pm1$, the median $t^{*}$; then the same for a random in-sphere normal direction $v$ whose quadratic is rescaled to the same centred amplitude on the actual neighbours, $\norm{q_{v,c}} = \norm{q_c}$ (matching $\norm{v}$ to $\norm{w_S}$ instead leaves the contracted tensor at a fraction of the fitted one, since $\mathrm{II}^S$ spans at most $d(d+1)/2$ of the $\sim 750$ normal directions; matching $\norm{\langle v,\mathrm{II}^S\rangle}_g$ gives the same picture; Supplement 12). The anchors' neighbourhoods overlap (each point lies in about twelve of them), so the fractions are not counts of independent trials; a maximal set of anchors whose pairwise overlap is at most 5\% of $k$ has 19--21 members per run, on which $t=1$ beats shape-flat at 81--100\% (one-sided sign test $p \le 4\times 10^{-3}$ in every cell) and $t=-1$ is worse at 95--100\% ($p \le 3\times 10^{-5}$).
 \begin{table}[h]
 \centering\footnotesize\setlength{\tabcolsep}{3pt}
 \begin{tabular}{llccccc|cccc}
@@ -324,4 +572,37 @@ ViT-L, $d=16$ & mag\_r & 0.96 & 0.99 & $+0.022$ & $-0.034$ & 2.6 & 0.32 & 0.74 &
 \label{tab:cf}
 \end{table}
 % END APPENDIX AUTOGEN
+
+% Appendix E is hand-written (not generated); numbers are the same record-verified values that stood in the main text until 2026-09-18.
+\section*{Appendix E: the shape and sphere terms, and mean curvature}
+\label{app:meancurv}
+The mean-curvature vector of the decoder surface is $H = \operatorname{tr}_g \mathrm{II}$ (unnormalized trace; some authors divide by $d$). Alongside Eq.~\eqref{eq:hess}, $\Delta_M (w\!\cdot\! x) = \langle w, H\rangle$: the Laplacian of a linear readout sees only the trace of $\mathrm{II}$, its Hessian the whole tensor, so $\norm{H}$ need not track $\langle w_N,\mathrm{II}\rangle$. On the unit sphere the Euclidean mean-curvature vector of every $d$-submanifold has the universal radial component $-d\,\hat x$, which says nothing about shape; differentiating the projected decoder $F/\norm{F}$ splits $H = -d\,\hat x + \Htan$ exactly (radial part $-d$ to $10^{-14}$), and $\Htan$ is the non-radial mean-curvature component used below.
+
+\emph{Validation surface.} At $D=768$ the in-sphere surface $G(z) = Q\,\mathrm{normalize}([\phi(z);\,0.8\,h(z);\,0\ldots])$ ($\phi$ inverse stereographic $\mathbb{R}^{16}\to S^{16}$, $h$ four Gaussian bumps, $Q$ a rotation) has closed-form curvature; the decoder's $\Htan$ gives rank 0.94 against the true $\norm{\Htan}$, direction cosine 0.999, magnitude ratio 1.00. Resampling this surface with weight $\norm{\Htan}^\gamma$ (Figure~\ref{fig:meancurv}a) moves the density-controlled $\norm{\Htan}$ partial against local $R^2$ from $-0.29$ to $+0.26$, while $\norm{\langle w_N,\mathrm{II}\rangle}_g$ holds at $-0.74$ to $-0.80$, dominated by the sphere term of Eq.~\eqref{eq:split}; the mismatch partial reproduces there, the alignment partial has no stable sign.
+
+\emph{Galaxies: shape and sphere terms.} Table~\ref{tab:meancurv} gives the density-controlled partials of the two terms of Eq.~\eqref{eq:split} against local $R^2$ (Figure~\ref{fig:meancurv}b). The shape term dominates the probe-facing Hessian on galaxies (rank $0.96$--$0.99$ with $\norm{K}_g$) and is label-signed: positive for magnitude and smooth fraction, null to weakly negative for redshift, null for stellar mass. The sphere term is negative on every label and both $d$ ($-0.13$ to $-0.36$) under the $\alpha=100$ probe; with a weak-ridge probe ($\alpha=1$, Appendix~B) it stays negative for magnitude and smooth fraction ($-0.21$, $-0.12$) and vanishes for redshift and stellar mass, so part of it is ridge shrinkage of extreme predictions rather than geometry.
+
+\emph{Galaxies: mean curvature.} The $\norm{\Htan}$ partial changes sign with the latent dimension for magnitude and is null for stellar mass. Across the five encoders of Appendix~C the quadratic-chart mean-bending trace has density-controlled associations with the magnitude probe's local $R^2$ of both signs ($-0.24$ to $+0.27$), as Eq.~\eqref{eq:hess} allows. Mean curvature, the scalar usually reported, keeps only the trace of $\mathrm{II}$ and fails accordingly: its association with readout accuracy changes sign with the sampling on the known surface and with the latent dimension and the encoder on galaxies.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{shape $\norm{\langle w_S,\mathrm{II}^S\rangle}$} & \multicolumn{2}{c}{sphere $\sqrt d\,|\hat y-b_0|$} & \multicolumn{2}{c}{$\norm{\Htan}$} \\
+label & $d{=}16$ & $d{=}20$ & 16 & 20 & 16 & 20 \\
+\midrule
+mag\_r & $+0.12$ & $+0.19$ & $-0.26$ & $-0.26$ & $+0.25$ & $-0.17$ \\
+photo\_z & $-0.06^{*}$ & $-0.12$ & $-0.33$ & $-0.36$ & $+0.28$ & $+0.13$ \\
+smooth\_fraction & $+0.07^{*}$ & $+0.16$ & $-0.13$ & $-0.15$ & $+0.21$ & $+0.15$ \\
+stellar\_mass & $+0.00^{*}$ & $+0.03^{*}$ & $-0.35$ & $-0.35$ & $-0.02^{*}$ & $-0.00^{*}$ \\
+\bottomrule
+\end{tabular}
+\caption{Galaxies, 512 anchors, $k=2{,}048$, multi-scale density control: rank-partial Spearman against local $R^2$ of the shape term, the sphere term and the scalar $\norm{\Htan}$. $^{*}$ not significant at 0.05.}
+\label{tab:meancurv}
+\end{table}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/figF_mean_curvature.pdf}
+\caption{(a) Known surface, linear label, exact geometry: three-control partial vs local $R^2$ as the density--curvature coupling is set by construction ($\gamma$ from $-1$ to $1$). (b) Galaxies, 512 anchors, $k=2{,}048$, multi-scale control: the decoder's $\norm{\Htan}$ (filled squares), shape term (open circles), sphere term (open triangles).}
+\label{fig:meancurv}
+\end{figure}
 \end{document}

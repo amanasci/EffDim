@@ -30,6 +30,48 @@ Page-count check after compiling:
     pdftotext main.pdf - | grep -n "^References"   # and confirm which page it lands on
     pdfinfo main.pdf | grep Pages
 
+Page-count status (2026-09-18, Table 1 trimmed): Table 1 now carries only the mismatch and alignment partials (four
+numeric columns); the shape and sphere columns (both d) moved into Table F beside ‖H^S‖, Appendix F retitled "the shape and
+sphere terms, and mean curvature" with the sphere-term and shape-term sentences from the Galaxies paragraph. Galaxies
+paragraph rewritten around Hess_M y estimation, the mismatch/alignment result, and a one-sentence pointer for the two
+terms. Appendix A intro now says "Tables 1 and F" (generator updated). `check.sh` PASS; References begin on page 4 with
+5 reference lines there.
+
+Page-count status (2026-09-18, Section 3 restructure): Section 3 is now a run-in "Notation." paragraph plus three numbered
+facts (readout gradient/Hessian with K := <w_N,II>; the sphere split K = K_S + K_sph as a display equation with underbraces;
+the residual expansion), followed by the helps-iff condition, the shape-term condition with R, and the density remark.
+Section 4's intervention paragraph lost its definitions; the related-work parenthetical became its own paragraph
+"Relation to prior work." Appendix E now refers the tensor-level condition to Section 3 (generator updated). `check.sh`
+PASS; References begin on page 4 with only 4 reference lines there (tight; first cuts if Overleaf overflows: the
+"Relation to prior work" citations list, the Validation numbers, Figure 1 height).
+
+Page-count status (2026-09-18, headline figure): Figure 1 is now `figures/fig1_intervention.pdf` from
+`figures/make_fig_intervention.py` (Appendix E records `09_physics_normal_scaling_*.npz`, variants `S_model` and
+`random_qmatched`): median over anchors of the change in local R² vs t in {-1..2}, one panel per label, one blue line per
+run, grey dashed random control. Medians at t=±1 reproduce Appendix E's ΔR² columns exactly. The shape/sphere single-panel
+plot (`fig1_probe_facing.pdf`) is still generated but no longer included. `check.sh` PASS; References begin on page 4
+with 10 reference lines there.
+
+Page-count status (2026-09-18, line-by-line review with the user): abstract mean-curvature sentence cut; Milnor 1963 and
+Chern & Lashof 1957 cited for the height-function Hessian after Eq. (1); mean curvature moved to appendix-only (new
+hand-written Appendix F after the AUTOGEN markers: H definition, radial split, validation-surface definition and
+numbers, known-surface resampling, ‖H^S‖ table, cross-encoder trace signs, closing sentence). Main text keeps only the
+II estimate, a one-sentence validation pointer, and Eq. (1) without the Laplacian identity. Figure 1 is now the
+single-panel galaxies plot (shape and sphere terms) at 0.42 textwidth from `make_fig1.py`; the former two-panel figure
+is `figures/figF_mean_curvature.pdf` in Appendix F. Table 1 lost its two ‖H^S‖ columns (they are Table F). `check.sh`
+PASS; References begin on page 4.
+
+Page-count status (2026-09-18, second reframe pass, fresh-context review + colleague feedback: PRH / Platonic Universe /
+cross-survey MKNN application REMOVED entirely (former Section 5, contribution (iv), abstract clause, H_raw/H_rad macros,
+Appendix C relative-II pilot; `appendix_gen.py` keeps the Appendix C code behind `INCLUDE_RELATIVE_II = False`); title
+shortened to "Linear Probes on Curved Latent Spaces"; abstract and Introduction lead with per-object reliability of
+probe-based inference and which quantities an embedding delivers linearly; Discussion stellar-mass sentence scoped to
+"cross-anchor variation not explained by the mismatch, within-anchor bending still helps"; Limitations "one survey pair"
+replaced; Figure 1 legend labels shortened (right column was clipped in the PDF); Appendix E now `\ref{sec:real}` instead
+of a hard-coded "Section 5"). Data citation: embeddings from the Platonic Universe release (`UniverseTBD/pu-embeddings`),
+labels from the AstroPT galaxy set, cited as data sources only. `check.sh` PASS; References begin on page 4 with 14
+reference lines there.
+
 Page-count status (2026-09-18, reframe: PRH dropped as the frame; new title, abstract without numbers, introduction on
 probes and reliability, cross-survey result moved to a short application section after the galaxies results, the
 two-embedding alignment expansion reduced to an Appendix C pointer, Discussion on the mismatch tensor as a per-object
@@ -115,6 +157,13 @@ Page-count status (2026-09-13, after folding the cross-encoder evidence and the 
   `% BEGIN/END APPENDIX AUTOGEN` markers in `main.tex`; never edit the numbers by hand.
 - Page gate after this pass: main text ends on page 4 with essentially zero margin (References start on
   page 5). Overleaf/Times confirmation is mandatory; cut list unchanged.
+
+Citation check (2026-09-18): all 17 cited entries re-verified. Every DOI resolved on CrossRef and matched title,
+authors, venue, volume, pages. arXiv API checked for published versions of the six preprints: Lee & Park 2023 has a
+PMLR record (221:505-518), entry updated; Chou et al. 2026 arXiv id 2603.01879 added (ICLR 2026 per arXiv comment);
+Jurewicz et al. article number 6424 and issue 1 added; AstroPT arXiv DOI added (no journal version exists as of
+today); Platonic Universe, Slatton et al. and Alain & Bengio remain preprints. Fourteen uncited entries left in the
+file (harmless under unsrtnat).
 
 Open items before submission:
 - Author affiliation and names are only needed for the camera-ready `final` build.

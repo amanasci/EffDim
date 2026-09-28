@@ -111,3 +111,14 @@ re-run the arXiv queries in `search_records.json` (keys `A1…F1`) once the API 
 ## Action taken in the manuscript
 One sentence with `\citep{liu2023linear}` in the Section 5 intervention paragraph; bib entry from the
 PMLR record.
+
+## Addendum 2026-09-17 (second external novelty pass)
+Four further adjacent works surfaced and are now cited in the Section 5 prior-work passage: Jurewicz et al.
+2024 (Nat Commun 15, doi 10.1038/s41467-024-49568-4; curved neural representation causes systematic linear-decoder
+error, no II contraction or label-Hessian criterion), Donoho & Grimes 2003 (PNAS 100(10):5591–5596; Hess_M y as a
+classical manifold-learning object), Ma et al. CVPR 2023 (pp. 15824–15835, doi 10.1109/CVPR52729.2023.01519;
+curvature correlates with class difficulty, curvature regularization), Chou, Kirsanov, Yang & Chung ICLR 2026
+(geometry markers, effective dimension/utility, forecasting generalization failure). Reframing adopted: the identity
+Hess_M(w·x) = ⟨w_N, II⟩ is classical; Liu+23 contain its low-dimensional special case; the claimed novelty is the
+estimated pointwise tensor K on a learned manifold, its tensor comparison with Hess_M y, the link to local error, and
+the intervention with a matched control. All four records verified against CrossRef / the ICLR proceedings page.

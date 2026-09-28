@@ -18,7 +18,7 @@ gam = [r["gamma"] for r in pf]
 ser_A = [
     ("exact $\\|H^{S}\\|$", [r["partials"]["exact_H_tan"]["partial"] for r in pf], "#000000", "o", "-"),
     ("decoder $\\|H^{S}\\|$", [dec[g]["decoder_H_tan"] for g in gam], "#0072B2", "s", "--"),
-    ("exact $\\|\\langle w_N,\\mathrm{II}\\rangle\\|$ (here the sphere term $\\sqrt{d}\\,|\\hat y-b_0|$)", [r["partials"]["pf_curv"]["partial"] for r in pf], "#009E73", "D", "-"),
+    ("exact $\\|\\langle w_N,\\mathrm{II}\\rangle\\|$ (= sphere term $\\sqrt{d}\\,|\\hat y-b_0|$ here)", [r["partials"]["pf_curv"]["partial"] for r in pf], "#009E73", "D", "-"),
     ("exact $\\|\\Delta\\|$ (Hessian mismatch)", [r["partials"]["hess_mismatch"]["partial"] for r in pf], "#999999", "v", ":"),
 ]
 # --- panel B: physics ---------------------------------------------------------------------
@@ -26,7 +26,7 @@ ph = [r for r in rows("09_physics_probe_facing_split.jsonl") if r["row"] == "res
 labels = ["mag_r", "photo_z", "smooth_fraction", "stellar_mass"]
 ser_B = [  # (column, color, marker, filled, legend)
     ("H_tan_norm", "#0072B2", "s", True, "decoder $\\|H^{S}\\|$"),
-    ("pf_tan", "#009E73", "o", False, "decoder $\\|\\langle w_N,\\mathrm{II}^S\\rangle\\|$ (shape)"),
+    ("pf_tan", "#009E73", "o", False, "decoder shape $\\|\\langle w_S,\\mathrm{II}^S\\rangle\\|$"),
     ("pf_rad", "#D55E00", "^", False, "sphere term $\\sqrt{d}\\,|\\hat y-b_0|$"),
 ]
 plt.rcParams.update({"font.size": 7.5, "axes.labelsize": 8, "legend.fontsize": 6.5, "xtick.labelsize": 7, "ytick.labelsize": 7,
@@ -59,8 +59,31 @@ bx.invert_yaxis()
 bx.set_xlabel("partial vs local $R^2$, multi-scale")
 bx.set_xlim(-0.45, 0.5)
 hA, lA = ax.get_legend_handles_labels(); hB, lB = bx.get_legend_handles_labels()
-fig.legend(hA + hB, lA + lB, loc="outside lower center", ncol=3, frameon=False, handlelength=2.0, columnspacing=1.2)
+fig.legend(hA + hB, lA + lB, loc="outside lower center", ncol=3, frameon=False, handlelength=1.6, columnspacing=0.9, handletextpad=0.5)
 bx.set_title("(b) galaxies, decoder", loc="left", fontsize=8)
+# Two-panel figure with the mean-curvature series: Appendix F (mean curvature is appendix-only since 2026-09-18).
 for ext in ("pdf", "png"):
-    fig.savefig(f"docs/latex/ml4ps/figures/fig1_probe_facing.{ext}", dpi=300)
+    fig.savefig(f"docs/latex/ml4ps/figures/figF_mean_curvature.{ext}", dpi=300)
+
+# --- main-text Figure 1: galaxies, probe-facing terms only (no mean curvature) --------------
+fig1, cx = plt.subplots(1, 1, figsize=(3.2, 2.9), layout="constrained")
+cx.axvline(0, color="#444444", lw=0.6)
+for i in range(0, len(labels) * 2, 2):
+    cx.axhspan(i - 0.5, i + 1.5, color="#f2f2f2" if (i // 2) % 2 == 0 else "white", lw=0, zorder=0)
+for col, c, m, filled, name in ser_B:
+    if col == "H_tan_norm":
+        continue
+    xs = []; ys = []
+    for r in ph:
+        v = r["columns"][col]["multiscale"]["partial"]
+        xs.append(v); ys.append(ypos[(r["label"], r["d"])])
+    cx.scatter(xs, ys, marker=m, s=24, facecolors=c if filled else "white", edgecolors=c, linewidths=1.0, label=name, zorder=3)
+cx.set_yticks(list(ypos.values()))
+cx.set_yticklabels([f"{lab.replace('_', ' ')}, $d$={d}" for (lab, d) in ypos])
+cx.invert_yaxis()
+cx.set_xlabel("partial vs local $R^2$, multi-scale")
+cx.set_xlim(-0.45, 0.3)
+fig1.legend(loc="outside lower center", ncol=1, frameon=False, handlelength=1.6, handletextpad=0.5)
+for ext in ("pdf", "png"):
+    fig1.savefig(f"docs/latex/ml4ps/figures/fig1_probe_facing.{ext}", dpi=300)
 print("saved; x (coupling) =", np.round(x, 3), "gammas", gam)

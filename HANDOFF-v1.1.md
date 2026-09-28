@@ -36,8 +36,7 @@ Cached artifacts live in the gitignored `notebooks/.cache/`. The frozen subsampl
 
 ## 3. What got built
 
-`src/effdim/` ships `compute_dim`, an effective-dimensionality panel from v1.0. The v1.1 milestone
-never modified it, by standing rule.
+`src/effdim/` ships `compute_dim`, an effective-dimensionality panel
 
 All milestone code sits in `notebooks/pu_manifold/`, a notebook-scoped package of 29 modules
 imported relatively. The ones a fresh reader needs first:
