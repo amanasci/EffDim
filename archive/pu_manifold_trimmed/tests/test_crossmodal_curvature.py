@@ -1,0 +1,824 @@
+# Tests removed from notebooks/pu_manifold/tests/test_crossmodal_curvature.py in the paper-closure Stage 5: they
+# exercise definitions archived under archive/pu_manifold_trimmed/. Verbatim, original order; the
+# imports and aliases they use are those of the original test file.
+
+
+# --- removed from tests/test_crossmodal_curvature.py:67-67 ---
+# --- basic pass/shape ------------------------------------------------------------------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:70-71 ---
+def test_assert_preregistered_passes_when_frozen():
+    cc.assert_preregistered()
+
+
+# --- removed from tests/test_crossmodal_curvature.py:74-79 ---
+def test_verdict_is_terminal_accepts_every_verdict_value_and_rejects_a_near_miss():
+    for value in cc.VERDICT_VALUES:
+        assert cc.verdict_is_terminal(value)
+    assert not cc.verdict_is_terminal("ASSOCIATION DETECTED ")
+    assert not cc.verdict_is_terminal("split across d")
+    assert not cc.verdict_is_terminal("HOLDS")
+
+
+# --- removed from tests/test_crossmodal_curvature.py:82-91 ---
+def test_required_constants_covers_every_frozen_constant():
+    """Neither a missing guard entry nor a stale one can pass: every module-level UPPER_CASE
+    name (excluding the private ``_REQUIRED_CONSTANTS`` itself) must appear in
+    ``_REQUIRED_CONSTANTS``, and vice versa."""
+    declared = {n for n in vars(cc) if n.isupper() and not n.startswith("_")}
+    guarded = set(cc._REQUIRED_CONSTANTS)
+    assert guarded == declared, (
+        f"guarded-but-not-declared: {guarded - declared}; "
+        f"declared-but-not-guarded: {declared - guarded}"
+    )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:94-94 ---
+# --- malformed-constant boundary sweep, parameterized over every required constant -------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:97-102 ---
+@pytest.mark.parametrize("name", cc._REQUIRED_CONSTANTS)
+def test_none_constant_raises_and_names_it(name, monkeypatch):
+    monkeypatch.setattr(cc, name, None)
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert name in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:105-110 ---
+@pytest.mark.parametrize("name", cc._REQUIRED_CONSTANTS)
+def test_absent_constant_raises_and_names_it(name, monkeypatch):
+    monkeypatch.delattr(cc, name)
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert name in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:113-121 ---
+@pytest.mark.parametrize(
+    "name",
+    [n for n in cc._REQUIRED_CONSTANTS if isinstance(getattr(cc, n), str)],
+)
+def test_blank_string_constant_raises_and_names_it(name, monkeypatch):
+    monkeypatch.setattr(cc, name, "   ")
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert name in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:124-132 ---
+@pytest.mark.parametrize(
+    "name",
+    [n for n in cc._REQUIRED_CONSTANTS if isinstance(getattr(cc, n), tuple)],
+)
+def test_empty_tuple_constant_raises_and_names_it(name, monkeypatch):
+    monkeypatch.setattr(cc, name, ())
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert name in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:135-135 ---
+# --- Phase 7-specific boundary checks (D7-01 D_SWEEP, D7-02 target-rho ordering) ----------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:138-142 ---
+def test_positive_control_target_rhos_must_be_strictly_increasing(monkeypatch):
+    monkeypatch.setattr(cc, "POSITIVE_CONTROL_TARGET_RHOS", (0.10, 0.05, 0.20))
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert "POSITIVE_CONTROL_TARGET_RHOS" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:145-149 ---
+def test_positive_control_target_rhos_rejects_non_increasing_ties(monkeypatch):
+    monkeypatch.setattr(cc, "POSITIVE_CONTROL_TARGET_RHOS", (0.05, 0.05, 0.20))
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert "POSITIVE_CONTROL_TARGET_RHOS" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:152-156 ---
+def test_d_sweep_rejects_a_non_positive_entry(monkeypatch):
+    monkeypatch.setattr(cc, "D_SWEEP", (20, 0, 32))
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert "D_SWEEP" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:159-163 ---
+def test_d_sweep_rejects_a_non_int_entry(monkeypatch):
+    monkeypatch.setattr(cc, "D_SWEEP", (20, 25.0, 32))
+    with pytest.raises(RuntimeError) as excinfo:
+        cc.assert_preregistered()
+    assert "D_SWEEP" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:180-182 ---
+def test_split_across_d_is_a_reachable_terminal_outcome():
+    assert "SPLIT ACROSS d" in cc.VERDICT_VALUES
+    assert cc.verdict_is_terminal("SPLIT ACROSS d")
+
+
+# --- removed from tests/test_crossmodal_curvature.py:222-226 ---
+# =============================================================================================
+# Plan 07-02, Task 2 -- pin per_point_mknn, two_tailed_permutation_null, apply_verdict and
+# split_indices (added by Task 1) against the sealed function each re-composes. Loads no PU
+# data, trains nothing, reads no cache -- every fixture below is synthetic and small.
+# =============================================================================================
+
+
+# --- removed from tests/test_crossmodal_curvature.py:228-228 ---
+_MKNN_K = 10
+
+
+# --- removed from tests/test_crossmodal_curvature.py:231-242 ---
+def _distinct_at_relative_precision(values: np.ndarray) -> int:
+    """Counts distinct values after rounding at RELATIVE precision (divide by the array's
+    own maximum absolute value, round to 12 decimals) rather than on raw float equality.
+    05-02-SUMMARY.md reported 5,301 and 9,852 distinct values where the true counts at
+    relative precision were 4 and 3 -- the retraction is on record in STATE.md. Counting raw
+    float equality is that same error."""
+    values = np.asarray(values, dtype=np.float64)
+    max_abs = np.max(np.abs(values))
+    if max_abs == 0:
+        return int(len(np.unique(values)))
+    normalized = np.round(values / max_abs, 12)
+    return int(len(np.unique(normalized)))
+
+
+# --- removed from tests/test_crossmodal_curvature.py:245-245 ---
+# --- per_point_mknn vs. mknn.mknn_score (D7-04 gap-fill regression) ------------------------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:248-253 ---
+def test_per_point_mknn_mean_agrees_with_mknn_score():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(400, 16))
+    z2 = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert per_point.mean() == pytest.approx(mknn.mknn_score(z1, z2, _MKNN_K))
+
+
+# --- removed from tests/test_crossmodal_curvature.py:256-260 ---
+def test_per_point_mknn_is_all_ones_against_itself():
+    rng = np.random.default_rng(20260826)
+    z = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z, z, _MKNN_K)
+    assert np.allclose(per_point, 1.0)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:263-271 ---
+def test_per_point_mknn_independent_clouds_lands_near_chance_floor():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(400, 16))
+    z2 = rng.normal(size=(400, 16))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    floor = mknn.chance_floor(z1.shape[0], _MKNN_K)
+    # "within a factor of three" per the plan's acceptance behavior -- a loose bound, since
+    # the chance floor is itself an approximation, not an exact expectation.
+    assert floor / 3.0 <= per_point.mean() <= floor * 3.0
+
+
+# --- removed from tests/test_crossmodal_curvature.py:274-284 ---
+def test_per_point_mknn_row_alignment_is_preserved_under_a_shared_permutation():
+    rng = np.random.default_rng(20260826)
+    n = 300
+    z1 = rng.normal(size=(n, 12))
+    z2 = rng.normal(size=(n, 12))
+    baseline = cc.per_point_mknn(z1, z2, _MKNN_K)
+
+    perm = rng.permutation(n)
+    permuted = cc.per_point_mknn(z1[perm], z2[perm], _MKNN_K)
+
+    np.testing.assert_array_equal(permuted, baseline[perm])
+
+
+# --- removed from tests/test_crossmodal_curvature.py:287-287 ---
+# --- per_point_mknn degenerate-input guards -------------------------------------------------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:290-296 ---
+def test_per_point_mknn_raises_on_mismatched_row_counts():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(50, 8))
+    z2 = rng.normal(size=(40, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "rows" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:299-306 ---
+def test_per_point_mknn_raises_on_non_finite_entry():
+    rng = np.random.default_rng(20260826)
+    z1 = rng.normal(size=(50, 8))
+    z2 = rng.normal(size=(50, 8))
+    z1[0, 0] = np.nan
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "non-finite" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:309-314 ---
+def test_per_point_mknn_raises_on_n_less_than_two():
+    z1 = np.zeros((1, 8))
+    z2 = np.zeros((1, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert "n=1" in str(excinfo.value) or "at least 2" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:317-324 ---
+def test_per_point_mknn_raises_when_k_plus_one_exceeds_n():
+    rng = np.random.default_rng(20260826)
+    n = 5
+    z1 = rng.normal(size=(n, 8))
+    z2 = rng.normal(size=(n, 8))
+    with pytest.raises(ValueError) as excinfo:
+        cc.per_point_mknn(z1, z2, n)  # k = n, so k + 1 > n
+    assert "exceeds" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:327-333 ---
+def test_per_point_mknn_distinct_value_count_is_bounded_by_k_plus_one():
+    rng = np.random.default_rng(20260826)
+    n = 500
+    z1 = rng.normal(size=(n, 20))
+    z2 = z1 + rng.normal(scale=0.5, size=(n, 20))
+    per_point = cc.per_point_mknn(z1, z2, _MKNN_K)
+    assert _distinct_at_relative_precision(per_point) <= _MKNN_K + 1
+
+
+# --- removed from tests/test_crossmodal_curvature.py:336-336 ---
+# --- two_tailed_permutation_null -------------------------------------------------------------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:339-354 ---
+def _discretized_pair(n: int, k: int, seed: int, direction: str):
+    """A synthetic (h, m) pair discretized like a real per-point MKNN array against a
+    uniform curvature-magnitude surrogate, matching the plan's construction: h is a uniform
+    draw, m is k minus (or plus) a monotone function of h's rank divided by n, so the pair
+    is strongly correlated in the requested direction and tie-dense like the real
+    statistic."""
+    rng = np.random.default_rng(seed)
+    h = rng.uniform(size=n)
+    rank_frac = (rankdata(h) - 0.5) / n  # in (0, 1), monotone in h
+    if direction == "negative":
+        m = np.floor(k * (1.0 - rank_frac))
+    elif direction == "positive":
+        m = np.floor(k * rank_frac)
+    else:
+        raise ValueError(f"_discretized_pair: unknown direction {direction!r}")
+    return h, m
+
+
+# --- removed from tests/test_crossmodal_curvature.py:357-357 ---
+_N_RESAMPLES_TEST = 199  # frozen N_PERMUTATIONS is for the real run only; kept small here so
+
+
+# --- removed from tests/test_crossmodal_curvature.py:358-359 ---
+# the file stays under ten seconds, passed explicitly rather than relying on any default.
+_TEST_SEED = 20260826
+
+
+# --- removed from tests/test_crossmodal_curvature.py:362-368 ---
+def test_two_tailed_permutation_null_detects_negative_association():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["direction"] == "negative"
+    assert result["clears_either"] is True
+
+
+# --- removed from tests/test_crossmodal_curvature.py:371-377 ---
+def test_two_tailed_permutation_null_detects_positive_association():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "positive")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["direction"] == "positive"
+    assert result["clears_either"] is True
+
+
+# --- removed from tests/test_crossmodal_curvature.py:380-387 ---
+def test_two_tailed_permutation_null_does_not_clear_on_independent_pair():
+    rng = np.random.default_rng(_TEST_SEED)
+    h = rng.uniform(size=300)
+    m = rng.integers(0, _MKNN_K + 1, size=300).astype(np.float64)
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["clears_either"] is False
+
+
+# --- removed from tests/test_crossmodal_curvature.py:390-396 ---
+def test_two_tailed_permutation_null_observed_rho_matches_spearman_and_negation():
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    result = cc.two_tailed_permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert result["observed_rho"] == pytest.approx(spearmanr(h, m).statistic)
+    assert result["negative_tail"]["observed_rho"] == pytest.approx(-result["observed_rho"])
+
+
+# --- removed from tests/test_crossmodal_curvature.py:399-408 ---
+def test_single_one_sided_permutation_null_call_misses_the_negative_association():
+    """The test that would have caught the one-sided defect: a single, un-mirrored
+    ``curvature_probe.permutation_null(h, m, ...)`` call is one-sided (alternative='greater')
+    and cannot detect a strongly NEGATIVE association -- exactly the defect
+    ``two_tailed_permutation_null`` exists to close."""
+    h, m = _discretized_pair(300, _MKNN_K, _TEST_SEED, "negative")
+    one_sided = curvature_probe.permutation_null(
+        h, m, _N_RESAMPLES_TEST, _TEST_SEED, cc.NULL_QUANTILE_PER_TAIL
+    )
+    assert one_sided["clears_null"] is False
+
+
+# --- removed from tests/test_crossmodal_curvature.py:411-411 ---
+# --- apply_verdict -----------------------------------------------------------------------
+
+
+# --- removed from tests/test_crossmodal_curvature.py:414-416 ---
+def test_apply_verdict_association_detected_when_every_d_clears():
+    per_d = {d: True for d in cc.D_SWEEP}
+    assert cc.apply_verdict(per_d, positive_control_cleared_at=0.05) == "ASSOCIATION DETECTED"
+
+
+# --- removed from tests/test_crossmodal_curvature.py:419-424 ---
+def test_apply_verdict_no_detectable_relationship_when_no_d_clears_but_control_cleared():
+    per_d = {d: False for d in cc.D_SWEEP}
+    assert (
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+        == "NO DETECTABLE RELATIONSHIP"
+    )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:427-431 ---
+def test_apply_verdict_underpowered_when_no_d_clears_and_control_cleared_nothing():
+    per_d = {d: False for d in cc.D_SWEEP}
+    assert (
+        cc.apply_verdict(per_d, positive_control_cleared_at=None) == "UNDERPOWERED -- NO CLAIM"
+    )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:434-437 ---
+def test_apply_verdict_split_across_d_on_disagreement():
+    d_values = list(cc.D_SWEEP)
+    per_d = {d: (i == 0) for i, d in enumerate(d_values)}
+    assert cc.apply_verdict(per_d, positive_control_cleared_at=0.05) == "SPLIT ACROSS d"
+
+
+# --- removed from tests/test_crossmodal_curvature.py:440-444 ---
+def test_apply_verdict_raises_on_partial_sweep_keys():
+    d_values = list(cc.D_SWEEP)
+    per_d = {d: True for d in d_values[:-1]}  # missing one d
+    with pytest.raises(ValueError):
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:447-451 ---
+def test_apply_verdict_raises_on_extra_key():
+    per_d = {d: True for d in cc.D_SWEEP}
+    per_d[max(cc.D_SWEEP) + 1] = True  # a d outside D_SWEEP
+    with pytest.raises(ValueError):
+        cc.apply_verdict(per_d, positive_control_cleared_at=0.05)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:474-480 ---
+# =============================================================================================
+# Plan 07-03, Task 1 -- plant_positive_control, smallest_cleared_target (D7-02). Every full
+# plant_positive_control call runs cc.N_PERMUTATIONS (frozen at 1000) permutations per tail per
+# target, so this section deliberately keeps the number of full calls small and shares the
+# 2,000-point PU-matched fixture across every assertion that needs it via a module-scoped
+# fixture, rather than recomputing it per test.
+# =============================================================================================
+
+
+# --- removed from tests/test_crossmodal_curvature.py:482-482 ---
+_POSITIVE_CONTROL_TEST_K = cc.HEADLINE_K  # 20 -- matches PU's own real per-point MKNN array
+
+
+# --- removed from tests/test_crossmodal_curvature.py:485-500 ---
+@pytest.fixture(scope="module")
+def _pu_matched_positive_control():
+    """A 2,000-point synthetic ``h_real`` whose p95/p05 spread (~1.49) matches PU's own
+    measured `d=20` ``||H||`` spread of 1.495 (07-CONTEXT.md Section 5), run through
+    ``plant_positive_control`` at the frozen ``POSITIVE_CONTROL_TARGET_RHOS`` and
+    ``POSITIVE_CONTROL_SEED`` ONCE and shared (module scope) across every test that only reads
+    the result -- each full call costs ~4 targets x 2 tails x cc.N_PERMUTATIONS permutations."""
+    rng = np.random.default_rng(20260825)
+    n = 2000
+    h_real = rng.lognormal(mean=0.0, sigma=0.12, size=n)
+    ratio = np.percentile(h_real, 95) / np.percentile(h_real, 5)
+    assert 1.3 < ratio < 1.7, f"fixture drifted from PU's measured spread=1.495: ratio={ratio}"
+    results = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    return h_real, results
+
+
+# --- removed from tests/test_crossmodal_curvature.py:503-511 ---
+def test_plant_positive_control_recovers_targets_within_tolerance_at_pu_matched_spread(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    assert len(results) == len(cc.POSITIVE_CONTROL_TARGET_RHOS)
+    for result, target_rho in zip(results, cc.POSITIVE_CONTROL_TARGET_RHOS):
+        assert result["target_rho"] == pytest.approx(target_rho)
+        assert abs(result["achieved_rho"] - target_rho) < 0.02
+        assert np.sign(result["achieved_rho"]) == np.sign(target_rho)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:514-522 ---
+def test_plant_positive_control_planted_array_is_j_over_k_discretized(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    k = _POSITIVE_CONTROL_TEST_K
+    for result in results:
+        planted = result["planted"]
+        assert np.allclose(planted * k, np.round(planted * k))
+        assert result["n_distinct"] <= k + 1
+
+
+# --- removed from tests/test_crossmodal_curvature.py:525-528 ---
+def test_plant_positive_control_results_are_in_target_rho_order(_pu_matched_positive_control):
+    _, results = _pu_matched_positive_control
+    observed = [r["target_rho"] for r in results]
+    assert observed == list(cc.POSITIVE_CONTROL_TARGET_RHOS)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:531-537 ---
+def test_plant_positive_control_carries_the_full_two_tailed_permutation_null_result(
+    _pu_matched_positive_control,
+):
+    _, results = _pu_matched_positive_control
+    for result in results:
+        for key in ("positive_tail", "negative_tail", "observed_rho", "clears_either", "direction"):
+            assert key in result
+
+
+# --- removed from tests/test_crossmodal_curvature.py:540-552 ---
+def test_plant_positive_control_is_deterministic_across_two_calls():
+    rng = np.random.default_rng(20260826)
+    h_real = rng.lognormal(mean=0.0, sigma=0.12, size=300)
+    target_rhos = (0.10,)
+    results_a = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, target_rhos, cc.POSITIVE_CONTROL_SEED
+    )
+    results_b = cc.plant_positive_control(
+        h_real, _POSITIVE_CONTROL_TEST_K, target_rhos, cc.POSITIVE_CONTROL_SEED
+    )
+    np.testing.assert_array_equal(results_a[0]["planted"], results_b[0]["planted"])
+    assert results_a[0]["achieved_rho"] == results_b[0]["achieved_rho"]
+    assert results_a[0]["slope"] == results_b[0]["slope"]
+
+
+# --- removed from tests/test_crossmodal_curvature.py:555-559 ---
+def test_plant_positive_control_raises_on_constant_h_real():
+    h_real = np.ones(500)
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, _POSITIVE_CONTROL_TEST_K, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:562-568 ---
+def test_plant_positive_control_raises_on_non_finite_h_real():
+    rng = np.random.default_rng(20260826)
+    h_real = rng.normal(size=500)
+    h_real[0] = np.nan
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, _POSITIVE_CONTROL_TEST_K, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:571-577 ---
+def test_plant_positive_control_raises_on_too_few_rows():
+    rng = np.random.default_rng(20260826)
+    k = 20
+    h_real = rng.normal(size=k + 1)  # k + 1 < k + 2
+    with pytest.raises(ValueError) as excinfo:
+        cc.plant_positive_control(h_real, k, (0.05,), 1)
+    assert "h_real" in str(excinfo.value)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:580-584 ---
+def test_smallest_cleared_target_positive_control_returns_none_when_nothing_clears():
+    fake_results = [
+        {"target_rho": rho, "clears_either": False} for rho in cc.POSITIVE_CONTROL_TARGET_RHOS
+    ]
+    assert cc.smallest_cleared_target(fake_results) is None
+
+
+# --- removed from tests/test_crossmodal_curvature.py:587-592 ---
+def test_smallest_cleared_target_positive_control_returns_smallest_clearing_target():
+    fake_results = [
+        {"target_rho": rho, "clears_either": (rho >= 0.10)}
+        for rho in cc.POSITIVE_CONTROL_TARGET_RHOS
+    ]
+    assert cc.smallest_cleared_target(fake_results) == 0.10
+
+
+# --- removed from tests/test_crossmodal_curvature.py:595-598 ---
+# =============================================================================================
+# Plan 07-03, Task 2 -- density_diagnostics (D7-03). Cheap: no permutation test involved, only
+# a k-NN density query and two partial_spearman calls.
+# =============================================================================================
+
+
+# --- removed from tests/test_crossmodal_curvature.py:600-600 ---
+_DENSITY_TEST_K = 10
+
+
+# --- removed from tests/test_crossmodal_curvature.py:601-601 ---
+_DENSITY_TEST_DENSITY_K = 15
+
+
+# --- removed from tests/test_crossmodal_curvature.py:602-602 ---
+_DENSITY_TEST_DENSITY_D = 5
+
+
+# --- removed from tests/test_crossmodal_curvature.py:605-612 ---
+def _tie_free_density_fixture(seed, n=500, D=20):
+    rng = np.random.default_rng(seed)
+    X = rng.normal(size=(n, D))
+    h = rng.normal(size=n)
+    m = rng.normal(size=n)
+    z_a = rng.normal(size=(n, 8))
+    z_b = rng.normal(size=(n, 8))
+    return X, h, m, z_a, z_b
+
+
+# --- removed from tests/test_crossmodal_curvature.py:615-635 ---
+def _density_confounded_fixture(seed, n=500, D=20):
+    """A common latent drives both the ambient point cloud's LOCAL DENSITY (via a quadratic
+    spacing along one axis, ordered by the latent's own rank) and h/m directly, so density,
+    h and m are all mutually correlated -- the D7-03/Phase-4-shaped confound this diagnostic
+    exists to surface."""
+    rng = np.random.default_rng(seed)
+    latent = rng.normal(size=n)
+    rank = np.empty(n)
+    rank[np.argsort(latent)] = np.arange(n)
+    axis0 = rank**2
+    axis0 = axis0 / axis0.std()
+
+    X = np.zeros((n, D))
+    X[:, 0] = axis0
+    X[:, 1:] = rng.normal(scale=0.01, size=(n, D - 1))
+
+    h = latent + rng.normal(scale=0.05, size=n)
+    m = latent + rng.normal(scale=0.05, size=n)
+    z_a = rng.normal(size=(n, 8))
+    z_b = rng.normal(size=(n, 8))
+    return X, h, m, z_a, z_b
+
+
+# --- removed from tests/test_crossmodal_curvature.py:638-643 ---
+def test_density_diagnostics_returns_a_dict_of_plain_floats():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert all(isinstance(v, float) for v in result.values())
+
+
+# --- removed from tests/test_crossmodal_curvature.py:646-656 ---
+def test_density_diagnostics_dict_has_the_expected_keys():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    expected_keys = {
+        "spearman_density_vs_h", "spearman_density_vs_mknn", "partial_rho_raw",
+        "partial_rho_density_controlled", "density_p05", "density_p50", "density_p95",
+        "density_ratio_p95_p05", "hubness_skewness_a", "hubness_skewness_b", "chance_floor",
+    }
+    assert expected_keys <= set(result.keys())
+
+
+# --- removed from tests/test_crossmodal_curvature.py:659-664 ---
+def test_density_diagnostics_partial_rho_raw_matches_spearman_on_tie_free_fixture():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert result["partial_rho_raw"] == pytest.approx(spearmanr(h, m).statistic, rel=1e-6)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:667-672 ---
+def test_density_diagnostics_partial_rho_density_controlled_changes_on_confounded_fixture():
+    X, h, m, z_a, z_b = _density_confounded_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert abs(result["partial_rho_density_controlled"]) < abs(result["partial_rho_raw"])
+
+
+# --- removed from tests/test_crossmodal_curvature.py:675-680 ---
+def test_density_diagnostics_partial_rho_density_controlled_agrees_on_independent_fixture():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    result = cc.density_diagnostics(
+        X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+    )
+    assert abs(result["partial_rho_density_controlled"] - result["partial_rho_raw"]) < 0.05
+
+
+# --- removed from tests/test_crossmodal_curvature.py:683-690 ---
+def test_density_diagnostics_never_reaches_apply_verdict():
+    """The non-gating property is structural, not a promise: apply_verdict's signature has
+    exactly two parameters, neither named for density."""
+    import inspect
+
+    params = list(inspect.signature(cc.apply_verdict).parameters)
+    assert len(params) == 2
+    assert not any("density" in p.lower() for p in params)
+
+
+# --- removed from tests/test_crossmodal_curvature.py:693-700 ---
+# =============================================================================================
+# Plan 07.1-02, Task 2 -- WR-01 (07-REVIEW.md): finite/constant guards on density_diagnostics,
+# mirroring curvature_probe.permutation_null's guard clause order and message style. The
+# no-op-proof test (D-18) DEMONSTRATES the guards do not fire on Phase 7's REAL d=20/25/32
+# arrays -- it protects 07.1's own future call sites, and says nothing about the frozen
+# 07_crossmodal_curvature.jsonl's provenance, because run_dsweep (the function that produced
+# that record) never calls density_diagnostics at all (07.1-RESEARCH.md Pitfall 2).
+# =============================================================================================
+
+
+# --- removed from tests/test_crossmodal_curvature.py:703-704 ---
+def _repo_root_for_cache() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+# --- removed from tests/test_crossmodal_curvature.py:707-707 ---
+_PHASE7_FIELDS_NPZ = _repo_root_for_cache() / "notebooks" / ".cache" / "07_crossmodal_curvature_fields.npz"
+
+
+# --- removed from tests/test_crossmodal_curvature.py:710-732 ---
+def _load_real_legacysurvey_ambient():
+    """The SAME subsample `load_pu_pair` (07_crossmodal_curvature_run.py) resolves -- the
+    `subsample_*.npz` carrying both `cc.PU_COLUMN_A`/`cc.PU_COLUMN_B` with the most rows, tie
+    broken lexicographically first. Reimplements only the glob-and-select, never the runner
+    module itself, so this file does not gain a torch import (the runner imports torch at
+    module scope)."""
+    cache_dir = _repo_root_for_cache() / "notebooks" / ".cache"
+    cands = sorted(glob.glob(str(cache_dir / "subsample_*.npz")))
+    best, best_n = None, -1
+    for c in cands:
+        with np.load(c) as z:
+            if (
+                cc.PU_COLUMN_A in z.files
+                and cc.PU_COLUMN_B in z.files
+                and z[cc.PU_COLUMN_A].shape[0] > best_n
+            ):
+                best, best_n = c, z[cc.PU_COLUMN_A].shape[0]
+    if best is None:
+        return None, None
+    with np.load(best) as z:
+        X_hsc = np.asarray(z[cc.PU_COLUMN_A], dtype=np.float64)
+        X_ls = np.asarray(z[cc.PU_COLUMN_B], dtype=np.float64)
+    return X_hsc, X_ls
+
+
+# --- removed from tests/test_crossmodal_curvature.py:735-742 ---
+def test_density_diagnostics_guard_rejects_nonfinite_h():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = h.copy()
+    h[0] = np.nan
+    with pytest.raises(ValueError, match="density_diagnostics.*h"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:745-752 ---
+def test_density_diagnostics_guard_rejects_nonfinite_m():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    m = m.copy()
+    m[0] = np.inf
+    with pytest.raises(ValueError, match="density_diagnostics.*m"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:755-761 ---
+def test_density_diagnostics_guard_rejects_constant_h():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = np.full_like(h, 3.0)
+    with pytest.raises(ValueError, match="density_diagnostics.*h"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:764-770 ---
+def test_density_diagnostics_guard_rejects_constant_m():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    m = np.full_like(m, -1.0)
+    with pytest.raises(ValueError, match="density_diagnostics.*m"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:773-779 ---
+def test_density_diagnostics_guard_rejects_length_mismatch():
+    X, h, m, z_a, z_b = _tie_free_density_fixture(20260826)
+    h = h[:-1]
+    with pytest.raises(ValueError, match="density_diagnostics"):
+        cc.density_diagnostics(
+            X, h, m, z_a, z_b, _DENSITY_TEST_K, _DENSITY_TEST_DENSITY_K, _DENSITY_TEST_DENSITY_D
+        )
+
+
+# --- removed from tests/test_crossmodal_curvature.py:782-806 ---
+def test_density_diagnostics_guard_does_not_fire_on_phase7_arrays():
+    """D-18 no-op proof (WR-01): calls density_diagnostics directly on Phase 7's REAL,
+    reloaded d=20/25/32 h_norm arrays (from the frozen fields npz) and the real ambient
+    embeddings/MKNN they were computed alongside. Proves the new guards do not fire on data
+    Phase 7 actually produced -- protects future call sites (07.1's own module reuses this
+    logic at far higher volume). Says NOTHING about the frozen jsonl's provenance: the sealed
+    run_dsweep production path never calls density_diagnostics (07.1-RESEARCH.md Pitfall 2), so
+    this is not a retroactive validation of that record. Skips (not fails) if either gitignored
+    cache artifact is absent, e.g. on a fresh clone."""
+    if not _PHASE7_FIELDS_NPZ.exists():
+        pytest.skip(f"{_PHASE7_FIELDS_NPZ} not present (gitignored) -- no-op proof needs it")
+    X_hsc, X_ls = _load_real_legacysurvey_ambient()
+    if X_hsc is None:
+        pytest.skip("no cached subsample_*.npz carries both PU_COLUMN_A/PU_COLUMN_B")
+
+    m = cc.per_point_mknn(X_hsc, X_ls, cc.HEADLINE_K)
+
+    with np.load(_PHASE7_FIELDS_NPZ) as z:
+        for d in (20, 25, 32):
+            h_norm = np.asarray(z[f"h_norm_{d}"], dtype=np.float64)
+            result = cc.density_diagnostics(
+                X_ls, h_norm, m, X_hsc, X_ls, cc.HEADLINE_K, cc.DENSITY_K, cc.DENSITY_FIELD_D
+            )
+            assert all(isinstance(v, float) for v in result.values()), d
+            assert all(np.isfinite(v) for v in result.values()), d
+
+
+# --- removed from tests/test_crossmodal_curvature.py:809-812 ---
+# =============================================================================================
+# Plan 07-03, Task 3 -- D7-02's objection to Phase 6's rejected rng.random(n) selfcheck, turned
+# into a measurement rather than left as prose.
+# =============================================================================================
+
+
+# --- removed from tests/test_crossmodal_curvature.py:815-865 ---
+def test_positive_control_wide_spread_vs_narrow_spread_separation_measurement():
+    """plant_positive_control rank-transforms h_real (scipy.stats.rankdata) before ever using
+    its raw values, so its planting mechanism is by construction invariant to h_real's
+    magnitude/spread -- only h_real's RANK ORDER matters. This test measures whether a
+    WIDE-spread h_real (ratio ~20, built with rng.random(n), Phase 6's own rejected selfcheck
+    mechanism) and a NARROW-spread h_real (ratio ~1.5, matching PU's own measured spread)
+    separate in smallest_cleared_target.
+
+    MEASURED OUTCOME (recorded here per the plan's own instruction to record the result
+    whichever way it falls, and restated in 07-03-SUMMARY.md): at n=500 with
+    POSITIVE_CONTROL_SEED, the two do NOT separate -- both recover smallest_cleared_target ==
+    0.10. This is the honest content of D7-02's objection to Phase 6's selfcheck: the objection
+    is about WHAT was planted there (Phase 6 scaled a NOISE TERM by the raw, unranked field
+    value itself, so a wider raw spread mechanically produced a stronger signal-to-noise ratio
+    -- a magnitude-driven mechanism), not about detectability specifically at PU's own narrow
+    dynamic range. plant_positive_control's rank-based mechanism does not share that magnitude
+    dependence, and this test's assertions are written to hold regardless of which way the
+    comparison falls -- both fixtures must still successfully plant SOMETHING (assert not
+    None), and the measured comparison is asserted to match what was actually observed rather
+    than a value chosen in advance.
+    """
+    n = 500
+    rng_narrow = np.random.default_rng(20260825)
+    h_narrow = rng_narrow.lognormal(mean=0.0, sigma=0.12, size=n)
+    ratio_narrow = np.percentile(h_narrow, 95) / np.percentile(h_narrow, 5)
+    assert 1.2 < ratio_narrow < 1.8, f"narrow fixture drifted: ratio={ratio_narrow}"
+
+    rng_wide = np.random.default_rng(20260826)
+    h_wide = rng_wide.random(n)  # Phase 6's own rejected mechanism, verbatim
+    ratio_wide = np.percentile(h_wide, 95) / np.percentile(h_wide, 5)
+    assert 10.0 < ratio_wide < 40.0, f"wide fixture drifted: ratio={ratio_wide}"
+
+    narrow_results = cc.plant_positive_control(
+        h_narrow, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    wide_results = cc.plant_positive_control(
+        h_wide, _POSITIVE_CONTROL_TEST_K, cc.POSITIVE_CONTROL_TARGET_RHOS, cc.POSITIVE_CONTROL_SEED
+    )
+    narrow_cleared = cc.smallest_cleared_target(narrow_results)
+    wide_cleared = cc.smallest_cleared_target(wide_results)
+
+    # Both fixtures must plant something recoverable -- a positive control that recovers
+    # nothing at either spread would itself be a defect in the mechanism, not a finding about
+    # separation.
+    assert narrow_cleared is not None
+    assert wide_cleared is not None
+
+    # The measured comparison, pinned exactly as observed (see docstring): no separation.
+    assert narrow_cleared == pytest.approx(0.10)
+    assert wide_cleared == pytest.approx(0.10)
+    assert narrow_cleared == wide_cleared

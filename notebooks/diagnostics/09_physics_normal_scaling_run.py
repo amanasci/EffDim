@@ -124,7 +124,7 @@ def summarise(name: str, v: Dict[str, np.ndarray], cross_dec: np.ndarray, t_dec:
     return s
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--mode", choices=["smoke", "physics"], required=True)
     p.add_argument("--d", type=int, default=16)
@@ -137,6 +137,11 @@ def main() -> None:
     p.add_argument("--arrays-out", type=str, default=None, help="npz of the per-anchor arrays")
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--seed", type=int, default=20260915)
+    return p
+
+
+def main() -> None:
+    p = build_parser()
     args = p.parse_args()
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
     record_path = Path(args.record_path).resolve()

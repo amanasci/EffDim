@@ -13,11 +13,20 @@ from pathlib import Path
 import numpy as np
 
 VOLATILE = re.compile(r"(timestamp|wallclock|^python$|^torch$|^numpy$|version|repo_head|git_head|hostname|path|record_path|output_root|argv|elapsed|_root$)", re.I)
-COLLEAGUE_KEY = re.compile(r"(colleague|(^|_)col($|_))")
+# Task 4 (Stage 3) widening: "topology_is_shim" is colleague-checkout provenance (whether the
+# colleague's topology import came from the read-only shim) with no "colleague"/"col" substring;
+# it only ever appeared in the pre-removal baseline's environment row. Proof that this drops
+# nothing else is in commit f235f49's message.
+COLLEAGUE_KEY = re.compile(r"(colleague|(^|_)col($|_)|^topology_is_shim$)")
+# Task 4 (Stage 3) widening: rows for the colleague's "K_H_cross" instrument were named
+# "his_K_H_cross" (never containing the literal substring "colleague"). Matched as a whole
+# underscore-delimited token so "physics"/"this" etc. are not affected. Proof that this drops
+# nothing else is in commit f235f49's message.
+HIS_ROW = re.compile(r"(^|_)his($|_)", re.I)
 
 def is_colleague_row(r):
-    return any(isinstance(v, str) and "colleague" in v.lower() for k, v in r.items()
-               if k in ("instrument", "estimator", "method", "arm", "row", "column"))
+    return any(isinstance(v, str) and ("colleague" in v.lower() or HIS_ROW.search(v))
+               for k, v in r.items() if k in ("instrument", "estimator", "method", "arm", "row", "column"))
 
 def clean(o):
     if isinstance(o, dict):

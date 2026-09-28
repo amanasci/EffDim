@@ -1,38 +1,33 @@
-"""Probe-facing curvature on the Physics anchors: <w_N, II> from both instruments against local R^2.
+"""Probe-facing curvature on the Physics anchors: <w_N, II> from the decoder instrument against local R^2.
 
 PURPOSE. Supplement 05 showed, on the adjudication fixture with exact geometry, that the
 curvature a global linear probe pays for is the second fundamental form seen from the probe's
 normal direction, ``<w_N, II>`` (the intrinsic Hessian of ``w.x`` restricted to the manifold), and
 that its sealed three-control partial against local R^2 is stable at -0.74 to -0.80 across
-samplings where ``||H_tan||``'s partial swings from -0.29 to +0.26. Neither production instrument
-outputs that quantity. This runner computes it on the real Physics anchors from both:
+samplings where ``||H_tan||``'s partial swings from -0.29 to +0.26. The production instrument
+does not output that quantity. This runner computes it on the real Physics anchors:
 
   decoder    : II = P_N D^2F at the anchor's latent code, by autodiff of the Amendment 01
-               sphere-projected decoder (the frozen fit protocol, one fit per d);
-  colleague  : his fitted sphere-normal quadratic B^S (his code, unchanged), averaged over the
-               two halves and three splits, with his own `project_normal` for w_N and his own
-               `probe_facing_scalar` reported beside our Frobenius contraction.
+               sphere-projected decoder (the frozen fit protocol, one fit per d).
 
 Probe weights ``w`` are a whole-data ridge at the frozen alpha on the finite rows of each label;
 the outcome, anchors, k-NN panel, out-of-fold local R^2 and the three sealed controls are the
 production pipeline's own calls. Beside the sealed controls, the multi-scale radius control of
 Supplement 04 (log r_k at k in {16, 64, 256, 1024, 2048}, read from the same k=2048 panel) is
-reported, since it removed the colleague's ||H_tan||-based association there.
+reported.
 
 COLUMNS per anchor: ``H_tan_norm`` (sealed verdict field, reference), ``pf_curv_dec`` =
 |<w_N, II>|_g, ``pf_trace_tan_dec`` = <w_N, H_tan>, ``pf_trace_rad_dec`` = H_rad <w_N, x>,
-``bias_sq`` = (y - yhat_oof)^2 at the anchor, and for the colleague ``K_H_cross_col``
-(reference), ``pf_curv_col`` = |<w_N, B^S>|_F, ``K_w_dir_col`` = his probe-facing scalar times
-|w_N|. Each column gets raw Spearman, the sealed partial, the multi-scale partial, and its
-coupling with log radius and with ||H_tan||.
+``bias_sq`` = (y - yhat_oof)^2 at the anchor. Each column gets raw Spearman, the sealed partial,
+the multi-scale partial, and its coupling with log radius and with ||H_tan||.
 
 NOT PRE-REGISTERED, GATES NOTHING. Writes only to its own record and to
 ``<output root>/probe-facing/`` (per-d npz of J, D^2F and image at the anchors, float32).
 
 Usage:
-    python notebooks/diagnostics/09_physics_probe_facing_run.py --mode smoke --skip-colleague --threads 8
+    python notebooks/diagnostics/09_physics_probe_facing_run.py --mode smoke --threads 8
     EFFDIM_09_OUTPUT_ROOT=... HF_HOME=... python notebooks/diagnostics/09_physics_probe_facing_run.py \\
-        --mode physics --d-values 16,20 --colleague-root <root> --threads 16
+        --mode physics --d-values 16,20 --threads 16
 """
 
 import importlib.util
@@ -45,14 +40,14 @@ NOTEBOOK_ROOT = DIAGNOSTICS_ROOT.parent
 _ADJ_PATH = DIAGNOSTICS_ROOT / "09_instrument_adjudication_run.py"
 _spec = importlib.util.spec_from_file_location("instrument_adjudication_run", _ADJ_PATH)
 adj = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(adj)          # loads the colleague runner, which loads the production runner (threads cap)
-colleague, runner = adj.colleague, adj.runner
+_spec.loader.exec_module(adj)          # loads the production runner first (threads cap)
+runner = adj.runner
 
 import argparse  # noqa: E402
 import json  # noqa: E402
 import time  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
-from typing import Any, Dict, List, Optional  # noqa: E402
+from typing import Any, Dict, List  # noqa: E402
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
@@ -66,10 +61,9 @@ from pu_manifold import physics_labels as pl  # noqa: E402
 
 EXPERIMENT = "physics-probe-facing"
 DEFAULT_RECORD_PATH = NOTEBOOK_ROOT / ".cache" / "09_physics_probe_facing.jsonl"
-PRODUCTION_STEMS = ("09_physics_curvature", "09_colleague_estimator", "09_instrument_adjudication")
+PRODUCTION_STEMS = ("09_physics_curvature", "09_instrument_adjudication")
 MULTISCALE_KS = (16, 64, 256, 1024, 2048)
 DEC_COLUMNS = ("H_tan_norm", "pf_curv_dec", "pf_trace_tan_dec", "pf_trace_rad_dec", "bias_sq")
-COL_COLUMNS = ("K_H_cross_col", "pf_curv_col", "K_w_dir_col")
 
 
 def _utc_now() -> str:
@@ -169,50 +163,6 @@ def decoder_probe_facing(geo: Dict[str, np.ndarray], w: np.ndarray, d: int) -> D
             "w_N_norm": np.linalg.norm(w_N, axis=1)}
 
 
-# --- colleague: B^S at the anchors -----------------------------------------------------------
-
-
-def colleague_BS_at_anchors(X: np.ndarray, neigh: np.ndarray, d: int, est: Dict[str, Any], device: torch.device,
-                            n_splits: int, seed: int) -> Dict[str, Any]:
-    """His `nested_pca_frame` + `_fit_rank` per anchor (unchanged), keeping the fitted B^S of both
-    halves of every split and averaging them (his H_mean is the same average of the halves).
-    Returns per-anchor x0 (b,D), J (b,D,d), BS_flat mean (b,D,q), K_H_cross (b), n_splits_ok."""
-    nested_pca_frame, _fit_rank, _rows_from_fits = est["nested_pca_frame"], est["_fit_rank"], est["_rows_from_fits"]
-    n_anchors, k = neigh.shape
-    D = X.shape[1]; q = d * (d + 1) // 2
-    x0s = np.zeros((n_anchors, D)); Js = np.zeros((n_anchors, D, d)); BS = np.full((n_anchors, D, q), np.nan)
-    kh = np.full(n_anchors, np.nan); ok = np.zeros(n_anchors, dtype=int)
-    t0 = time.monotonic()
-    for ai in range(n_anchors):
-        Xloc = X[neigh[ai, :k]].astype(np.float64)
-        x0, J, _ev, _diag = nested_pca_frame(Xloc, d, device)
-        fits = _fit_rank(Xloc, x0, J, d, k, n_splits, seed, ai)
-        x0s[ai] = x0; Js[ai] = J[:, :d]
-        if fits:
-            rec = _rows_from_fits(ai, d, k, fits)
-            kh[ai] = float(rec["K_H_cross"]); ok[ai] = int(rec.get("n_splits_ok", len(fits)))
-            BS[ai] = np.mean([0.5 * (f["BS_flat_A"] + f["BS_flat_B"]) for f in fits], axis=0)
-        if (ai + 1) % 64 == 0 or ai + 1 == n_anchors:
-            print(f"[colleague] {ai + 1}/{n_anchors} anchors, {time.monotonic() - t0:.0f}s", flush=True)
-    return {"x0": x0s, "J": Js, "BS_flat": BS, "K_H_cross": kh, "n_splits_ok": ok, "wallclock_s": time.monotonic() - t0}
-
-
-def colleague_probe_facing(cb: Dict[str, Any], w: np.ndarray, d: int, est_mod: Dict[str, Any]) -> Dict[str, np.ndarray]:
-    unpack, probe_facing_scalar, project_normal = est_mod["unpack_BS_symmetric"], est_mod["probe_facing_scalar"], est_mod["project_normal"]
-    n = cb["BS_flat"].shape[0]
-    pf = np.full(n, np.nan); kw = np.full(n, np.nan); wn = np.full(n, np.nan)
-    for ai in range(n):
-        if not np.all(np.isfinite(cb["BS_flat"][ai])):
-            continue
-        wn_unit, wn_norm = project_normal(w, cb["x0"][ai], cb["J"][ai])       # his: orthogonal to span(x0, J)
-        B = unpack(cb["BS_flat"][ai], d)                                       # (D, d, d)
-        b = np.einsum("a,aij->ij", wn_norm * wn_unit, B)
-        pf[ai] = float(np.linalg.norm(b))                                      # his J is orthonormal: plain Frobenius
-        kw[ai] = float(probe_facing_scalar(cb["BS_flat"][ai], d, wn_unit)["K_w_dir"]) * wn_norm
-        wn[ai] = wn_norm
-    return {"pf_curv_col": pf, "K_w_dir_col": kw, "w_N_norm_col": wn}
-
-
 # --- data ----------------------------------------------------------------------------------------
 
 
@@ -248,8 +198,6 @@ def main() -> None:
     p.add_argument("--mode", choices=["smoke", "physics"], required=True)
     p.add_argument("--d-values", type=str, default="16,20")
     p.add_argument("--labels", type=str, default=",".join((pl.PRIMARY_LABEL,) + pl.SECONDARY_LABELS))
-    p.add_argument("--colleague-root", type=str, default=None)
-    p.add_argument("--skip-colleague", action="store_true")
     p.add_argument("--record-path", type=str, default=str(DEFAULT_RECORD_PATH))
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--device", type=str, default="cpu")
@@ -258,8 +206,6 @@ def main() -> None:
     p.add_argument("--n-permutations", type=int, default=None)
     args = p.parse_args()
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
-    if not args.skip_colleague and args.colleague_root is None:
-        raise SystemExit("--colleague-root is required unless --skip-colleague")
     record_path = Path(args.record_path).resolve()
     for stem in PRODUCTION_STEMS:
         if record_path.name.startswith(stem):
@@ -271,14 +217,6 @@ def main() -> None:
     out_root.mkdir(parents=True, exist_ok=True)
     print(f"record -> {record_path}\nNOT PRE-REGISTERED; GATES NOTHING.\nmode={args.mode} d={d_values} max_epochs={max_epochs} n_perm={n_perm} out={out_root}")
 
-    est = est_mod = None
-    if not args.skip_colleague:
-        est = colleague.load_colleague_estimator(args.colleague_root)
-        from geometry.physics_activation_atlas.confirmatory_object_curvature import unpack_BS_symmetric  # noqa: E402
-        from geometry.physics_activation_atlas.effdim_curvature_metrics import probe_facing_scalar, project_normal  # noqa: E402
-        est_mod = {"unpack_BS_symmetric": unpack_BS_symmetric, "probe_facing_scalar": probe_facing_scalar, "project_normal": project_normal}
-        print(f"colleague checkout HEAD={est['colleague_head']} (expected {colleague.COLLEAGUE_COMMIT}); topology shim={est['topology_is_shim']}")
-
     data = load_physics(args) if args.mode == "physics" else load_smoke(args)
     X, labels, in_dim = data["X"], data["labels"], data["in_dim"]
     n = X.shape[0]
@@ -287,7 +225,7 @@ def main() -> None:
     ks = [kk for kk in MULTISCALE_KS if kk <= k]
 
     _append({"experiment": EXPERIMENT, "row": "environment", "mode": args.mode, "timestamp": _utc_now(),
-             "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "colleague_head": est["colleague_head"] if est else None,
+             "repo_head": adj._git_head(NOTEBOOK_ROOT.parent),
              "threads": args.threads, "device": args.device, "d_values": d_values, "labels": list(labels), "n": n, "k": k,
              "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm, "max_epochs": max_epochs,
              "torch": torch.__version__, "numpy": np.__version__, "python": sys.version.split()[0],
@@ -318,10 +256,6 @@ def main() -> None:
         print(f"[probe] {name}: global OOF R2 {per_label[name]['global_oof_r2']:.3f}, masked anchors {loc['n_masked_anchors']}, "
               f"local R2 p05/p50 {np.nanpercentile(loc['r2'], 5):.3f}/{np.nanpercentile(loc['r2'], 50):.3f}", flush=True)
 
-    neigh = None
-    if est is not None:
-        neigh = colleague.colleague_neighbourhoods(X, a, k)["neigh"]
-
     for d in d_values:
         print("\n" + "=" * 78 + f"\nd={d}\n" + "=" * 78, flush=True)
         fit = fit_decoder(X, d, in_dim, max_epochs)
@@ -340,27 +274,16 @@ def main() -> None:
         np.savez_compressed(out_root / f"09_probe_facing_geometry_d{d}.npz", anchor_idx=a, J=geo["J"].astype(np.float32),
                             Hess=geo["Hess"].astype(np.float32), image=geo["image"].astype(np.float32), z_anchor=z_anchor.detach().cpu().numpy())
 
-        cb = None
-        if est is not None:
-            cb = colleague_BS_at_anchors(X, neigh, d, est, torch.device(args.device), colleague.COLLEAGUE_N_SPLITS, colleague.COLLEAGUE_SEED)
-            print(f"[colleague] K_H_cross finite {int(np.isfinite(cb['K_H_cross']).sum())}/{n_anchors}, {cb['wallclock_s']:.0f}s; "
-                  f"rank(K_H_cross, H_tan_norm) = {_spearman(cb['K_H_cross'], dec['H_tan_norm']):+.3f}", flush=True)
-
         _append({"experiment": EXPERIMENT, "row": "fit", "mode": args.mode, "d": d, "timestamp": _utc_now(),
                  "var_explained": fit["var_explained"], "wallclock_fit_s": fit["wallclock_fit_s"], "wallclock_geometry_s": t_geo,
                  "median_cos_H_geo_vs_sealed": cos_check, "H_rad_median": float(np.nanmedian(dec["H_rad"])),
-                 "cond_g_p50_p95": [float(np.percentile(geo["cond_g"], q)) for q in (50, 95)],
-                 "colleague_wallclock_s": cb["wallclock_s"] if cb else None,
-                 "colleague_rank_vs_H_tan_norm": _spearman(cb["K_H_cross"], dec["H_tan_norm"]) if cb else None}, record_path)
+                 "cond_g_p50_p95": [float(np.percentile(geo["cond_g"], q)) for q in (50, 95)]}, record_path)
 
         for name, L in per_label.items():
             cols: Dict[str, np.ndarray] = {"H_tan_norm": dec["H_tan_norm"]}
             dpf = decoder_probe_facing(geo, L["w"], d)
             cols.update({c: dpf[c] for c in ("pf_curv_dec", "pf_trace_tan_dec", "pf_trace_rad_dec")})
             cols["bias_sq"] = L["bias_sq"]
-            if cb is not None:
-                cpf = colleague_probe_facing(cb, L["w"], d, est_mod)
-                cols["K_H_cross_col"] = cb["K_H_cross"]; cols.update({c: cpf[c] for c in ("pf_curv_col", "K_w_dir_col")})
             r2 = L["r2"]
             rows = {}
             print(f"\n[d={d}] {name}: global OOF R2 {L['global_oof_r2']:.3f}; |w_N|/|w| median (decoder frame) "

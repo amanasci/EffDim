@@ -165,7 +165,7 @@ def split_columns(geo: Dict[str, np.ndarray], w: np.ndarray, b0: float, hess_y: 
     return {"cols": cols, "checks": checks}
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--mode", choices=["smoke", "physics"], required=True)
     p.add_argument("--d-values", type=str, default="16,20")
@@ -185,6 +185,11 @@ def main() -> None:
     p.add_argument("--label-table", type=str, default=None,
                    help="parquet of the label columns (LABEL_REPO@LABEL_REVISION shards, column-projected, concatenated in "
                         "shard order) to read instead of streaming the shards over hf://; sha256 is recorded")
+    return p
+
+
+def main() -> None:
+    p = build_parser()
     args = p.parse_args()
     if args.parquet_path:
         ppf.pl.PHYSICS_PARQUET_PATH = args.parquet_path

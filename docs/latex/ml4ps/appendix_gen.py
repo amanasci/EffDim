@@ -68,31 +68,6 @@ label & $d$ & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p5
 \caption{Cross-fitted mismatch and alignment partials (multi-scale control), split-half reliability of the label Hessian, and the sphere-term partial under a weak-ridge probe.}
 \label{tab:sens}
 \end{table}""")
-# --- C: relative II (two-embedding alignment pilot; off since the 2026-09-18 reframe dropped the cross-survey
-#         application from the manuscript. Set True to regenerate it.)
-INCLUDE_RELATIVE_II = False
-runs = [("$d=20$, seed 0", C + "08_relative_ii_d20.jsonl"), ("$d=25$, seed 0", C + "08_relative_ii_d25_seed0.jsonl"), ("$d=20$, seed 1", C + "08_relative_ii_d20_seed1.jsonl")]
-rrows = []
-for name, f in runs:
-    for r in rows(f):
-        if r.get("row") == "result" and r["mknn_k"] == 20:
-            c = r["columns"]
-            rrows.append(f"{name} & {r['align_r2_holdout']:.2f} & {c['tan_resid']['median']:.2f} & " + " & ".join(cell(c[k]["multiscale"]) for k in ("H_tan_F", "H_tan_G", "tan_resid", "II_rel", "II_rel_loc", "II_rel_emp")) + r" \\")
-if rrows and INCLUDE_RELATIVE_II:
-    out.append(r"""\section*{Appendix X: relative second fundamental form, pilot}  % disabled block; reletter before re-enabling
-Two sphere-projected decoders (HSC $=F$, Legacy $=G$; Phase 7 protocol), a global ridge map $A$ from $x_F$ to $x_G$ (fit on the 8{,}000 training rows), 2{,}048 seeded anchors. Columns: holdout $R^2$ of $A$; median first-order obstruction $\norm{AJ_F - J_G L}/\norm{AJ_F}$ with $L = J_G^{+}AJ_F$; then multi-scale density-controlled partials against MKNN ($k=20$; log radius at $k\in\{10,30,100,300\}$ in both spaces) of each decoder's $\norm{\Htan}$, the first-order obstruction, $\norm{\mathrm{II}_G(L\cdot,L\cdot) - P_N^G A\,\mathrm{II}_F}$ (because first-order matching $AJ_F = J_G$ fails at the 44\% level, the second derivative of the alignment residual is not coordinate invariant; in the decoder chart its target-normal quadratic coefficient additionally contains $-P_N^G A J_F \Gamma^F$, so relative II is reported only as an extrinsic diagnostic), the same with $L$ fitted on 256 neighbours' latent codes, and a decoder-free estimate from the quadratic coefficient of the alignment residual on $F$'s tangent coordinates.
-\begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lcccccccc}
-\toprule
-run & $R^2_A$ & tan.\ resid & $\norm{\Htan}$ HSC & $\norm{\Htan}$ Legacy & tan.\ resid & $\mathrm{II}_{\mathrm{rel}}$ & $\mathrm{II}_{\mathrm{rel}}$ (local $L$) & $\mathrm{II}_{\mathrm{rel}}$ (data) \\
-\midrule""")
-    out += rrows
-    out.append(r"""\bottomrule
-\end{tabular}
-\caption{Relative-II pilot. $^{*}$ not significant at 0.05.}
-\label{tab:relii}
-\end{table}""")
 # --- D: cross-encoder probe-facing test (d=16, seed 0, cross-fit on)
 encs = [("ViT-B", C + "09_physics_probe_facing_split.jsonl"), ("DINOv3", C + "09_physics_probe_facing_split_dinov3_vitb16.jsonl"),
         ("CLIP-B", C + "09_physics_probe_facing_split_clip_base.jsonl"), ("ConvNeXt-B", C + "09_physics_probe_facing_split_convnext_base.jsonl"),
@@ -213,4 +188,4 @@ if B not in s:
     s = s.replace("\\end{document}", f"\\appendix\n{B}\n{E}\n\\end{{document}}")
 i, j = s.index(B) + len(B), s.index(E)
 s = s[:i] + "\n" + tex + s[j:]
-open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", f"{len(have)} encoders;", f"{len(erows)} cf rows;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha", len(rrows), "relii rows")
+open(p, "w").write(s); print("appendix spliced:", len(out), "lines;", f"{len(have)} encoders;", f"{len(erows)} cf rows;", "xfit" if xf else "no-xfit", "alpha" if al else "no-alpha")

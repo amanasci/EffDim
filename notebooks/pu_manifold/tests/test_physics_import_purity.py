@@ -26,16 +26,12 @@ import pytest
 NOTEBOOK_ROOT = Path(__file__).resolve().parents[2]
 
 SEALED_MODULES: Tuple[str, ...] = (
-    "mknn",
     "cae",
     "decoder_curvature",
     "curvature_probe",
     "cross_split_curvature",
     "linear_probe",
-    "pointcloud_probe",
     "crossmodal_curvature",
-    "density_stratified_null",
-    "cka",
 )
 """The nine sealed modules `test_cka_import_purity.py` already names, plus `cka` itself (Phase
 8's own new module, sealed as of Phase 8's completion) -- the full set of modules that must

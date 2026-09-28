@@ -51,11 +51,16 @@ def greedy_independent(ov: np.ndarray, thr: float) -> np.ndarray:
     return keep
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--parquet-path", required=True); p.add_argument("--embedding-column", required=True)
     p.add_argument("--arrays-npz", required=True, help="per-anchor arrays of the counterfactual run (anchor order check)")
     p.add_argument("--out", required=True); p.add_argument("--threads", type=int, default=8)
+    return p
+
+
+def main() -> None:
+    p = build_parser()
     args = p.parse_args()
     X = load_embeddings(args.parquet_path, args.embedding_column)
     n = X.shape[0]

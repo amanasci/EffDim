@@ -163,7 +163,7 @@ def run_gamma(gamma: float, cfg: Dict[str, Any], pool: Dict[str, Any], G: Any, a
                     "align_cos_tan_p25_p50_p75": [float(v) for v in np.nanpercentile(cols["align_cos_tan"], [25, 50, 75])]}, record_path)
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--mode", choices=["smoke", "full"], required=True)
     p.add_argument("--gammas", type=str, default="-1,0.6")
@@ -176,6 +176,11 @@ def main() -> None:
     p.add_argument("--scale-mult", type=float, default=1.0, help="multiply the fixture's latent scale_choices (alignment-demo redesign)")
     p.add_argument("--amp-mult", type=float, default=1.0, help="multiply the fixture's bump_amps (alignment-demo redesign)")
     p.add_argument("--width-mult", type=float, default=1.0, help="multiply the fixture's bump_widths (alignment-demo redesign)")
+    return p
+
+
+def main() -> None:
+    p = build_parser()
     args = p.parse_args()
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
     record_path = Path(args.record_path).resolve()
