@@ -353,8 +353,7 @@ def readout_matrix(
         if name not in references:
             raise ValueError(f"readout_matrix: references is missing required key {name!r}")
 
-    clouds: Dict[str, Any] = {}
-    clouds.update({name: spaces[name] for name in _SPACES})
+    clouds: Dict[str, Any] = {name: spaces[name] for name in _SPACES}
     clouds.update({name: references[name] for name in _REFERENCES})
 
     diagrams: Dict[str, List[np.ndarray]] = {}

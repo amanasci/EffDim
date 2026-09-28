@@ -80,8 +80,7 @@ def build_symmetric_knn_graph(data: np.ndarray, k: int) -> csr_matrix:
         )
 
     directed = kneighbors_graph(data, k, mode="distance")
-    graph = directed.maximum(directed.T)
-    return graph
+    return directed.maximum(directed.T)
 
 
 def component_readout(graph: csr_matrix) -> Dict[str, Any]:
@@ -167,11 +166,8 @@ def k_sweep_components(data: np.ndarray, k_values: Sequence[int]) -> List[Dict[s
     """
     results: List[Dict[str, Any]] = []
     for k in k_values:
-        graph = build_symmetric_knn_graph(data, k)
-        readout = component_readout(graph)
-        entry: Dict[str, Any] = {"k": int(k)}
-        entry.update(readout)
-        results.append(entry)
+        readout = component_readout(build_symmetric_knn_graph(data, k))
+        results.append({"k": int(k), **readout})
     return results
 
 

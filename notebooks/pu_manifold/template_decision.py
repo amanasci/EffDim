@@ -121,16 +121,13 @@ def lookup(betti: Sequence[int], d_hat: Union[int, float]) -> Optional[str]:
     """
     b = _normalize_betti(betti)
 
-    ball_row = TEMPLATE_TABLE["ball"]
-    ball_betti = ball_row["betti"] + (0,) * (_MAX_DEGREES - len(ball_row["betti"]))
-    if b == ball_betti:
+    if b == _normalize_betti(TEMPLATE_TABLE["ball"]["betti"]):
         return f"ball_d{int(d_hat)}"
 
     for name, row in TEMPLATE_TABLE.items():
         if name == "ball":
             continue
-        row_betti = row["betti"] + (0,) * (_MAX_DEGREES - len(row["betti"]))
-        if b == row_betti and int(d_hat) == row["d"]:
+        if b == _normalize_betti(row["betti"]) and int(d_hat) == row["d"]:
             return name
 
     return None
@@ -221,8 +218,7 @@ def _betti_dimension_contradiction(betti: Sequence[int], d_hat: Union[int, float
     for name, row in TEMPLATE_TABLE.items():
         if name == "ball":
             continue
-        row_betti = row["betti"] + (0,) * (_MAX_DEGREES - len(row["betti"]))
-        if b == row_betti and int(d_hat) != row["d"]:
+        if b == _normalize_betti(row["betti"]) and int(d_hat) != row["d"]:
             return (
                 f"betti {b} matches template {name!r}'s betti pattern (expects d={row['d']}) "
                 f"but the measured d_hat={d_hat!r} -- a Betti/dimension contradiction per "

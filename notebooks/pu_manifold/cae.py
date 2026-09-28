@@ -338,8 +338,7 @@ def fps_pretrain_loss(
     y_alpha = y_charts_all[idx, seed_chart_index]  # (n_seeds, out_dim) -- own chart's decode
 
     recon = ((x_seeds - y_alpha) ** 2).sum(dim=-1)
-    center = torch.full_like(z_alpha, 0.5)
-    center_term = ((z_alpha - center) ** 2).sum(dim=-1)
+    center_term = ((z_alpha - 0.5) ** 2).sum(dim=-1)  # chart-space centre [.5]^d
     p = model.chart_probs(z)
     p_target = p.gather(1, seed_chart_index.unsqueeze(1)).squeeze(1)
     xent = -torch.log(p_target.clamp_min(1e-12))
@@ -570,12 +569,11 @@ def timing_probe(
     seconds_per_step = elapsed / n_steps
     n_batches_per_epoch = math.ceil(n / batch_size)
     projected_wallclock_s = seconds_per_step * n_batches_per_epoch * cfg["max_epochs"]
-    exceeds_ceiling = projected_wallclock_s > cfg["wallclock_ceiling_s"]
 
     return {
         "seconds_per_step": seconds_per_step,
         "projected_wallclock_s": projected_wallclock_s,
-        "exceeds_ceiling": bool(exceeds_ceiling),
+        "exceeds_ceiling": bool(projected_wallclock_s > cfg["wallclock_ceiling_s"]),
     }
 
 
@@ -892,10 +890,9 @@ def select_overlap_pairs(
 
     order = np.argsort(-p_surv, axis=1)
     top2_local = order[:, :2]
-    p_top1 = np.take_along_axis(p_surv, top2_local[:, 0:1], axis=1)[:, 0]
-    p_top2 = np.take_along_axis(p_surv, top2_local[:, 1:2], axis=1)[:, 0]
+    p_top2_values = np.take_along_axis(p_surv, top2_local, axis=1)
 
-    qualifies = (p_top1 >= p_min) & (p_top2 >= p_min)
+    qualifies = (p_top2_values[:, 0] >= p_min) & (p_top2_values[:, 1] >= p_min)
     n_qualify = int(qualifies.sum())
     if n_qualify < min_points:
         raise ValueError(

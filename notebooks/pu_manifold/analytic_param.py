@@ -24,7 +24,7 @@ from ``pu_manifold/__init__.py``'s eager imports (so Phase-1-only callers do not
 installed to import the package), this module is deliberately NOT re-exported there either.
 """
 
-from typing import Any, Dict
+from typing import Dict
 
 import numpy as np
 import torch

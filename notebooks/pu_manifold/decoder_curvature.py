@@ -58,20 +58,17 @@ the averaged ``(1/d) tr_g(II)``. Declared here (rather than merely imported) so 
 drift in either sealed module's own convention constant breaks this module's import instead
 of silently propagating a factor-of-``d`` error into a decoder-substrate screening run."""
 
-if CURVATURE_CONVENTION != _CHART_CURVATURE_CONVENTION:
-    raise ValueError(
-        f"decoder_curvature.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees with "
-        f"chart_curvature.CURVATURE_CONVENTION={_CHART_CURVATURE_CONVENTION!r}. Two modules "
-        f"computing the same mathematics must never silently diverge on which convention "
-        f"they report under."
-    )
-if CURVATURE_CONVENTION != curvature_probe.CURVATURE_CONVENTION:
-    raise ValueError(
-        f"decoder_curvature.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees with "
-        f"curvature_probe.CURVATURE_CONVENTION={curvature_probe.CURVATURE_CONVENTION!r}. Two "
-        f"modules computing the same mathematics must never silently diverge on which "
-        f"convention they report under."
-    )
+for _module, _convention in (
+    ("chart_curvature", _CHART_CURVATURE_CONVENTION),
+    ("curvature_probe", curvature_probe.CURVATURE_CONVENTION),
+):
+    if CURVATURE_CONVENTION != _convention:
+        raise ValueError(
+            f"decoder_curvature.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees "
+            f"with {_module}.CURVATURE_CONVENTION={_convention!r}. Two modules computing "
+            f"the same mathematics must never silently diverge on which convention they "
+            f"report under."
+        )
 
 
 # --- C2 smoothness guard, reaching cae.PlainAutoEncoder's missing .activation ------------
@@ -216,8 +213,8 @@ def plain_decoder_curvature(model: Any, z: torch.Tensor) -> Dict[str, Any]:
 
     H_parts = []
     cond_parts = []
-    jacobian_shape = None
-    hessian_shape = None
+    jacobian_shape = (batch, out_dim, latent_dim)
+    hessian_shape = (batch, out_dim, latent_dim, latent_dim)
     for start in range(0, batch, VMAP_CHUNK):
         real = z[start : start + VMAP_CHUNK]
         n_real = real.shape[0]
@@ -241,9 +238,6 @@ def plain_decoder_curvature(model: Any, z: torch.Tensor) -> Dict[str, Any]:
                 f"sign that jacrev(jacrev(f)) and hessian(f) are not drop-in "
                 f"interchangeable under an outer vmap."
             )
-        jacobian_shape = (batch, out_dim, latent_dim)
-        hessian_shape = (batch, out_dim, latent_dim, latent_dim)
-
         g = torch.einsum("boi,boj->bij", J, J)
         eye_d = torch.eye(latent_dim, dtype=g.dtype, device=g.device).expand(
             VMAP_CHUNK, latent_dim, latent_dim

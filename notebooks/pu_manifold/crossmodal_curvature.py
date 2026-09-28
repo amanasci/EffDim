@@ -376,10 +376,9 @@ def describe_inheritance() -> Dict[str, Any]:
 # chosen explicitly at every call site.
 # =============================================================================================
 
-from typing import List, Tuple  # noqa: E402 -- deliberately below the freeze, not merged into
-
-# the module's original ``from typing import Any, Dict`` line above, so that line is never
-# touched.
+# Deliberately below the freeze, not merged into the module's original
+# ``from typing import Any, Dict`` line above, so that line is never touched.
+from typing import List, Tuple  # noqa: E402
 
 import numpy as np  # noqa: E402
 from scipy.stats import rankdata, spearmanr  # noqa: E402

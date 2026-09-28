@@ -96,7 +96,7 @@ on.** On a decoder-shaped map (``W2 @ silu(W1 z + b1) + b2``, ``chart_dim=20``, 
 construction-dependent, which is precisely why it cannot be assumed stable.
 
 Consequence for anyone editing this module: the chunking around the ``jacrev`` call in
-:func:`chart_jacobian` is **load-bearing and must not be removed as redundant**. Every
+:func:`_chunked_jacobian` is **load-bearing and must not be removed as redundant**. Every
 ``vmap``'d derivative here is chunked, and that is deliberate rather than defensive uniformity.
 
 Measured in the same session and load-bearing for this fix: at a FIXED width the result for a
@@ -551,7 +551,7 @@ def chart_curvature_field(
     nothing to do with row order -- see that constant's docstring.
     """
     assert_c2_activation(model)
-    _assert_float64(model, x.double() if x.dtype == torch.float64 else x)
+    _assert_float64(model, x)
     if batch_size < 1:
         raise ValueError(f"chart_curvature_field: batch_size must be >= 1; got {batch_size}.")
 

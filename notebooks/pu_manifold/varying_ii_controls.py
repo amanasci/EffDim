@@ -93,9 +93,10 @@ def _finish(
     extra: Dict[str, Any],
 ) -> Dict[str, Any]:
     """The shared tail every control in this family runs: sealed curvature, graph assembly,
-    sealed rotate-and-pad. Identical in order and content to ``make_saddle_control``'s tail."""
+    sealed rotate-and-pad. Identical in order and content to ``make_saddle_control``'s tail.
+    ``f_x`` is ``(n,)`` for a codimension-1 graph, ``(n, m)`` for a higher-codimension one."""
     H_local = curvature_probe.graph_mean_curvature(grad, hess)
-    X_local = np.concatenate([x, f_x[:, None]], axis=1)
+    X_local = np.concatenate([x, f_x.reshape(f_x.shape[0], -1)], axis=1)
     X, H_vec, global_std = synthetic_controls.rotate_and_pad(X_local, H_local, D, seed)
     out = {
         "X": X,
@@ -381,40 +382,27 @@ def make_multinormal_ridge_control(
     hess = (-A * freq**2 * np.sin(S))[:, :, None, None] * outer[None, :, :, :]
     f_x = A * np.sin(S)                                                    # (n, m)
 
-    H_local = curvature_probe.graph_mean_curvature(grad, hess)             # (n, d + m)
-    X_local = np.concatenate([x, f_x], axis=1)
-    X, H_vec, global_std = synthetic_controls.rotate_and_pad(X_local, H_local, D, seed)
-
-    return {
-        "X": X,
-        "x_param": x,
-        "H_vec": H_vec,
-        "H_norm": np.linalg.norm(H_vec, axis=-1),
-        "global_std": global_std,
-        "ii_variation": second_fundamental_form_variation(hess),
-        "curvature_convention": CURVATURE_CONVENTION,
-        "W": W,
-        "n_normal": int(n_normal),
-        "dominant_normal": np.argmax(np.abs(np.sin(S)), axis=1),
-        "amplitude": A,
-        "frequency": freq,
-        "domain_radius": domain_radius,
-        "family": "multinormal_ridge",
-    }
+    return _finish(
+        x, f_x, grad, hess, D, seed,
+        {"W": W, "n_normal": int(n_normal),
+         "dominant_normal": np.argmax(np.abs(np.sin(S)), axis=1),
+         "amplitude": A, "frequency": freq, "domain_radius": domain_radius,
+         "family": "multinormal_ridge"},
+    )
 
 
 FAMILIES = {
-    "quadratic_saddle": lambda n, d, D, seed: make_quadratic_graph_control(n, d, D, seed),
+    "quadratic_saddle": make_quadratic_graph_control,
     "quadratic_bowl": lambda n, d, D, seed: make_quadratic_graph_control(
         n, d, D, seed, eigenvalues=np.ones(d)
     ),
     "quadratic_aniso": lambda n, d, D, seed: make_quadratic_graph_control(
         n, d, D, seed, eigenvalues=np.logspace(-1, 1, d)
     ),
-    "cubic": lambda n, d, D, seed: make_cubic_graph_control(n, d, D, seed),
-    "sine": lambda n, d, D, seed: make_sine_graph_control(n, d, D, seed),
-    "ridge": lambda n, d, D, seed: make_ridge_graph_control(n, d, D, seed),
-    "multinormal_ridge": lambda n, d, D, seed: make_multinormal_ridge_control(n, d, D, seed),
+    "cubic": make_cubic_graph_control,
+    "sine": make_sine_graph_control,
+    "ridge": make_ridge_graph_control,
+    "multinormal_ridge": make_multinormal_ridge_control,
 }
 """The comparison set, ordered so each entry changes exactly one thing from the last.
 

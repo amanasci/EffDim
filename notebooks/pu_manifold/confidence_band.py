@@ -144,11 +144,9 @@ def band_spread(
     if len(seeds) == 0:
         raise ValueError("band_spread: seeds must be non-empty")
 
-    c_alpha_values: List[float] = []
-    for seed in seeds:
-        result = bootstrap_band(D, degree, B, alpha, seed)
-        c_alpha_values.append(result["c_alpha"])
-
+    c_alpha_values: List[float] = [
+        bootstrap_band(D, degree, B, alpha, seed)["c_alpha"] for seed in seeds
+    ]
     c_alpha_array = np.asarray(c_alpha_values, dtype=np.float64)
     return {
         "c_alpha_values": c_alpha_values,

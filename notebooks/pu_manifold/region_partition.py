@@ -126,11 +126,7 @@ def assert_preregistered() -> None:
         raise RuntimeError("assert_preregistered: VERDICT_RULE does not name HEADLINE_K.")
     if not isinstance(K_FROZEN, int) or isinstance(K_FROZEN, bool) or K_FROZEN <= 0:
         raise RuntimeError(f"assert_preregistered: K_FROZEN={K_FROZEN!r} is not a positive int.")
-    if (
-        not isinstance(MIN_REGION_N, int)
-        or isinstance(MIN_REGION_N, bool)
-        or MIN_REGION_N <= 0
-    ):
+    if not isinstance(MIN_REGION_N, int) or isinstance(MIN_REGION_N, bool) or MIN_REGION_N <= 0:
         raise RuntimeError(
             f"assert_preregistered: MIN_REGION_N={MIN_REGION_N!r} is not a positive int."
         )

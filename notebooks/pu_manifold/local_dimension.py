@@ -174,8 +174,9 @@ def global_estimates(
             if name == "gmst":
                 values[name] = gmst_value
             else:
-                func = _ESTIMATOR_FUNCS[name]
-                values[name] = float(func(data, precomputed_knn_dist_sq=dist_sq_k))
+                values[name] = float(
+                    _ESTIMATOR_FUNCS[name](data, precomputed_knn_dist_sq=dist_sq_k)
+                )
         estimates_by_k[int(k)] = values
 
     return estimates_by_k, k_applicable
@@ -186,10 +187,9 @@ def spread(estimates_at_k: Dict[str, float]) -> Dict[str, Any]:
     "range", "distinct_count", "values"}``. Applies NO bar of its own; the spread bound
     that fires abstain condition (b) is a ratified constant the caller supplies and
     compares against separately."""
-    names = list(estimates_at_k.keys())
-    if len(names) == 0:
+    if len(estimates_at_k) == 0:
         raise ValueError("spread: estimates_at_k must be non-empty")
-    vals = np.array([estimates_at_k[name] for name in names], dtype=np.float64)
+    vals = np.array(list(estimates_at_k.values()), dtype=np.float64)
     finite_vals = vals[np.isfinite(vals)]
     if finite_vals.shape[0] == 0:
         raise ValueError("spread: estimates_at_k contains no finite values")
@@ -221,7 +221,7 @@ def _apply_count_distinct(supporters: List[str]) -> Tuple[List[str], List[str]]:
     """Collapse each :data:`DUPLICATE_ESTIMATOR_PAIRS` pair present in full within
     ``supporters`` down to its first-named member. Returns ``(counted, excluded)``."""
     supporters_set = set(supporters)
-    dropped: set = set()
+    dropped = set()
     for pair in DUPLICATE_ESTIMATOR_PAIRS:
         if all(member in supporters_set for member in pair):
             dropped.update(pair[1:])
@@ -403,9 +403,8 @@ def local_estimates(
                 value = float(geometry.gmst_dimensionality(data[local_idx]))
                 provenance = "recomputed"
             else:
-                func = _ESTIMATOR_FUNCS[name]
                 value = float(
-                    func(
+                    _ESTIMATOR_FUNCS[name](
                         data[local_idx],
                         precomputed_knn_dist_sq=precomputed_knn_dist_sq[local_idx],
                     )

@@ -21,13 +21,9 @@ are cross-checked against an independent finite-difference computation before be
 (``test_synthetic_saddle_control_matches_finite_difference``) rather than trusted by
 inspection. ``curvature_probe.py`` is imported and never edited.
 
-Curvature convention: every quantity here is the UNNORMALIZED trace ``H = tr_g(II)``,
-matching ``chart_curvature.CURVATURE_CONVENTION`` and ``curvature_probe.CURVATURE_CONVENTION``
-exactly. A unit ``d``-sphere gives ``||H|| = d`` under this convention -- never ``1`` and
-never the averaged ``(d + 2) / d``. This module declares its own ``CURVATURE_CONVENTION``
-constant (rather than merely importing a sealed one) and asserts at import time that all
-three agree, so a future drift in either sealed module would break this module's import
-instead of silently propagating a factor-of-``d`` error into step 4.
+Curvature convention: the UNNORMALIZED trace ``H = tr_g(II)`` throughout -- see
+:data:`CURVATURE_CONVENTION` below, and the import-time guard beside it that pins this module
+against ``chart_curvature`` and ``curvature_probe``.
 """
 
 from typing import Dict
@@ -43,20 +39,17 @@ in either sealed module's own convention constant breaks this module's import in
 silently propagating a factor-of-``d`` error into step 4's ground truth. A unit ``d``-sphere
 gives ``||H|| = d`` under this convention, never ``1``."""
 
-if CURVATURE_CONVENTION != chart_curvature.CURVATURE_CONVENTION:
-    raise ValueError(
-        f"synthetic_controls.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees with "
-        f"chart_curvature.CURVATURE_CONVENTION={chart_curvature.CURVATURE_CONVENTION!r}. Two "
-        f"modules computing the same mathematics must never silently diverge on which "
-        f"convention they report under."
-    )
-if CURVATURE_CONVENTION != curvature_probe.CURVATURE_CONVENTION:
-    raise ValueError(
-        f"synthetic_controls.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees with "
-        f"curvature_probe.CURVATURE_CONVENTION={curvature_probe.CURVATURE_CONVENTION!r}. Two "
-        f"modules computing the same mathematics must never silently diverge on which "
-        f"convention they report under."
-    )
+for _name, _sealed in (
+    ("chart_curvature", chart_curvature),
+    ("curvature_probe", curvature_probe),
+):
+    if CURVATURE_CONVENTION != _sealed.CURVATURE_CONVENTION:
+        raise ValueError(
+            f"synthetic_controls.CURVATURE_CONVENTION={CURVATURE_CONVENTION!r} disagrees with "
+            f"{_name}.CURVATURE_CONVENTION={_sealed.CURVATURE_CONVENTION!r}. Two "
+            f"modules computing the same mathematics must never silently diverge on which "
+            f"convention they report under."
+        )
 
 
 # --- Shared embedding step -----------------------------------------------------------

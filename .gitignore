@@ -17,3 +17,6 @@ Cargo.lock
 notebooks/.cache/
 .planning/research/.cache/
 .ipynb_checkpoints/
+
+# setuptools build output (a stale Feb-2026 copy of src/effdim was tracked by mistake)
+build/

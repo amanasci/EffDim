@@ -485,8 +485,7 @@ def topological_fidelity(x: torch.Tensor, z: torch.Tensor) -> Dict[str, float]:
     *training* loss's ``total`` does, would collapse the two failure modes D-04 keeps
     apart -- this function never returns ``total``."""
     d_x = pairwise_distances_f64(x)
-    z_scaled = z * latent_unit_scale(z)
-    d_z = pairwise_distances_f64(z_scaled)
+    d_z = pairwise_distances_f64(z * latent_unit_scale(z))
     loss = topological_loss(d_x, d_z)
     loss_x_to_z = float(loss["loss_x_to_z"].item())
     loss_z_to_x = float(loss["loss_z_to_x"].item())

@@ -158,13 +158,13 @@ def metric_deviation(g: torch.Tensor, mode: str) -> torch.Tensor:
             f"metric_deviation: unknown mode {mode!r}; must be one of {FIRST_ORDER_MODES}."
         )
     d = g.shape[-1]
-    eye = torch.eye(d, dtype=g.dtype, device=g.device)
     if mode == "scale":
         # torch.linalg.slogdet rather than log(det(g)): det underflows to exactly 0 in float64
         # at the scale this term exists to catch (det(g) ~ 1e-162 was measured on real fits),
         # which would make the penalty inf/nan precisely where it is needed most.
         logabsdet = torch.linalg.slogdet(g).logabsdet
         return (logabsdet / d) ** 2
+    eye = torch.eye(d, dtype=g.dtype, device=g.device)
     if mode == "isometry":
         diff = g - eye
     else:  # "conformal"

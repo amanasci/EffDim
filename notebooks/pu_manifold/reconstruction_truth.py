@@ -197,12 +197,13 @@ def reconstruction_drift(X_input: Any, X_recon: Any) -> Dict[str, Any]:
         raise ValueError(f"X_input and X_recon must have the same shape; got {a.shape}, {b.shape}.")
     drift = np.linalg.norm(a - b, axis=-1)
     denom = np.maximum(np.linalg.norm(a, axis=-1), 1e-12)
+    drift_relative = drift / denom
     return {
         "drift": drift,
-        "drift_relative": drift / denom,
+        "drift_relative": drift_relative,
         "median_drift": float(np.median(drift)),
-        "median_drift_relative": float(np.median(drift / denom)),
-        "p95_drift_relative": float(np.percentile(drift / denom, 95)),
+        "median_drift_relative": float(np.median(drift_relative)),
+        "p95_drift_relative": float(np.percentile(drift_relative, 95)),
     }
 
 

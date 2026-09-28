@@ -321,8 +321,7 @@ def immerse(
     if noise > 0.0:
         warped = warped + rng_noise.normal(scale=noise, size=warped.shape)
 
-    d_true_by_template = {"S1": 1, "S2": 2, "T2": 2, "ball": d}
-    d_true = d_true_by_template.get(template)
+    d_true = {"S1": 1, "S2": 2, "T2": 2, "ball": d}.get(template)
 
     cloud: Dict[str, Any] = {
         "points": np.asarray(warped, dtype=np.float64),
@@ -424,11 +423,8 @@ def jacobian_rank(cloud: Dict[str, Any], n_check: int, rank_tol: float) -> Dict[
         )
 
     proj = torch.einsum("bDf,bft->bDt", J, tb_batch)
-    ranks_t = torch.linalg.matrix_rank(proj, atol=rank_tol, rtol=0.0)
-    ranks = ranks_t.numpy().astype(np.int64)
-
+    ranks = torch.linalg.matrix_rank(proj, atol=rank_tol, rtol=0.0).numpy().astype(np.int64)
     min_rank = int(ranks.min())
-    worst_point_index = int(ranks.argmin())
 
     return {
         "ranks": ranks,
@@ -437,5 +433,5 @@ def jacobian_rank(cloud: Dict[str, Any], n_check: int, rank_tol: float) -> Dict[
         "is_immersion": bool(min_rank == d_true),
         "n_check": n_check,
         "rank_tol": rank_tol,
-        "worst_point_index": worst_point_index,
+        "worst_point_index": int(ranks.argmin()),
     }

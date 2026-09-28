@@ -121,16 +121,14 @@ chunk's decoder output at ``8192 * 768 * 8 bytes ~= 50 MB``, comfortably bounded
 how large a batch or latent dimension a caller supplies."""
 
 
-def _assert_decode_batch_float64(
-    decode_batch: Callable[[torch.Tensor], torch.Tensor], z_chart: torch.Tensor
-) -> None:
+def _assert_decode_batch_float64(z_chart: torch.Tensor) -> None:
     """Raise ``ValueError`` naming ``z_chart.double()`` when ``z_chart`` itself is not
     float64 (02.6-REVIEW.md WR-01, the ``z``-half). This is the ``z``-only half of the fix on
     purpose: ``finite_difference_jacobian``, ``finite_difference_hessian`` and
     ``calibrate_fd_step`` are handed ``decode_batch`` (``model.decode``, a bound method, or an
     arbitrary closure) rather than the model object, so -- unlike the sealed per-model guard
-    ``derivative_agreement`` still uses below, unchanged -- this function has no
-    ``.parameters()`` to read and cannot check the model's own dtype from an attribute.
+    ``derivative_agreement`` still uses below, unchanged -- there is no ``.parameters()`` to
+    read and the model's own dtype cannot be checked from an attribute here.
 
     The model-dtype half is enforced downstream, at the point ``decode_batch`` is actually
     invoked (:func:`_chunked_eval` for the two functions above, and directly inside
@@ -207,7 +205,7 @@ def finite_difference_jacobian(
     axis, for the whole batch, is stacked into one tensor and issued to ``decode_batch`` in
     chunks of at most :data:`MAX_FD_ROWS` rows.
     """
-    _assert_decode_batch_float64(decode_batch, z)
+    _assert_decode_batch_float64(z)
     if h <= 0:
         raise ValueError(f"finite_difference_jacobian: h must be positive; got {h}.")
     if z.ndim != 2:
@@ -257,7 +255,7 @@ def finite_difference_hessian(
     translates a float32-parameter model's own dtype-mismatch failure into the same friendly
     ``ValueError``, since it is handed a closure rather than the model object (WR-01).
     """
-    _assert_decode_batch_float64(decode_batch, z)
+    _assert_decode_batch_float64(z)
     if h <= 0:
         raise ValueError(f"finite_difference_hessian: h must be positive; got {h}.")
     if z.ndim != 2:
@@ -328,7 +326,7 @@ def reduce_to_H_vec(J: torch.Tensor, Hess: torch.Tensor) -> torch.Tensor:
         II   = P_N Hess                          second fundamental form
         H    = tr_g(II) = sum_jk g^jk II_jk      (batch, out_dim)
     """
-    batch, out_dim, d = J.shape
+    batch, _, d = J.shape
     g = torch.einsum("boi,boj->bij", J, J)
     eye_d = torch.eye(d, dtype=g.dtype, device=g.device).expand(batch, d, d)
     g_inv = torch.linalg.solve(g, eye_d)
@@ -392,7 +390,7 @@ def calibrate_fd_step(
     is the function that makes assumption A-06 actionable rather than a warning: a caller
     working on a differently-scaled decoder calls this instead of trusting the default blind.
     """
-    _assert_decode_batch_float64(decode_batch, z)
+    _assert_decode_batch_float64(z)
     if z.ndim != 2:
         raise ValueError(f"calibrate_fd_step: z must be (batch, d); got shape {tuple(z.shape)}.")
     if z.shape[0] == 0:
@@ -575,8 +573,7 @@ def derivative_agreement(
     # _chunked_vmap_hessian rather than a second, independently-written chunk loop.
     Hess_autodiff = _chunked_vmap_hessian(decode_one, z).detach()
 
-    def decode_batch(zz: torch.Tensor) -> torch.Tensor:
-        return model.decode(zz)
+    decode_batch = model.decode
 
     if h is None:
         h_used = calibrate_fd_step(decode_batch, z)["best_step"]

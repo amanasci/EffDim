@@ -664,8 +664,7 @@ def _sample_skewed_ball(
         if len(keep) > 0:
             accepted.append(keep)
             remaining -= len(keep)
-    x = np.concatenate(accepted, axis=0)[:n]
-    return x
+    return np.concatenate(accepted, axis=0)[:n]
 
 
 def make_graph_of_function_fixture(
@@ -953,8 +952,6 @@ def quadric_mean_curvature(X: np.ndarray, k: int, d: int) -> dict:
     X = np.asarray(X, dtype=np.float64)
     n, D = X.shape
     n_coefficients = d * (d + 1) // 2
-    coefficient_deficit = max(0, n_coefficients - k)
-    underdetermined = n_coefficients > k
 
     nbrs = NearestNeighbors(n_neighbors=k + 1).fit(X)
     _, idx = nbrs.kneighbors(X)  # idx[:, 0] is the point itself
@@ -973,9 +970,9 @@ def quadric_mean_curvature(X: np.ndarray, k: int, d: int) -> dict:
     return {
         "H_vec": H_vec,
         "H_norm": mean_curvature_norm(H_vec),
-        "underdetermined": bool(underdetermined),
+        "underdetermined": bool(n_coefficients > k),
         "n_coefficients": int(n_coefficients),
-        "coefficient_deficit": int(coefficient_deficit),
+        "coefficient_deficit": int(max(0, n_coefficients - k)),
     }
 
 
@@ -1322,10 +1319,10 @@ def measure_cell(
     med_rel_err = median_relative_error(h_est_norm, h_true_norm)
 
     null_result = permutation_null(h_true_norm, h_est_norm, n_resamples, seed, quantile)
-    null_prefixed = {}
-    for key, value in null_result.items():
-        pref_key = key if key.startswith("null_") else f"null_{key}"
-        null_prefixed[pref_key] = value
+    null_prefixed = {
+        key if key.startswith("null_") else f"null_{key}": value
+        for key, value in null_result.items()
+    }
 
     region_rho = quantile_bin_concordance(
         h_est_norm,
@@ -1350,16 +1347,16 @@ def measure_cell(
     region_null_result = permutation_null(
         h_true_norm, h_est_norm, n_resamples, seed, quantile, statistic_fn=_region_stat
     )
-    region_null_prefixed = {}
-    for key, value in region_null_result.items():
-        # permutation_null's own keys already carry a "null_" prefix on 4 of 8 entries
-        # (null_quantile/null_threshold/null_mean/null_std) -- REPLACE that prefix with
-        # "region_" (giving region_null_threshold, not the double-prefixed
-        # region_null_null_threshold); the remaining 4 (observed_rho/n_resamples/seed/
-        # clears_null) get "region_null_" prepended directly, exactly mirroring the
-        # spearman null's own "null_" prefixing logic above one level up.
-        pref_key = f"region_{key}" if key.startswith("null_") else f"region_null_{key}"
-        region_null_prefixed[pref_key] = value
+    # permutation_null's own keys already carry a "null_" prefix on 4 of 8 entries
+    # (null_quantile/null_threshold/null_mean/null_std) -- REPLACE that prefix with
+    # "region_" (giving region_null_threshold, not the double-prefixed
+    # region_null_null_threshold); the remaining 4 (observed_rho/n_resamples/seed/
+    # clears_null) get "region_null_" prepended directly, exactly mirroring the
+    # spearman null's own "null_" prefixing logic above one level up.
+    region_null_prefixed = {
+        f"region_{key}" if key.startswith("null_") else f"region_null_{key}": value
+        for key, value in region_null_result.items()
+    }
 
     quadric_fields: Dict[str, Any]
     try:
