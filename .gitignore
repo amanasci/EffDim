@@ -15,6 +15,7 @@ Cargo.lock
 
 # Notebook analysis caches (v1.1 PU Manifold Curvature)
 notebooks/.cache/
+curvature-experiment/.cache/
 .planning/research/.cache/
 .ipynb_checkpoints/
 
