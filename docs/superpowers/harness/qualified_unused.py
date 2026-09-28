@@ -16,6 +16,14 @@ generators and notebooks passed with --root, plus every pu_manifold module (thei
 uses count through the same alias rules). Tests are never roots.
 
 Prints, per module, the top-level symbols no rule keeps, with line ranges.
+
+Known blind spots (each keeps code alive that is in fact dead, so its output is a lower bound):
+  - relative imports inside pu_manifold (``from . import M``, ``from .M import NAME``) are
+    ignored, so a module-to-module use is only seen through the alias rules above;
+  - ANY identifier-shaped string constant in a kept file counts as a use of every top-level NAME
+    it equals, so a docstring-free rule string or label tuple naming a function keeps it;
+  - names re-exported from ``pu_manifold/__init__.py`` count as live whether or not anything
+    imports them from the package.
 """
 import argparse, ast, json
 from collections import defaultdict

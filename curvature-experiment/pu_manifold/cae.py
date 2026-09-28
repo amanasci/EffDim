@@ -1,7 +1,7 @@
 """
 Pure torch functions and ``nn.Module``s for Phase 02.2's Chart Auto-Encoder
 (arXiv:1912.10094). Tensors in, tensors and dicts out -- no file I/O, no cache handling;
-the runners under ``notebooks/diagnostics/`` own paths. Constants live in
+the runners under ``curvature-experiment/runners/`` own paths. Constants live in
 ``02.2-PREREGISTRATION.md``.
 
 Unlike its sibling modules, this one imports torch at module level: Phase 02.2's model
@@ -228,13 +228,3 @@ def train_plain_ae(model: "PlainAutoEncoder", x_train: torch.Tensor, cfg: Dict[s
         "range over"
     )
     return fit
-
-
-# --- verdict rule (Section 5) ------------------------------------------------------------
-
-VERDICT_RULE = (
-    "PASS requires all three gates to hold. Every comparison is strict less-than -- a "
-    "value exactly at a threshold does not clear it. There is no MARGINAL tier: every "
-    "non-PASS outcome routes to the same halt-for-user-decision consequence, so a middle "
-    "tier would carry no distinct consequence."
-)

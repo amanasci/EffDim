@@ -1,9 +1,9 @@
 # EffDim — working instructions
 
 Research library computing effective dimensionality. `src/effdim/` is the shipped package;
-`notebooks/pu_manifold/` is the notebook-scoped helper package for the current milestone,
-imported relatively and never from `src/effdim/`. Milestone artifacts live in the gitignored
-`notebooks/.cache/`.
+`curvature-experiment/pu_manifold/` is the notebook-scoped helper package for the current
+milestone, imported relatively and never from `src/effdim/`. Milestone artifacts (records) live
+in the gitignored `curvature-experiment/.cache/` (or wherever `EFFDIM_CACHE_DIR` points).
 
 ## Swiss roll sanity check — required for every new manifold model
 
@@ -26,10 +26,11 @@ across every model makes the results comparable to each other, which is most of 
 
 ### What the notebook must do
 
-Name it `notebooks/<phase>_swiss_roll_<model>_check.ipynb`. Reference implementation:
-`notebooks/02.2_swiss_roll_cae_check.ipynb` — copy its shape.
+Name it `curvature-experiment/notebooks/<phase>_swiss_roll_<model>_check.ipynb`. Reference
+implementation: `curvature-experiment/notebooks/02.6_swiss_roll_plainae_curvature_check.ipynb` —
+copy its shape.
 
-1. **Import the model code unchanged** from `notebooks/pu_manifold/`. Never reimplement,
+1. **Import the model code unchanged** from `curvature-experiment/pu_manifold/`. Never reimplement,
    simplify, or inline a variant of it — the point is to test the code that will actually
    run on real data. If the model only works after you rewrite it for the notebook, that is
    itself the finding.
@@ -38,7 +39,7 @@ Name it `notebooks/<phase>_swiss_roll_<model>_check.ipynb`. Reference implementa
    standard deviation — a single scalar, so the shape is preserved.
 3. **Set the model's latent/chart dimension to 2**, the roll's true intrinsic dimension.
 4. **Train from scratch inside the notebook.** Target under two minutes on CPU. Never read
-   from or write to `notebooks/.cache/`.
+   from or write to `curvature-experiment/.cache/`.
 5. **Plot the original and the reconstruction side by side**, both as a 3-D scatter and as an
    x-z scatter — the default 3-D view hides the spiral, the x-z plane shows it
    unambiguously. Colour every plot by the roll's arc-length parameter `t`, so colour bands

@@ -23,17 +23,24 @@
 # tracer (01-01) actually ran under -- numpy==2.5.1, scipy==1.18.0, scikit-learn==1.9.0,
 # faiss-cpu==1.14.3 below.
 #
-# joblib is pinned directly because `notebooks/pu_manifold/cache.py` imports it directly
-# (`from joblib import dump, load`); it previously arrived only transitively via
-# scikit-learn. A direct import gets a direct requirement.
+# joblib is pinned directly because `pu_manifold/cache.py` imported it directly for
+# `joblib_cache` (now archived); it also arrives transitively via scikit-learn. The pin is kept
+# so the environment the records were produced under is unchanged.
 #
 # pytest is pinned directly because this milestone ships
-# `notebooks/pu_manifold/tests/test_pu_manifold.py`, and a venv built from this file alone
+# `curvature-experiment/tests/`, and a venv built from this file alone
 # must be able to run it. It is pulled in from pyproject.toml's
 # `[project.optional-dependencies] dev` extra -- ONLY pytest, not black/mypy/pytest-cov/docs.
 #
-# huggingface_hub, hf_xet, and pyarrow arrive transitively via `datasets` and are not
-# pinned directly here.
+# huggingface_hub and hf_xet arrive transitively via `datasets` and are not pinned directly
+# here. pandas and pyarrow are pinned directly below because
+# `curvature-experiment/runners/09_row_alignment_proof_run.py` imports both directly
+# (`import pandas`, `import pyarrow`), not only transitively via `datasets`.
+#
+# nbconvert and jupyter are pinned directly because the kept Swiss roll notebooks under
+# `curvature-experiment/notebooks/` are re-executed with `nbconvert --execute` as part of
+# this milestone's checks (see the paper-closure spec's Verification section); a venv built
+# from this file alone must be able to do that.
 #
 # The `+cpu` local-version specifier on torch is deliberate and must not be "fixed" to
 # plain `torch==2.13.0`: that suffix only exists on the PyTorch CPU wheel index below, so
@@ -50,15 +57,9 @@ matplotlib==3.11.1
 numpy==2.5.1
 scipy==1.18.0
 scikit-learn==1.9.0
-faiss-cpu==1.14.3
 joblib==1.5.3
 pytest==9.1.1
-
-# geomstats: Riemannian geometry toolkit, admitted in Phase 02.1 by user directive
-# (see .planning/phases/02.1-geometry-representation-research/02.1-AMENDMENT-01.md).
-# KNOWN DEFECT: 2.8.0 (latest) imports numpy.trapz, removed in numpy 2.0. Under the
-# numpy==2.5.1 pin above it raises ImportError at module load. The diagnostic entry
-# point applies a documented shim (np.trapz = np.trapezoid) before importing it.
-# Downgrading numpy is NOT an option -- config_key hashes the installed numpy version
-# into every cache key, so it would invalidate every Phase 1/2 frozen artifact.
-geomstats==2.8.0
+pandas==3.0.5
+pyarrow==25.0.0
+nbconvert==7.17.1
+jupyter==1.1.1

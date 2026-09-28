@@ -7,7 +7,7 @@ unlike its sibling ``test_geometry_probes.py``. Not collected by the core `effdi
 suite (``pyproject.toml``'s ``testpaths = ["tests"]`` excludes this directory) -- run
 explicitly:
 
-    python -m pytest notebooks/pu_manifold/tests/test_cae.py -q
+    python -m pytest curvature-experiment/tests/test_cae.py -q
 """
 
 import sys

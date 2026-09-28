@@ -89,8 +89,13 @@ if len(have) > 1:
     from table_main_gen import main_rows  # noqa: E402
     real = main_rows(rows(C + "09_physics_probe_facing_split.jsonl"), cols=["hess_mismatch_emp", "align_cos_tan"])
     words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+    def _word(n):
+        if n not in words: raise ValueError(f"appendix_gen: the Appendix C prose cannot spell the count {n!r} (words covers {sorted(words)})")
+        return words[n]
+    def _claim(ok, what):
+        if not ok: raise RuntimeError(f"appendix_gen: the records no longer support the Appendix C prose claim: {what}")
     def _part(r, qc): return r["columns"][qc]["multiscale"]
-    def _sig(v): return not v["p"] > 0.05
+    def _sig(v): return v["p"] == v["p"] and not v["p"] > 0.05   # a NaN p is not significant
     mm = [_part(er[(n, lab)], "hess_mismatch_emp")["partial"] for lab in ("mag_r", "photo_z") for n in have if (n, lab) in er]
     mmx = [ex[(n, lab)]["columns"]["hess_mismatch_dec"][k]["partial"] for lab in ("mag_r", "photo_z") for n in have if (n, lab) in ex
            for k in ("fitA_scoreB", "fitB_scoreA")]
@@ -98,6 +103,14 @@ if len(have) > 1:
     n_al_z = sum(_sig(_part(er[(n, "photo_z")], "align_cos_tan")) for n in have if (n, "photo_z") in er)
     n_mm_sm = sum(_sig(_part(er[(n, "stellar_mass")], "hess_mismatch_emp")) for n in have if (n, "stellar_mass") in er)
     vel = [f"{ve[n]:.3f}" for n in have if n in ve]
+    _claim(len(mm) == 2 * len(have) and max(mm) < 0, "mismatch negative for magnitude and redshift across all encoders")
+    _claim(len(mmx) > 0 and max(mmx) < 0, "cross-fitted mismatch negative for magnitude and redshift")
+    _claim(len(al_mag) == len(have) and min(al_mag) > 0
+           and all(_sig(_part(er[(n, "mag_r")], "align_cos_tan")) for n in have), "alignment positive and significant for magnitude across all encoders")
+    _claim(not any(_sig(_part(er[(n, "stellar_mass")], "align_cos_tan")) for n in have if (n, "stellar_mass") in er),
+           "stellar-mass alignment nonsignificant across encoders")
+    _claim(n_mm_sm == 1, f"stellar-mass mismatch significant in only one main comparison (found {n_mm_sm})")
+    _claim([n for n in have if n in ve] == ["DINOv3", "CLIP-B", "ConvNeXt-B", "ViT-L"], "variance explained listed for the four further encoders, in the prose's order")
     out.append(r"""
 \section*{Appendix C: Main and cross-encoder results}
 
@@ -144,17 +157,17 @@ density control.
 
 For magnitude and redshift, mismatch is
 negatively associated with local $R^2$
-across all """ + words[len(have)] + f""" encoders (${max(mm):+.2f}$ to ${min(mm):+.2f}$;
+across all """ + _word(len(have)) + f""" encoders (${max(mm):+.2f}$ to ${min(mm):+.2f}$;
 cross-fitted ${max(mmx):+.2f}$ to ${min(mmx):+.2f}$).
 Alignment is positive and significant for
-magnitude across all {words[len(have)]} (${min(al_mag):+.2f}$ to ${max(al_mag):+.2f}$)
-and for redshift across {words[n_al_z]}.""" + r"""
+magnitude across all {_word(len(have))} (${min(al_mag):+.2f}$ to ${max(al_mag):+.2f}$)
+and for redshift across {_word(n_al_z)}.""" + r"""
 Shape-term associations vary by encoder and
 target, while smooth fraction shows less
 consistent mismatch and alignment signals.
 For stellar mass, alignment is nonsignificant
 across encoders and mismatch significant in
-only """ + words[n_mm_sm] + r""" main comparison. Thus, the
+only """ + _word(n_mm_sm) + r""" main comparison. Thus, the
 cross-anchor mismatch association varies by
 target, even where the shape term improves
 the local surrogate.

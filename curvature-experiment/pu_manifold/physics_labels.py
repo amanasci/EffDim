@@ -12,7 +12,7 @@ but they are explicitly NOT the alignment proof (D9-05).
 **This module adds; it does not edit.** No sealed ``pu_manifold`` module is imported for a
 gating VALUE here -- every constant this module needs is a fresh top-level literal, declared
 even where a value happens to coincide with a sealed module's own (the fresh-redeclaration
-discipline ``density_stratified_null.py`` documents at its own lines 30-39).
+discipline the archived ``density_stratified_null.py`` documents at its own lines 30-39).
 
 **The constants below are frozen as of this commit (09-05, D9-18).** Every one was ``None``
 (scalar), ``()`` (tuple), ``""`` (rule string) or ``{}`` (mapping) until this single freeze

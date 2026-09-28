@@ -25,10 +25,10 @@ not refit. Everything else reaches the production pipeline through the split run
 NOT PRE-REGISTERED, GATES NOTHING. Writes only to its own record.
 
 Usage:
-    python notebooks/diagnostics/09_physics_normal_scaling_run.py --mode smoke --threads 8
-    python notebooks/diagnostics/09_physics_normal_scaling_run.py --mode physics --d 16 --threads 16 \\
+    python curvature-experiment/runners/09_physics_normal_scaling_run.py --mode smoke --threads 8
+    python curvature-experiment/runners/09_physics_normal_scaling_run.py --mode physics --d 16 --threads 16 \\
         --geometry-npz <.../09_probe_facing_geometry_d16.npz> --parquet-path <...> --embedding-column vit_base_galaxies \\
-        --label-table <cached labels parquet> --record-path notebooks/.cache/09_physics_normal_scaling_vit_base.jsonl
+        --label-table <cached labels parquet> --record-path curvature-experiment/.cache/09_physics_normal_scaling_vit_base_d16.jsonl
 """
 
 import importlib.util

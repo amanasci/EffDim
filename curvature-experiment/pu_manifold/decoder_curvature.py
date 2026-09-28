@@ -9,7 +9,7 @@ plain autoencoder, and a ``PlainAutoEncoder`` trained under ``topoae.train_topoa
 through ONE smooth MLP end to end and have no chart index at all.
 
 Tensors in, tensors and dicts out -- no file I/O, no cache handling; the runners under
-``notebooks/diagnostics/`` own paths and cache stems.
+``curvature-experiment/runners/`` own paths and cache stems.
 
 Like ``cae.py``, ``chart_curvature.py`` and ``curvature_probe.py``'s torch-dependent
 siblings, this module imports ``torch`` at module level. For the same reason those modules

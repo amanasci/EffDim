@@ -8,7 +8,7 @@ checkable by inspecting the algebra.
 Not collected by the core ``effdim`` suite (``pyproject.toml``'s ``testpaths = ["tests"]``
 excludes this directory) -- run explicitly:
 
-    python -m pytest notebooks/pu_manifold/tests/test_cross_split_curvature.py -q
+    python -m pytest curvature-experiment/tests/test_cross_split_curvature.py -q
 """
 
 import sys

@@ -34,7 +34,7 @@ _RUNNER_PATH = (
 @pytest.fixture(scope="module")
 def runner():
     """Loads `09_row_alignment_proof_run.py` as a module by file path -- it is not a package
-    member (`notebooks/diagnostics/` is a plain directory, not a `pu_manifold` package member,
+    member (`curvature-experiment/runners/` is a plain directory, not a `pu_manifold` package member,
     and its module name starts with a digit), mirroring
     `test_crossmodal_curvature_run.py`'s own precedent."""
     spec = importlib.util.spec_from_file_location("row_alignment_proof_run_under_test", _RUNNER_PATH)
@@ -59,8 +59,8 @@ def _small_oof(X: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 # --- freeze-commit ancestry scaffold (FREEZE_COMMIT_SHA wired by plan 09-05) -------------------
-# Mirrors test_physics_curvature_probe.py's own scaffold exactly (test_density_stratified_null.py
-# lines 33-73's ancestry-test idiom).
+# Mirrors test_physics_curvature_probe.py's own scaffold exactly (the ancestry-test idiom of the
+# archived test_density_stratified_null.py, lines 33-73).
 
 FREEZE_COMMIT_SHA = "e31b3010c1a568065e35132ed60a32fb4842db36"
 # Superseded by 09-PREREGISTRATION-AMENDMENT-01.md; must never be accepted again.

@@ -33,9 +33,9 @@ SEALED_MODULES: Tuple[str, ...] = (
     "linear_probe",
     "crossmodal_curvature",
 )
-"""The nine sealed modules `test_cka_import_purity.py` already names, plus `cka` itself (Phase
-8's own new module, sealed as of Phase 8's completion) -- the full set of modules that must
-never be mutated by importing either of Phase 9's two new modules, in any order."""
+"""The sealed `pu_manifold` modules still in the closure (originally the nine that
+`test_cka_import_purity.py` named plus `cka`; the rest are archived) -- none may be mutated by
+importing either of Phase 9's two new modules, in any order."""
 
 NEW_MODULES: Tuple[str, ...] = ("physics_labels", "physics_curvature_probe")
 """Phase 9's own two new modules -- importing either, in any position/order, must leave every

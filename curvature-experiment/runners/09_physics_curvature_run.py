@@ -5,8 +5,8 @@ curvature field at the anchor latent codes), `SphereProjectedDecoder` (Amendment
 `F(z) / ||F(z)||`), `_oof_predictions_for_label` (out-of-fold ridge predictions on a label's finite
 rows) and `_THREADS`. It has no CLI of its own. Importing it has side effects: it reads
 `--threads` from `sys.argv` (default 8), sets `OMP_NUM_THREADS`, `MKL_NUM_THREADS`,
-`NUMEXPR_NUM_THREADS` and `torch.set_num_threads` before any numerical work, and puts `notebooks/`
-and `notebooks/diagnostics/` on `sys.path`.
+`NUMEXPR_NUM_THREADS` and `torch.set_num_threads` before any numerical work, and puts `curvature-experiment/`
+and `curvature-experiment/runners/` on `sys.path`.
 """
 
 import os

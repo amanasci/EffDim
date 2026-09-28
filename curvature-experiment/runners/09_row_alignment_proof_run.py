@@ -24,10 +24,10 @@ two or more as AMBIGUOUS (halt), zero as NO ALIGNMENT FOUND (halt). Never adopts
 itself -- adoption is 09-07's blocking developer decision plus a fresh freeze.
 
 Usage:
-    python notebooks/diagnostics/09_row_alignment_proof_run.py --mode smoke --record-path notebooks/.cache/09_scratch_alignment.jsonl
-    python notebooks/diagnostics/09_row_alignment_proof_run.py --mode manifest --candidate-columns mag_r_desi mag_r photo_z
-    python notebooks/diagnostics/09_row_alignment_proof_run.py --mode proof --freeze-commit <sha>
-    python notebooks/diagnostics/09_row_alignment_proof_run.py --mode search --freeze-commit <sha>
+    python curvature-experiment/runners/09_row_alignment_proof_run.py --mode smoke --record-path curvature-experiment/.cache/09_scratch_alignment.jsonl
+    python curvature-experiment/runners/09_row_alignment_proof_run.py --mode manifest --candidate-columns mag_r_desi mag_r photo_z
+    python curvature-experiment/runners/09_row_alignment_proof_run.py --mode proof --freeze-commit <sha>
+    python curvature-experiment/runners/09_row_alignment_proof_run.py --mode search --freeze-commit <sha>
 """
 
 import os

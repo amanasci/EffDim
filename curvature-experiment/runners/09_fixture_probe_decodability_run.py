@@ -38,10 +38,10 @@ NOT PRE-REGISTERED, GATES NOTHING. Diagnostic, additive to the record; no sealed
 reinterpreted and no Phase 9 verdict depends on it.
 
 Usage:
-    python notebooks/diagnostics/09_fixture_probe_decodability_run.py --mode smoke
-    python notebooks/diagnostics/09_fixture_probe_decodability_run.py --mode full --gammas -1,0,1 \\
+    python curvature-experiment/runners/09_fixture_probe_decodability_run.py --mode smoke
+    python curvature-experiment/runners/09_fixture_probe_decodability_run.py --mode full --gammas -1,0,1 \\
         --threads 16
-    python notebooks/diagnostics/09_fixture_probe_decodability_run.py --mode full --skip-decoder
+    python curvature-experiment/runners/09_fixture_probe_decodability_run.py --mode full --skip-decoder
 """
 
 import importlib.util

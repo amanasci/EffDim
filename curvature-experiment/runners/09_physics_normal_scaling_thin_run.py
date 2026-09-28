@@ -9,7 +9,7 @@ disjointness from the union of kept sets keeps only 6-7 anchors, since a few kep
 NOT PRE-REGISTERED, GATES NOTHING.
 
 Usage:
-    python notebooks/diagnostics/09_physics_normal_scaling_thin_run.py --parquet-path <...> --embedding-column vit_base_galaxies \\
+    python curvature-experiment/runners/09_physics_normal_scaling_thin_run.py --parquet-path <...> --embedding-column vit_base_galaxies \\
         --arrays-npz <09_physics_normal_scaling_<enc>_d<d>.npz> --out <..._thin.npz> --threads 16
 """
 

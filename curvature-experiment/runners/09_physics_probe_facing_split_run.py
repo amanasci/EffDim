@@ -23,8 +23,8 @@ production pipeline's own call, reached through ``09_physics_probe_facing_run.py
 NOT PRE-REGISTERED, GATES NOTHING. Writes only to its own record.
 
 Usage:
-    python notebooks/diagnostics/09_physics_probe_facing_split_run.py --mode smoke --threads 8
-    HF_HOME=... EFFDIM_09_OUTPUT_ROOT=... python notebooks/diagnostics/09_physics_probe_facing_split_run.py \\
+    python curvature-experiment/runners/09_physics_probe_facing_split_run.py --mode smoke --threads 8
+    HF_HOME=... EFFDIM_09_OUTPUT_ROOT=... python curvature-experiment/runners/09_physics_probe_facing_split_run.py \\
         --mode physics --d-values 16,20 --threads 16
 """
 

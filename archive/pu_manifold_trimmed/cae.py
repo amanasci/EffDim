@@ -1004,3 +1004,18 @@ def write_cae_handoff(fit_key: str, verdict: str, payload: Dict[str, Any]) -> Di
         return to_native(result)
 
     return cache.json_cache(f"cae_handoff_{fit_key}", cfg, _compute)
+
+
+# Final whole-branch review (after fa139de): removed from curvature-experiment/pu_manifold/cae.py -- reachable only
+# through a string constant, an __init__ re-export or its own tests. Line numbers at fa139de. Verbatim, original order.
+
+
+# --- removed from cae.py:233-240 ---
+# --- verdict rule (Section 5) ------------------------------------------------------------
+
+VERDICT_RULE = (
+    "PASS requires all three gates to hold. Every comparison is strict less-than -- a "
+    "value exactly at a threshold does not clear it. There is no MARGINAL tier: every "
+    "non-PASS outcome routes to the same halt-for-user-decision consequence, so a middle "
+    "tier would carry no distinct consequence."
+)

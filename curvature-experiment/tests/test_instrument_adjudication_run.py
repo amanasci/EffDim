@@ -1,4 +1,4 @@
-"""Smoke guard for `notebooks/diagnostics/09_instrument_adjudication_run.py`.
+"""Smoke guard for `curvature-experiment/runners/09_instrument_adjudication_run.py`.
 
 Runs `--mode smoke` in a subprocess (tiny in-sphere fixture, exact autodiff truth, both noise
 levels) with a temporary record path, and asserts exit 0 and the final `SMOKE PASS` line. Loads

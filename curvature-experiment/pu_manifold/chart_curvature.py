@@ -1,7 +1,7 @@
 """
 Phase 02.5 stage-2 Arm B: EXACT mean curvature through a CAE chart decoder, computed by
 ``torch.func`` autodiff rather than estimated statistically. Tensors in, tensors and dicts
-out -- no file I/O, no cache handling; the runners under ``notebooks/diagnostics/`` own
+out -- no file I/O, no cache handling; the runners under ``curvature-experiment/runners/`` own
 paths and cache stems. Constants live in ``02.5-PREREGISTRATION-STAGE2.md``.
 
 Like ``cae.py`` and unlike every other module in this package, this one imports ``torch``
@@ -11,7 +11,7 @@ eager imports (so Phase-1-only callers do not need torch installed to import the
 this module is deliberately NOT re-exported there either.
 
 RESEARCH Open Question 1, resolved and recorded here rather than left implicit: this module
-computes the same mathematics as ``notebooks/pu_manifold/curvature.py``'s
+computes the same mathematics as ``archive/notebooks/pu_manifold/curvature.py``'s
 ``first_fundamental_form``, ``second_fundamental_form``, ``mean_curvature_vector`` and
 ``metric_condition_number`` stubs, and it does **not** fill, edit, or import them. Those four
 stubs are each docstring-labelled "Implemented in Phase 3 (CURV-0N)" and ``REQUIREMENTS.md``

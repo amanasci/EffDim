@@ -64,7 +64,7 @@ SWISS = {"n": 3000, "random_state": 0, "d": 2, "k": 256, "n_anchors": 256}
 SWISS_EPOCHS = 300
 ```
 
-## notebooks/diagnostics/09_instrument_adjudication_run.py:331-365 (`fit_ambient_field_at_anchors` is only called from `run_swiss_roll`)
+## notebooks/diagnostics/09_instrument_adjudication_run.py:331-363 (`fit_ambient_field_at_anchors` is only called from `run_swiss_roll`)
 
 ```python
 # --- our instrument on the Swiss roll (ambient, no sphere projection) ---------------------
@@ -102,7 +102,7 @@ def fit_ambient_field_at_anchors(X: np.ndarray, d: int, anchor_idx: np.ndarray, 
     }
 ```
 
-## notebooks/diagnostics/09_instrument_adjudication_run.py:402-457 (`run_swiss_roll`: dispatch target of the removed `--mode swiss-roll` choice; no paper invocation in `test_paper_invocations.py` uses this mode)
+## notebooks/diagnostics/09_instrument_adjudication_run.py:402-455 (`run_swiss_roll`: dispatch target of the removed `--mode swiss-roll` choice; no paper invocation in `test_paper_invocations.py` uses this mode)
 
 ```python
 # --- mode: swiss-roll ------------------------------------------------------------------------
@@ -197,4 +197,20 @@ After:
 ```python
     if args.mode == "swiss-roll":
         sys.exit(0 if run_swiss_roll(args, record_path) else 1)
+```
+
+## curvature-experiment/runners/09_instrument_adjudication_run.py:205-215 (`_scalar_calibration`: its only caller was the colleague-estimator path archived under `archive/notebooks/diagnostics/colleague_removed/`; no kept code calls it -- found in the final whole-branch review; line numbers at fa139de)
+
+```python
+def _scalar_calibration(est: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
+    """Least-squares est ~ slope * truth + intercept, with R^2, on finite pairs."""
+    t, e, n = _finite_pair(np.asarray(truth, float), np.asarray(est, float))
+    if n < 3 or np.ptp(t) == 0.0:
+        return {"slope": float("nan"), "intercept": float("nan"), "r2": float("nan")}
+    A = np.stack([t, np.ones_like(t)], axis=1)
+    coef, *_ = np.linalg.lstsq(A, e, rcond=None)
+    resid = e - A @ coef
+    sst = float(((e - e.mean()) ** 2).sum())
+    r2 = 1.0 - float((resid ** 2).sum()) / sst if sst > 0 else float("nan")
+    return {"slope": float(coef[0]), "intercept": float(coef[1]), "r2": r2}
 ```

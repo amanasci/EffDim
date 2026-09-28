@@ -5,7 +5,7 @@ No HuggingFace access, no torch, no fixtures beyond synthetic point clouds gener
 in-test. Not collected by the core `effdim` test suite (``pyproject.toml``'s
 ``testpaths = ["tests"]`` excludes this directory) -- run explicitly:
 
-    python -m pytest notebooks/pu_manifold/tests/test_curvature_probe.py -q
+    python -m pytest curvature-experiment/tests/test_curvature_probe.py -q
 
 Every test here exists to prove a function correct against a synthetic input whose
 answer is known independently (a flat plane, a sphere, the Swiss roll's own closed-form

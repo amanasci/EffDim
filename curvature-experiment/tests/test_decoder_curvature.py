@@ -4,7 +4,7 @@ Fast synthetic-fixture tests for the ``pu_manifold.decoder_curvature`` module.
 No HuggingFace access, no gitignored cache. Not collected by the core `effdim` test suite
 (``pyproject.toml``'s ``testpaths = ["tests"]`` excludes this directory) -- run explicitly:
 
-    python -m pytest notebooks/pu_manifold/tests/test_decoder_curvature.py -q
+    python -m pytest curvature-experiment/tests/test_decoder_curvature.py -q
 
 Every test here pins a function against an input whose answer is known independently (a
 sphere, a flat linear map, a ReLU decoder that must raise, the sealed

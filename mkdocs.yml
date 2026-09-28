@@ -4,6 +4,9 @@ site_url: https://amanasci.github.io/EffDim/
 repo_url: https://github.com/amanasci/EffDim
 repo_name: effdim
 
+exclude_docs: |
+  superpowers/
+
 theme:
   name: material
   palette:

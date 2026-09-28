@@ -38,8 +38,8 @@ pool, seeds, weighting, anchors, labels, probe), by importing that runner unchan
 NOT PRE-REGISTERED, GATES NOTHING.
 
 Usage:
-    python notebooks/diagnostics/09_fixture_probe_facing_run.py --mode smoke --threads 8
-    python notebooks/diagnostics/09_fixture_probe_facing_run.py --mode full --gammas -1,0,0.4,0.6,0.8,1 --threads 16
+    python curvature-experiment/runners/09_fixture_probe_facing_run.py --mode smoke --threads 8
+    python curvature-experiment/runners/09_fixture_probe_facing_run.py --mode full --gammas -1,0,0.4,0.6,0.8,1 --threads 16
 """
 
 import importlib.util

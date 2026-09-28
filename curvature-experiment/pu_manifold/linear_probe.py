@@ -1,8 +1,13 @@
 """Phase 5 curvature-conditioned linear decodability: probe fit/score, seed pooling, bucketing
 and verdict functions, plus the pre-registration constants block and its guard.
 
+**Closure note.** Only ``fit_probe`` and ``predict_probe`` (wrapped by
+``physics_curvature_probe.oof_ridge_predictions``) remain in this file; the Phase 5 constants
+block, verdict rules and the other functions described below are archived verbatim in
+``archive/pu_manifold_trimmed/linear_probe.py``.
+
 (a) **D5-03's own citation is corrected here, not silently followed.** D5-03 names
-``notebooks/pu_manifold/decoder_curvature.py`` as the decoder-side curvature source. That
+``pu_manifold/decoder_curvature.py`` as the decoder-side curvature source. That
 module's own docstring states it is ``chart_curvature.py`` with the
 ``chart_decoders[chart_idx]`` two-hop composition removed, built for Phase 02.6's
 no-chart-index substrates (a plain autoencoder and a ``PlainAutoEncoder`` trained under
@@ -62,121 +67,6 @@ from typing import Any, Dict
 
 import numpy as np
 from sklearn.linear_model import RidgeCV
-
-
-# --- Pre-registration (D5-09, FROZEN at plan 05-04 Task 2, this commit) --------------------
-#
-# FROZEN. Every constant below, and VERDICT_RULE's and SEED_VERDICT_COMBINATION_RULE's full
-# text, were ratified at plan 05-04's Task 1 blocking decision checkpoint (the protocol) and
-# at plan 05-03's Task 1 blocking checkpoint (the seed-handling rule, 05-03-DECISION.md) --
-# BOTH before any PU probe number existed anywhere in this repository. Amending any of them
-# after a PU probe number has been computed invalidates the phase: a rule chosen after seeing
-# the numbers is a rationalization, not a pre-registration. From this commit forward,
-# `notebooks/pu_manifold/linear_probe.py` is closed -- a later edit is a recorded pre-
-# registration BREACH, written up in `05-FINDINGS.md`/`05-VERIFICATION.md` with the diff and
-# the reason, never a silent fix. See
-# `.planning/phases/05-curvature-conditioned-linear-decodability/05-PREREGISTRATION.md` for
-# the full committed record, including both checkpoints' ratification notes.
-#
-# `05-CONTEXT.md` D5-04's pooled-field design -- `POOLING_METHOD` (a required normalization
-# method name) and `BUCKET_EDGES` (one flat tuple of edges cut over a pooled field) -- is
-# SUPERSEDED by `05-03-DECISION.md`. Both constants were REMOVED at `05-03` rather than left
-# unused, so the pooled path cannot be re-entered by assigning them. In their place:
-# `SEED_HANDLING_RULE` (the ratified no-pooling decision), `BUCKET_EDGES_PER_SEED` (three
-# per-seed edge tuples, one per `SEED_STEMS` entry, never one pooled tuple),
-# `SEED_VERDICT_COMBINATION_RULE` and `PHASE_VERDICT_VALUES` (how three per-seed verdicts
-# combine into one phase read-out, including the terminal "SPLIT ACROSS SEEDS" outcome). See
-# this module's docstring paragraph (b) for the measured evidence the rejection was made on.
-
-SPLIT_SEED = 20260824
-SEED_HANDLING_RULE = "no_pooling_per_seed_verdicts"
-CURVATURE_CONVENTION = "trace"
-CURVATURE_SOURCE_FUNCTION = "chart_curvature.chart_curvature_field"
-N_BOOTSTRAP = 1000
-BOOTSTRAP_SEED = 20260824
-VERDICT_RULE = """D5-09 per-seed VERDICT_RULE -- ratified at plan 05-04's Task 1 blocking
-checkpoint, before any PU probe number existed.
-
-Per seed, the headline comparison is that seed's highest-||H|| bucket (of N_BUCKETS = 3
-tertiles) against its lowest, on mean per-point squared L2 residual over the ONE shared 70/30
-test split (TRAIN_FRACTION, SPLIT_SEED), under that seed's own frozen BUCKET_EDGES_PER_SEED
-entry.
-
-That seed's verdict is HOLDS if and only if ALL three of:
-  (a) the highest and lowest bucket's CONFIDENCE_LEVEL (0.95) percentile bootstrap CIs on
-      mean per-point squared L2 residual are disjoint;
-  (b) the highest bucket's mean residual strictly exceeds the lowest bucket's; AND
-  (c) the sign survives that seed's SIZE_MATCH_RULE re-check (subsampled to that seed's
-      realized test-split bucket counts) with CIs disjoint in at least half of
-      SIZE_MATCH_N_REPEATS = 200 repeats.
-
-NO DETECTABLE RELATIONSHIP is that seed's verdict whenever any one of (a)/(b)/(c) fails. It is
-a complete, valid, TERMINAL per-seed outcome -- never a phase failure, never escalated by the
-continuous statistic, and never re-decided by trying a different N_BUCKETS.
-
-The three per-seed verdicts (HOLDS / NO DETECTABLE RELATIONSHIP) then combine under
-SEED_VERDICT_COMBINATION_RULE into exactly one of PHASE_VERDICT_VALUES, including the
-terminal outcome SPLIT ACROSS SEEDS -- see that rule's own text for the full mapping and for
-why a split is not partial support.
-
-The continuous Spearman between that seed's curvature magnitude and per-point residual on the
-test split is reported per seed alongside the verdict as SENSITIVITY ONLY; it can neither
-establish nor overturn any verdict at either the per-seed or the phase level.
-
-D5-11 CAVEAT, carried in this rule's own text rather than only alongside it: the field this
-rule buckets on has no demonstrated relationship to true curvature. The sealed d=20 decoder
-row is rank_spearman_rho = -0.015106571347065712 against the only analytic-curvature control
-that tests it, essentially zero, with 52 to 75 percent of points anti-aligned in direction. A
-Swiss roll / low-d anchor was offered and declined for this phase. No verdict produced under
-this rule can be attributed to curvature by anything in this phase. The mitigating context --
-the sealed saddle control sets a constant analytic Hessian, so its ||H|| varies only through
-the pullback metric, which may make that fixture structurally unable to show ordering at all
--- is reported and is explicitly NOT used to upgrade any result produced under this rule; the
-question is open and it is not for autonomous action.
-
-D5-12 CAVEAT, carried in this rule's own text: the CAE supplying every decoder this rule reads
-curvature from failed its own validity gate (CAE_VERDICT = FAIL, Phase 02.2); Phase 3 ran on a
-deliberate override of that gate; Phase 03.1 found the pullback metric repaired by the scale
-prior while the curvature ordering only partially and non-seed-consistently moved. Every
-verdict this rule produces inherits that chain.
-
-D5-13 NOTE: the per-seed density Spearman (spearman(density, ||H||)) is reported alongside
-every verdict as a disclosure only; it is not a gate under this rule.
-"""
-SEED_VERDICT_COMBINATION_RULE = """D5-09 SEED_VERDICT_COMBINATION_RULE -- ratified at plan
-05-04's Task 1 blocking checkpoint, before any PU probe number existed. Supersedes
-05-CONTEXT.md D5-04's pooled-field design per 05-03-DECISION.md.
-
-The probe is scored once per seed under the IDENTICAL protocol (the identical TRAIN_FRACTION
-70/30 split, shared across all three seeds' bucketings via the one SPLIT_SEED) and the
-IDENTICAL VERDICT_RULE, producing exactly one per-seed terminal verdict per seed: HOLDS or
-NO DETECTABLE RELATIONSHIP.
-
-The three per-seed verdicts combine into exactly one PHASE_VERDICT_VALUES member by counting
-the HOLDS outcomes:
-  * three of three HOLDS  -> "HOLDS IN ALL THREE SEEDS"
-  * zero of three HOLDS   -> "NO DETECTABLE RELATIONSHIP IN ANY SEED"
-  * one or two of three   -> "SPLIT ACROSS SEEDS"
-
-SPLIT ACROSS SEEDS is a COMPLETE TERMINAL OUTCOME and is NOT partial support for the
-hypothesis. The three seed fields were measured at 05-02 to be mutually anti-correlated on
-rank (pairwise Spearman on H_norm -0.1402, +0.2019, -0.2725 -- sign-inconsistent, two of
-three negative) and directionally orthogonal (median cosine of unit H_vec 0.0007 to 0.0039,
-with 46 to 48 percent of points anti-aligned between any pair), so a relationship that appears
-in one or two of three seeds' fields and not the third is a property of that individual
-decoder fit, not of the manifold, and does not license the claim that decodability degrades
-with curvature.
-
-A split is NEVER upgraded to HOLDS IN ALL THREE SEEDS by majority vote, by the continuous
-Spearman statistic, by a non-headline bucket, or by trying a different N_BUCKETS; and it is
-NEVER downgraded to NO DETECTABLE RELATIONSHIP IN ANY SEED either -- it is reported exactly as
-SPLIT ACROSS SEEDS, with all three per-seed verdicts and their supporting numbers beside it.
-
-Because one split is shared across all three seeds' bucketings, the three per-seed verdicts
-are NOT statistically independent -- they score the same held-out residuals under three
-different bucketings -- which isolates the field as the only thing that differs between them,
-but must be stated in 05-FINDINGS.md rather than left implicit.
-"""
 
 
 # --- D5-01/D5-02: the probe itself -----------------------------------------------------------

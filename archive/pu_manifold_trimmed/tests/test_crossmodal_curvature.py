@@ -822,3 +822,104 @@ def test_positive_control_wide_spread_vs_narrow_spread_separation_measurement():
     assert narrow_cleared == pytest.approx(0.10)
     assert wide_cleared == pytest.approx(0.10)
     assert narrow_cleared == wide_cleared
+
+
+# Final whole-branch review (after fa139de): tests removed from curvature-experiment/tests/test_crossmodal_curvature.py -- they
+# exercise definitions archived in the final review. Line numbers at fa139de. Verbatim, original
+# order; the imports and aliases they use are those of the original test file.
+
+
+# --- removed from tests/test_crossmodal_curvature.py:22-61 ---
+# The freeze commit SHA recorded in this plan's SUMMARY -- the commit that added
+# crossmodal_curvature.py (Task 2). Every later PU number must be a descendant of this commit.
+FREEZE_COMMIT_SHA = "f032745f6450068c63763993d39fa112fd36bb8c"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _freeze_commit_exists() -> bool:
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{FREEZE_COMMIT_SHA}^{{commit}}"],
+        cwd=_repo_root(),
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _freeze_commit_is_strict_ancestor_of_head() -> bool:
+    """True only once at least one commit exists after the freeze commit. Immediately after
+    the freeze commit itself (HEAD == freeze commit, e.g. right before this test file's own
+    commit lands), this is False and the test below is skipped rather than failed -- the
+    freeze commit being HEAD is the expected state at that moment, not a defect."""
+    if not _freeze_commit_exists():
+        return False
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", FREEZE_COMMIT_SHA, "HEAD"],
+        cwd=_repo_root(),
+    )
+    if is_ancestor.returncode != 0:
+        return False
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{FREEZE_COMMIT_SHA}..HEAD"],
+        cwd=_repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return int(count_result.stdout.strip()) >= 1
+
+
+
+# --- removed from tests/test_crossmodal_curvature.py:63-112 ---
+# --- caveat coverage in VERDICT_RULE's own text --------------------------------------------
+
+
+def test_verdict_rule_carries_its_own_caveats():
+    for token in (
+        "INSTRUMENT_FIDELITY_RANGE",
+        "Phase 4's HOLDS",
+        "n = 10,000",
+        "single_seed_across_d_sweep",
+        "UNDERPOWERED",
+    ):
+        assert token in cc.VERDICT_RULE, f"VERDICT_RULE is missing {token!r}"
+
+
+# --- the freeze-ancestry proof itself -------------------------------------------------------
+
+
+@pytest.mark.skipif(
+    not _freeze_commit_is_strict_ancestor_of_head(),
+    reason=(
+        "freeze commit is not (yet) a STRICT ancestor of HEAD -- either it is absent from "
+        "this checkout's history (e.g. a shallow clone), or HEAD IS the freeze commit itself "
+        "(the expected state immediately after the freeze, before this test file's own commit "
+        "lands). Plan 07-04's own acceptance criteria re-run the same ancestry check "
+        "unconditionally at the moment a PU number is produced, which is where it actually bites."
+    ),
+)
+def test_freeze_commit_is_a_strict_ancestor_of_head():
+    """D7-06's precision requirement: a commit is its own ancestor, so ``--is-ancestor`` alone
+    would pass even if a PU number were produced in the freeze commit itself.
+    ``git rev-list --count <freeze>..HEAD`` must also be at least 1."""
+    is_ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", FREEZE_COMMIT_SHA, "HEAD"],
+        cwd=_repo_root(),
+    )
+    assert is_ancestor.returncode == 0, "freeze commit is not an ancestor of HEAD at all"
+
+    count_result = subprocess.run(
+        ["git", "rev-list", "--count", f"{FREEZE_COMMIT_SHA}..HEAD"],
+        cwd=_repo_root(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    strict_distance = int(count_result.stdout.strip())
+    assert strict_distance >= 1, (
+        "freeze commit is not a STRICT ancestor of HEAD -- HEAD IS the freeze commit "
+        "(strict_distance == 0), which would mean no number-producing commit exists yet"
+    )
+

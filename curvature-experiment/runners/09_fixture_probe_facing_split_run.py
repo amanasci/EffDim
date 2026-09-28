@@ -11,8 +11,8 @@ cross term ``<Hess_M y, <w_N, II>>_g`` that the residual expansion's ``|Delta|^2
 NOT PRE-REGISTERED, GATES NOTHING.
 
 Usage:
-    python notebooks/diagnostics/09_fixture_probe_facing_split_run.py --mode smoke --threads 8
-    python notebooks/diagnostics/09_fixture_probe_facing_split_run.py --mode full --gammas -1,0.6 --threads 16
+    python curvature-experiment/runners/09_fixture_probe_facing_split_run.py --mode smoke --threads 8
+    python curvature-experiment/runners/09_fixture_probe_facing_split_run.py --mode full --gammas -1,0.6 --threads 16
 """
 
 import importlib.util

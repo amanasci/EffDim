@@ -2,8 +2,8 @@
 constants block, its guard, the OOF ridge wrapper, the anchor draw, the radial/tangential
 decomposition, the 3-control partial Spearman, the Freedman-Lane null, and the verdict rules.
 
-**This module adds; it does not edit.** ``notebooks/pu_manifold/crossmodal_curvature.py``
-(Phase 7, sealed) and ``notebooks/pu_manifold/density_stratified_null.py`` (Phase 07.1, sealed)
+**This module adds; it does not edit.** ``pu_manifold/crossmodal_curvature.py``
+(Phase 7, sealed) and ``density_stratified_null.py`` (Phase 07.1, sealed; now archived)
 are never imported for a gating VALUE here -- every constant this module needs is a fresh
 top-level literal, declared even where the value is identical to Phase 7's own (D_SWEEP,
 AE_IN_DIM, AE_HIDDEN, AE_ACTIVATION, TRAIN_CFG, SPLIT_SEED, HOLDOUT_FRACTION,
@@ -11,7 +11,7 @@ CURVATURE_SOURCE_FUNCTION, CURVATURE_CONVENTION all happen to coincide with Phas
 still re-declared fresh here). This module MAY import pure functions from those and other
 sealed modules -- ``crossmodal_curvature.split_indices``, ``subsample.draw_row_indices``,
 ``subsample.l2_normalize``, ``cross_split_curvature.partial_spearman``,
-``density_stratified_null.density_strata``, ``linear_probe.fit_probe``/``predict_probe``,
+``density_stratified_null.density_strata`` (archived), ``linear_probe.fit_probe``/``predict_probe``,
 ``decoder_curvature.plain_decoder_curvature`` -- it is only the pre-registered VALUES that must
 never cross a freeze boundary.
 

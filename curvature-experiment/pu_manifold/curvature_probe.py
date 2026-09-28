@@ -1,6 +1,6 @@
 """Phase 02.5 local mean-curvature estimator: arrays in, arrays/dicts out.
 
-No file I/O in any function here -- the runners under ``notebooks/diagnostics/`` own
+No file I/O in any function here -- the runners under ``curvature-experiment/runners/`` own
 paths and caching. Constants (k, d, tolerances, thresholds) live in
 ``02.5-PREREGISTRATION.md``, never hardcoded in this module.
 

@@ -51,10 +51,9 @@ NOT PRE-REGISTERED, GATES NOTHING. This is a diagnostic, additive to the record;
 constant is reinterpreted by it and no Phase 9 verdict depends on it.
 
 Usage:
-    python notebooks/diagnostics/09_instrument_adjudication_run.py --mode smoke
-    python notebooks/diagnostics/09_instrument_adjudication_run.py --mode swiss-roll
-    python notebooks/diagnostics/09_instrument_adjudication_run.py --mode sphere-fixture --noise 0 --threads 16
-    python notebooks/diagnostics/09_instrument_adjudication_run.py --mode sphere-fixture --noise patch --threads 16
+    python curvature-experiment/runners/09_instrument_adjudication_run.py --mode smoke
+    python curvature-experiment/runners/09_instrument_adjudication_run.py --mode sphere-fixture --noise 0 --threads 16
+    python curvature-experiment/runners/09_instrument_adjudication_run.py --mode sphere-fixture --noise patch --threads 16
 """
 
 import importlib.util
@@ -68,7 +67,7 @@ _RUNNER_PATH = DIAGNOSTICS_ROOT / "09_physics_curvature_run.py"
 
 # Load the production runner FIRST, before numpy/torch are imported anywhere in this process:
 # its module-level code applies the `--threads` cap (OMP/MKL/NUMEXPR env vars, then
-# `torch.set_num_threads`) from `sys.argv`, and puts `notebooks/` and `notebooks/diagnostics/`
+# `torch.set_num_threads`) from `sys.argv`, and puts `curvature-experiment/` and `curvature-experiment/runners/`
 # on `sys.path` for the imports below.
 _spec = importlib.util.spec_from_file_location("physics_curvature_run", _RUNNER_PATH)
 runner = importlib.util.module_from_spec(_spec)
@@ -200,19 +199,6 @@ def _spearman(a: np.ndarray, b: np.ndarray) -> float:
     if n < 3:
         return float("nan")
     return float(spearmanr(x, y).statistic)
-
-
-def _scalar_calibration(est: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
-    """Least-squares est ~ slope * truth + intercept, with R^2, on finite pairs."""
-    t, e, n = _finite_pair(np.asarray(truth, float), np.asarray(est, float))
-    if n < 3 or np.ptp(t) == 0.0:
-        return {"slope": float("nan"), "intercept": float("nan"), "r2": float("nan")}
-    A = np.stack([t, np.ones_like(t)], axis=1)
-    coef, *_ = np.linalg.lstsq(A, e, rcond=None)
-    resid = e - A @ coef
-    sst = float(((e - e.mean()) ** 2).sum())
-    r2 = 1.0 - float((resid ** 2).sum()) / sst if sst > 0 else float("nan")
-    return {"slope": float(coef[0]), "intercept": float(coef[1]), "r2": r2}
 
 
 def _tangential(H_vec: np.ndarray, image: np.ndarray) -> np.ndarray:

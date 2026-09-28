@@ -25,8 +25,8 @@ NOT PRE-REGISTERED, GATES NOTHING. Writes only to its own record and to
 ``<output root>/probe-facing/`` (per-d npz of J, D^2F and image at the anchors, float32).
 
 Usage:
-    python notebooks/diagnostics/09_physics_probe_facing_run.py --mode smoke --threads 8
-    EFFDIM_09_OUTPUT_ROOT=... HF_HOME=... python notebooks/diagnostics/09_physics_probe_facing_run.py \\
+    python curvature-experiment/runners/09_physics_probe_facing_run.py --mode smoke --threads 8
+    EFFDIM_09_OUTPUT_ROOT=... HF_HOME=... python curvature-experiment/runners/09_physics_probe_facing_run.py \\
         --mode physics --d-values 16,20 --threads 16
 """
 

@@ -5,10 +5,9 @@ Every artifact this package persists (subsamples, sweep results, Isomap fits) is
 written under :data:`CACHE_DIR` at a filename the caller composes from a stem plus a
 :func:`config_key`, and every load re-verifies a sidecar manifest against the cfg dict
 the caller is currently asking for -- a filename match alone is never trusted (see
-``PITFALLS.md`` Pitfall 10 and threat T-01-03 in the phase 1 plan). ``joblib_cache``
-only ever loads a path this module composed itself from :data:`CACHE_DIR`; no helper
-here accepts a caller-supplied absolute path, because ``joblib.load`` is pickle
-deserialization (threat T-01-01).
+``PITFALLS.md`` Pitfall 10 and threat T-01-03 in the phase 1 plan). No helper here accepts
+a caller-supplied absolute path (threat T-01-01). ``joblib_cache`` and ``json_cache`` are
+archived verbatim in ``archive/pu_manifold_trimmed/cache.py``.
 """
 
 import hashlib
@@ -18,8 +17,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict
 
 import numpy as np
-from joblib import dump as joblib_dump
-from joblib import load as joblib_load
 
 CACHE_DIR = Path(os.environ.get("EFFDIM_CACHE_DIR") or Path(__file__).resolve().parents[1] / ".cache").resolve()
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -95,28 +92,3 @@ def npz_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Dict[str,
     np.savez(path, **arrays)
     _write_manifest(stem, cfg)
     return arrays
-
-
-def joblib_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Any]) -> Any:
-    """Load-or-compute a joblib-pickled artifact, keyed by a sidecar manifest. Only ever
-    loads a path this module composed itself from CACHE_DIR (validated by
-    _assert_inside_cache) -- do not add a helper that loads a caller-supplied absolute
-    path, since joblib.load is pickle deserialization (threat T-01-01)."""
-    path = cache_path(stem, "joblib")
-    if path.exists() and _manifest_matches(stem, cfg):
-        return joblib_load(path)
-    obj = compute_fn()
-    joblib_dump(obj, path)
-    _write_manifest(stem, cfg)
-    return obj
-
-
-def json_cache(stem: str, cfg: Dict[str, Any], compute_fn: Callable[[], Dict[str, Any]]) -> Dict[str, Any]:
-    """Load-or-compute a json-backed artifact, keyed by a sidecar manifest."""
-    path = cache_path(stem, "json")
-    if path.exists() and _manifest_matches(stem, cfg):
-        return json.loads(path.read_text())
-    result = compute_fn()
-    path.write_text(json.dumps(result, indent=2, sort_keys=True))
-    _write_manifest(stem, cfg)
-    return result
