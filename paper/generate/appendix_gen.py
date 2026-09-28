@@ -85,10 +85,92 @@ for name, f in encs:
         if r.get("row") == "fit": ve[name] = r["var_explained"]
 have = [n for n, _ in encs if any((n, l) in er for l in labels)]
 if len(have) > 1:
-    out.append(r"""\section*{Appendix C: the same test on four further encoders}
-Table~\ref{tab:xenc} repeats Table~\ref{tab:real} at $d=16$ on the same 86{,}471 galaxies embedded by four further encoders from the same release (DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B, ViT-L; widths 768, 512, 1{,}024, 1{,}024; each unit-normalized), with a decoder of the same width and protocol fitted per encoder (seed 0; variance explained """ + ", ".join(f"{ve[n]:.3f}" for n in have if n in ve) + r""" for the four new fits), 512 anchors, $k=2{,}048$, multi-scale density control. The first row per label is the probe's global out-of-sample $R^2$; Table~\ref{tab:xencx} gives the cross-fitted mismatch and alignment and the split-half reliability of the label Hessian per encoder.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))  # paper/generate/
+    from table_main_gen import main_rows  # noqa: E402
+    real = main_rows(rows(C + "09_physics_probe_facing_split.jsonl"), cols=["hess_mismatch_emp", "align_cos_tan"])
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+    def _part(r, qc): return r["columns"][qc]["multiscale"]
+    def _sig(v): return not v["p"] > 0.05
+    mm = [_part(er[(n, lab)], "hess_mismatch_emp")["partial"] for lab in ("mag_r", "photo_z") for n in have if (n, lab) in er]
+    mmx = [ex[(n, lab)]["columns"]["hess_mismatch_dec"][k]["partial"] for lab in ("mag_r", "photo_z") for n in have if (n, lab) in ex
+           for k in ("fitA_scoreB", "fitB_scoreA")]
+    al_mag = [_part(er[(n, "mag_r")], "align_cos_tan")["partial"] for n in have if (n, "mag_r") in er]
+    n_al_z = sum(_sig(_part(er[(n, "photo_z")], "align_cos_tan")) for n in have if (n, "photo_z") in er)
+    n_mm_sm = sum(_sig(_part(er[(n, "stellar_mass")], "hess_mismatch_emp")) for n in have if (n, "stellar_mass") in er)
+    vel = [f"{ve[n]:.3f}" for n in have if n in ve]
+    out.append(r"""
+\section*{Appendix C: Main and cross-encoder results}
+
+\paragraph{Main results.}
+Table~\ref{tab:real} reports the associations
+between geometric mismatch, alignment and local
+readout accuracy for ViT-B at $d=16$ and $d=20$.
+Results use 512 anchors, $k=2{,}048$ neighbours
+and the multi-scale density control.
+
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.4pt}
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{mismatch $\norm{\Delta}_g$}
+ & \multicolumn{2}{c}{alignment $\cos_g(\operatorname{Hess}_M y, K)$} \\
+label & $d{=}16$ & $d{=}20$ & $d{=}16$ & $d{=}20$ \\
+\midrule""")
+    out += real
+    out.append(r"""\bottomrule
+\end{tabular}
+\caption{ViT-B: rank-partial Spearman correlations
+with local $R^2$ under the multi-scale density
+control. $^{*}$ Not significant at 0.05.
+Shape, sphere and mean-curvature results
+are reported in Appendix~E.}
+\label{tab:real}
+\end{table}
+
+\paragraph{Across encoders.}
+We repeat the geometric diagnostic at $d=16$
+on the same 86{,}471 galaxies using four further
+encoders from the Platonic Universe release:
+DINOv3 ViT-B/16, CLIP ViT-B, ConvNeXt-B and
+ViT-L (widths 768, 512, 1{,}024 and 1{,}024;
+all unit-normalized).
+A decoder of the same architecture and training
+protocol is fitted per encoder (seed 0;
+variance explained """ + ", ".join(vel[:-1]) + " and\n" + vel[-1] + r""", respectively). All analyses use
+512 anchors, $k=2{,}048$ and the multi-scale
+density control.
+
+For magnitude and redshift, mismatch is
+negatively associated with local $R^2$
+across all """ + words[len(have)] + f""" encoders (${max(mm):+.2f}$ to ${min(mm):+.2f}$;
+cross-fitted ${max(mmx):+.2f}$ to ${min(mmx):+.2f}$).
+Alignment is positive and significant for
+magnitude across all {words[len(have)]} (${min(al_mag):+.2f}$ to ${max(al_mag):+.2f}$)
+and for redshift across {words[n_al_z]}.""" + r"""
+Shape-term associations vary by encoder and
+target, while smooth fraction shows less
+consistent mismatch and alignment signals.
+For stellar mass, alignment is nonsignificant
+across encoders and mismatch significant in
+only """ + words[n_mm_sm] + r""" main comparison. Thus, the
+cross-anchor mismatch association varies by
+target, even where the shape term improves
+the local surrogate.
+
+Table~\ref{tab:xenc} reports the full
+cross-encoder results, including global
+out-of-sample probe $R^2$ in the first row
+for each label. Table~\ref{tab:xencx}
+reports cross-fitted mismatch and alignment
+associations and split-half reliability of
+the estimated label Hessian.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{ll""" + "c" * len(have) + r"""}
 \toprule
 label & quantity & """ + " & ".join(have) + r""" \\
@@ -102,15 +184,25 @@ label & quantity & """ + " & ".join(have) + r""" \\
         out.append(r"\addlinespace[2pt]")
     out.append(r"""\bottomrule
 \end{tabular}
-\caption{Cross-encoder replication, $d=16$, multi-scale density control. $^{*}$ not significant at 0.05.}
+\caption{Cross-encoder results at $d=16$:
+global probe $R^2$ and rank-partial Spearman
+correlations with local $R^2$ under the
+multi-scale density control.
+$^{*}$ Not significant at 0.05.}
 \label{tab:xenc}
 \end{table}
+
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llccccc}
 \toprule
- & & \multicolumn{2}{c}{mismatch, cross-fit} & \multicolumn{2}{c}{alignment, cross-fit} & Hess.\ split cos \\
-encoder & label & fit A/score B & fit B/score A & fit A/score B & fit B/score A & p50 \\
+ & & \multicolumn{2}{c}{mismatch, cross-fit}
+ & \multicolumn{2}{c}{alignment, cross-fit}
+ & Hess.\ split cos \\
+encoder & label & fit A/score B & fit B/score A
+& fit A/score B & fit B/score A & p50 \\
 \midrule""")
     for n in have:
         for lab in labels:
@@ -121,7 +213,11 @@ encoder & label & fit A/score B & fit B/score A & fit A/score B & fit B/score A 
         out.append(r"\addlinespace[2pt]")
     out.append(r"""\bottomrule
 \end{tabular}
-\caption{Cross-fitted mismatch and alignment partials per encoder (multi-scale control) and split-half reliability of the label Hessian.}
+\caption{Cross-fitted mismatch and alignment
+partials under the multi-scale density
+control, with median split-half tensor
+cosine for the estimated label Hessian.
+$^{*}$ Not significant at 0.05.}
 \label{tab:xencx}
 \end{table}""")
 # --- E: counterfactual normal scaling (from the per-anchor arrays)
