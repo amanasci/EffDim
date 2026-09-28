@@ -174,6 +174,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--geometry-root", type=str, default=None, help="dir holding 09_probe_facing_geometry_d{d}.npz (physics)")
     p.add_argument("--record-path", type=str, default=str(DEFAULT_RECORD_PATH))
     p.add_argument("--threads", type=int, default=8)
+    p.add_argument("--device", type=str, default="cpu", help="torch device for the decoder fit and geometry (e.g. cuda)")
+    p.add_argument("--deterministic", action="store_true", help="torch.use_deterministic_algorithms(True) + CUBLAS_WORKSPACE_CONFIG=:4096:8")
     p.add_argument("--seed", type=int, default=20260905, help="smoke fixture seed only")
     p.add_argument("--n-permutations", type=int, default=None)
     p.add_argument("--fit-seed", type=int, default=None, help="physics: refit the decoder with this torch init seed instead of loading stored geometry")
@@ -192,6 +194,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     p = build_parser()
     args = p.parse_args()
+    if args.deterministic:
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+        torch.use_deterministic_algorithms(True)
+    if args.device.startswith("cuda") and not torch.cuda.is_available():
+        raise SystemExit("--device cuda requested but CUDA is not available on this machine")
+    gpu_name = torch.cuda.get_device_name(args.device) if args.device.startswith("cuda") else None
     if args.parquet_path:
         ppf.pl.PHYSICS_PARQUET_PATH = args.parquet_path
         if args.embedding_column:
@@ -251,7 +259,8 @@ def main() -> None:
                  "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "d_values": d_values,
                  "labels": list(labels), "n": n, "k": k, "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm,
                  "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "alpha": pcp.ALPHA_RIDGE, "hessian_xfit": args.hessian_xfit, "parquet_path": args.parquet_path, "embedding_column": args.embedding_column, "in_dim": int(data["X"].shape[1]), "numpy": np.__version__, "torch": torch.__version__,
-                 "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
+                 "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing",
+                 "device": args.device, "deterministic": args.deterministic, "gpu_name": gpu_name, "cuda_version": torch.version.cuda}, record_path)
 
     split = pcp.anchor_indices(n, pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)
     a = split["anchor_idx"]
@@ -282,9 +291,9 @@ def main() -> None:
             pcp.TORCH_INIT_SEED = int(args.fit_seed)
             if args.hidden:
                 pcp.AE_HIDDEN = tuple(int(v) for v in args.hidden.split(","))
-            fit = ppf.fit_decoder(X, d, in_dim, pcp.MAX_EPOCHS)
+            fit = ppf.fit_decoder(X, d, in_dim, pcp.MAX_EPOCHS, device=args.device)
             with torch.no_grad():
-                z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long)])
+                z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
             geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor)
             print(f"[geometry] refit seed={args.fit_seed} hidden={pcp.AE_HIDDEN} var_explained={fit['var_explained']:.5f} fit {fit['wallclock_fit_s']:.0f}s", flush=True)
             if args.geometry_out:
@@ -300,9 +309,9 @@ def main() -> None:
             geo = geometry_from_arrays(z["J"], z["Hess"], z["image"])
             print(f"[geometry] loaded {path.name}", flush=True)
         else:
-            fit = ppf.fit_decoder(X, d, in_dim, adj.SMOKE_EPOCHS)
+            fit = ppf.fit_decoder(X, d, in_dim, adj.SMOKE_EPOCHS, device=args.device)
             with torch.no_grad():
-                z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long)])
+                z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
             geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor)
             print(f"[geometry] smoke decoder var_explained={fit['var_explained']:.4f}", flush=True)
 

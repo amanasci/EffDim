@@ -97,19 +97,22 @@ def partial_row(x: np.ndarray, r2: np.ndarray, Z: np.ndarray, n_perm: int) -> Di
 # --- decoder: fit, then J and D^2F at the anchors ---------------------------------------------
 
 
-def fit_decoder(X: np.ndarray, d: int, in_dim: int, max_epochs: int) -> Dict[str, Any]:
-    """`fit_and_field_at_anchors`'s fit steps, returning the model so the Hessian can be taken."""
+def fit_decoder(X: np.ndarray, d: int, in_dim: int, max_epochs: int, device: str = "cpu") -> Dict[str, Any]:
+    """`fit_and_field_at_anchors`'s fit steps, returning the model so the Hessian can be taken.
+    ``device`` other than "cpu" moves the model and tensors there; the CPU path is unchanged."""
     torch.manual_seed(pcp.TORCH_INIT_SEED)
     model = cae.PlainAutoEncoder(in_dim=in_dim, latent_dim=d, hidden=pcp.AE_HIDDEN, activation=pcp.AE_ACTIVATION)
     train_idx, holdout_idx = crossmodal_curvature.split_indices(X.shape[0], pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION)
     x32 = torch.tensor(X, dtype=torch.float32)
     x64 = torch.tensor(X, dtype=torch.float64)
+    if device != "cpu":
+        model = model.to(device); x32 = x32.to(device); x64 = x64.to(device)
     cfg = dict(pcp.TRAIN_CFG); cfg["max_epochs"] = max_epochs
     t0 = time.monotonic()
-    cae.train_plain_ae(model, x32[torch.as_tensor(train_idx, dtype=torch.long)], cfg)
+    cae.train_plain_ae(model, x32[torch.as_tensor(train_idx, dtype=torch.long, device=x32.device)], cfg)
     wall = time.monotonic() - t0
     model.eval().double()
-    x_hold = x64[torch.as_tensor(holdout_idx, dtype=torch.long)]
+    x_hold = x64[torch.as_tensor(holdout_idx, dtype=torch.long, device=x64.device)]
     with torch.no_grad():
         y_hold = model(x_hold)["y"]
     recon = cae.reconstruction_stats(x_hold, y_hold)

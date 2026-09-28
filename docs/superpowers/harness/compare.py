@@ -12,7 +12,7 @@ import json, math, re, sys
 from pathlib import Path
 import numpy as np
 
-VOLATILE = re.compile(r"(timestamp|wallclock|^python$|^torch$|^numpy$|version|repo_head|git_head|hostname|path|record_path|output_root|argv|elapsed|_root$)", re.I)
+VOLATILE = re.compile(r"(timestamp|wallclock|^python$|^torch$|^numpy$|version|repo_head|git_head|hostname|path|record_path|output_root|argv|elapsed|_root$|^device$|^deterministic$|^gpu_name$|^cuda_version$)", re.I)
 # Task 4 (Stage 3) widening: "topology_is_shim" is colleague-checkout provenance (whether the
 # colleague's topology import came from the read-only shim) with no "colleague"/"col" substring;
 # it only ever appeared in the pre-removal baseline's environment row. Proof that this drops
