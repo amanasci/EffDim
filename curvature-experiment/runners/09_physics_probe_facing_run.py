@@ -53,7 +53,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 from sklearn.linear_model import Ridge  # noqa: E402
-from torch.func import hessian, jacrev, vmap  # noqa: E402
+from torch.func import hessian, jacfwd, jacrev, vmap  # noqa: E402
 
 from pu_manifold import cae, chart_curvature, crossmodal_curvature, decoder_curvature  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
@@ -121,16 +121,25 @@ def fit_decoder(X: np.ndarray, d: int, in_dim: int, max_epochs: int, device: str
     return {"model": model, "curvature_model": curvature_model, "x64": x64, "var_explained": float(var_explained), "wallclock_fit_s": wall}
 
 
-def decoder_geometry(curvature_model: torch.nn.Module, z: torch.Tensor) -> Dict[str, np.ndarray]:
+def decoder_geometry(curvature_model: torch.nn.Module, z: torch.Tensor, out_chunk: int | None = None) -> Dict[str, np.ndarray]:
     """J (b,D,d), Hess (b,D,d,d), image (b,D) of the sphere-projected decoder at latent codes z,
-    by torch.func in the sealed VMAP_CHUNK width; then g, ginv, II = Hess - J Gamma, H = tr_g II."""
+    by torch.func in the sealed VMAP_CHUNK width; then g, ginv, II = Hess - J Gamma, H = tr_g II.
+
+    out_chunk=None is the original path. An integer takes the reverse pass over the D outputs
+    that many at a time (jacrev chunk_size; hessian = jacfwd(jacrev)), bounding the D x D
+    intermediates on a GPU; the sample batch stays VMAP_CHUNK wide."""
     decode_one = decoder_curvature.plain_decoder_map(curvature_model)
+    if out_chunk is None:
+        jac_fn, hess_fn = jacrev(decode_one), hessian(decode_one)
+    else:
+        jac_fn = jacrev(decode_one, chunk_size=out_chunk)
+        hess_fn = jacfwd(jacrev(decode_one, chunk_size=out_chunk))
     Js: List[np.ndarray] = []; Hs: List[np.ndarray] = []
     for start in range(0, z.shape[0], chart_curvature.VMAP_CHUNK):
         real = z[start:start + chart_curvature.VMAP_CHUNK]
         chunk = chart_curvature._pad_to_chunk(real)
-        J = vmap(jacrev(decode_one))(chunk)[: real.shape[0]]
-        Hc = vmap(hessian(decode_one))(chunk)[: real.shape[0]]
+        J = vmap(jac_fn)(chunk)[: real.shape[0]]
+        Hc = vmap(hess_fn)(chunk)[: real.shape[0]]
         Js.append(J.detach().cpu().numpy()); Hs.append(Hc.detach().cpu().numpy())
     J = np.concatenate(Js); Hess = np.concatenate(Hs)
     with torch.no_grad():

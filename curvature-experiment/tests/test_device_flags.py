@@ -57,3 +57,23 @@ def test_load_physics_rejects_wrong_row_count(tmp_path):
     pq.write_table(pa.table({"m_galaxies": [[0.1, 0.2, 0.3]] * 5}), p)
     with pytest.raises(Exception, match="86471|rows"):
         ppf.pl.load_physics_embeddings(parquet_path=str(p), column="m_galaxies")
+
+
+def test_decoder_geometry_out_chunk_matches_unchunked():
+    ppf = _load("09_physics_probe_facing_run.py")
+    rng = np.random.default_rng(1)
+    X = rng.normal(size=(300, 12)); X /= np.linalg.norm(X, axis=1, keepdims=True)
+    fit = ppf.fit_decoder(X, 3, 12, 3)
+    with torch.no_grad():
+        z = fit["model"].encode(fit["x64"][:40])
+    ref = ppf.decoder_geometry(fit["curvature_model"], z)
+    got = ppf.decoder_geometry(fit["curvature_model"], z, out_chunk=5)
+    for k in ("J", "Hess", "image", "g", "II", "H"):
+        assert got[k].shape == ref[k].shape, k
+        np.testing.assert_allclose(got[k], ref[k], rtol=1e-12, atol=1e-12, err_msg=k)
+
+
+def test_geometry_out_chunk_only_off_cpu():
+    split = _load("09_physics_probe_facing_split_run.py")
+    assert split.geometry_out_chunk("cpu") is None
+    assert split.geometry_out_chunk("cuda") == split.GPU_GEOMETRY_OUT_CHUNK > 0
