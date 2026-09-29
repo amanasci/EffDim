@@ -112,7 +112,8 @@ df -h /mnt/ssd-cluster
 
 `/mnt/ssd-cluster` is shared with the account's other projects — check free space
 before a long run, not just at pod setup. `setup_pod.sh` already aborts before
-downloading parquets if free space is under 30 GB.
+downloading parquets if free space is under 30 GB (5 GB on a rerun where all 31
+parquets are already on disk).
 
 Geometry pruning is on by default: once an encoder's `thin` job finishes,
 `run_queue` deletes that encoder's job-1 geometry `.npz` (the largest per-encoder

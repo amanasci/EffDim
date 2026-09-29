@@ -25,10 +25,16 @@ mkdir -p "$BASE" "$OUT" "$HF"
 echo "--- disk space on /mnt/ssd-cluster (before anything else) ---"
 df -h /mnt/ssd-cluster
 AVAIL_GB=$(df --output=avail -BG /mnt/ssd-cluster | tail -n1 | tr -dc '0-9')
-if [ "${AVAIL_GB:-0}" -lt 30 ]; then
-  echo "error: only ${AVAIL_GB:-0} GB free on /mnt/ssd-cluster; need at least 30 GB before" >&2
-  echo "downloading parquets and installing dependencies. Free up space (or ask about a" >&2
-  echo "bigger allocation) and re-run." >&2
+# The 30 GB is for the first download of the 31 parquets (~21 GB) plus the venv. On a
+# rerun with every parquet already on disk that space is spent, so only headroom for the
+# dependency reinstall is needed.
+N_PARQUETS=$( (ls "$OUT"/hf/physics/*_test.parquet 2>/dev/null || true) | wc -l)
+NEED_GB=30
+if [ "$N_PARQUETS" -ge 31 ]; then NEED_GB=5; fi
+if [ "${AVAIL_GB:-0}" -lt "$NEED_GB" ]; then
+  echo "error: only ${AVAIL_GB:-0} GB free on /mnt/ssd-cluster; need at least $NEED_GB GB before" >&2
+  echo "downloading parquets and installing dependencies ($N_PARQUETS of 31 parquets present)." >&2
+  echo "Free up space (or ask about a bigger allocation) and re-run." >&2
   exit 1
 fi
 
