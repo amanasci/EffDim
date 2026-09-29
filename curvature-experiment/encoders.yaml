@@ -1,0 +1,257 @@
+# The 31-encoder manifest for the encoder-scaling sweep.
+#
+# Loaded by sweep.manifest.load_manifest(). Rows are the Platonic Universe
+# `physics` benchmark embeddings, HF dataset UniverseTBD/pu-embeddings, pinned
+# to the snapshot below. `name` -> checkpoint mapping and per-checkpoint
+# parameter counts were taken from the model that generated each PU config,
+# per UniverseTBD/platonic-universe's src/pu/models/registry.py MODEL_MAP
+# (https://github.com/UniverseTBD/platonic-universe/blob/main/src/pu/models/registry.py).
+#
+# `params` = total parameter count of the checkpoint that produced the
+# embedding, as reported by the checkpoint's own HF `safetensors` metadata
+# (https://huggingface.co/api/models/<repo>) where available, or computed
+# directly from the checkpoint's published weights file where no safetensors
+# conversion exists (noted per-entry below). For the two vision-language
+# families (llava_15, paligemma) the PU adapter (src/pu/models/hf.py
+# VLMAdapter.embed_for_mode) runs the FULL multimodal model and takes the
+# last language-model hidden state (mean-pooled), not the vision tower alone
+# -- confirmed by the embedding dims below matching each checkpoint's LLM
+# hidden_size, not its CLIP/SigLIP vision width. `params` for those two
+# families is therefore the checkpoint TOTAL (vision + language), not a
+# vision-tower-only count.
+repo: UniverseTBD/pu-embeddings
+snapshot: bc081f8a5db4767edcd958653d96efde9137de0b
+n_rows: 86471
+label_table: /mnt/ssd-cluster/effdim/labels_Smith42_galaxies_v2.0_test.parquet
+
+encoders:
+  # AstroPT (Smith42/astroPT_v2.0, one repo holding all 3 sizes as
+  # astropt/{015M,095M,850M}/ckpt.pt). params from each size's own
+  # hparams.txt self-reported name (e.g. "AstroPT-0014.6M"), rounded to the
+  # figure the checkpoint names itself.
+  - name: astropt_015M
+    family: AstroPT
+    dim: 384
+    params: 14600000
+    params_source: https://huggingface.co/Smith42/astroPT_v2.0/blob/main/astropt/015M/hparams.txt
+    in_paper: false
+  - name: astropt_095M
+    family: AstroPT
+    dim: 768
+    params: 95200000
+    params_source: https://huggingface.co/Smith42/astroPT_v2.0/blob/main/astropt/095M/hparams.txt
+    in_paper: false
+  - name: astropt_850M
+    family: AstroPT
+    dim: 2048
+    params: 853600000
+    params_source: https://huggingface.co/Smith42/astroPT_v2.0/blob/main/astropt/850M/hparams.txt
+    in_paper: false
+
+  # CLIP (openai/clip-vit-*). PU's HFAdapter.embed_for_mode calls
+  # model.get_image_features() (vision tower + visual_projection only, no
+  # text tower run at inference), but the checkpoint's own reported/derived
+  # total below is for the FULL CLIPModel (vision + text encoder), since
+  # HF's safetensors metadata (and our from-weights count for the base
+  # checkpoint) doesn't separate the two towers.
+  - name: clip_base
+    family: CLIP
+    dim: 512
+    # No safetensors conversion exists for openai/clip-vit-base-patch16; this
+    # is the exact total computed from the checkpoint's own
+    # pytorch_model.bin (598,641,023 bytes of fp32 state dict, loaded and
+    # summed with torch), not a card figure.
+    params: 149621011
+    params_source: https://huggingface.co/openai/clip-vit-base-patch16/blob/main/pytorch_model.bin
+    in_paper: true
+  - name: clip_large
+    family: CLIP
+    dim: 768
+    params: 427616846
+    params_source: https://huggingface.co/openai/clip-vit-large-patch14
+    in_paper: false
+
+  # ConvNeXt -- PU's registry.py actually loads ConvNeXtV2
+  # (facebook/convnextv2-*-22k-224), not v1 ConvNeXt.
+  - name: convnext_nano
+    family: ConvNeXt
+    dim: 640
+    params: 15623800
+    params_source: https://huggingface.co/facebook/convnextv2-nano-22k-224
+    in_paper: false
+  - name: convnext_tiny
+    family: ConvNeXt
+    dim: 768
+    params: 28635496
+    params_source: https://huggingface.co/facebook/convnextv2-tiny-22k-224
+    in_paper: false
+  - name: convnext_base
+    family: ConvNeXt
+    dim: 1024
+    params: 88717800
+    params_source: https://huggingface.co/facebook/convnextv2-base-22k-224
+    in_paper: true
+  - name: convnext_large
+    family: ConvNeXt
+    dim: 1536
+    params: 197956840
+    params_source: https://huggingface.co/facebook/convnextv2-large-22k-224
+    in_paper: false
+
+  # DINOv3 (facebook/dinov3-*-pretrain-lvd1689m).
+  - name: dinov3_vits16
+    family: DINOv3
+    dim: 384
+    params: 21596544
+    params_source: https://huggingface.co/facebook/dinov3-vits16-pretrain-lvd1689m
+    in_paper: false
+  - name: dinov3_vits16plus
+    family: DINOv3
+    dim: 384
+    params: 28692864
+    params_source: https://huggingface.co/facebook/dinov3-vits16plus-pretrain-lvd1689m
+    in_paper: false
+  - name: dinov3_vitb16
+    family: DINOv3
+    dim: 768
+    params: 85660416
+    params_source: https://huggingface.co/facebook/dinov3-vitb16-pretrain-lvd1689m
+    in_paper: true
+  - name: dinov3_vitl16
+    family: DINOv3
+    dim: 1024
+    params: 303129600
+    params_source: https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m
+    in_paper: false
+  - name: dinov3_vith16plus
+    family: DINOv3
+    dim: 1280
+    params: 840592640
+    params_source: https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m
+    in_paper: false
+  - name: dinov3_vit7b16
+    family: DINOv3
+    dim: 4096
+    params: 6716035072
+    params_source: https://huggingface.co/facebook/dinov3-vit7b16-pretrain-lvd1689m
+    in_paper: false
+
+  # ViT (google/vit-*-224-in21k).
+  - name: vit_base
+    family: ViT
+    dim: 768
+    params: 86389248
+    params_source: https://huggingface.co/google/vit-base-patch16-224-in21k
+    in_paper: true
+  - name: vit_large
+    family: ViT
+    dim: 1024
+    params: 304351232
+    params_source: https://huggingface.co/google/vit-large-patch16-224-in21k
+    in_paper: true
+  - name: vit_huge
+    family: ViT
+    dim: 1280
+    params: 632404480
+    params_source: https://huggingface.co/google/vit-huge-patch14-224-in21k
+    in_paper: false
+
+  # ViT-MAE (facebook/vit-mae-*). Checkpoint totals include the (unused at
+  # inference) MAE decoder; PU's HFAdapter runs AutoModel (encoder only) but
+  # no safetensors metadata separates encoder-only params for these repos.
+  - name: vit-mae_base
+    family: ViT-MAE
+    dim: 768
+    params: 111907840
+    params_source: https://huggingface.co/facebook/vit-mae-base
+    in_paper: false
+  - name: vit-mae_large
+    family: ViT-MAE
+    dim: 1024
+    # No safetensors conversion exists; exact total computed from the
+    # checkpoint's own pytorch_model.bin (1,318,371,301 bytes), loaded and
+    # summed with torch.
+    params: 329541888
+    params_source: https://huggingface.co/facebook/vit-mae-large/blob/main/pytorch_model.bin
+    in_paper: false
+  - name: vit-mae_huge
+    family: ViT-MAE
+    dim: 1280
+    # No safetensors conversion exists; exact total computed from the
+    # checkpoint's own pytorch_model.bin (2,628,551,461 bytes), loaded and
+    # summed with torch.
+    params: 657074508
+    params_source: https://huggingface.co/facebook/vit-mae-huge/blob/main/pytorch_model.bin
+    in_paper: false
+
+  # I-JEPA (facebook/ijepa_vit{h14,g16}_22k).
+  - name: ijepa_huge
+    family: I-JEPA
+    dim: 1280
+    params: 630762240
+    params_source: https://huggingface.co/facebook/ijepa_vith14_22k
+    in_paper: false
+  - name: ijepa_giant
+    family: I-JEPA
+    dim: 1408
+    params: 1011368576
+    params_source: https://huggingface.co/facebook/ijepa_vitg16_22k
+    in_paper: false
+
+  # V-JEPA 2 (facebook/vjepa2-vit{l,h,g}-fpc64-256).
+  - name: vjepa_large
+    family: V-JEPA
+    dim: 1024
+    params: 325971328
+    params_source: https://huggingface.co/facebook/vjepa2-vitl-fpc64-256
+    in_paper: false
+  - name: vjepa_huge
+    family: V-JEPA
+    dim: 1280
+    params: 653930880
+    params_source: https://huggingface.co/facebook/vjepa2-vith-fpc64-256
+    in_paper: false
+  - name: vjepa_giant
+    family: V-JEPA
+    dim: 1408
+    params: 1034555264
+    params_source: https://huggingface.co/facebook/vjepa2-vitg-fpc64-256
+    in_paper: false
+
+  # LLaVA-1.5 (llava-hf/llava-1.5-*-hf). params = TOTAL checkpoint (vision
+  # tower + Vicuna LLM); see the file-level comment above -- PU takes the
+  # final LLM hidden state, not the vision tower alone.
+  - name: llava_15_7b
+    family: LLaVA-1.5
+    dim: 4096
+    params: 7063427072
+    params_source: https://huggingface.co/llava-hf/llava-1.5-7b-hf
+    in_paper: false
+  - name: llava_15_13b
+    family: LLaVA-1.5
+    dim: 5120
+    params: 13351494656
+    params_source: https://huggingface.co/llava-hf/llava-1.5-13b-hf
+    in_paper: false
+
+  # PaliGemma 2 (google/paligemma2-*-mix-224). params = TOTAL checkpoint
+  # (SigLIP vision tower + Gemma2 LLM); see the file-level comment above --
+  # PU takes the final LLM hidden state, not the vision tower alone.
+  - name: paligemma_3b
+    family: PaliGemma
+    dim: 2304
+    params: 3032242416
+    params_source: https://huggingface.co/google/paligemma2-3b-mix-224
+    in_paper: false
+  - name: paligemma_10b
+    family: PaliGemma
+    dim: 3584
+    params: 9662638832
+    params_source: https://huggingface.co/google/paligemma2-10b-mix-224
+    in_paper: false
+  - name: paligemma_28b
+    family: PaliGemma
+    dim: 4608
+    params: 27650487024
+    params_source: https://huggingface.co/google/paligemma2-28b-mix-224
+    in_paper: false
