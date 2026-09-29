@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 # Idempotent environment setup for the encoder-scaling sweep on the EleutherAI pod.
-# Everything lives under /mnt/ssd-cluster/EffDim (the pod's /root is wiped on restart).
+# Everything lives under /mnt/ssd-cluster/EffDim (the pod's /root is wiped on restart) --
+# including uv itself and the Python interpreter it installs: the pod's system python3
+# is 3.10, which doesn't match our pins (the project venv this repo was developed against
+# is 3.14 -- verify with `.venv/bin/python --version` on your workstation and update
+# PYTHON_VERSION below if that ever changes), so we let uv fetch and manage the right
+# interpreter on persistent storage instead of relying on the pod's system python3.
 set -euo pipefail
 BASE=/mnt/ssd-cluster/EffDim
 REPO=$BASE/repo; VENV=$BASE/venv; OUT=$BASE/sweep-out; HF=$BASE/hf-cache
 BRANCH=${BRANCH:-encoder-scaling}
 SNAPSHOT=bc081f8a5db4767edcd958653d96efde9137de0b
+# Must match the local venv's Python (`.venv/bin/python --version`), not the pod's system
+# python3 (3.10). Verified locally on 2026-09-28.
+PYTHON_VERSION=${PYTHON_VERSION:-3.14}
 # PyTorch CUDA wheel index for torch 2.13.0 on linux x86_64. Verified 2026-09-28 against
 # https://download.pytorch.org/whl/<tag>/torch/: cu121 tops out at 2.5.1, cu124 tops out
 # at 2.6.0 (neither serves 2.13.0); cu126 and cu129 both serve 2.13.0. cu126 is used here
@@ -13,6 +21,27 @@ SNAPSHOT=bc081f8a5db4767edcd958653d96efde9137de0b
 # if the pod's driver requires otherwise.
 TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu126}
 mkdir -p "$BASE" "$OUT" "$HF"
+
+echo "--- disk space on /mnt/ssd-cluster (before anything else) ---"
+df -h /mnt/ssd-cluster
+AVAIL_GB=$(df --output=avail -BG /mnt/ssd-cluster | tail -n1 | tr -dc '0-9')
+if [ "${AVAIL_GB:-0}" -lt 30 ]; then
+  echo "error: only ${AVAIL_GB:-0} GB free on /mnt/ssd-cluster; need at least 30 GB before" >&2
+  echo "downloading parquets and installing dependencies. Free up space (or ask about a" >&2
+  echo "bigger allocation) and re-run." >&2
+  exit 1
+fi
+
+# uv itself, its managed Python interpreters, and its download/wheel cache all live under
+# $BASE -- nothing installed to /root, which is wiped on restart.
+export UV_INSTALL_DIR=$BASE/uv
+export UV_PYTHON_INSTALL_DIR=$BASE/uv-python
+export UV_CACHE_DIR=$BASE/uv-cache
+mkdir -p "$UV_INSTALL_DIR" "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR"
+UV=$UV_INSTALL_DIR/uv
+if [ ! -x "$UV" ]; then
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$UV_INSTALL_DIR" UV_NO_MODIFY_PATH=1 sh
+fi
 
 # Git: SKIP_GIT=1 (or a repo checkout with no reachable "origin") skips fetch/merge
 # entirely, for the case where the repo was rsync'd onto the pod instead of cloned
@@ -38,12 +67,25 @@ else
   fi
 fi
 
-if [ ! -x "$VENV/bin/python" ]; then python3 -m venv "$VENV"; fi
+"$UV" python install "$PYTHON_VERSION"
+if [ ! -x "$VENV/bin/python" ]; then "$UV" venv --python "$PYTHON_VERSION" "$VENV"; fi
 TORCH_PIN=$(grep -E '^torch==' "$REPO/curvature-experiment/requirements.txt" | sed 's/+cpu//')
 grep -vE '^torch==' "$REPO/curvature-experiment/requirements.txt" > "$BASE/requirements-gpu.txt"
-"$VENV/bin/pip" install -q -r "$BASE/requirements-gpu.txt"
-"$VENV/bin/pip" install -q "$TORCH_PIN" --index-url "https://download.pytorch.org/whl/$TORCH_CUDA_TAG"
+"$UV" pip install --python "$VENV/bin/python" -q -r "$BASE/requirements-gpu.txt"
+"$UV" pip install --python "$VENV/bin/python" -q "$TORCH_PIN" --index-url "https://download.pytorch.org/whl/$TORCH_CUDA_TAG"
+
+# HF_HOME/HF_HUB_CACHE stay on /mnt so any metadata huggingface_hub keeps outside the
+# hf_hub_download(..., local_dir=...) calls below also lands on persistent storage, not
+# /root. The parquet downloads themselves do NOT double this data into that cache: as of
+# huggingface_hub >= 0.23 (this pod's pinned version, verified locally on 2026-09-28),
+# passing `local_dir` bypasses the blob/symlink cache entirely -- the file is written
+# straight into local_dir, and only a small `.cache/huggingface/` metadata dir (not a
+# second copy of the parquet) is created at the root of local_dir itself. So there is
+# nothing to de-duplicate here; if a future huggingface_hub version changes that
+# behaviour, re-check this comment and, if needed, delete the cached blob after copying
+# or move to `local_dir` + `HF_HUB_CACHE` pointed at a throwaway dir you clean up.
 export HF_HOME=$HF
+export HF_HUB_CACHE=$HF/hub
 "$VENV/bin/python" - "$REPO" "$OUT" "$SNAPSHOT" <<'EOF'
 import sys
 from pathlib import Path
@@ -65,4 +107,8 @@ print("parquets and label table present")
 EOF
 "$VENV/bin/python" -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'available', torch.cuda.is_available())"
 nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv
-cat /sys/fs/cgroup/cpu.max 2>/dev/null || echo "cpu.max not readable"
+
+# cgroup v1 pods (this cluster) have no /sys/fs/cgroup/cpu.max; fall back to the v1
+# quota/period files. quota=-1 means unlimited, in which case the pod-guide's nominal
+# 30-core default is the budget to divide across GPUs (see POD_RUNBOOK.md section 3).
+cat /sys/fs/cgroup/cpu.max 2>/dev/null || { q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); echo "quota=$q period=$p"; }

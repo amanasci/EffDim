@@ -82,7 +82,7 @@ and re-prints the GPU/CPU diagnostics.
 ```bash
 nvidia-smi
 nvidia-smi --query-compute-apps=gpu_uuid,pid --format=csv   # busy GPUs (by uuid)
-cat /sys/fs/cgroup/cpu.max
+cat /sys/fs/cgroup/cpu.max 2>/dev/null || { q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); echo "quota=$q period=$p"; }
 ```
 
 Use only the GPU indices from `nvidia-smi` that have no processes listed (cross-
@@ -90,10 +90,35 @@ reference against the `--query-compute-apps` output, which is keyed by UUID —
 match UUIDs back to indices in the main `nvidia-smi` table). Never take a GPU
 someone else is using.
 
-Threads: `floor(cgroup CPUs / number of GPUs used)`, minimum 2. Read the CPU
-quota from `cpu.max` (`<quota> <period>` in microseconds; CPUs = quota / period)
-rather than assuming the pod's nominal 30 cores, since the cgroup may cap it
-lower.
+This pod is cgroup v1: there is no `/sys/fs/cgroup/cpu.max`, so the command above
+falls back to reading `cpu.cfs_quota_us` and `cpu.cfs_period_us` directly (both in
+microseconds; budget = quota / period). Apply this rule:
+
+- If `quota` is a positive number: budget (in cores) = `quota / period`.
+- If `quota` is `-1` (unlimited, the common case on this cluster): budget = the
+  pod guide's nominal default of 30 cores.
+
+Threads: `max(2, budget // number of GPUs used)`.
+
+## 3a. Disk
+
+```bash
+df -h /mnt/ssd-cluster
+```
+
+`/mnt/ssd-cluster` is shared with the account's other projects — check free space
+before a long run, not just at pod setup. `setup_pod.sh` already aborts before
+downloading parquets if free space is under 30 GB.
+
+Geometry pruning is on by default: once an encoder's `thin` job finishes,
+`run_queue` deletes that encoder's job-1 geometry `.npz` (the largest per-encoder
+artifact, ~0.1–2.7 GB) since only that encoder's `cf` job needs it, and records
+the deletion in the `main_xfit` done-marker so re-running the queue doesn't treat
+it as missing. Pass `--keep-geometry` to disable pruning if you need to inspect
+those files after the sweep. Independently of pruning, `run_queue` also refuses
+to launch further jobs (letting whatever is running finish, then exiting
+non-zero) if free space under `--root` drops below `--min-free-gb` (default 10) —
+see the run command below.
 
 ## 4. Run
 
@@ -103,7 +128,7 @@ Inside the tmux session from §2:
 cd /mnt/ssd-cluster/EffDim/repo/curvature-experiment
 /mnt/ssd-cluster/EffDim/venv/bin/python -m sweep.run_queue \
   --root /mnt/ssd-cluster/EffDim/sweep-out \
-  --gpus <list> --threads <n> [--only <substr>] \
+  --gpus <list> --threads <n> --min-free-gb 10 [--only <substr>] [--keep-geometry] \
   2>&1 | tee -a /mnt/ssd-cluster/EffDim/sweep-out/queue.log
 ```
 
@@ -141,7 +166,9 @@ rsync -a root@216.153.49.26:/mnt/ssd-cluster/EffDim/sweep-out/{records,arrays,do
 
 Leave the geometry `.npz` arrays on the pod (`sweep-out/geometry/` or similar) —
 they aren't part of this rsync and don't belong in the local record store beyond
-what's listed above.
+what's listed above. With pruning on (the default, §3a), most of these are
+already deleted by the time the sweep finishes; only whatever survived because
+its encoder's `thin` job hadn't run yet (or `--keep-geometry` was used) remains.
 
 ## 8. Rules
 
