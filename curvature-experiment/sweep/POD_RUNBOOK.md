@@ -82,7 +82,11 @@ and re-prints the GPU/CPU diagnostics.
 ```bash
 nvidia-smi
 nvidia-smi --query-compute-apps=gpu_uuid,pid --format=csv   # busy GPUs (by uuid)
-cat /sys/fs/cgroup/cpu.max 2>/dev/null || { q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); echo "quota=$q period=$p"; }
+cat /sys/fs/cgroup/cpu.max 2>/dev/null || {
+  q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us 2>/dev/null || echo "?")
+  p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 2>/dev/null || echo "?")
+  echo "quota=$q period=$p"
+}
 ```
 
 Use only the GPU indices from `nvidia-smi` that have no processes listed (cross-

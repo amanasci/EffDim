@@ -33,14 +33,25 @@ if [ "${AVAIL_GB:-0}" -lt 30 ]; then
 fi
 
 # uv itself, its managed Python interpreters, and its download/wheel cache all live under
-# $BASE -- nothing installed to /root, which is wiped on restart.
+# $BASE -- nothing installed to /root, which is wiped on restart. Besides the binary
+# itself, the stock installer also (unless told otherwise) writes an install receipt to
+# ${XDG_CONFIG_HOME:-$HOME/.config}/uv and, without UV_NO_MODIFY_PATH, edits shell rc
+# files under $HOME -- both of which would land in /root. UV_NO_MODIFY_PATH=1 already
+# suppresses the rc-file edits; UV_UNMANAGED_INSTALL (checked in the installer source,
+# astral.sh/uv/install.sh, on 2026-09-28) additionally disables the self-updater/receipt
+# entirely (it forces the same install dir we already set via UV_INSTALL_DIR, since that
+# variable takes precedence, so it doesn't change where uv itself lands). XDG_CONFIG_HOME
+# is exported too as a second, independent line of defense in case any future installer
+# version writes config there regardless.
 export UV_INSTALL_DIR=$BASE/uv
 export UV_PYTHON_INSTALL_DIR=$BASE/uv-python
 export UV_CACHE_DIR=$BASE/uv-cache
-mkdir -p "$UV_INSTALL_DIR" "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR"
+export XDG_CONFIG_HOME=$BASE/xdg-config
+mkdir -p "$UV_INSTALL_DIR" "$UV_PYTHON_INSTALL_DIR" "$UV_CACHE_DIR" "$XDG_CONFIG_HOME"
 UV=$UV_INSTALL_DIR/uv
 if [ ! -x "$UV" ]; then
-  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$UV_INSTALL_DIR" UV_NO_MODIFY_PATH=1 sh
+  curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$UV_INSTALL_DIR" \
+    UV_UNMANAGED_INSTALL="$UV_INSTALL_DIR" UV_NO_MODIFY_PATH=1 XDG_CONFIG_HOME="$XDG_CONFIG_HOME" sh
 fi
 
 # Git: SKIP_GIT=1 (or a repo checkout with no reachable "origin") skips fetch/merge
@@ -111,4 +122,12 @@ nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv
 # cgroup v1 pods (this cluster) have no /sys/fs/cgroup/cpu.max; fall back to the v1
 # quota/period files. quota=-1 means unlimited, in which case the pod-guide's nominal
 # 30-core default is the budget to divide across GPUs (see POD_RUNBOOK.md section 3).
-cat /sys/fs/cgroup/cpu.max 2>/dev/null || { q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); echo "quota=$q period=$p"; }
+# Each `cat` below is individually guarded (`2>/dev/null || echo ...`) rather than
+# relying on the outer `||` alone: under `set -e`, a failing command substitution (e.g.
+# cpu.cfs_quota_us also missing, on some other cgroup setup) would otherwise abort the
+# whole script even though this is purely diagnostic output.
+cat /sys/fs/cgroup/cpu.max 2>/dev/null || {
+  q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us 2>/dev/null || echo "?")
+  p=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 2>/dev/null || echo "?")
+  echo "quota=$q period=$p"
+}

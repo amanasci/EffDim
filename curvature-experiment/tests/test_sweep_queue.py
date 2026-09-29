@@ -194,6 +194,78 @@ def test_prune_marks_marker_before_deleting_file(tmp_path, monkeypatch):
     assert is_done(mx, lay)      # missing pruned file is fine too
 
 
+def test_prune_runs_for_already_done_thin_job_at_startup(tmp_path):
+    # Simulate a prior invocation that got as far as marking "thin" done but crashed
+    # (or was an older build) before pruning ran: the geometry file is back, and the
+    # main_xfit marker has no "pruned" key, even though thin (and everything upstream of
+    # it) is already done. A fresh run_queue() call, on startup alone (nothing needs to
+    # launch), must still prune it and continue to report all three jobs as skipped.
+    lay = Layout(tmp_path)
+    mx, cf, thin, geo = _geometry_chain(lay)
+    run_queue([mx, cf, thin], lay, gpus=["0", "1", "2"], poll_s=0.05)
+    assert not geo.exists()
+
+    geo.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(geo, x=np.zeros(2))
+    marker_path = lay.done / "a__main_xfit.done"
+    rec = json.loads(marker_path.read_text())
+    rec.pop("pruned", None)
+    marker_path.write_text(json.dumps(rec))
+    assert geo.exists()
+    assert is_done(mx, lay) and is_done(thin, lay)
+
+    r2 = run_queue([mx, cf, thin], lay, gpus=["0", "1", "2"], poll_s=0.05)
+    assert set(r2["skipped"]) == {"a__main_xfit", "a__cf", "a__thin"}
+    assert r2["done"] == []
+    assert not geo.exists()
+    rec2 = json.loads(marker_path.read_text())
+    assert rec2["pruned"] == [str(geo)]
+
+
+def test_keep_geometry_skips_startup_prune_too(tmp_path):
+    lay = Layout(tmp_path)
+    mx, cf, thin, geo = _geometry_chain(lay)
+    run_queue([mx, cf, thin], lay, gpus=["0", "1", "2"], poll_s=0.05, keep_geometry=True)
+    assert geo.exists()
+    # already done from the run above; a second call with keep_geometry must not prune.
+    run_queue([mx, cf, thin], lay, gpus=["0", "1", "2"], poll_s=0.05, keep_geometry=True)
+    assert geo.exists()
+
+
+def test_disk_low_does_not_mislabel_transitively_blocked_jobs_as_deferred(tmp_path, monkeypatch):
+    # a fails; b depends on a (directly blocked); c depends on b (unsatisfiable two
+    # levels removed from the failure -- only caught by propagating "blocked" to a
+    # fixpoint, not by a single dependency-status check). z is independent of all three
+    # and is only held back by the disk guard. Once a fails and the disk guard trips
+    # (while trying to launch z, the only thing left that's actually launch-ready), b and
+    # c must both be reported as "blocked" -- not "deferred", which would wrongly imply
+    # they're merely waiting for space to free up -- while z (which really is just
+    # waiting on space) is "deferred".
+    lay = Layout(tmp_path)
+    a = _split_job(lay, "a__main_xfit", ["result"], exit_code=1)
+    b = _split_job(lay, "a__cf", ["result"], deps=["a__main_xfit"])
+    c = _split_job(lay, "a__thin", ["result"], deps=["a__cf"])
+    z = _split_job(lay, "z__main", ["result"])
+
+    real_disk_usage = shutil.disk_usage
+    calls = {"n": 0}
+
+    def fake_disk_usage(path):
+        calls["n"] += 1
+        real = real_disk_usage(path)
+        # first call (before "a" launches) reports plenty of headroom; every call after
+        # that (the attempt to launch z, the only job left that's actually ready) reports
+        # low free space, so the guard trips there instead of blocking "a" itself.
+        free = 100 * (1024 ** 3) if calls["n"] == 1 else 5 * (1024 ** 3)
+        return type(real)(total=real.total, used=real.used, free=free)
+
+    monkeypatch.setattr(shutil, "disk_usage", fake_disk_usage)
+    r = run_queue([a, b, c, z], lay, gpus=["0"], poll_s=0.05, min_free_gb=10.0)
+    assert r["failed"] == ["a__main_xfit"]
+    assert set(r["blocked"]) == {"a__cf", "a__thin"}
+    assert r["deferred"] == ["z__main"]
+
+
 def test_disk_guard_defers_remaining_jobs_when_free_space_low(tmp_path, monkeypatch):
     lay = Layout(tmp_path)
     jobs = [_split_job(lay, f"e{i}__main", ["result"]) for i in range(4)]

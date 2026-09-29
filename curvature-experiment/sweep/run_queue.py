@@ -142,6 +142,15 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
     for j in jobs:
         if is_done(j, lay):
             status[j.id] = "done"; out["skipped"].append(j.id)
+            # a thin job can already be done at startup (an earlier invocation ran it, or
+            # this process crashed between mark_done(thin) and the prune_geometry() call
+            # that used to only happen on the live done-transition below) -- prune here
+            # too so a geometry npz doesn't survive just because run_queue was restarted
+            # after its thin job finished.
+            if j.kind == "thin" and not keep_geometry:
+                mx = by_id.get(f"{j.encoder}__main_xfit")
+                if mx is not None:
+                    prune_geometry(mx, lay)
     pending = [j for j in jobs if j.id not in status]
     running: Dict[str, Tuple[JobSpec, subprocess.Popen, object]] = {}   # gpu -> (job, proc, logfile)
     min_free_bytes = min_free_gb * (1024 ** 3)
@@ -161,10 +170,18 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
             else:
                 status[j.id] = "failed"; out["failed"].append(j.id)
                 print(f"[queue] FAILED {j.id}: {why}", flush=True)
-        blocked = [j for j in pending if any(status.get(d) == "failed" for d in j.deps)]
-        for j in blocked:
-            pending.remove(j); status[j.id] = "blocked"; out["blocked"].append(j.id)
-            print(f"[queue] blocked {j.id} (dependency failed)", flush=True)
+        # Propagate to a fixpoint, not just one level: a job whose dependency was itself
+        # just blocked (rather than directly failed) is equally unsatisfiable and must be
+        # labeled "blocked" too -- otherwise, if nothing is running by the time we reach
+        # the disk-guard catch-all below, it would be mislabeled "deferred" (implying it's
+        # merely waiting on disk space, when it can in fact never run this session).
+        unsatisfiable = True
+        while unsatisfiable:
+            newly_blocked = [j for j in pending if any(status.get(d) in ("failed", "blocked") for d in j.deps)]
+            for j in newly_blocked:
+                pending.remove(j); status[j.id] = "blocked"; out["blocked"].append(j.id)
+                print(f"[queue] blocked {j.id} (dependency failed or blocked)", flush=True)
+            unsatisfiable = bool(newly_blocked)
         free = [] if disk_low else [g for g in gpus if g not in running]
         started_any = False
         for j in [j for j in pending if all(status.get(d) == "done" for d in j.deps)]:
