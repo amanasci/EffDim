@@ -142,8 +142,9 @@ def _tab_cf(data: List[EncData]) -> str:
 
 def _rob_cells(r) -> List[str]:
     if r is None: return ["--", "--"]
-    lo, hi, flips, _ = r
-    return [f"$[{lo:+.2f}, {hi:+.2f}]$", str(flips)]
+    lo, hi, flips, n = r
+    cov = f" ($n={n}$)" if n < len(ROBUST_VARIANTS) else ""
+    return [f"$[{lo:+.2f}, {hi:+.2f}]$" + cov, str(flips)]
 
 
 def _tab_robust(data: List[EncData]) -> str:
@@ -157,7 +158,8 @@ def _tab_robust(data: List[EncData]) -> str:
         out.append(r"\addlinespace[2pt]")
     out += [r"\bottomrule", r"\end{tabular}",
             r"\caption{Encoder scaling: range of the partial over the six split variants (seed 0, seeds 1 and 2, width "
-            r"$400^3$, $\alpha=1$, $d=20$) and the number of variants whose sign differs from seed 0.}",
+            r"$400^3$, $\alpha=1$, $d=20$) and the number of variants whose sign differs from seed 0; $(n=\cdot)$ marks a "
+            r"range over fewer than the six variants.}",
             r"\label{tab:scaling_robust}", r"\end{table}", ""]
     return "\n".join(out)
 
@@ -259,13 +261,15 @@ def _report(data: List[EncData], n_total: int) -> str:
         good = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
         L.append(f"- {lab}: {len(good)} of {len(xs)}")
         breaks[f"(a) mismatch negative and significant, {lab}"] = [x.enc.name for x, _ in xs if x not in good]
-    L += ["", "## (b) Alignment partial sign and significance (main record)", ""]
+    L += ["", "## (b) Alignment partial sign and significance (main record)", "",
+          "Paper's direction: alignment positive and significant; exceptions are encoders that are not positive-significant.", ""]
     for lab in LABELS:
         xs = [(x, x.part("main", lab, ALIGN)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
         neg = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
         pos = [x for x, v in xs if v["partial"] > 0 and v["p"] <= ALPHA]
         L.append(f"- {lab}: {len(neg)} negative-significant / {len(pos)} positive-significant / "
                  f"{len(xs) - len(neg) - len(pos)} non-significant (of {len(xs)})")
+        breaks[f"(b) alignment positive and significant, {lab}"] = [x.enc.name for x, _ in xs if x not in pos]
     L += ["", "## (c) Counterfactual: model-normal help exceeds random help, and help > 0.5", ""]
     for lab in LABELS:
         xs = [x for x in data if lab in x.cf]
@@ -274,6 +278,13 @@ def _report(data: List[EncData], n_total: int) -> str:
         L.append(f"- {lab}: help > random help in {len(g1)} of {len(xs)}; help > 0.5 in {len(g2)} of {len(xs)}")
         breaks[f"(c) help > random help, {lab}"] = [x.enc.name for x in xs if x not in g1]
         breaks[f"(c) help > 0.5, {lab}"] = [x.enc.name for x in xs if x not in g2]
+    L += ["", "## (c') Counterfactual: sign reversal hurts (model-normal hurt > 0.5 and > random hurt)", ""]
+    for lab in LABELS:
+        xs = [x for x in data if lab in x.cf]
+        g = [x for x in xs if x.cf[lab]["S_model"]["hurt"] > 0.5
+             and x.cf[lab]["S_model"]["hurt"] > x.cf[lab]["random_qmatched"]["hurt"]]
+        L.append(f"- {lab}: hurt > 0.5 and hurt > random hurt in {len(g)} of {len(xs)}")
+        breaks[f"(c') hurt > 0.5 and hurt > random hurt, {lab}"] = [x.enc.name for x in xs if x not in g]
     L += ["", f"## (d) Thinned-anchor sign test p_help < {ALPHA}", ""]
     for lab in LABELS:
         xs = [x for x in data if lab in x.sign and x.sign[lab]["n"]]

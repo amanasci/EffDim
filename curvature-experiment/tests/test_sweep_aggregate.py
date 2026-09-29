@@ -70,7 +70,33 @@ def test_robust_counts_sign_changes(tmp_path):
     out = tmp_path / "out"
     aggregate(load_manifest(), rec, arr, out)
     rob = (out / "tab_scaling_robust.tex").read_text()
-    assert "vit_base" in rob.replace("\\_", "_") and "1" in rob   # seed2 flips the sign once
+    row = next(l for l in rob.splitlines() if l.startswith("vit\\_base & mag\\_r"))
+    assert row == "vit\\_base & mag\\_r & $[-0.30, +0.10]$ & 1 & $[-0.30, +0.10]$ & 1 \\\\"   # seed2 flips the sign once
+
+
+def test_robust_marks_partial_coverage(tmp_path):
+    rec, arr = _fixture(tmp_path)
+    (rec / "scaling__vit_base__d20.jsonl").unlink(); (rec / "scaling__vit_base__w400.jsonl").unlink()
+    out = tmp_path / "out"
+    aggregate(load_manifest(), rec, arr, out)
+    rob = (out / "tab_scaling_robust.tex").read_text()
+    row = next(l for l in rob.splitlines() if l.startswith("vit\\_base & mag\\_r"))
+    assert "$[-0.30, +0.10]$ ($n=4$) & 1" in row
+
+
+def test_report_reversal_hurts(tmp_path):
+    rec, arr = _fixture(tmp_path)
+    z = dict(np.load(arr / "scaling__vit_base__cf.npz"))
+    for lab in LABELS:                                     # random direction never hurts on vit_base
+        cv = z[f"{lab}:random_qmatched:r2_curve"]; cv[:, 0] = cv[:, 2] + 0.1
+    np.savez(arr / "scaling__vit_base__cf.npz", **z)
+    out = tmp_path / "out"
+    aggregate(load_manifest(), rec, arr, out)
+    rep = (out / "SCALING_REPORT.md").read_text()
+    assert "- mag_r: hurt > 0.5 and hurt > random hurt in 1 of 2" in rep
+    assert "- (c') hurt > 0.5 and hurt > random hurt, mag_r: clip_base" in rep
+    assert "Paper's direction: alignment positive and significant" in rep
+    assert "- (b) alignment positive and significant, mag_r: clip_base, vit_base" in rep
 
 
 def test_aggregate_is_deterministic(tmp_path):
