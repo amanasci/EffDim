@@ -81,7 +81,18 @@ fi
 "$UV" python install "$PYTHON_VERSION"
 if [ ! -x "$VENV/bin/python" ]; then "$UV" venv --python "$PYTHON_VERSION" "$VENV"; fi
 TORCH_PIN=$(grep -E '^torch==' "$REPO/curvature-experiment/requirements.txt" | sed 's/+cpu//')
-grep -vE '^torch==' "$REPO/curvature-experiment/requirements.txt" > "$BASE/requirements-gpu.txt"
+# Drop the torch== pin (installed separately from the CUDA index below) AND every
+# extra/alternate package-index line (--extra-index-url, --index-url, -i, --find-links,
+# -f). requirements.txt carries `--extra-index-url .../whl/cpu` so pip can resolve
+# torch's `+cpu` local version; left in here, `uv pip install` would also be free to take
+# OTHER packages from that CPU wheel index (uv resolves each package from the first index
+# that has it, not necessarily the newest match), which is how `requests` was previously
+# pinned down to the stale 2.28.1 build on that index and broke datasets>=5.0.1's
+# requests>=2.32.2 requirement. requirements.txt always has non-index, non-torch lines
+# (the actual dependency pins), so grep -v never matches everything; `|| true` is kept
+# only as a defensive guard against that under `set -euo pipefail`.
+grep -vE '^torch==|^--extra-index-url|^--index-url|^-i |^--find-links|^-f ' \
+  "$REPO/curvature-experiment/requirements.txt" > "$BASE/requirements-gpu.txt" || true
 "$UV" pip install --python "$VENV/bin/python" -q -r "$BASE/requirements-gpu.txt"
 "$UV" pip install --python "$VENV/bin/python" -q "$TORCH_PIN" --index-url "https://download.pytorch.org/whl/$TORCH_CUDA_TAG"
 
