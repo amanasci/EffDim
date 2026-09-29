@@ -95,7 +95,12 @@ def test_report_reversal_hurts(tmp_path):
     rep = (out / "SCALING_REPORT.md").read_text()
     assert "- mag_r: hurt > 0.5 and hurt > random hurt in 1 of 2" in rep
     assert "- (c') hurt > 0.5 and hurt > random hurt, mag_r: clip_base" in rep
-    assert "Paper's direction: alignment positive and significant" in rep
+    assert "mag_r and photo_z positive and significant; stellar_mass non-significant" in rep
+    assert "- stellar_mass: 2 negative-significant / 0 positive-significant / 0 non-significant (of 2); paper claim: non-significant" in rep
+    assert "- (b) alignment non-significant, stellar_mass: clip_base, vit_base" in rep
+    assert "- smooth_fraction: 2 negative-significant / 0 positive-significant / 0 non-significant (of 2); no paper claim" in rep
+    assert "(b) alignment positive and significant, smooth_fraction" not in rep
+    assert not any(l.startswith("- (b)") and "smooth_fraction" in l for l in rep.splitlines())
     assert "- (b) alignment positive and significant, mag_r: clip_base, vit_base" in rep
 
 

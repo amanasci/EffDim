@@ -22,6 +22,9 @@ ROBUST_VARIANTS = ("main", "seed1", "seed2", "w400", "alpha1", "d20")
 MISMATCH, ALIGN = "hess_mismatch_emp", "align_cos_tan"
 LAB_TEX = {lab: lab.replace("_", r"\_") for lab in LABELS}
 ALPHA = 0.05
+# The paper's alignment claim per label (main.tex, cross-encoder paragraph); None = no stated claim.
+ALIGN_EXPECT = {"mag_r": "pos_sig", "photo_z": "pos_sig", "stellar_mass": "nonsig", "smooth_fraction": None}
+EXPECT_TEXT = {"pos_sig": "positive and significant", "nonsig": "non-significant"}
 
 
 def cell(v) -> str:
@@ -262,14 +265,21 @@ def _report(data: List[EncData], n_total: int) -> str:
         L.append(f"- {lab}: {len(good)} of {len(xs)}")
         breaks[f"(a) mismatch negative and significant, {lab}"] = [x.enc.name for x, _ in xs if x not in good]
     L += ["", "## (b) Alignment partial sign and significance (main record)", "",
-          "Paper's direction: alignment positive and significant; exceptions are encoders that are not positive-significant.", ""]
+          "Paper's claim per label (main.tex): mag_r and photo_z positive and significant; stellar_mass non-significant; "
+          "smooth_fraction no stated claim (\"less consistent\"). Exceptions are encoders that do not match their label's claim.", ""]
     for lab in LABELS:
         xs = [(x, x.part("main", lab, ALIGN)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
         neg = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
         pos = [x for x, v in xs if v["partial"] > 0 and v["p"] <= ALPHA]
+        ns = [x for x, _ in xs if x not in neg and x not in pos]
+        exp = ALIGN_EXPECT[lab]
+        claim = {"pos_sig": "paper claim: positive-significant", "nonsig": "paper claim: non-significant",
+                 None: "no paper claim"}[exp]
         L.append(f"- {lab}: {len(neg)} negative-significant / {len(pos)} positive-significant / "
-                 f"{len(xs) - len(neg) - len(pos)} non-significant (of {len(xs)})")
-        breaks[f"(b) alignment positive and significant, {lab}"] = [x.enc.name for x, _ in xs if x not in pos]
+                 f"{len(ns)} non-significant (of {len(xs)}); {claim}")
+        if exp is not None:
+            match = pos if exp == "pos_sig" else ns
+            breaks[f"(b) alignment {EXPECT_TEXT[exp]}, {lab}"] = [x.enc.name for x, _ in xs if x not in match]
     L += ["", "## (c) Counterfactual: model-normal help exceeds random help, and help > 0.5", ""]
     for lab in LABELS:
         xs = [x for x in data if lab in x.cf]
