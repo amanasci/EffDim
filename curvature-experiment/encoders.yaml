@@ -4,8 +4,8 @@
 # `physics` benchmark embeddings, HF dataset UniverseTBD/pu-embeddings, pinned
 # to the snapshot below. `name` -> checkpoint mapping and per-checkpoint
 # parameter counts were taken from the model that generated each PU config,
-# per UniverseTBD/platonic-universe's src/pu/models/registry.py MODEL_MAP
-# (https://github.com/UniverseTBD/platonic-universe/blob/main/src/pu/models/registry.py).
+# per UniverseTBD/platonic-universe's src/pu/experiments_layerwise.py MODEL_MAP
+# (https://github.com/UniverseTBD/platonic-universe/blob/main/src/pu/experiments_layerwise.py).
 #
 # `params` = total parameter count of the checkpoint that produced the
 # embedding, as reported by the checkpoint's own HF `safetensors` metadata
@@ -49,25 +49,30 @@ encoders:
     in_paper: false
 
   # CLIP (openai/clip-vit-*). PU's HFAdapter.embed_for_mode calls
-  # model.get_image_features() (vision tower + visual_projection only, no
-  # text tower run at inference), but the checkpoint's own reported/derived
-  # total below is for the FULL CLIPModel (vision + text encoder), since
-  # HF's safetensors metadata (and our from-weights count for the base
-  # checkpoint) doesn't separate the two towers.
+  # model.get_image_features(), which only runs vision_model + visual_projection
+  # -- the text tower never runs. `params` below is therefore vision tower +
+  # visual projection only, summed from checkpoint tensors (tensor names
+  # starting with `vision_model.` / `visual_projection.`), not the checkpoint
+  # total.
   - name: clip_base
     family: CLIP
     dim: 512
     # No safetensors conversion exists for openai/clip-vit-base-patch16; this
-    # is the exact total computed from the checkpoint's own
-    # pytorch_model.bin (598,641,023 bytes of fp32 state dict, loaded and
-    # summed with torch), not a card figure.
-    params: 149621011
+    # is the exact vision-tower + visual-projection count computed from the
+    # checkpoint's own pytorch_model.bin state dict (loaded with torch and
+    # summed over keys starting with `vision_model.`/`visual_projection.`),
+    # not a card figure.
+    params: 86192837
     params_source: https://huggingface.co/openai/clip-vit-base-patch16/blob/main/pytorch_model.bin
     in_paper: true
   - name: clip_large
     family: CLIP
     dim: 768
-    params: 427616846
+    # vision tower + visual projection, summed from checkpoint tensors (read
+    # via the model.safetensors header's per-tensor shapes; no safetensors
+    # metadata separates the two towers, so this is not the API's reported
+    # `total`).
+    params: 303966465
     params_source: https://huggingface.co/openai/clip-vit-large-patch14
     in_paper: false
 
