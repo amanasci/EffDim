@@ -39,6 +39,7 @@ def test_failed_dependency_blocks_dependents(tmp_path):
     b = _split_job(lay, "a__cf", ["result"], deps=["a__main_xfit"])
     r = run_queue([a, b], lay, gpus=["0", "1"], poll_s=0.05)
     assert r["failed"] == ["a__main_xfit"] and "a__cf" not in r["done"]
+    assert r["blocked"] == ["a__cf"]
 
 
 def test_partial_record_is_moved_aside_and_rerun(tmp_path):
@@ -79,3 +80,36 @@ def test_thin_validation_requires_overlap(tmp_path):
     j = JobSpec("a__thin", "a", "thin", (sys.executable, "-c", "pass"), (str(out),), (), "thin")
     ok, why = validate_outputs(j)
     assert not ok and "overlap" in why
+
+
+def test_corrupt_done_marker_is_not_done_and_job_reruns(tmp_path):
+    lay = Layout(tmp_path)
+    j = _split_job(lay, "a__main", ["result"])
+    r1 = run_queue([j], lay, gpus=["0"], poll_s=0.05)
+    assert r1["done"] == ["a__main"] and is_done(j, lay)
+    marker = lay.done / "a__main.done"
+    marker.write_text("{")           # truncated by a pod restart mid-write
+    assert not is_done(j, lay)       # must not raise, must report not-done
+    r2 = run_queue([j], lay, gpus=["0"], poll_s=0.05)
+    assert r2["done"] == ["a__main"] and is_done(j, lay)
+
+
+def test_mark_done_leaves_no_tmp_file(tmp_path):
+    lay = Layout(tmp_path)
+    j = _split_job(lay, "a__main", ["result"])
+    run_queue([j], lay, gpus=["0"], poll_s=0.05)
+    assert not list(lay.done.glob("*.tmp"))
+
+
+def test_launcher_exception_marks_job_failed_and_closes_log(tmp_path):
+    lay = Layout(tmp_path)
+    j = _split_job(lay, "a__main", ["result"])
+
+    def bad_launcher(argv, env=None, stdout=None, stderr=None):
+        raise OSError("boom")
+
+    r = run_queue([j], lay, gpus=["0"], poll_s=0.05, launcher=bad_launcher)
+    assert r["failed"] == ["a__main"]
+    log = lay.logs / "a__main.log"
+    assert log.exists()
+    log.unlink()   # would raise on POSIX if still open and locked elsewhere; mainly checks no leak

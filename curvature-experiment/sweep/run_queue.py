@@ -60,8 +60,14 @@ def is_done(job: JobSpec, lay: Layout) -> bool:
     m = _marker(job, lay)
     if not m.exists():
         return False
-    rec = json.loads(m.read_text())
-    for path, sha in rec["outputs"].items():
+    try:
+        rec = json.loads(m.read_text())
+        outputs = rec["outputs"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        # a pod restart mid-write can leave a truncated/invalid marker; treat it as
+        # not-done rather than crashing the queue, and let the job rerun.
+        return False
+    for path, sha in outputs.items():
         p = Path(path)
         if not p.exists() or _sha256(p) != sha:
             return False
@@ -72,7 +78,13 @@ def mark_done(job: JobSpec, lay: Layout) -> None:
     lay.done.mkdir(parents=True, exist_ok=True)
     rec = {"id": job.id, "outputs": {o: _sha256(Path(o)) for o in job.outputs},
            "finished": datetime.now(timezone.utc).isoformat()}
-    _marker(job, lay).write_text(json.dumps(rec, indent=1))
+    marker = _marker(job, lay)
+    tmp = marker.with_name(marker.name + ".tmp")
+    with open(tmp, "w") as f:
+        f.write(json.dumps(rec, indent=1))
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, marker)
 
 
 def quarantine(job: JobSpec, lay: Layout) -> None:
@@ -87,7 +99,7 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
               launcher: Callable = subprocess.Popen) -> Dict[str, List[str]]:
     lay.logs.mkdir(parents=True, exist_ok=True)
     status: Dict[str, str] = {}
-    out: Dict[str, List[str]] = {"done": [], "failed": [], "skipped": []}
+    out: Dict[str, List[str]] = {"done": [], "failed": [], "skipped": [], "blocked": []}
     for j in jobs:
         if is_done(j, lay):
             status[j.id] = "done"; out["skipped"].append(j.id)
@@ -106,7 +118,7 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
                 print(f"[queue] FAILED {j.id}: {why}", flush=True)
         blocked = [j for j in pending if any(status.get(d) == "failed" for d in j.deps)]
         for j in blocked:
-            pending.remove(j); status[j.id] = "blocked"
+            pending.remove(j); status[j.id] = "blocked"; out["blocked"].append(j.id)
             print(f"[queue] blocked {j.id} (dependency failed)", flush=True)
         free = [g for g in gpus if g not in running]
         started_any = False
@@ -119,8 +131,15 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
                 Path(o).parent.mkdir(parents=True, exist_ok=True)
             log = open(lay.logs / f"{j.id}.log", "w")
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=gpu)
-            running[gpu] = (j, launcher(list(j.argv), env=env, stdout=log, stderr=subprocess.STDOUT), log)
             pending.remove(j)
+            try:
+                proc = launcher(list(j.argv), env=env, stdout=log, stderr=subprocess.STDOUT)
+            except Exception as e:
+                log.close()
+                status[j.id] = "failed"; out["failed"].append(j.id)
+                print(f"[queue] FAILED {j.id}: launcher raised {e!r}", flush=True)
+                continue
+            running[gpu] = (j, proc, log)
             started_any = True
             print(f"[queue] start {j.id} on GPU {gpu}", flush=True)
         if running:
@@ -130,7 +149,7 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
             # or otherwise-unsatisfiable dependencies. They can never become ready, so stop
             # rather than busy-loop forever.
             for j in pending:
-                status[j.id] = "blocked"
+                status[j.id] = "blocked"; out["blocked"].append(j.id)
             pending = []
     return out
 
@@ -164,6 +183,9 @@ def main() -> None:
     print(json.dumps({k: len(v) for k, v in res.items()}), flush=True)
     if res["failed"]:
         print("failed: " + ", ".join(res["failed"]), flush=True)
+    if res["blocked"]:
+        print("blocked: " + ", ".join(res["blocked"]), flush=True)
+    if res["failed"]:
         sys.exit(1)
 
 
