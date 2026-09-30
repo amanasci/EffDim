@@ -182,3 +182,73 @@ def heldout_delta_r2(r2, Z_base, Z_geo, blocks, n_splits: int, seed: int) -> Dic
     d = np.asarray(deltas)
     return {"median": float(np.median(d)), "p05": float(np.percentile(d, 5)), "p95": float(np.percentile(d, 95)),
             "frac_pos": float(np.mean(d > 0)), "n_splits": int(n_splits)}
+
+
+TOLERANCE = {"exact": 1e-6, "refit": 0.02}
+CF_KEYS = ("help", "hurt", "d_r2_plus", "d_r2_minus", "t_star")
+
+
+def counterfactual(X, y, a, neigh, geo, w, b0, d, seed: int = CF_SEED) -> Dict[str, np.ndarray]:
+    """The published counterfactual runner's per-anchor loop (its main, lines 226-246) for one label and readout w."""
+    y = np.asarray(y, dtype=np.float64)
+    n_anchors = len(a)
+    image = geo["image"]; xhat = image / np.linalg.norm(image, axis=1, keepdims=True)
+    rng = np.random.default_rng(seed)
+    out = {f"{v}:{key}": np.full(n_anchors, np.nan) for v in ns.VARIANTS for key in ("t_star", "dR2", "eq", "qq")}
+    out.update({f"{v}:r2_curve": np.full((n_anchors, len(ns.T_GRID)), np.nan) for v in ns.VARIANTS})
+    for i in range(n_anchors):
+        idx = neigh[i]; yn = y[idx]; m = np.isfinite(yn)
+        if m.sum() < pcp.MIN_FINITE_NEIGHBOURS:
+            continue
+        sc = ns.scaling_at_anchor(X[idx][m], yn[m], X[a[i]], w, geo["J"][i], geo["g"][i], geo["ginv"][i], geo["II"][i], xhat[i], rng)
+        for v in ns.VARIANTS:
+            for key in ("t_star", "dR2", "eq", "qq"):
+                out[f"{v}:{key}"][i] = sc[v][key]
+            out[f"{v}:r2_curve"][i] = sc[v]["r2_curve"]
+    return out
+
+
+def cf_tables(arrays_by_label: Dict[str, Dict[str, np.ndarray]], ov: np.ndarray, tmpdir) -> Dict[str, Any]:
+    tmpdir = Path(tmpdir); tmpdir.mkdir(parents=True, exist_ok=True)
+    cf_npz, thin_npz = tmpdir / "cf.npz", tmpdir / "thin.npz"
+    np.savez(cf_npz, **{f"{lab}:{k}": v for lab, arr in arrays_by_label.items() for k, v in arr.items()})
+    np.savez(thin_npz, overlap=np.asarray(ov, np.float32))
+    return {"summary": extract.cf_summary(cf_npz), "sign": extract.sign_test(cf_npz, thin_npz, thr=SIGN_THR)}
+
+
+def surrogate_fidelity(arrays: Dict[str, np.ndarray]) -> Dict[str, Any]:
+    ds = arrays["S:r2_curve"][:, 4] - arrays["S:r2_curve"][:, 2]
+    dm = arrays["S_model:r2_curve"][:, 4] - arrays["S_model:r2_curve"][:, 2]
+    m = np.isfinite(ds) & np.isfinite(dm)
+    return {"spearman": ppf._spearman(dm[m], ds[m]), "median_abs_diff": float(np.median(np.abs(dm[m] - ds[m]))), "n": int(m.sum())}
+
+
+def published_reference(split_record, cf_npz) -> Dict[str, Any]:
+    rows = [r for r in extract.read_rows(split_record) if r.get("row") != "result" or r.get("d") == 16]
+    return {"split": {k: {"partial": v["partial"], "p": v["p"]} for k, v in extract.split_cells(rows).items()
+                      if k[1] in (MISMATCH, ALIGN)},
+            "cf": extract.cf_summary(cf_npz)}
+
+
+def reproduction_diffs(ours: Dict[str, Any], ref: Dict[str, Any], mode: str) -> List[str]:
+    tol = TOLERANCE[mode]; out: List[str] = []
+    for key, r in ref["split"].items():
+        o = ours["split"].get(key)
+        if o is None:
+            out.append(f"{key[0]} {key[1]}: missing"); continue
+        if not abs(o["partial"] - r["partial"]) <= tol:
+            out.append(f"{key[0]} {key[1]}: partial {o['partial']:+.6f} vs published {r['partial']:+.6f}")
+        if mode == "exact" and not abs(o["p"] - r["p"]) <= tol:
+            out.append(f"{key[0]} {key[1]}: p {o['p']:.6f} vs published {r['p']:.6f}")
+    for lab, by_var in ref["cf"].items():
+        for var, r in by_var.items():
+            for k in CF_KEYS:
+                if k in r and not abs(ours["cf"][lab][var][k] - r[k]) <= 1e-12:
+                    out.append(f"{lab} {var}: {k} {ours['cf'][lab][var][k]!r} vs published {r[k]!r}")
+    return out
+
+
+def enforce_reproduction(ours, ref, mode: str) -> None:
+    diffs = reproduction_diffs(ours, ref, mode)
+    if diffs:
+        raise SystemExit("reproduction guard FAILED at alpha = 100 (no new numbers written):\n  " + "\n  ".join(diffs))

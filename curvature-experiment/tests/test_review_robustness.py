@@ -160,3 +160,62 @@ def test_heldout_positive_with_signal_zero_with_noise():
     noi = rr.heldout_delta_r2(r2_noise, Zb, g, blocks, 20, 0)
     assert sig["median"] > 0.05 and sig["frac_pos"] == 1.0
     assert abs(noi["median"]) < 0.02 and sig["n_splits"] == 20
+
+
+def _arrays(n=64, seed=0):
+    rng = np.random.default_rng(seed)
+    out = {}
+    for v in rr.ns.VARIANTS:
+        cv = rng.standard_normal((n, len(rr.ns.T_GRID)))
+        out.update({f"{v}:r2_curve": cv, f"{v}:eq": rng.standard_normal(n), f"{v}:qq": rng.random(n) + 0.1,
+                    f"{v}:t_star": rng.standard_normal(n), f"{v}:dR2": rng.standard_normal(n)})
+    return out
+
+
+def test_surrogate_fidelity_identical_curves():
+    arr = _arrays(); arr["S:r2_curve"] = arr["S_model:r2_curve"].copy()
+    s = rr.surrogate_fidelity(arr)
+    assert s["spearman"] == pytest.approx(1.0) and s["median_abs_diff"] == 0.0 and s["n"] == 64
+
+
+def test_cf_tables_use_published_readers(tmp_path):
+    rng = np.random.default_rng(4)
+    neigh = np.array([rng.choice(3000, 40, replace=False) for _ in range(64)])
+    ov = rr.th.overlap_matrix(neigh)
+    by_label = {"mag_r": _arrays(seed=1)}
+    t = rr.cf_tables(by_label, ov, tmp_path)
+    cv = by_label["mag_r"]["S_model:r2_curve"]; m = np.isfinite(by_label["mag_r"]["S_model:eq"])
+    assert t["summary"]["mag_r"]["S_model"]["help"] == pytest.approx(float(np.mean(cv[m, 4] - cv[m, 2] > 0)))
+    ov32 = ov.astype(np.float32).astype(float)       # the published thin npz stores the overlap as float32
+    assert t["sign"]["mag_r"]["n"] == int((rr.extract._indep(ov32, rr.SIGN_THR) & np.isfinite(cv[:, 0])).sum())
+
+
+def _write_published(tmp_path, partial=0.3):
+    rows = [{"row": "environment"}]
+    for d in (16, 20):
+        rows.append({"row": "result", "d": d, "label": "mag_r",
+                     "columns": {rr.MISMATCH: {"multiscale": {"partial": partial if d == 16 else 0.9, "p": 0.01}},
+                                 rr.ALIGN: {"multiscale": {"partial": 0.1, "p": 0.2}}}})
+    p = tmp_path / "split.jsonl"; p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    arr = {f"mag_r:{k}": v for k, v in _arrays(seed=5).items()}
+    c = tmp_path / "cf.npz"; np.savez(c, **arr)
+    return p, c
+
+
+def test_reference_uses_d16_rows_only(tmp_path):
+    p, c = _write_published(tmp_path)
+    ref = rr.published_reference(p, c)
+    assert ref["split"][("mag_r", rr.MISMATCH)]["partial"] == 0.3
+
+
+def test_guard_stops_on_perturbed_reference(tmp_path):
+    p, c = _write_published(tmp_path)
+    ref = rr.published_reference(p, c)
+    ours = {"split": {k: dict(v) for k, v in ref["split"].items()}, "cf": json.loads(json.dumps(ref["cf"]))}
+    assert rr.reproduction_diffs(ours, ref, "exact") == []
+    ours["split"][("mag_r", rr.MISMATCH)]["partial"] += 0.01
+    assert rr.reproduction_diffs(ours, ref, "refit") == []                      # within 0.02
+    with pytest.raises(SystemExit, match=f"mag_r.*{rr.MISMATCH}"):
+        rr.enforce_reproduction(ours, ref, "exact")
+    ours["cf"]["mag_r"]["S_model"]["help"] += 1e-3
+    assert any("help" in d for d in rr.reproduction_diffs(ours, ref, "refit"))
