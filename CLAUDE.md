@@ -94,6 +94,32 @@ The rules that bite hardest, so they are not missed:
 - Guide says 30 CPU cores by default; `nproc` reports 128. Verify the effective cgroup limit
   before trusting any `--threads` value.
 
+### Lesson learned (2026-09-30): `du` counts as a recursive walk
+
+I ran `du -sh /mnt/ssd-cluster/EffDim` to check our disk use. `du` walks every file under the
+path, the same as `find` or `ls -R`, and our tree holds the venv, the uv cache and the HF
+cache (many thousands of small files). On the Ceph-backed mount it sat in uninterruptible IO
+(state `D`) for about 1.5 minutes before I killed it. That is exactly the heavy-I/O pattern the
+guide warns can hang the mounts and force a pod restart. No harm came of it this time.
+
+- For disk space use `df -h /mnt/ssd-cluster` only. For one file's size, `ls -la` or `stat`
+  on its direct path.
+- Never `du`, `find` or `ls -R` on `/mnt` without `-maxdepth`/`--max-depth` and `timeout 30`,
+  and never inside a batch of other remote checks, where one hang stalls the whole command.
+- Wrap remote status checks in `timeout 30 ssh ...` so a hung filesystem call cannot block.
+- If a command is stuck in state `D`, kill it once and launch no more filesystem commands
+  until it is gone.
+- `/mnt/ssd-cluster` is private to the pod but shared with the account's other projects on
+  it. Check `df -h` before any large write; keep our footprint small.
+
+## EleutherAI pod user guide (full text)
+
+Imported verbatim from `docs/remote-compute/eleutherai-pod-user-guide.md` so it is in context
+every session. Keep that file byte-identical to the pod's `/root/user-guide.md` (the sha256
+check above compares them); edit the guide there, never here.
+
+@docs/remote-compute/eleutherai-pod-user-guide.md
+
 ## Spike findings
 
 - **Spike findings for EffDim** (curvature-estimator validation protocol, measured `d=20` dead
