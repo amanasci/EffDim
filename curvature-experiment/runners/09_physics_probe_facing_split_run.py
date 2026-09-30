@@ -59,14 +59,9 @@ COLUMNS = ("H_tan_norm", "pf_full", "pf_tan", "pf_rad", "pf_trace_tan",
            "align_cos_full", "align_cos_tan", "cross_full", "cross_tan", "bias_sq")
 
 
-GPU_GEOMETRY_OUT_CHUNK = 256
-"""Decoder outputs per reverse pass in the GPU geometry: the D x D intermediates of a
-D=5120 decoder need 100 GiB in one pass (OOM on an 80 GB A100); 256 bounds them near 5 GiB."""
-
-
-def geometry_out_chunk(device: str) -> int | None:
-    """None on CPU keeps the original geometry path; a GPU run chunks the output pass."""
-    return None if device == "cpu" else GPU_GEOMETRY_OUT_CHUNK
+def geometry_forward_mode(device: str) -> bool:
+    """CPU keeps the original reverse-mode geometry; a GPU run takes it in forward mode (fits at D = 4096)."""
+    return device != "cpu"
 
 
 def _utc_now() -> str:
@@ -304,7 +299,7 @@ def main() -> None:
             fit = ppf.fit_decoder(X, d, in_dim, pcp.MAX_EPOCHS, device=args.device)
             with torch.no_grad():
                 z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
-            geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, out_chunk=geometry_out_chunk(args.device))
+            geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, forward_mode=geometry_forward_mode(args.device))
             print(f"[geometry] refit seed={args.fit_seed} hidden={pcp.AE_HIDDEN} var_explained={fit['var_explained']:.5f} fit {fit['wallclock_fit_s']:.0f}s", flush=True)
             if args.geometry_out:
                 Path(args.geometry_out).mkdir(parents=True, exist_ok=True)
@@ -322,7 +317,7 @@ def main() -> None:
             fit = ppf.fit_decoder(X, d, in_dim, adj.SMOKE_EPOCHS, device=args.device)
             with torch.no_grad():
                 z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
-            geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, out_chunk=geometry_out_chunk(args.device))
+            geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, forward_mode=geometry_forward_mode(args.device))
             print(f"[geometry] smoke decoder var_explained={fit['var_explained']:.4f}", flush=True)
 
         # local quadratics: label and the probe's own prediction, per label (the probe differs per label)
