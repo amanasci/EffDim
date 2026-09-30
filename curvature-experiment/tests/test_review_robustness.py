@@ -219,3 +219,26 @@ def test_guard_stops_on_perturbed_reference(tmp_path):
         rr.enforce_reproduction(ours, ref, "exact")
     ours["cf"]["mag_r"]["S_model"]["help"] += 1e-3
     assert any("help" in d for d in rr.reproduction_diffs(ours, ref, "refit"))
+
+
+def test_refuses_geometry_sha_mismatch(tmp_path, monkeypatch):
+    g = tmp_path / "g.npz"; np.savez(g, anchor_idx=np.arange(3))
+    monkeypatch.setattr(sys, "argv", ["x", "--encoder", "vit_base", "--geometry-npz", str(g), "--geometry-sha256", "0" * 64,
+                                      "--threads", "8", "--record-path", str(tmp_path / "r.jsonl")])
+    with pytest.raises(SystemExit, match="sha256"):
+        rr.main()
+    assert not (tmp_path / "r.jsonl").exists()
+
+
+def test_smoke_end_to_end(tmp_path, monkeypatch):
+    rec = tmp_path / "11_review_robustness_smoke.jsonl"
+    monkeypatch.setattr(sys, "argv", ["x", "--smoke", "--threads", "8", "--record-path", str(rec), "--n-perm", "20", "--n-boot", "30"])
+    rr.main()
+    rows = [json.loads(l) for l in rec.read_text().splitlines()]
+    assert rows[0]["row"] == "environment"
+    res = [r for r in rows if r["row"] == "result"]
+    assert {(r["label"], r["alpha_mode"]) for r in res} == {(l, m) for l in ("lin", "nonlin_with_nan") for m in ("published", "tuned")}
+    for r in res:
+        assert np.isfinite(r["partials"]["published_controls"][rr.MISMATCH]["partial"])
+        assert set(r["bootstrap"]) == {"16", "32", "64"} and "heldout" in r and "surrogate" in r and "cf" in r
+    assert all(r["alpha"] == 100.0 for r in res if r["alpha_mode"] == "published")

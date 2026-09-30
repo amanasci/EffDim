@@ -33,6 +33,10 @@ ns = _runner("09_physics_normal_scaling_run.py", "physics_normal_scaling_run")
 th = _runner("09_physics_normal_scaling_thin_run.py", "physics_normal_scaling_thin_run")
 ppf, adj, runner = pfs.ppf, pfs.adj, pfs.runner
 
+import argparse  # noqa: E402
+import hashlib  # noqa: E402
+import time  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
 from typing import Any, Dict, List, Tuple  # noqa: E402
 
 import numpy as np  # noqa: E402
@@ -252,3 +256,158 @@ def enforce_reproduction(ours, ref, mode: str) -> None:
     diffs = reproduction_diffs(ours, ref, mode)
     if diffs:
         raise SystemExit("reproduction guard FAILED at alpha = 100 (no new numbers written):\n  " + "\n  ".join(diffs))
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _sha256(path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def install_shims(parquet_path, column, label_table):
+    """The published runners' loader shims (counterfactual runner main): read this parquet and this label table."""
+    ppf.pl.PHYSICS_PARQUET_PATH = parquet_path
+    ppf.pl.PHYSICS_COLUMN = column
+
+    def _load_embeddings(parquet_path=None, column=None, expected_rows=None, normalize=True):
+        import pyarrow.parquet as pq
+        path = parquet_path or ppf.pl.PHYSICS_PARQUET_PATH; col = column or ppf.pl.PHYSICS_COLUMN
+        tbl = pq.read_table(path, columns=[col])
+        raw = np.stack([np.asarray(v, dtype=np.float64) for v in tbl.column(col).to_pylist()])
+        want = expected_rows or ppf.pl.EXPECTED_N_PHYSICS_ROWS
+        if raw.shape[0] != want:
+            raise RuntimeError(f"{path}: {raw.shape[0]} rows, expected {want}")
+        norms = np.linalg.norm(raw, axis=1, keepdims=True)
+        X = raw / np.maximum(norms, 1e-12) if normalize else raw
+        return {"X": X, "n_rows": int(X.shape[0]), "n_features": int(X.shape[1])}
+    ppf.pl.load_physics_embeddings = _load_embeddings
+    import pandas as pd
+    frame = pd.read_parquet(label_table)
+
+    def _load_label_table(columns, expected_rows=None):
+        out = frame[list(columns)].reset_index(drop=True)
+        want = expected_rows if expected_rows is not None else ppf.pl.EXPECTED_N_PHYSICS_ROWS
+        if len(out) != want:
+            raise RuntimeError(f"label table has {len(out)} rows, expected {want}")
+        return out
+    ppf.pl.load_label_table = _load_label_table
+
+
+def analyse_label(X, y, a, panel, geo, d, ov, blocks, alpha_mode: str, n_perm: int, n_boot: int, tmpdir):
+    grid = (PUBLISHED_ALPHA, PUBLISHED_ALPHA) if alpha_mode == "published" else ALPHA_GRID
+    pp = probe_panel(X, y, a, panel, grid)
+    alpha = PUBLISHED_ALPHA if alpha_mode == "published" else select_alpha(X, y)
+    w, b0 = global_probe(X, y, alpha)
+    sq = split_quantities(X, y, a, panel, geo, w, b0, d)
+    cols, r2 = sq["cols"], pp["r2"]
+    Z_ext = extended_controls(pp["Z_multi"], cols, sq["roughness"])
+    arrays = counterfactual(X, y, a, panel["indices"], geo, w, b0, d)
+    row = {"alpha_mode": alpha_mode, "alpha": float(alpha), "fold_alphas": pp["fold_alphas"], "global_oof_r2": pp["global_oof_r2"],
+           "partials": {"published_controls": partials(cols, r2, pp["Z_multi"], n_perm),
+                        "extended_controls": partials(cols, r2, Z_ext, n_perm)},
+           "bootstrap": {str(G): {c: cluster_bootstrap(cols[c], r2, pp["Z_multi"], blocks[G], n_boot, BOOT_SEED) for c in (MISMATCH, ALIGN)}
+                         for G in (BLOCKS_SENS[0], BLOCKS_MAIN, BLOCKS_SENS[1])},
+           "thinned": {c: thinned_partial(cols[c], r2, pp["Z_multi"], ov, THIN_THR, n_perm) for c in (MISMATCH, ALIGN)},
+           "heldout": heldout_delta_r2(r2, Z_ext, np.column_stack([cols[MISMATCH], cols[ALIGN]]), blocks[BLOCKS_MAIN], N_SPLITS, BOOT_SEED),
+           "surrogate": surrogate_fidelity(arrays)}
+    return row, arrays
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--encoder", type=str, default="smoke")
+    p.add_argument("--geometry-npz"); p.add_argument("--geometry-sha256")
+    p.add_argument("--parquet-path"); p.add_argument("--embedding-column")
+    p.add_argument("--label-table"); p.add_argument("--label-table-sha256")
+    p.add_argument("--published-split"); p.add_argument("--published-cf")
+    p.add_argument("--guard", choices=["exact", "refit"], default="exact")
+    p.add_argument("--threads", type=int, default=8)
+    p.add_argument("--record-path", type=str, required=True)
+    p.add_argument("--n-perm", type=int, default=2000)
+    p.add_argument("--n-boot", type=int, default=N_BOOT)
+    p.add_argument("--smoke", action="store_true")
+    return p
+
+
+def main() -> None:
+    import tempfile
+    args = build_parser().parse_args()
+    record_path = Path(args.record_path).resolve()
+    for stem in ppf.PRODUCTION_STEMS:
+        if record_path.name.startswith(stem):
+            raise SystemExit(f"refusing to write to a Phase 9 production record path: {record_path}")
+    assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
+    t0 = time.monotonic()
+    if args.smoke:
+        import torch
+        data = ppf.load_smoke(argparse.Namespace(seed=20260905))
+        X, labels = data["X"], data["labels"]
+        k, n_anchors, d = adj.SMOKE["k"], adj.SMOKE["n_anchors"], adj.SMOKE["d"]
+        a = pcp.anchor_indices(X.shape[0], pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)["anchor_idx"]
+        fit = ppf.fit_decoder(X, d, X.shape[1], adj.SMOKE_EPOCHS)
+        with torch.no_grad():
+            z = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long)])
+        geo = ppf.decoder_geometry(fit["curvature_model"], z)
+        geo_sha = lab_sha = None
+    else:
+        geo_sha = _sha256(args.geometry_npz)
+        if geo_sha != args.geometry_sha256:
+            raise SystemExit(f"geometry sha256 {geo_sha} != expected {args.geometry_sha256}: {args.geometry_npz}")
+        lab_sha = _sha256(args.label_table)
+        if lab_sha != args.label_table_sha256:
+            raise SystemExit(f"label table sha256 {lab_sha} != expected {args.label_table_sha256}")
+        install_shims(args.parquet_path, args.embedding_column, args.label_table)
+        data = ppf.load_physics(argparse.Namespace(labels=",".join((ppf.pl.PRIMARY_LABEL,) + ppf.pl.SECONDARY_LABELS)))
+        X, labels = data["X"], data["labels"]
+        k, n_anchors, d = pcp.K_NEIGHBOURS, pcp.N_ANCHORS, 16
+        a = pcp.anchor_indices(X.shape[0], pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)["anchor_idx"]
+        z = np.load(args.geometry_npz)
+        assert np.array_equal(z["anchor_idx"], a), "anchor draw differs from the stored geometry"
+        geo = pfs.geometry_from_arrays(z["J"], z["Hess"], z["image"])
+    panel = pcp.knn_panel(X, a, k)
+    ov = th.overlap_matrix(panel["indices"])
+    blocks = {G: overlap_blocks(ov, G) for G in (BLOCKS_SENS[0], BLOCKS_MAIN, BLOCKS_SENS[1])}
+    import sklearn, scipy
+    env = {"experiment": EXPERIMENT, "row": "environment", "encoder": args.encoder, "timestamp": _utc_now(),
+           "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "guard": args.guard,
+           "geometry_npz": args.geometry_npz, "geometry_sha256": geo_sha, "parquet_path": args.parquet_path,
+           "embedding_column": args.embedding_column, "label_table": args.label_table, "label_table_sha256": lab_sha,
+           "published_split": args.published_split, "published_cf": args.published_cf, "n_perm": args.n_perm, "n_boot": args.n_boot,
+           "alpha_grid": list(ALPHA_GRID), "numpy": np.__version__, "sklearn": sklearn.__version__, "scipy": scipy.__version__,
+           "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}
+    rows_by_mode: Dict[str, List[dict]] = {"published": [], "tuned": []}
+    cf_by_mode: Dict[str, Dict[str, Any]] = {"published": {}, "tuned": {}}
+    with tempfile.TemporaryDirectory() as tmp:
+        for mode in ("published", "tuned"):
+            for name, y in labels.items():
+                row, arrays = analyse_label(X, np.asarray(y, float), a, panel, geo, d, ov, blocks, mode, args.n_perm, args.n_boot, tmp)
+                row.update({"experiment": EXPERIMENT, "row": "result", "encoder": args.encoder, "label": name})
+                rows_by_mode[mode].append(row); cf_by_mode[mode][name] = arrays
+                print(f"[{mode}] {name}: alpha {row['alpha']:g} OOF R2 {row['global_oof_r2']:.3f} "
+                      f"mismatch {row['partials']['published_controls'][MISMATCH]['partial']:+.3f} "
+                      f"align {row['partials']['published_controls'][ALIGN]['partial']:+.3f} ({time.monotonic() - t0:.0f}s)", flush=True)
+            tables = cf_tables(cf_by_mode[mode], ov, Path(tmp) / mode)
+            for row in rows_by_mode[mode]:
+                row["cf"] = tables["summary"].get(row["label"]); row["sign_test"] = tables["sign"].get(row["label"])
+            if mode == "published" and not args.smoke:
+                ours = {"split": {(r["label"], c): r["partials"]["published_controls"][c] for r in rows_by_mode[mode] for c in (MISMATCH, ALIGN)},
+                        "cf": tables["summary"]}
+                enforce_reproduction(ours, published_reference(args.published_split, args.published_cf), args.guard)
+    ppf._append(env, record_path)
+    if not args.smoke:
+        ppf._append({"experiment": EXPERIMENT, "row": "guard", "encoder": args.encoder, "mode": args.guard, "passed": True,
+                     "timestamp": _utc_now()}, record_path)
+    for mode in ("published", "tuned"):
+        for row in rows_by_mode[mode]:
+            row["timestamp"] = _utc_now(); ppf._append(row, record_path)
+    print(f"DONE {args.encoder} in {time.monotonic() - t0:.0f}s")
+
+
+if __name__ == "__main__":
+    main()
