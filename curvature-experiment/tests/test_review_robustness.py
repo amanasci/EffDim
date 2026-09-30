@@ -68,3 +68,41 @@ def test_global_probe_matches_ridge():
     fin = np.isfinite(y)
     ref = Ridge(alpha=100.0).fit(X[fin], y[fin])
     np.testing.assert_array_equal(w, ref.coef_); assert b0 == float(ref.intercept_)
+
+
+@pytest.fixture(scope="module")
+def smoke():
+    """The split runner's smoke fixture: generator data, a 3-epoch decoder, its geometry at the anchors."""
+    data = rr.ppf.load_smoke(argparse.Namespace(seed=20260905))
+    X = data["X"]; n = X.shape[0]
+    k, n_anchors, d = rr.adj.SMOKE["k"], rr.adj.SMOKE["n_anchors"], rr.adj.SMOKE["d"]
+    a = rr.pcp.anchor_indices(n, rr.pcp.SPLIT_SEED, rr.pcp.HOLDOUT_FRACTION, n_anchors, rr.pcp.ANCHOR_DRAW_SEED)["anchor_idx"]
+    panel = rr.pcp.knn_panel(X, a, k)
+    fit = rr.ppf.fit_decoder(X, d, X.shape[1], 3)
+    with torch.no_grad():
+        z = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long)])
+    geo = rr.ppf.decoder_geometry(fit["curvature_model"], z)
+    return {"X": X, "y": np.asarray(data["labels"]["lin"], float), "a": a, "panel": panel, "geo": geo, "d": d}
+
+
+def test_probe_panel_matches_published_construction(smoke):
+    s = smoke
+    pp = rr.probe_panel(s["X"], s["y"], s["a"], s["panel"], (100.0, 100.0))
+    y_hat = rr.runner._oof_predictions_for_label(s["X"], s["y"], 100.0, rr.pcp.N_OOF_FOLDS, rr.pcp.OOF_FOLD_SEED)
+    loc = rr.pcp.local_r2_panel(s["y"], y_hat, s["panel"]["indices"], rr.pcp.MIN_FINITE_NEIGHBOURS)
+    np.testing.assert_array_equal(pp["r2"], loc["r2"])
+    ks = [kk for kk in rr.ppf.MULTISCALE_KS if kk <= s["panel"]["indices"].shape[1]]
+    assert pp["Z_multi"].shape == (len(s["a"]), len(ks) + 2)
+
+
+def test_extended_controls_and_partials(smoke):
+    s = smoke
+    pp = rr.probe_panel(s["X"], s["y"], s["a"], s["panel"], (100.0, 100.0))
+    w, b0 = rr.global_probe(s["X"], s["y"], 100.0)
+    sq = rr.split_quantities(s["X"], s["y"], s["a"], s["panel"], s["geo"], w, b0, s["d"])
+    Z_ext = rr.extended_controls(pp["Z_multi"], sq["cols"], sq["roughness"])
+    assert Z_ext.shape[1] == pp["Z_multi"].shape[1] + 2
+    np.testing.assert_array_equal(Z_ext[:, -2], sq["cols"]["hess_label"])
+    parts = rr.partials(sq["cols"], pp["r2"], Z_ext, 50)
+    ref = rr.ppf.partial_row(sq["cols"][rr.MISMATCH], pp["r2"], Z_ext, 50)
+    assert parts[rr.MISMATCH]["partial"] == ref["partial"] and set(parts) == {rr.MISMATCH, rr.ALIGN}

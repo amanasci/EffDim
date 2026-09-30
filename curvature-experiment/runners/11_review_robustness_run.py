@@ -85,3 +85,29 @@ def global_probe(X: np.ndarray, y: np.ndarray, alpha: float) -> Tuple[np.ndarray
     fin = np.isfinite(y)
     ridge = Ridge(alpha=float(alpha)).fit(X[fin], y[fin])
     return ridge.coef_.astype(np.float64), float(ridge.intercept_)
+
+
+def probe_panel(X, y, a, panel, alpha_grid) -> Dict[str, Any]:
+    """The split runner's per-label probe block (OOF predictions, local R^2, multi-scale controls), at an alpha grid."""
+    y = np.asarray(y, dtype=np.float64)
+    y_hat, fold_alphas = oof_predictions(X, y, alpha_grid)
+    loc = pcp.local_r2_panel(y, y_hat, panel["indices"], pcp.MIN_FINITE_NEIGHBOURS)
+    k = panel["indices"].shape[1]
+    log_r_multi = np.column_stack([np.log(panel["distances"][:, kk - 1]) for kk in ppf.MULTISCALE_KS if kk <= k])
+    Z_multi = np.column_stack([log_r_multi, loc["local_label_variance"], loc["local_evaluation_count"]])
+    gr2 = 1.0 - float(np.nansum((y - y_hat) ** 2) / np.nansum((y - np.nanmean(y)) ** 2))
+    return {"y_hat": y_hat, "fold_alphas": fold_alphas, "r2": loc["r2"], "Z_multi": Z_multi, "global_oof_r2": gr2}
+
+
+def split_quantities(X, y, a, panel, geo, w, b0, d) -> Dict[str, Any]:
+    lq = pfs.local_quadratics(X, a, panel["indices"], geo, {"y": y, "p": X @ w}, pcp.MIN_FINITE_NEIGHBOURS)
+    cols = pfs.split_columns(geo, w, b0, lq["hess"]["y"], lq["hess"]["p"], d)["cols"]
+    return {"cols": cols, "roughness": 1.0 - lq["r2_lin"]["y"]}
+
+
+def extended_controls(Z_multi: np.ndarray, cols: Dict[str, np.ndarray], roughness: np.ndarray) -> np.ndarray:
+    return np.column_stack([Z_multi, cols["hess_label"], roughness])
+
+
+def partials(cols, r2, Z, n_perm: int) -> Dict[str, Dict[str, Any]]:
+    return {c: ppf.partial_row(cols[c], r2, Z, n_perm) for c in (MISMATCH, ALIGN)}
