@@ -141,3 +141,43 @@ def test_label_functions_match_values():
     for name, f in lab["f"].items():
         with torch.no_grad():
             np.testing.assert_allclose(f(zt).numpy(), lab["y"][name][:5], rtol=1e-12, err_msg=name)
+
+
+import json
+
+
+def test_config_for():
+    c = tf.config_for("small", 16000)
+    assert (c["d"], c["D"], c["n"], c["k"], c["n_anchors"]) == (4, 64, 16000, 500, 64)
+    assert tf.config_for("small", None)["k"] == 128
+    p = tf.config_for("paper", None)
+    assert (p["d"], p["D"], p["n"], p["k"], p["n_anchors"]) == (16, 768, 86471, 2048, 512)
+
+
+def test_end_to_end_smoke(tmp_path):
+    rec = tmp_path / "10_tensor_fidelity.jsonl"
+    rows = tf.run_config(tf.config_for("small", 4000), 0.0, 0, 3, "cpu", "small", rec)
+    assert [r["label"] for r in rows] == ["lin", "nonlin", "lam0", "lam0.5", "lam1", "lam2"]
+    on_disk = [json.loads(l) for l in rec.read_text().splitlines()]
+    assert [r["label"] for r in on_disk] == [r["label"] for r in rows]
+    for r in rows:
+        for t in ("pf_full", "pf_tan", "hess_y"):
+            assert np.isfinite(r[f"cos_{t}_p50"]) and -1.0 <= r[f"cos_{t}_p50"] <= 1.0, (r["label"], t)
+        assert np.isfinite(r["rho_mismatch"]) and np.isfinite(r["rho_align"])
+        assert r["max_abs_H_rad_plus_d"] < 1e-8
+
+
+def test_refuses_production_record(tmp_path, monkeypatch):
+    bad = tmp_path / f"{tf.ppf.PRODUCTION_STEMS[0]}_x.jsonl"
+    monkeypatch.setattr(sys, "argv", ["x", "--mode", "small", "--threads", "8", "--record-path", str(bad)])
+    with pytest.raises(SystemExit, match="refusing"):
+        tf.main()
+    assert not bad.exists()
+
+
+@pytest.mark.skipif(torch.cuda.is_available(), reason="checks the no-GPU refusal")
+def test_cuda_without_gpu_refuses(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["x", "--mode", "small", "--threads", "8", "--device", "cuda",
+                                      "--record-path", str(tmp_path / "r.jsonl")])
+    with pytest.raises(SystemExit, match="CUDA is not available"):
+        tf.main()
