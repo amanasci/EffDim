@@ -43,6 +43,7 @@ from typing import Any, Dict  # noqa: E402
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
+from torch.func import hessian, jacrev, vmap  # noqa: E402
 
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
 
@@ -128,3 +129,52 @@ def score_tensors(est: Dict[str, np.ndarray], truth: Dict[str, np.ndarray],
         okr = np.isfinite(rel)
         out[f"relerr_{t}_p50"] = float(np.median(rel[okr])) if okr.any() else float("nan")
     return out
+
+
+LAMBDAS = (0.0, 0.5, 1.0, 2.0)
+BUMP_WIDTH = 0.8
+LABEL_SEED = 20260930
+
+
+def label_name(lam: float) -> str:
+    return f"lam{lam:g}"
+
+
+def _batched(f, zt: torch.Tensor, batch: int = 8192) -> np.ndarray:
+    with torch.no_grad():
+        return np.concatenate([f(zt[s:s + batch]).numpy() for s in range(0, zt.shape[0], batch)])
+
+
+def make_labels(G: torch.nn.Module, z_all: np.ndarray) -> Dict[str, Any]:
+    """lin, nonlin (the smoke fixture's shapes) and y_lambda = <w0, G(z)>/s_a + lambda * h(z)/s_h."""
+    rng = np.random.default_rng(LABEL_SEED)
+    d, D = G.d, G.D
+    t = lambda v: torch.as_tensor(v, dtype=torch.float64)  # noqa: E731
+    a1 = rng.standard_normal(d); a1 /= np.linalg.norm(a1)
+    a2 = rng.standard_normal(d)
+    w0 = rng.standard_normal(D); w0 /= np.linalg.norm(w0)
+    centres = rng.standard_normal((2, d)) * 0.5
+    a1t, a2t, w0t, ct = t(a1), t(a2), t(w0), t(centres)
+
+    def lin(z): return z @ a1t
+    def nonlin(z): return torch.sin(2 * (z @ a1t)) + (z @ a2t) ** 2
+    def ambient(z): return G.decode(z) @ w0t
+    def bump(z): return torch.exp(-((z[:, None, :] - ct[None, :, :]) ** 2).sum(-1) / (2 * BUMP_WIDTH ** 2)).sum(-1)
+
+    zt = t(z_all)
+    s_a = float(np.std(_batched(ambient, zt))); s_h = float(np.std(_batched(bump, zt)))
+    f: Dict[str, Any] = {"lin": lin, "nonlin": nonlin}
+    for lam in LAMBDAS:
+        f[label_name(lam)] = (lambda lam_: (lambda z: ambient(z) / s_a + lam_ * bump(z) / s_h))(lam)
+    y = {name: _batched(fn, zt) for name, fn in f.items()}
+    return {"f": f, "y": y, "w0": w0, "scales": {"ambient": s_a, "bump": s_h}}
+
+
+def covariant_hessian(f, geo: Dict[str, np.ndarray], z_anchor: np.ndarray) -> np.ndarray:
+    """nabla^2 f = d^2 f - Gamma^k d_k f, Gamma^k_ij = ginv^{kl} J_l . d_i d_j G (float64 autodiff)."""
+    zt = torch.as_tensor(z_anchor, dtype=torch.float64)
+    f_one = lambda z1: f(z1.unsqueeze(0)).squeeze(0)  # noqa: E731
+    grad = vmap(jacrev(f_one))(zt).detach().numpy()
+    hess = vmap(hessian(f_one))(zt).detach().numpy()
+    Gamma = np.einsum("bkl,bal,baij->bkij", geo["ginv"], geo["J"], geo["Hess"])
+    return hess - np.einsum("bkij,bk->bij", Gamma, grad)

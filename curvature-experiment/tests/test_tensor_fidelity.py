@@ -109,3 +109,35 @@ def test_mismatch_scoring_near_zero_truth():
     s = tf.score_tensors(est, truth, geo, geo)
     assert s["n_valid_mismatch"] == 0 and np.isnan(s["cos_mismatch_p50"])
     assert s["relerr_mismatch_p50"] == pytest.approx(1e-3, rel=1e-9)   # normalised by |hess_y_true|
+
+
+def test_labels_names_and_scaling():
+    G = _small_generator()
+    z = tf.adj.draw_latents(2000, G.d, (0.4, 0.6, 0.9), (0.2, 0.5, 0.3), seed=12)
+    lab = tf.make_labels(G, z)
+    assert list(lab["y"]) == ["lin", "nonlin", "lam0", "lam0.5", "lam1", "lam2"]
+    assert np.std(lab["y"]["lam0"]) == pytest.approx(1.0, rel=1e-9)     # ambient term at unit std
+    for name, y in lab["y"].items():
+        assert y.shape == (2000,) and np.all(np.isfinite(y)), name
+
+
+def test_covariant_hessian_identity_at_lambda_zero():
+    """At lambda = 0 the label is <w0, G(z)>/s: its covariant Hessian is <w0, II>/s = <w0_N, II>/s."""
+    G = _small_generator()
+    z = tf.adj.draw_latents(500, G.d, (0.4, 0.6, 0.9), (0.2, 0.5, 0.3), seed=13)
+    lab = tf.make_labels(G, z)
+    za = z[:8]
+    geo = tf.truth_geometry(G, za)
+    got = tf.covariant_hessian(lab["f"]["lam0"], geo, za)
+    want = tf.probe_facing_tensors(geo, lab["w0"])["pf_full"] / lab["scales"]["ambient"]
+    np.testing.assert_allclose(got, want, atol=1e-10, rtol=1e-8)
+
+
+def test_label_functions_match_values():
+    G = _small_generator()
+    z = tf.adj.draw_latents(300, G.d, (0.4, 0.6, 0.9), (0.2, 0.5, 0.3), seed=14)
+    lab = tf.make_labels(G, z)
+    zt = torch.as_tensor(z[:5], dtype=torch.float64)
+    for name, f in lab["f"].items():
+        with torch.no_grad():
+            np.testing.assert_allclose(f(zt).numpy(), lab["y"][name][:5], rtol=1e-12, err_msg=name)
