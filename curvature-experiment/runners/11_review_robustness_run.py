@@ -227,7 +227,14 @@ def surrogate_fidelity(arrays: Dict[str, np.ndarray]) -> Dict[str, Any]:
     return {"spearman": ppf._spearman(dm[m], ds[m]), "median_abs_diff": float(np.median(np.abs(dm[m] - ds[m]))), "n": int(m.sum())}
 
 
+EXPECTED_LABELS = ("mag_r", "photo_z", "smooth_fraction", "stellar_mass")
+CF_VARIANTS = ("S_model", "random_qmatched")
+
+
 def published_reference(split_record, cf_npz) -> Dict[str, Any]:
+    for f in (split_record, cf_npz):
+        if f is None or not Path(f).exists():
+            raise SystemExit(f"published reference missing: {f}")
     rows = [r for r in extract.read_rows(split_record) if r.get("row") != "result" or r.get("d") == 16]
     return {"split": {k: {"partial": v["partial"], "p": v["p"]} for k, v in extract.split_cells(rows).items()
                       if k[1] in (MISMATCH, ALIGN)},
@@ -252,10 +259,25 @@ def reproduction_diffs(ours: Dict[str, Any], ref: Dict[str, Any], mode: str) -> 
     return out
 
 
-def enforce_reproduction(ours, ref, mode: str) -> None:
-    diffs = reproduction_diffs(ours, ref, mode)
+def reference_gaps(ref: Dict[str, Any], labels) -> List[str]:
+    """Cells the guard must compare but the reference lacks: a guard over an empty reference proves nothing."""
+    gaps = [f"{lab} {c}: not in the published split record" for lab in labels for c in (MISMATCH, ALIGN) if (lab, c) not in ref["split"]]
+    gaps += [f"{lab} {v}: not in the published counterfactual" for lab in labels for v in CF_VARIANTS if v not in ref["cf"].get(lab, {})]
+    return gaps
+
+
+def guard_summary(ours: Dict[str, Any], ref: Dict[str, Any]) -> Dict[str, Any]:
+    ds = [abs(ours["split"][k]["partial"] - r["partial"]) for k, r in ref["split"].items()]
+    dc = [abs(ours["cf"][lab][var][k] - r[k]) for lab, by in ref["cf"].items() for var, r in by.items() for k in CF_KEYS if k in r]
+    return {"n_split": len(ds), "n_cf": len(dc), "max_abs_diff_split": float(max(ds, default=0.0)),
+            "max_abs_diff_cf": float(max(dc, default=0.0))}
+
+
+def enforce_reproduction(ours, ref, mode: str, labels=EXPECTED_LABELS) -> Dict[str, Any]:
+    diffs = reference_gaps(ref, labels) + reproduction_diffs(ours, ref, mode)
     if diffs:
         raise SystemExit("reproduction guard FAILED at alpha = 100 (no new numbers written):\n  " + "\n  ".join(diffs))
+    return guard_summary(ours, ref)
 
 
 def _utc_now() -> str:
@@ -398,11 +420,14 @@ def main() -> None:
             if mode == "published" and not args.smoke:
                 ours = {"split": {(r["label"], c): r["partials"]["published_controls"][c] for r in rows_by_mode[mode] for c in (MISMATCH, ALIGN)},
                         "cf": tables["summary"]}
-                enforce_reproduction(ours, published_reference(args.published_split, args.published_cf), args.guard)
+                guard = enforce_reproduction(ours, published_reference(args.published_split, args.published_cf), args.guard,
+                                             labels=tuple(labels))
+                guard.update({"published_split_sha256": _sha256(args.published_split),
+                              "published_cf_sha256": _sha256(args.published_cf)})
     ppf._append(env, record_path)
     if not args.smoke:
         ppf._append({"experiment": EXPERIMENT, "row": "guard", "encoder": args.encoder, "mode": args.guard, "passed": True,
-                     "timestamp": _utc_now()}, record_path)
+                     "tolerance": TOLERANCE[args.guard], **guard, "timestamp": _utc_now()}, record_path)
     for mode in ("published", "tuned"):
         for row in rows_by_mode[mode]:
             row["timestamp"] = _utc_now(); ppf._append(row, record_path)

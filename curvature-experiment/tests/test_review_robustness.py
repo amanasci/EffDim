@@ -216,7 +216,7 @@ def test_guard_stops_on_perturbed_reference(tmp_path):
     ours["split"][("mag_r", rr.MISMATCH)]["partial"] += 0.01
     assert rr.reproduction_diffs(ours, ref, "refit") == []                      # within 0.02
     with pytest.raises(SystemExit, match=f"mag_r.*{rr.MISMATCH}"):
-        rr.enforce_reproduction(ours, ref, "exact")
+        rr.enforce_reproduction(ours, ref, "exact", labels=("mag_r",))
     ours["cf"]["mag_r"]["S_model"]["help"] += 1e-3
     assert any("help" in d for d in rr.reproduction_diffs(ours, ref, "refit"))
 
@@ -269,3 +269,49 @@ def test_report_sections(tmp_path):
     for h in ("## Concern 2", "## Concern 3", "## Concern 4", "## Concern 5", "## Limitation", "guard: exact PASS"):
         assert h in text, h
     assert "-0.400" in text      # the re-run tuned row won
+
+
+
+def test_guard_refuses_missing_or_incomplete_reference(tmp_path):
+    p, c = _write_published(tmp_path)
+    with pytest.raises(SystemExit, match="published reference missing"):
+        rr.published_reference(tmp_path / "nope.jsonl", c)
+    ref = rr.published_reference(p, c)
+    ours = {"split": {k: dict(v) for k, v in ref["split"].items()}, "cf": json.loads(json.dumps(ref["cf"]))}
+    with pytest.raises(SystemExit, match="photo_z"):          # the reference holds mag_r only
+        rr.enforce_reproduction(ours, ref, "exact")
+
+
+def test_guard_summary_counts_and_max_diff(tmp_path):
+    p, c = _write_published(tmp_path)
+    ref = rr.published_reference(p, c)
+    ours = {"split": {k: dict(v) for k, v in ref["split"].items()}, "cf": json.loads(json.dumps(ref["cf"]))}
+    ours["split"][("mag_r", rr.MISMATCH)]["partial"] += 0.005
+    s = rr.enforce_reproduction(ours, ref, "refit", labels=("mag_r",))
+    assert s["n_split"] == 2 and s["n_cf"] > 0
+    assert s["max_abs_diff_split"] == pytest.approx(0.005) and s["max_abs_diff_cf"] == 0.0
+
+
+def _res_full(enc, lab, mode, mis, lo, hi, alpha=100.0):
+    r = _res(enc, lab, mode, mis)
+    r["alpha"] = alpha; r["fold_alphas"] = [0.1] * 5
+    r["bootstrap"]["32"][rr.MISMATCH].update({"lo": lo, "hi": hi, "excludes_zero": lo > 0 or hi < 0})
+    r["cf"]["random_qmatched"]["help"] = 0.07; r["cf"]["S_model"]["t_star"] = 0.61
+    return r
+
+
+def test_report_discloses_alpha_edge_and_dependence_at_alpha_star(tmp_path):
+    rows = [{"row": "environment", "encoder": "vit_base", "alpha_grid": list(rr.ALPHA_GRID)},
+            {"row": "guard", "encoder": "vit_base", "mode": "exact", "passed": True, "n_split": 8, "n_cf": 40,
+             "max_abs_diff_split": 0.0, "max_abs_diff_cf": 0.0}]
+    rows += [_res_full("vit_base", "stellar_mass", "published", -0.04, -0.2, 0.1),
+             _res_full("vit_base", "stellar_mass", "tuned", -0.132, -0.274, 0.077, alpha=min(rr.ALPHA_GRID))]
+    p = tmp_path / "r.jsonl"; p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    rep.write_report(rep.load([p]), tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    assert "grid edge" in text and "0.1 x5" in text
+    assert "anchor-level permutation" in text
+    assert "| vit_base | stellar_mass | alpha* | hess_mismatch_emp | -0.132 | [-0.274, +0.077] |" in text
+    assert "8 split cells and 40 counterfactual values" in text and "max |diff| 0" in text
+    assert "0.07" in text and "0.61" in text                     # random null help and t*
+    assert "appendix" in text.lower() and "|local R2(surrogate) - local R2(probe)|" in text
