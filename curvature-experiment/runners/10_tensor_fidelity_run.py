@@ -21,7 +21,7 @@ NOT PRE-REGISTERED FOR THE PAPER, GATES NOTHING.
 
 Usage:
     python curvature-experiment/runners/10_tensor_fidelity_run.py --mode small --n 4000 --noise 0 --seed 0 --threads 8
-    python curvature-experiment/runners/10_tensor_fidelity_run.py --mode paper --noise 0.25 --seed 0 --threads 8 \\
+    python curvature-experiment/runners/10_tensor_fidelity_run.py --mode full --noise 0.25 --seed 0 --threads 8 \\
         --device cuda --deterministic
 """
 
@@ -193,7 +193,7 @@ def _utc_now() -> str:
 
 
 def config_for(mode: str, n) -> Dict[str, Any]:
-    if mode == "paper":
+    if mode == "full":
         return dict(adj.FIXTURE)
     n = int(n) if n is not None else int(adj.SMOKE["n"])
     return {**adj.SMOKE, "n": n, "k": 128 if n <= 4000 else n // 32, "n_anchors": 64}
@@ -259,7 +259,7 @@ def run_config(cfg: Dict[str, Any], noise_frac: float, seed: int, max_epochs: in
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--mode", choices=["small", "paper"], required=True)
+    p.add_argument("--mode", choices=["small", "full"], required=True)
     p.add_argument("--n", type=int, default=None, help="small mode only; default 4000")
     p.add_argument("--noise", type=float, default=0.0, help="fraction of the median k-NN patch radius")
     p.add_argument("--seed", type=int, default=0, help="latent draw, noise and decoder init")

@@ -239,7 +239,7 @@ NOT PRE-REGISTERED FOR THE PAPER, GATES NOTHING.
 
 Usage:
     python curvature-experiment/runners/10_tensor_fidelity_run.py --mode small --n 4000 --noise 0 --seed 0 --threads 8
-    python curvature-experiment/runners/10_tensor_fidelity_run.py --mode paper --noise 0.25 --seed 0 --threads 8 \\
+    python curvature-experiment/runners/10_tensor_fidelity_run.py --mode full --noise 0.25 --seed 0 --threads 8 \\
         --device cuda --deterministic
 """
 
@@ -936,9 +936,9 @@ Expected: 36 `DONE` lines, no `FAILED`. `wc -l $OUT/small.jsonl` = 36 × 7 = 252
 
 ```bash
 cd /mnt/ssd-cluster/EffDim/repo/curvature-experiment && mkdir -p /mnt/ssd-cluster/EffDim/tensor-fidelity
-CUDA_VISIBLE_DEVICES=<gpu_a> /mnt/ssd-cluster/EffDim/venv/bin/python runners/10_tensor_fidelity_run.py --mode paper --noise 0 --seed 0 \
+CUDA_VISIBLE_DEVICES=<gpu_a> /mnt/ssd-cluster/EffDim/venv/bin/python runners/10_tensor_fidelity_run.py --mode full --noise 0 --seed 0 \
   --threads 8 --device cuda --deterministic --record-path /mnt/ssd-cluster/EffDim/tensor-fidelity/paper_noise0.jsonl 2>&1 | tee /mnt/ssd-cluster/EffDim/tensor-fidelity/paper_noise0.log
-CUDA_VISIBLE_DEVICES=<gpu_b> /mnt/ssd-cluster/EffDim/venv/bin/python runners/10_tensor_fidelity_run.py --mode paper --noise 0.25 --seed 0 \
+CUDA_VISIBLE_DEVICES=<gpu_b> /mnt/ssd-cluster/EffDim/venv/bin/python runners/10_tensor_fidelity_run.py --mode full --noise 0.25 --seed 0 \
   --threads 8 --device cuda --deterministic --record-path /mnt/ssd-cluster/EffDim/tensor-fidelity/paper_noise025.jsonl 2>&1 | tee /mnt/ssd-cluster/EffDim/tensor-fidelity/paper_noise025.log
 ```
   Expected: each log ends `DONE in <n>s`. If `use_deterministic_algorithms` raises on an op or CUDA runs out of memory, stop and report BLOCKED with the log tail.

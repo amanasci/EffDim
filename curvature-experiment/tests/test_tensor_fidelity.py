@@ -150,7 +150,7 @@ def test_config_for():
     c = tf.config_for("small", 16000)
     assert (c["d"], c["D"], c["n"], c["k"], c["n_anchors"]) == (4, 64, 16000, 500, 64)
     assert tf.config_for("small", None)["k"] == 128
-    p = tf.config_for("paper", None)
+    p = tf.config_for("full", None)
     assert (p["d"], p["D"], p["n"], p["k"], p["n_anchors"]) == (16, 768, 86471, 2048, 512)
 
 
@@ -181,3 +181,51 @@ def test_cuda_without_gpu_refuses(tmp_path, monkeypatch):
                                       "--record-path", str(tmp_path / "r.jsonl")])
     with pytest.raises(SystemExit, match="CUDA is not available"):
         tf.main()
+
+
+rep = _load("10_tensor_fidelity_report.py")
+
+
+def _row(n, noise, seed, label, cos, rho, mode="small"):
+    r = {"experiment": "tensor-fidelity", "row": "result", "mode": mode, "n": n, "noise_frac": noise, "seed": seed,
+         "label": label, "rho_mismatch": rho, "rho_align": rho, "var_explained": 0.99}
+    for t in tf.TENSORS:
+        r.update({f"cos_{t}_p50": cos, f"cos_{t}_p25": cos, f"relerr_{t}_p50": 0.1, f"n_valid_{t}": 64})
+    return r
+
+
+def _write(path, rows):
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+
+LABELS = ["lin", "nonlin", "lam0", "lam0.5", "lam1", "lam2"]
+
+
+def test_report_dedupes_reruns(tmp_path):
+    p = tmp_path / "r.jsonl"
+    _write(p, [{"row": "environment"}, _row(4000, 0.0, 0, "lin", 0.1, 0.1), _row(4000, 0.0, 0, "lin", 0.9, 0.9)])
+    rows = rep.load_rows([p])
+    assert len(rows) == 1 and rows[0]["cos_pf_full_p50"] == 0.9
+
+
+def test_pass_lines_use_largest_n_and_skip_lam0_rho(tmp_path):
+    rows = [_row(4000, 0.0, s, lab, 0.1, 0.1) for s in range(3) for lab in LABELS]            # small n fails
+    rows += [_row(64000, 0.0, s, lab, 0.9, (0.0 if lab == "lam0" else 0.8)) for s in range(3) for lab in LABELS]
+    rows += [_row(64000, 0.5, s, lab, 0.1, 0.1) for s in range(3) for lab in LABELS]           # noisy ignored
+    pl = rep.pass_lines(rows)
+    assert pl["n"] == 64000 and pl["pass"] is True
+    assert pl["per_label"]["lam0"]["rho"] is None
+
+
+def test_pass_lines_fail(tmp_path):
+    rows = [_row(64000, 0.0, s, lab, 0.9, 0.5) for s in range(3) for lab in LABELS]
+    assert rep.pass_lines(rows)["pass"] is False
+
+
+def test_write_report(tmp_path):
+    rows = [_row(n, nz, s, lab, 0.9, 0.8) for n in (4000, 16000) for nz in (0.0, 0.25) for s in range(2) for lab in LABELS]
+    rows += [_row(86471, nz, 0, lab, 0.85, 0.75, mode="full") for nz in (0.0, 0.25) for lab in LABELS]
+    rep.write_report(rows, tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    assert text.startswith("# Tensor fidelity") and "PASS" in text and "## Paper scale" in text
+    assert (tmp_path / "fig_tensor_fidelity.png").stat().st_size > 0
