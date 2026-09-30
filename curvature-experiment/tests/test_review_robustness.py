@@ -310,7 +310,8 @@ def test_report_discloses_alpha_edge_and_dependence_at_alpha_star(tmp_path):
     rep.write_report(rep.load([p]), tmp_path)
     text = (tmp_path / "REPORT.md").read_text()
     assert "grid edge" in text and "0.1 x5" in text
-    assert "anchor-level permutation" in text
+    assert "(0.001..1e+04): the optimum is then not interior" in text
+    assert "p-values are anchor-level permutation p's" in text
     assert "| vit_base | stellar_mass | alpha* | hess_mismatch_emp | -0.132 | [-0.274, +0.077] |" in text
     assert "8 split cells and 40 counterfactual values" in text and "max |diff| 0" in text
     assert "0.07" in text and "0.61" in text                     # random null help and t*

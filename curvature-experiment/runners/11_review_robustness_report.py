@@ -71,7 +71,7 @@ def write_report(data: Dict[str, Any], out_dir: Path) -> None:
           "alpha* is chosen by RidgeCV (leave-one-out) on all rows and sets the global probe w (and so w_N, the geometry "
           "columns and the counterfactual); the local R2 outcome uses out-of-fold predictions whose alpha is chosen inside "
           "each outer fold (fold alphas column). The two can differ. `grid edge` marks alpha* at the end of the grid "
-          f"({edges[0]:.3g}..{edges[1]:.3g}" if grid else "(grid not recorded"
+          + (f"({edges[0]:.3g}..{edges[1]:.3g}" if grid else "(grid not recorded") +
           "): the optimum is then not interior and the tuned w is the least regularised the "
           "grid allows. p-values are anchor-level permutation p's; Concern 4 gives dependence-aware intervals, which are the "
           "ones to quote.", "",
