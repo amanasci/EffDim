@@ -242,3 +242,30 @@ def test_smoke_end_to_end(tmp_path, monkeypatch):
         assert np.isfinite(r["partials"]["published_controls"][rr.MISMATCH]["partial"])
         assert set(r["bootstrap"]) == {"16", "32", "64"} and "heldout" in r and "surrogate" in r and "cf" in r
     assert all(r["alpha"] == 100.0 for r in res if r["alpha_mode"] == "published")
+
+
+rep = _load("11_review_robustness_report.py")
+
+
+def _res(enc, lab, mode, mis):
+    part = {rr.MISMATCH: {"partial": mis, "p": 0.001}, rr.ALIGN: {"partial": 0.2, "p": 0.01}}
+    boot = {c: {"lo": mis - 0.1, "hi": mis + 0.1, "excludes_zero": True, "n_ok": 2000, "n_skipped": 0} for c in (rr.MISMATCH, rr.ALIGN)}
+    return {"row": "result", "encoder": enc, "label": lab, "alpha_mode": mode, "alpha": 100.0 if mode == "published" else 3.7,
+            "global_oof_r2": 0.6, "partials": {"published_controls": part, "extended_controls": part},
+            "bootstrap": {"16": boot, "32": boot, "64": boot}, "thinned": {c: {"partial": 0.1, "p": 0.3, "n_kept": 22} for c in part},
+            "heldout": {"median": 0.03, "p05": 0.01, "p95": 0.05, "frac_pos": 1.0, "n_splits": 20},
+            "cf": {"S_model": {"help": 0.8, "hurt": 0.9, "t_star": 0.7}, "random_qmatched": {"help": 0.4, "hurt": 0.5}},
+            "sign_test": {"n": 15, "help": 0.8, "p_help": 0.01}, "surrogate": {"spearman": 0.95, "median_abs_diff": 0.001, "n": 512}}
+
+
+def test_report_sections(tmp_path):
+    rows = [{"row": "environment", "encoder": "vit_base", "numpy": "2.5.1"}, {"row": "guard", "encoder": "vit_base", "mode": "exact", "passed": True}]
+    rows += [_res("vit_base", "mag_r", m, -0.3) for m in ("published", "tuned")] + [_res("vit_base", "mag_r", "tuned", -0.4)]
+    p = tmp_path / "r.jsonl"; p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    data = rep.load([p])
+    assert len(data["rows"]) == 2
+    rep.write_report(data, tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    for h in ("## Concern 2", "## Concern 3", "## Concern 4", "## Concern 5", "## Limitation", "guard: exact PASS"):
+        assert h in text, h
+    assert "-0.400" in text      # the re-run tuned row won
