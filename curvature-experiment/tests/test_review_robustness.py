@@ -148,3 +148,15 @@ def test_thinned_partial_uses_independent_anchors():
     x, r2, Z = _synthetic_partial(100, rng)
     t = rr.thinned_partial(x, r2, Z, ov, 0.10, 50)
     assert t["n_kept"] == int(rr.extract._indep(ov, 0.10).sum()) and "partial" in t
+
+
+def test_heldout_positive_with_signal_zero_with_noise():
+    rng = np.random.default_rng(3)
+    n = 512
+    Zb = rng.standard_normal((n, 3)); g = rng.standard_normal((n, 2)); blocks = np.arange(n) % 32
+    r2_sig = Zb @ np.array([0.3, 0.2, 0.1]) + g @ np.array([0.8, -0.5]) + 0.5 * rng.standard_normal(n)
+    r2_noise = Zb @ np.array([0.3, 0.2, 0.1]) + 0.5 * rng.standard_normal(n)
+    sig = rr.heldout_delta_r2(r2_sig, Zb, g, blocks, 20, 0)
+    noi = rr.heldout_delta_r2(r2_noise, Zb, g, blocks, 20, 0)
+    assert sig["median"] > 0.05 and sig["frac_pos"] == 1.0
+    assert abs(noi["median"]) < 0.02 and sig["n_splits"] == 20

@@ -155,3 +155,30 @@ def thinned_partial(x, r2, Z, ov, thr: float, n_perm: int) -> Dict[str, Any]:
     out = ppf.partial_row(np.asarray(x, float)[keep], np.asarray(r2, float)[keep], np.asarray(Z, float)[keep], n_perm)
     out["n_kept"] = int(keep.sum())
     return out
+
+
+def _ols_r2_heldout(yA, XA, yB, XB) -> float:
+    A = np.column_stack([np.ones(len(yA)), XA]); B = np.column_stack([np.ones(len(yB)), XB])
+    beta, *_ = np.linalg.lstsq(A, yA, rcond=None)
+    resid = yB - B @ beta
+    return 1.0 - float(resid @ resid) / max(float(((yB - yB.mean()) ** 2).sum()), 1e-300)
+
+
+def heldout_delta_r2(r2, Z_base, Z_geo, blocks, n_splits: int, seed: int) -> Dict[str, Any]:
+    """Out-of-sample R^2 of (base + geometry) minus (base), fitting on half the blocks and scoring on the rest."""
+    from scipy.stats import rankdata
+    Zb = np.asarray(Z_base, float); Zg = np.asarray(Z_geo, float)
+    Zb = Zb[:, None] if Zb.ndim == 1 else Zb; Zg = Zg[:, None] if Zg.ndim == 1 else Zg
+    m = np.isfinite(r2) & np.all(np.isfinite(Zb), axis=1) & np.all(np.isfinite(Zg), axis=1)
+    y = rankdata(np.asarray(r2, float)[m])
+    Zb = np.column_stack([rankdata(c) for c in Zb[m].T]); Zg = np.column_stack([rankdata(c) for c in Zg[m].T])
+    bl = np.asarray(blocks)[m]; ub = np.unique(bl)
+    rng = np.random.default_rng(seed); deltas = []
+    for _ in range(n_splits):
+        inA = np.isin(bl, rng.permutation(ub)[: len(ub) // 2]); inB = ~inA
+        base = _ols_r2_heldout(y[inA], Zb[inA], y[inB], Zb[inB])
+        full = _ols_r2_heldout(y[inA], np.column_stack([Zb, Zg])[inA], y[inB], np.column_stack([Zb, Zg])[inB])
+        deltas.append(full - base)
+    d = np.asarray(deltas)
+    return {"median": float(np.median(d)), "p05": float(np.percentile(d, 5)), "p95": float(np.percentile(d, 95)),
+            "frac_pos": float(np.mean(d > 0)), "n_splits": int(n_splits)}
