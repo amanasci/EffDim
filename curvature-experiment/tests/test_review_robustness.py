@@ -106,3 +106,45 @@ def test_extended_controls_and_partials(smoke):
     parts = rr.partials(sq["cols"], pp["r2"], Z_ext, 50)
     ref = rr.ppf.partial_row(sq["cols"][rr.MISMATCH], pp["r2"], Z_ext, 50)
     assert parts[rr.MISMATCH]["partial"] == ref["partial"] and set(parts) == {rr.MISMATCH, rr.ALIGN}
+
+
+def test_overlap_blocks_count():
+    rng = np.random.default_rng(0)
+    neigh = np.array([rng.choice(500, 40, replace=False) for _ in range(120)])
+    ov = rr.th.overlap_matrix(neigh)
+    b = rr.overlap_blocks(ov, 16)
+    assert b.shape == (120,) and len(np.unique(b)) == 16
+
+
+def _synthetic_partial(n, rng):
+    Z = rng.standard_normal((n, 2)); x = rng.standard_normal(n)
+    r2 = 0.4 * x + Z @ np.array([0.5, -0.3]) + rng.standard_normal(n)
+    return x, r2, Z
+
+
+def test_cluster_bootstrap_covers_truth():
+    rng = np.random.default_rng(1)
+    truth = rr.pcp.controlled_partial(*_synthetic_partial(200000, rng))
+    cover = 0
+    for rep in range(200):
+        x, r2, Z = _synthetic_partial(256, rng)
+        blocks = rng.integers(0, 32, 256)
+        ci = rr.cluster_bootstrap(x, r2, Z, blocks, 200, rep)
+        cover += ci["lo"] <= truth <= ci["hi"]
+    assert 0.90 <= cover / 200 <= 0.99
+
+
+def test_bootstrap_skips_degenerate_replicates():
+    x = np.full(40, np.nan); x[:3] = [1.0, 2.0, 3.0]
+    r2 = np.arange(40.0); Z = np.ones((40, 1)); blocks = np.arange(40) % 8
+    ci = rr.cluster_bootstrap(x, r2, Z, blocks, 50, 0)
+    assert ci["n_ok"] + ci["n_skipped"] == 50 and ci["n_skipped"] > 0
+
+
+def test_thinned_partial_uses_independent_anchors():
+    rng = np.random.default_rng(2)
+    neigh = np.array([rng.choice(2000, 30, replace=False) for _ in range(100)])
+    ov = rr.th.overlap_matrix(neigh)
+    x, r2, Z = _synthetic_partial(100, rng)
+    t = rr.thinned_partial(x, r2, Z, ov, 0.10, 50)
+    assert t["n_kept"] == int(rr.extract._indep(ov, 0.10).sum()) and "partial" in t

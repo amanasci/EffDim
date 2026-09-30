@@ -41,6 +41,7 @@ from sklearn.model_selection import KFold  # noqa: E402
 
 from pu_manifold import linear_probe  # noqa: E402
 from pu_manifold import physics_curvature_probe as pcp  # noqa: E402
+from sweep import extract  # noqa: E402
 
 EXPERIMENT = "review-robustness"
 ALPHA_GRID = tuple(float(a) for a in np.logspace(-3, 4, 15))
@@ -111,3 +112,46 @@ def extended_controls(Z_multi: np.ndarray, cols: Dict[str, np.ndarray], roughnes
 
 def partials(cols, r2, Z, n_perm: int) -> Dict[str, Dict[str, Any]]:
     return {c: ppf.partial_row(cols[c], r2, Z, n_perm) for c in (MISMATCH, ALIGN)}
+
+
+def overlap_blocks(ov: np.ndarray, n_blocks: int) -> np.ndarray:
+    """Average-linkage clustering of the anchors on 1 - neighbourhood overlap, cut into n_blocks clusters."""
+    from scipy.cluster.hierarchy import fcluster, linkage
+    from scipy.spatial.distance import squareform
+    D = 1.0 - np.asarray(ov, float); D = 0.5 * (D + D.T); np.fill_diagonal(D, 0.0)
+    return fcluster(linkage(squareform(D, checks=False), "average"), n_blocks, criterion="maxclust") - 1
+
+
+def cluster_bootstrap(x, r2, Z, blocks, n_boot: int, seed: int) -> Dict[str, Any]:
+    """Resample whole blocks with replacement; 95% percentile interval of the controlled partial Spearman."""
+    x, r2, Z = np.asarray(x, float), np.asarray(r2, float), np.asarray(Z, float)
+    if Z.ndim == 1:
+        Z = Z[:, None]
+    ok = np.isfinite(x) & np.isfinite(r2) & np.all(np.isfinite(Z), axis=1)
+    ub = np.unique(blocks); members = [np.where(blocks == b)[0] for b in ub]
+    rng = np.random.default_rng(seed)
+    vals: List[float] = []; skipped = 0
+    for _ in range(n_boot):
+        ii = np.concatenate([members[j] for j in rng.integers(0, len(ub), len(ub))])
+        ii = ii[ok[ii]]
+        if ii.size < Z.shape[1] + 4:
+            skipped += 1; continue
+        try:
+            v = float(pcp.controlled_partial(x[ii], r2[ii], Z[ii]))
+        except (ValueError, np.linalg.LinAlgError):
+            skipped += 1; continue
+        if np.isfinite(v):
+            vals.append(v)
+        else:
+            skipped += 1
+    if not vals:
+        return {"lo": float("nan"), "hi": float("nan"), "excludes_zero": False, "n_ok": 0, "n_skipped": skipped}
+    lo, hi = (float(v) for v in np.percentile(vals, [2.5, 97.5]))
+    return {"lo": lo, "hi": hi, "excludes_zero": bool(lo > 0 or hi < 0), "n_ok": len(vals), "n_skipped": skipped}
+
+
+def thinned_partial(x, r2, Z, ov, thr: float, n_perm: int) -> Dict[str, Any]:
+    keep = extract._indep(np.asarray(ov, float), thr)
+    out = ppf.partial_row(np.asarray(x, float)[keep], np.asarray(r2, float)[keep], np.asarray(Z, float)[keep], n_perm)
+    out["n_kept"] = int(keep.sum())
+    return out
