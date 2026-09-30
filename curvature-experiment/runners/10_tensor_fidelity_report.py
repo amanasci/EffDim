@@ -52,28 +52,55 @@ def pass_lines(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         if not rs:
             continue
         cos = _med(rs, "cos_pf_full_p50")
+        cos_tan = _med(rs, "cos_pf_tan_p50")
         rho = None if lab == tf.label_name(0.0) else _med(rs, "rho_mismatch")
         ok = cos >= tf.TENSOR_COS_PASS and (rho is None or rho >= tf.MISMATCH_RHO_PASS)
-        per[lab] = {"cos": cos, "rho": rho, "pass": bool(ok)}
-    return {"n": n, "per_label": per, "pass": bool(per) and all(v["pass"] for v in per.values())}
+        per[lab] = {"cos": cos, "cos_tan": cos_tan, "rho": rho, "pass": bool(ok),
+                    "pass_tan": bool(cos_tan >= tf.TENSOR_COS_PASS)}
+    return {"n": n, "per_label": per, "pass": bool(per) and all(v["pass"] for v in per.values()),
+            "pass_tan": bool(per) and all(v["pass_tan"] for v in per.values())}
 
 
 def _f(v) -> str:
     return "--" if v is None or not np.isfinite(v) else f"{v:+.3f}"
 
 
+NI = "n/i"
+"""Not interpretable: lam0's true mismatch is a ridge-shrinkage residual (~3% of |hess_y|), so its mismatch
+cosine and Spearman compare estimation error with that residual."""
+
+
 def _table(rows: List[Dict[str, Any]], mode: str) -> List[str]:
-    L = ["| n | noise | label | cos pf_full | cos pf_tan | cos hess_y | cos mismatch | rho mismatch | rho align | var. expl. |",
-         "|---|---|---|---|---|---|---|---|---|---|"]
+    L = ["| n | noise | label | cos pf_full | cos pf_tan | cos hess_y | cos mismatch | rho mismatch | rho align "
+         "| p25 cos pf_tan | relerr pf_tan | relerr hess_y | relerr mismatch | var. expl. |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     rs = [r for r in rows if r["mode"] == mode]
     for n in sorted({r["n"] for r in rs}):
         for nz in sorted({r["noise_frac"] for r in rs}):
             for lab in LABELS:
                 g = [r for r in rs if r["n"] == n and r["noise_frac"] == nz and r["label"] == lab]
                 if g:
-                    L.append(f"| {n} | {nz:g} | {lab} | " + " | ".join(_f(_med(g, f"cos_{t}_p50")) for t in tf.TENSORS)
-                             + f" | {_f(_med(g, 'rho_mismatch'))} | {_f(_med(g, 'rho_align'))} | {_med(g, 'var_explained'):.3f} |")
+                    lam0 = lab == tf.label_name(0.0)
+                    cos = [_f(_med(g, f"cos_{t}_p50")) for t in tf.TENSORS]
+                    if lam0:
+                        cos[3] = NI
+                    rho = NI if lam0 else _f(_med(g, "rho_mismatch"))
+                    rel = " | ".join(f"{_med(g, f'relerr_{t}_p50'):.3f}" for t in ("pf_tan", "hess_y", "mismatch"))
+                    L.append(f"| {n} | {nz:g} | {lab} | " + " | ".join(cos) + f" | {rho} | {_f(_med(g, 'rho_align'))} | "
+                             f"{_f(_med(g, 'cos_pf_tan_p25'))} | {rel} | {_med(g, 'var_explained'):.3f} |")
     return L
+
+
+def _full_readout(rows: List[Dict[str, Any]]) -> List[str]:
+    out = []
+    full = [r for r in rows if r["mode"] == "full"]
+    for nz in sorted({r["noise_frac"] for r in full}):
+        g = [r for r in full if r["noise_frac"] == nz]
+        tan = [r["cos_pf_tan_p50"] for r in g]; rel = [r["relerr_hess_y_p50"] for r in g]
+        below = sum(v < tf.TENSOR_COS_PASS for v in tan)
+        out.append(f"- noise {nz:g}: pf_tan cosine {_f(min(tan))} to {_f(max(tan))} (below the {tf.TENSOR_COS_PASS} line for "
+                   f"{below} of {len(tan)} labels); relerr hess_y {min(rel):.3f} to {max(rel):.3f}")
+    return out
 
 
 def write_report(rows: List[Dict[str, Any]], out_dir: Path) -> None:
@@ -85,12 +112,23 @@ def write_report(rows: List[Dict[str, Any]], out_dir: Path) -> None:
     L = ["# Tensor fidelity", "",
          f"Pass lines (fixed in source before any run): noise-free small fixture at n={pl['n']}, per label the median over "
          f"seeds of the median pf_full cosine >= {tf.TENSOR_COS_PASS} and mismatch-norm Spearman >= {tf.MISMATCH_RHO_PASS} "
-         f"(Spearman not tested for {tf.label_name(0.0)}, whose true mismatch is ~0 by construction).", "",
-         f"**Overall: {'PASS' if pl['pass'] else 'FAIL'}**", "", "| label | cos pf_full | rho mismatch | result |", "|---|---|---|---|"]
+         f"(Spearman not tested for {tf.label_name(0.0)}: its true mismatch is only a ridge-shrinkage residual, about 3% of "
+         f"|hess_y|, so its mismatch columns are marked {NI}).", "",
+         "What the pre-registered line can and cannot show: on the unit sphere <w_N, II> = <w_N, II_tan> - (w.x_hat) g, and the "
+         "radial term -(w.x_hat) g is recovered by any estimate with the right tangent plane (w is shared, x_hat is the data "
+         "point). It dominates pf_full for most labels, so the pf_full line mostly certifies that trivial part. The "
+         "informative test of the full contraction is the in-sphere part pf_tan, reported beside it against the same "
+         f"{tf.TENSOR_COS_PASS} line; that second line was added after review, not pre-registered. Cosines ignore scale: "
+         "the relerr columns give the magnitude error.", "",
+         f"**Pre-registered (pf_full): {'PASS' if pl['pass'] else 'FAIL'}**", "",
+         f"**In-sphere part (pf_tan, added after review): {'PASS' if pl['pass_tan'] else 'FAIL'}**", "",
+         "| label | cos pf_full | cos pf_tan | rho mismatch | pre-registered | pf_tan line |", "|---|---|---|---|---|---|"]
     for lab, v in pl["per_label"].items():
-        L.append(f"| {lab} | {_f(v['cos'])} | {_f(v['rho'])} | {'PASS' if v['pass'] else 'FAIL'} |")
+        L.append(f"| {lab} | {_f(v['cos'])} | {_f(v['cos_tan'])} | {_f(v['rho'])} | {'PASS' if v['pass'] else 'FAIL'} "
+                 f"| {'PASS' if v['pass_tan'] else 'FAIL'} |")
     L += ["", "## Small fixture (d=4, D=64), medians over seeds", ""] + _table(rows, "small")
-    L += ["", "## Paper scale (d=16, D=768, n=86,471)", ""] + _table(rows, "full") + [""]
+    L += ["", "## Paper scale (d=16, D=768, n=86,471)", "", "Read-out (not a pass line):"] + _full_readout(rows) + [""]
+    L += _table(rows, "full") + [""]
     (out_dir / "REPORT.md").write_text("\n".join(L))
 
     small = [r for r in rows if r["mode"] == "small"]

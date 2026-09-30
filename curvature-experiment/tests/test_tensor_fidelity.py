@@ -229,3 +229,45 @@ def test_write_report(tmp_path):
     text = (tmp_path / "REPORT.md").read_text()
     assert text.startswith("# Tensor fidelity") and "PASS" in text and "## Paper scale" in text
     assert (tmp_path / "fig_tensor_fidelity.png").stat().st_size > 0
+
+
+def _row_t(n, noise, seed, label, cos, mode="small", **over):
+    r = _row(n, noise, seed, label, cos, 0.8, mode=mode)
+    r.update(over)
+    return r
+
+
+def test_report_headlines_pf_tan_beside_the_preregistered_line(tmp_path):
+    """pf_full is dominated by the sphere's radial term, so pf_tan is reported as a co-headline."""
+    rows = [_row_t(64000, 0.0, s, lab, 0.99, cos_pf_tan_p50=0.5) for s in range(3) for lab in LABELS]
+    pl = rep.pass_lines(rows)
+    assert pl["pass"] is True and pl["pass_tan"] is False
+    assert pl["per_label"]["lin"]["cos_tan"] == 0.5
+    rep.write_report(rows, tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    assert "**Pre-registered (pf_full): PASS**" in text
+    assert "**In-sphere part (pf_tan, added after review): FAIL**" in text
+    assert "radial" in text
+
+
+def test_report_tables_show_relative_errors(tmp_path):
+    rows = [_row_t(4000, 0.0, 0, lab, 0.9, relerr_hess_y_p50=1.234) for lab in LABELS]
+    rep.write_report(rows, tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    assert "relerr hess_y" in text and "1.234" in text
+
+
+def test_report_marks_lam0_mismatch_not_interpretable(tmp_path):
+    rows = [_row_t(4000, 0.0, 0, lab, 0.9) for lab in LABELS]
+    rep.write_report(rows, tmp_path)
+    lam0 = [l for l in (tmp_path / "REPORT.md").read_text().splitlines() if l.startswith("| 4000 | 0 | lam0 |")]
+    assert len(lam0) == 1 and lam0[0].count("n/i") == 2
+
+
+def test_report_states_paper_scale_ranges(tmp_path):
+    rows = [_row_t(4000, 0.0, 0, lab, 0.9) for lab in LABELS]
+    rows += [_row_t(86471, 0.25, 0, lab, 0.99, mode="full", cos_pf_tan_p50=0.6 + 0.01 * i, relerr_hess_y_p50=1.2)
+             for i, lab in enumerate(LABELS)]
+    rep.write_report(rows, tmp_path)
+    text = (tmp_path / "REPORT.md").read_text()
+    assert "- noise 0.25: pf_tan cosine +0.600 to +0.650 (below the 0.8 line for 6 of 6 labels); relerr hess_y 1.200 to 1.200" in text
