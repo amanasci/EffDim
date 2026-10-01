@@ -266,7 +266,7 @@ def _fig_robust(data: List[EncData], out_dir: Path) -> None:
 
 
 # ------------------------------------------------------------------ report
-def _report(data: List[EncData], n_total: int) -> str:
+def _report(data: List[EncData], n_total: int, published_dir: Optional[Path] = None) -> str:
     have = [x for x in data if x.has_any]
     done = [x for x in data if x.complete]
     L = [f"{len(have)} of {n_total} encoders have records", f"{len(done)} of {n_total} encoders complete all {len(JOB_SUFFIXES)} jobs", ""]
@@ -324,7 +324,124 @@ def _report(data: List[EncData], n_total: int) -> str:
     L += [f"- {x.enc.name}: {x.stale}" for x in stale]
     if unchecked: L.append(f"- not checked: {', '.join(unchecked)}")
     if not stale and not unchecked: L.append("- none")
+    if published_dir is not None:
+        L += _section_published(data, published_dir)
+    L += _section_ladder(data)
     return "\n".join(L) + "\n"
+
+
+# ------------------------------------------------------------------ published comparison and ladder
+PUBLISHED_SPLIT = {"vit_base": "09_physics_probe_facing_split.jsonl"}
+VIT_SEEDS = ("09_physics_probe_facing_split.jsonl", "09_physics_probe_facing_split_seed1.jsonl",
+             "09_physics_probe_facing_split_seed2.jsonl")
+BORDER = (0.01, 0.1)
+
+
+def _d16_cells(path: Path) -> Dict:
+    rows = [r for r in read_rows(path) if r.get("row") != "result" or r.get("d") == 16]
+    return split_cells(rows)
+
+
+def seed_tolerance(published_dir: Path) -> Dict:
+    seeds = [_d16_cells(Path(published_dir) / f) for f in VIT_SEEDS]
+    tol = {}
+    for key in seeds[0]:
+        xs = [s[key]["partial"] for s in seeds if _ok(s.get(key))]
+        tol[key] = max(abs(a - b) for a in xs for b in xs) if len(xs) > 1 else float("nan")
+    return tol
+
+
+def compare_cell(pub, gpu, tol: float) -> str:
+    if not _ok(pub) or not _ok(gpu):
+        return "missing"
+    if any(BORDER[0] < v["p"] < BORDER[1] for v in (pub, gpu)):
+        return "borderline"
+    same = np.sign(pub["partial"]) == np.sign(gpu["partial"]) and (pub["p"] <= ALPHA) == (gpu["p"] <= ALPHA)
+    return "agree" if same and abs(pub["partial"] - gpu["partial"]) <= tol else "disagree"
+
+
+def oof_identity(x: "EncData", published_dir: Path) -> Optional[float]:
+    p = Path(published_dir) / PUBLISHED_SPLIT.get(x.enc.name, f"09_physics_probe_facing_split_{x.enc.name}.jsonl")
+    pub = {r["label"]: r["global_oof_r2"] for r in read_rows(p) if r.get("row") == "result" and r.get("d") == 16}
+    ours = {r["label"]: r["global_oof_r2"] for r in x.rows["main_xfit"] if r.get("row") == "result"}
+    diffs = [abs(ours[l] - pub[l]) for l in pub if l in ours]
+    return max(diffs) if diffs else None
+
+
+def _section_published(data: List["EncData"], published_dir: Path) -> List[str]:
+    pub_dir = Path(published_dir); tol = seed_tolerance(pub_dir)
+    L = ["", "## Published five: sweep GPU versus published CPU", "",
+         "Per label and column, the sweep's main_xfit multiscale partial against the published record. A cell agrees when "
+         f"the sign and significance at {ALPHA} match and |GPU - CPU| is at most the tolerance; tolerance = ViT-B's "
+         "published seed spread (seeds 0, 1, 2; the only CPU seed spread that exists), used for all five encoders. "
+         f"Borderline: p in ({BORDER[0]}, {BORDER[1]}) on either side, counted separately. -- = no published value.", "",
+         "| encoder | label | column | published | sweep | result |", "|---|---|---|---|---|---|"]
+    counts: Dict[str, int] = {}
+    oof: List[str] = []
+    for x in data:
+        if not x.enc.in_paper:
+            continue
+        pub_cells = _d16_cells(pub_dir / PUBLISHED_SPLIT.get(x.enc.name, f"09_physics_probe_facing_split_{x.enc.name}.jsonl"))
+        for lab in LABELS:
+            for c in (MISMATCH, ALIGN):
+                pv, gv = pub_cells.get((lab, c)), x.part("main_xfit", lab, c)
+                res = compare_cell(pv, gv, tol.get((lab, c), float("nan")))
+                counts[res] = counts.get(res, 0) + 1
+                fmt = lambda v: f"{v['partial']:+.2f}" if _ok(v) else "--"
+                L.append(f"| {x.enc.name} | {lab} | {c} | {fmt(pv)} | {fmt(gv)} | {res} |")
+        dv = oof_identity(x, pub_dir)
+        oof.append(f"OOF R2 identity: {x.enc.name} max |diff| " + ("--" if dv is None else f"{dv:.2g}"))
+    L += ["", "Counts: " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())), ""] + oof
+    L += ["", "Counterfactual (yes/no agreement; there is no CPU seed spread for it):", "",
+          "| encoder | label | help>0.5 pub/sweep | hurt>0.5 pub/sweep | sign test p<0.05 pub/sweep | agree |", "|---|---|---|---|---|---|"]
+    for x in data:
+        if not x.enc.in_paper:
+            continue
+        cf_p = pub_dir / f"09_physics_normal_scaling_{x.enc.name}_d16.npz"
+        th_p = pub_dir / f"09_physics_normal_scaling_{x.enc.name}_d16_thin.npz"
+        pcf = cf_summary(cf_p) if cf_p.exists() else {}
+        psg = sign_test(cf_p, th_p) if cf_p.exists() and th_p.exists() else {}
+        for lab in LABELS:
+            def flags(cf, sg):
+                if lab not in cf or lab not in sg:
+                    return None
+                return (cf[lab]["S_model"]["help"] > 0.5, cf[lab]["S_model"]["hurt"] > 0.5, sg[lab]["p_help"] < ALPHA)
+            a, b = flags(pcf, psg), flags(x.cf, x.sign)
+            yn = lambda f, i: "--" if f is None else ("y" if f[i] else "n")
+            res = "missing" if a is None or b is None else ("agree" if a == b else "disagree")
+            L.append(f"| {x.enc.name} | {lab} | {yn(a, 0)}/{yn(b, 0)} | {yn(a, 1)}/{yn(b, 1)} | {yn(a, 2)}/{yn(b, 2)} | {res} |")
+    return L
+
+
+def _section_ladder(data: List["EncData"]) -> List[str]:
+    lad = sorted((x for x in data if x.enc.family == "DINOv3"), key=lambda x: x.enc.params)
+    if not lad:
+        return []
+    L = ["", "## DINOv3 size ladder", "",
+         "One family, one training recipe. Supports: sign and significance of the partials and the counterfactual pattern "
+         "across sizes. Does not support 'the effect scales with size' (D changes with size at fixed d = 16; n = 6). "
+         "Spearman with log params is descriptive.", "",
+         "| encoder | params | label | mismatch (seeds min..max) | alignment (seeds min..max) | help/hurt | mismatch @alpha* |",
+         "|---|---|---|---|---|---|---|"]
+    for x in lad:
+        for lab in LABELS:
+            def span(c):
+                r = x.robust(lab, c)
+                v = x.part("main_xfit", lab, c)
+                return ("--" if not _ok(v) else f"{v['partial']:+.2f}") + ("" if r is None else f" ({r[0]:+.2f}..{r[1]:+.2f})")
+            cfv = x.cf.get(lab)
+            hh = "--" if cfv is None else f"{cfv['S_model']['help']:.2f}/{cfv['S_model']['hurt']:.2f}"
+            tuned = next((r for r in x.robust_rows if r.get("row") == "result" and r.get("label") == lab and r.get("alpha_mode") == "tuned"), None)
+            tv = "--" if tuned is None else f"{tuned['partials']['published_controls'][MISMATCH]['partial']:+.2f}"
+            L.append(f"| {x.enc.name} | {x.enc.params:,} | {lab} | {span(MISMATCH)} | {span(ALIGN)} | {hh} | {tv} |")
+    from scipy.stats import spearmanr
+    L += ["", "Spearman with log params (descriptive):"]
+    for lab in LABELS:
+        for c in (MISMATCH, ALIGN):
+            pts = [(math.log(x.enc.params), x.part("main_xfit", lab, c)["partial"]) for x in lad if _ok(x.part("main_xfit", lab, c))]
+            rho = float(spearmanr(*zip(*pts)).statistic) if len(pts) >= 3 else float("nan")
+            L.append(f"- {lab} {c}: " + ("--" if rho != rho else f"{rho:+.2f}") + f" (n={len(pts)})")
+    return L
 
 
 def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path,
@@ -338,7 +455,7 @@ def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: 
     (out_dir / "tab_scaling_cf.tex").write_text(_tab_cf(data))
     (out_dir / "tab_scaling_robust.tex").write_text(_tab_robust(data))
     _fig_partials(data, out_dir); _fig_cf(data, out_dir); _fig_robust(data, out_dir)
-    (out_dir / "SCALING_REPORT.md").write_text(_report(data, len(encs)))
+    (out_dir / "SCALING_REPORT.md").write_text(_report(data, len(encs), published_dir))
 
 
 def main() -> None:

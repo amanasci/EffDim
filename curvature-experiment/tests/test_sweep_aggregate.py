@@ -142,3 +142,46 @@ def test_aggregate_encoder_filter(tmp_path):
     aggregate(load_manifest(), rec, arr, out, encoders=["vit_base", "clip_base", "dinov3_vitb16"])
     rep = (out / "SCALING_REPORT.md").read_text()
     assert rep.startswith("3 of 3 encoders have records\n2 of 3 encoders complete all 6 jobs")
+
+
+from sweep.aggregate import compare_cell
+
+
+def test_comparison_borderline_and_missing():
+    assert compare_cell(None, {"partial": -0.3, "p": 0.001}, 0.05) == "missing"
+    assert compare_cell({"partial": -0.3, "p": 0.001}, None, 0.05) == "missing"
+    assert compare_cell({"partial": -0.30, "p": 0.001}, {"partial": -0.28, "p": 0.002}, 0.05) == "agree"
+    assert compare_cell({"partial": -0.30, "p": 0.001}, {"partial": -0.10, "p": 0.002}, 0.05) == "disagree"   # |d| > tol
+    assert compare_cell({"partial": -0.30, "p": 0.001}, {"partial": +0.30, "p": 0.001}, 1.0) == "disagree"    # sign
+    assert compare_cell({"partial": -0.10, "p": 0.04}, {"partial": -0.09, "p": 0.07}, 0.05) == "borderline"
+
+
+def _published(tmp_path):
+    pub = tmp_path / "published"; pub.mkdir()
+    for name, part in (("09_physics_probe_facing_split.jsonl", -0.30), ("09_physics_probe_facing_split_seed1.jsonl", -0.26),
+                       ("09_physics_probe_facing_split_seed2.jsonl", -0.34), ("09_physics_probe_facing_split_clip_base.jsonl", -0.31)):
+        rows = [{"row": "environment"}]
+        for d in (16, 20):
+            for lab in LABELS:
+                rows.append({"row": "result", "d": d, "label": lab, "global_oof_r2": 0.5,
+                             "columns": {c: {"multiscale": {"partial": part if d == 16 else 0.9, "p": 0.001}} for c in COLS}})
+        (pub / name).write_text("".join(json.dumps(r) + "\n" for r in rows))
+    for e in ("vit_base", "clip_base"):
+        _cf(pub / f"09_physics_normal_scaling_{e}_d16.npz"); _thin(pub / f"09_physics_normal_scaling_{e}_d16_thin.npz")
+    return pub
+
+
+def test_report_published_comparison_and_ladder(tmp_path):
+    rec, arr = _fixture(tmp_path)
+    pub = _published(tmp_path)
+    out = tmp_path / "out"
+    aggregate(load_manifest(), rec, arr, out, encoders=["vit_base", "clip_base", "dinov3_vitb16"], published_dir=pub)
+    rep = (out / "SCALING_REPORT.md").read_text()
+    sec = rep.split("## Published five: sweep GPU versus published CPU")[1].split("\n## ")[0]
+    assert "tolerance = ViT-B's published seed spread" in sec
+    assert "| vit_base | mag_r | hess_mismatch_emp | -0.30 | -0.30 | agree |" in sec
+    assert "OOF R2 identity: vit_base max |diff| 0" in sec
+    assert "| dinov3_vitb16 | mag_r | hess_mismatch_emp | -- |" in sec           # no published file in the fixture
+    assert "| vit_base | mag_r | y/y | y/y |" in sec                              # counterfactual yes/no agreement
+    lad = rep.split("## DINOv3 size ladder")[1]
+    assert "descriptive" in lad and "| dinov3_vitb16 |" in lad
