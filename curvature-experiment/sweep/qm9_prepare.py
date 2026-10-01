@@ -29,6 +29,8 @@ HARTREE_TO_EV = 27.211386245988          # CODATA 2018
 SOURCE_COLUMNS = ("smiles", "gap", "mu", "alpha", "cv")
 OUT_COLUMNS = ("qm9_index", "smiles_canonical", "n_heavy_atoms", "gap", "mu", "alpha", "cv")
 OUT_DIR = HERE / "data" / "qm9"
+EXPECTED_COUNTS = {"n_source": 133885, "n_uncharacterized": 3054, "n_uncharacterized_smiles_mismatch": 0,
+                   "n_parse_failed": 0, "n_duplicate_rows": 87, "n_duplicate_groups": 87, "n": 130744}
 
 
 def sha256_file(path) -> str:
@@ -84,6 +86,13 @@ def prepare(source: pd.DataFrame, uncharacterized: Dict[int, str]) -> Tuple[pd.D
     return out, summary
 
 
+def check_counts(summary: dict, expected: dict = EXPECTED_COUNTS) -> None:
+    """Refuse (SystemExit) unless every expected count matches; names each differing key."""
+    bad = [f"{k}: expected {v!r}, got {summary.get(k)!r}" for k, v in expected.items() if summary.get(k) != v]
+    if bad:
+        raise SystemExit("molecule table counts differ from the expected ones: " + "; ".join(bad))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--work", type=Path, default=HERE / ".cache" / "qm9" / "source", help="download directory")
@@ -102,8 +111,11 @@ def main() -> None:
         with urllib.request.urlopen(req) as r:
             unc.write_bytes(r.read())
     if sha256_file(unc) != UNCHARACTERIZED_SHA256:
-        raise SystemExit(f"{unc}: sha256 {sha256_file(unc)} != pinned {UNCHARACTERIZED_SHA256}")
+        got = sha256_file(unc)
+        unc.unlink()
+        raise SystemExit(f"{unc}: sha256 {got} != pinned {UNCHARACTERIZED_SHA256} (file deleted)")
     table, summary = prepare(pd.read_parquet(src, columns=list(SOURCE_COLUMNS)), read_uncharacterized(unc))
+    check_counts(summary)
     a.out_dir.mkdir(parents=True, exist_ok=True)
     out = a.out_dir / "qm9_molecules.parquet"
     table.to_parquet(out, index=False)

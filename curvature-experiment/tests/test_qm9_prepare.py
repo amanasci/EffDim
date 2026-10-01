@@ -46,3 +46,15 @@ def test_prepare_counts_a_smiles_mismatch_at_an_excluded_index():
 def test_prepare_rejects_an_index_beyond_the_source():
     with pytest.raises(ValueError, match="99"):
         qp.prepare(_source(), {99: "C"})
+
+
+def test_check_counts_passes_on_the_expected_counts():
+    qp.check_counts(dict(qp.EXPECTED_COUNTS))
+
+
+def test_check_counts_names_every_differing_key():
+    bad = dict(qp.EXPECTED_COUNTS, n=130745, n_parse_failed=2)
+    with pytest.raises(SystemExit) as e:
+        qp.check_counts(bad)
+    msg = str(e.value)
+    assert "n_parse_failed" in msg and "n: expected 130744, got 130745" in msg and "n_source" not in msg
