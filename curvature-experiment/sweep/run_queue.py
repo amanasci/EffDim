@@ -12,12 +12,12 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from sweep.jobs import JobSpec, Layout, build_jobs
-from sweep.manifest import load_manifest
+from sweep.manifest import DEFAULT_PATH, load_manifest
 
 
 def _sha256(p: Path) -> str:
@@ -148,9 +148,30 @@ def quarantine(job: JobSpec, lay: Layout) -> None:
             p.rename(p.with_name(f"{p.name}.partial.{stamp}"))
 
 
+def job_argv(job: JobSpec, lay: Layout, timeout_h: Optional[float] = None) -> List[str]:
+    """The job's argv, prefixed with `timeout <h>h` when timeout_h is given (timeout signals the job's process group)."""
+    if timeout_h is None:
+        return list(job.argv)
+    return ["timeout", f"{timeout_h:g}h", *job.argv]
+
+
+def reap(proc, job: JobSpec, lay: Layout, t0: float) -> bool:
+    """Non-blocking os.wait4 on a launched job. False while it runs; once it has exited, set proc.returncode and write
+    <root>/timing/<id>.json = {"exit", "max_rss_kb", "wall_s"}. ru_maxrss (kB on Linux) covers the reaped descendants,
+    so behind `timeout` it is the runner's peak RSS; a timed-out job is written too, with exit 124."""
+    pid, status, ru = os.wait4(proc.pid, os.WNOHANG)
+    if pid == 0:
+        return False
+    proc.returncode = os.waitstatus_to_exitcode(status)
+    lay.timing.mkdir(parents=True, exist_ok=True)
+    rec = {"exit": proc.returncode, "max_rss_kb": int(ru.ru_maxrss), "wall_s": round(time.monotonic() - t0, 3)}
+    (lay.timing / f"{job.id}.json").write_text(json.dumps(rec, sort_keys=True) + "\n")
+    return True
+
+
 def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float = 5.0,
               launcher: Callable = subprocess.Popen, keep_geometry: bool = False,
-              min_free_gb: float = 10.0) -> Dict[str, List[str]]:
+              min_free_gb: float = 10.0, timeout_h: Optional[float] = None) -> Dict[str, List[str]]:
     lay.logs.mkdir(parents=True, exist_ok=True)
     status: Dict[str, str] = {}
     out: Dict[str, List[str]] = {"done": [], "failed": [], "skipped": [], "blocked": [], "deferred": []}
@@ -165,12 +186,12 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
         for enc in {j.encoder for j in jobs if j.id in done_now and j.kind in ("thin", "robust")}:
             _maybe_prune(enc, by_id, done_now, lay)
     pending = [j for j in jobs if j.id not in status]
-    running: Dict[str, Tuple[JobSpec, subprocess.Popen, object]] = {}   # gpu -> (job, proc, logfile)
+    running: Dict[str, Tuple[JobSpec, subprocess.Popen, object, float]] = {}   # gpu -> (job, proc, logfile, start)
     min_free_bytes = min_free_gb * (1024 ** 3)
     disk_low = False
     while pending or running:
-        for gpu, (j, proc, log) in list(running.items()):
-            if proc.poll() is None:
+        for gpu, (j, proc, log, t0) in list(running.items()):
+            if not reap(proc, j, lay, t0):
                 continue
             log.close(); del running[gpu]
             ok, why = (validate_outputs(j) if proc.returncode == 0 else (False, f"exit {proc.returncode}"))
@@ -215,13 +236,13 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=gpu)
             pending.remove(j)
             try:
-                proc = launcher(list(j.argv), env=env, stdout=log, stderr=subprocess.STDOUT)
+                t0 = time.monotonic(); proc = launcher(job_argv(j, lay, timeout_h), env=env, stdout=log, stderr=subprocess.STDOUT)
             except Exception as e:
                 log.close()
                 status[j.id] = "failed"; out["failed"].append(j.id)
                 print(f"[queue] FAILED {j.id}: launcher raised {e!r}", flush=True)
                 continue
-            running[gpu] = (j, proc, log)
+            running[gpu] = (j, proc, log, t0)
             started_any = True
             print(f"[queue] start {j.id} on GPU {gpu}", flush=True)
         if running:
@@ -259,11 +280,14 @@ def main() -> None:
     ap.add_argument("--min-free-gb", type=float, default=10.0,
                      help="stop launching new jobs (letting running ones finish) once free disk "
                           "under --root drops below this many GB")
+    ap.add_argument("--manifest", default=str(DEFAULT_PATH), help="encoder manifest (molecules.yaml for QM9)")
+    ap.add_argument("--d-file", default=None, help="molecules: {encoder: {d_ID, d_run, estimates}} json")
+    ap.add_argument("--timeout-h", type=float, default=None, help="prefix each job with `timeout <h>h`")
     a = ap.parse_args()
     lay = Layout(Path(a.root))
-    m = load_manifest()
+    m = load_manifest(a.manifest)
     jobs = build_jobs(m, lay, a.python, Path(a.runners), a.threads,
-                      encoders=a.encoders.split(",") if a.encoders else None)
+                      encoders=a.encoders.split(",") if a.encoders else None, d_file=a.d_file)
     jobs = order_largest_first(jobs, {e.name: e.dim for e in m.encoders})
     if a.only:
         wanted = {j.id for j in jobs if a.only in j.id}
@@ -279,7 +303,7 @@ def main() -> None:
             print(("DONE " if is_done(j, lay) else "TODO ") + j.id)
         return
     res = run_queue(jobs, lay, [g.strip() for g in a.gpus.split(",") if g.strip()],
-                     keep_geometry=a.keep_geometry, min_free_gb=a.min_free_gb)
+                     keep_geometry=a.keep_geometry, min_free_gb=a.min_free_gb, timeout_h=a.timeout_h)
     print(json.dumps({k: len(v) for k, v in res.items()}), flush=True)
     if res["failed"]:
         print("failed: " + ", ".join(res["failed"]), flush=True)
