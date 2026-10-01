@@ -21,8 +21,9 @@ def _split(path, partial, p=0.001):
     path.write_text("".join(json.dumps(r) + "\n" for r in rows))
 
 
-def _robust(path, sha="sha0"):
+def _robust(path, sha="sha0", guard=None):
     rows = [{"row": "environment", "geometry_sha256": sha}]
+    if guard: rows.append(guard)
     for lab in LABELS:
         for mode in ("published", "tuned"):
             rows.append({"row": "result", "label": lab, "alpha_mode": mode, "alpha": 100.0 if mode == "published" else 0.1,
@@ -66,6 +67,21 @@ def test_aggregate_writes_all_outputs(tmp_path):
     for f in ("tab_scaling_main.tex", "tab_scaling_xfit.tex", "tab_scaling_cf.tex", "tab_scaling_robust.tex",
               "fig_scaling_partials.pdf", "fig_scaling_cf.png", "fig_scaling_robust.pdf", "SCALING_REPORT.md"):
         assert (out / f).exists() and (out / f).stat().st_size > 0, f
+
+
+def test_report_shows_reproduction_guard(tmp_path):
+    rec, arr = _fixture(tmp_path)
+    _robust(rec / "scaling__vit_base__robust.jsonl", guard={
+        "row": "guard", "encoder": "vit_base", "mode": "exact", "passed": True, "tolerance": 1e-06,
+        "n_split": 8, "n_cf": 36, "max_abs_diff_split": 0.0, "max_abs_diff_cf": 1.8e-15})
+    out = tmp_path / "out"
+    aggregate(load_manifest(), rec, arr, out)
+    rep = (out / "SCALING_REPORT.md").read_text()
+    assert "## Reproduction guard (robust job)" in rep
+    assert "- vit_base: exact PASS, 8 split cells and 36 counterfactual values, max |diff| 0 (split), 1.8e-15 (counterfactual)" in rep
+    assert "- clip_base: no guard row" in rep
+    not_run = next(l for l in rep.splitlines() if l.startswith("- not run: "))
+    assert "dinov3_vitb16" in not_run and "vit_base" not in not_run and "clip_base" not in not_run
 
 
 def test_aggregate_with_missing_jobs(tmp_path):

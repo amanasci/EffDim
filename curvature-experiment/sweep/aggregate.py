@@ -318,6 +318,15 @@ def _report(data: List[EncData], n_total: int, published_dir: Optional[Path] = N
     L += ["", "## Encoders that break a claim", ""]
     for k, v in breaks.items():
         L.append(f"- {k}: " + (", ".join(v) if v else "none"))
+    L += ["", "## Reproduction guard (robust job)", ""]
+    for x in data:
+        if not x.robust_rows: continue
+        g = next((r for r in x.robust_rows if r.get("row") == "guard" and r.get("passed") is True), None)
+        L.append(f"- {x.enc.name}: {g['mode']} PASS, {g['n_split']} split cells and {g['n_cf']} counterfactual values, "
+                 f"max |diff| {g['max_abs_diff_split']:.2g} (split), {g['max_abs_diff_cf']:.2g} (counterfactual)"
+                 if g else f"- {x.enc.name}: no guard row")
+    no_robust = [x.enc.name for x in data if not x.robust_rows]
+    L.append(f"- not run: {', '.join(no_robust) if no_robust else 'none'}")
     L += ["", "## Stale encoders", ""]
     stale = [x for x in data if x.stale not in (None, "not checked")]
     unchecked = [x.enc.name for x in data if x.stale == "not checked"]
