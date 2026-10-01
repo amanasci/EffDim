@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import yaml
 
@@ -35,6 +35,7 @@ class Manifest:
     n_rows: int
     label_table: str
     encoders: Tuple[Encoder, ...]
+    label_table_sha256: Optional[str] = None
 
 
 def load_manifest(path: Union[str, Path] = DEFAULT_PATH) -> Manifest:
@@ -45,4 +46,5 @@ def load_manifest(path: Union[str, Path] = DEFAULT_PATH) -> Manifest:
     if dup:
         raise ValueError(f"duplicate encoder names in {path}: {dup}")
     return Manifest(repo=src["repo"], snapshot=src["snapshot"], n_rows=int(src["n_rows"]),
-                    label_table=src["label_table"], encoders=encs)
+                    label_table=src["label_table"], encoders=encs,
+                    label_table_sha256=src.get("label_table_sha256"))

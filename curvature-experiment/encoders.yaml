@@ -23,6 +23,7 @@ repo: UniverseTBD/pu-embeddings
 snapshot: bc081f8a5db4767edcd958653d96efde9137de0b
 n_rows: 86471
 label_table: /mnt/ssd-cluster/effdim/labels_Smith42_galaxies_v2.0_test.parquet
+label_table_sha256: 60f2f82e64e4036eb4eff9a448b15365dd1e974e52779fe7c1323db0d9dabfd9
 
 encoders:
   # AstroPT (Smith42/astroPT_v2.0, one repo holding all 3 sizes as
