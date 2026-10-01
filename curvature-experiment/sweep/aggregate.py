@@ -17,8 +17,8 @@ from sweep.jobs import JOB_SUFFIXES
 from sweep.manifest import Encoder, Manifest, load_manifest
 
 HERE = Path(__file__).resolve().parents[1]
-SPLIT_JOBS = tuple(s for s in JOB_SUFFIXES if s not in ("cf", "thin"))
-ROBUST_VARIANTS = ("main", "seed1", "seed2", "w400", "alpha1", "d20")
+SPLIT_JOBS = ("main_xfit", "seed1", "seed2")
+ROBUST_VARIANTS = ("main_xfit", "seed1", "seed2")
 MISMATCH, ALIGN = "hess_mismatch_emp", "align_cos_tan"
 LAB_TEX = {lab: lab.replace("_", r"\_") for lab in LABELS}
 ALPHA = 0.05
@@ -48,10 +48,24 @@ def _ok(v) -> bool:
     return v is not None and v.get("partial") is not None and v["partial"] == v["partial"]
 
 
+def _staleness(mx_rows, cf_rows, rb_rows) -> Optional[str]:
+    """None when cf and robust read the geometry main_xfit saved; 'not checked' when a sha is missing."""
+    fit = next((r for r in mx_rows if r.get("row") == "fit"), {})
+    ref = fit.get("geometry_npz_sha256")
+    cf_env = next((r for r in cf_rows if r.get("row") == "environment"), {})
+    rb_env = next((r for r in rb_rows if r.get("row") == "environment"), {})
+    if not ref or not cf_env.get("geometry_sha256") or not rb_env.get("geometry_sha256"):
+        return "not checked" if (mx_rows or cf_rows or rb_rows) else None
+    bad = [n for n, e in (("cf", cf_env), ("robust", rb_env)) if e.get("geometry_sha256") != ref]
+    return (" and ".join(bad) + " geometry sha differs from main_xfit's") if bad else None
+
+
 class EncData:
     def __init__(self, enc: Encoder, records_dir: Path, arrays_dir: Path):
         self.enc = enc
         self.rows = {s: read_rows(records_dir / f"scaling__{enc.name}__{s}.jsonl") for s in SPLIT_JOBS}
+        self.robust_rows = read_rows(records_dir / f"scaling__{enc.name}__robust.jsonl")
+        cf_rows = read_rows(records_dir / f"scaling__{enc.name}__cf.jsonl")
         self.split = {s: split_cells(r) for s, r in self.rows.items()}
         self.xfit = xfit_cells(self.rows["main_xfit"])
         self.hcos = xfit_hess_cos_p50(self.rows["main_xfit"])
@@ -61,7 +75,8 @@ class EncData:
         self.has_any = any(self.rows.values()) or cf_p.exists() or thin_p.exists() \
             or (records_dir / f"scaling__{enc.name}__cf.jsonl").exists()
         self.complete = all(any(r.get("row") == "result" for r in self.rows[s]) for s in SPLIT_JOBS) \
-            and cf_p.exists() and thin_p.exists()
+            and any(r.get("row") == "result" for r in self.robust_rows) and cf_p.exists() and thin_p.exists()
+        self.stale = _staleness(self.rows["main_xfit"], cf_rows, self.robust_rows)
 
     def part(self, variant: str, lab: str, col: str) -> Optional[dict]:
         return self.split[variant].get((lab, col))
@@ -78,7 +93,7 @@ class EncData:
 
 # ------------------------------------------------------------------ tables
 def _tab_main(data: List[EncData]) -> str:
-    devs = sorted({d for x in data for d in devices(x.rows["main"])})
+    devs = sorted({d for x in data for d in devices(x.rows["main_xfit"])})
     dev = ", ".join(devs) if devs else "not recorded"
     head = " & ".join(r"\multicolumn{2}{c}{" + LAB_TEX[l] + "}" for l in LABELS)
     sub = " & ".join("mism. & align." for _ in LABELS)
@@ -86,8 +101,8 @@ def _tab_main(data: List[EncData]) -> str:
            r"\begin{tabular}{l" + "cc" * len(LABELS) + "c}", r"\toprule",
            f"encoder & {head} & var.\\ expl. \\\\", f" & {sub} & \\\\", r"\midrule"]
     for x in data:
-        cells = [cell(x.part("main", l, c)) for l in LABELS for c in (MISMATCH, ALIGN)]
-        ve = var_explained(x.rows["main"])
+        cells = [cell(x.part("main_xfit", l, c)) for l in LABELS for c in (MISMATCH, ALIGN)]
+        ve = var_explained(x.rows["main_xfit"])
         out.append(tex_name(x.enc.name) + " & " + " & ".join(cells) + " & " + (f"{ve:.3f}" if ve is not None else "--") + r" \\")
     out += [r"\bottomrule", r"\end{tabular}",
             r"\caption{Encoder scaling: rank-partial Spearman correlations of the mismatch and alignment with local $R^2$ "
@@ -160,9 +175,8 @@ def _tab_robust(data: List[EncData]) -> str:
             out.append(f"{tex_name(x.enc.name) if lab == LABELS[0] else ''} & {LAB_TEX[lab]} & " + " & ".join(cells) + r" \\")
         out.append(r"\addlinespace[2pt]")
     out += [r"\bottomrule", r"\end{tabular}",
-            r"\caption{Encoder scaling: range of the partial over the six split variants (seed 0, seeds 1 and 2, width "
-            r"$400^3$, $\alpha=1$, $d=20$) and the number of variants whose sign differs from seed 0; $(n=\cdot)$ marks a "
-            r"range over fewer than the six variants.}",
+            r"\caption{Encoder scaling: range of the partial over the three decoder fits (seeds 0, 1, 2) and the number of "
+            r"fits whose sign differs from seed 0; $(n=\cdot)$ marks a range over fewer than three fits.}",
             r"\label{tab:scaling_robust}", r"\end{table}", ""]
     return "\n".join(out)
 
@@ -197,7 +211,7 @@ def _fig_partials(data: List[EncData], out_dir: Path) -> None:
         for li, lab in enumerate(LABELS):
             ax = axes[ri, li]
             for x in data:
-                v = x.part("main", lab, qc)
+                v = x.part("main_xfit", lab, qc)
                 if not _ok(v): continue
                 lx = math.log10(x.enc.params)
                 ax.scatter([lx], [v["partial"]], color=col[x.enc.family], s=22,
@@ -258,17 +272,17 @@ def _report(data: List[EncData], n_total: int) -> str:
     L = [f"{len(have)} of {n_total} encoders have records", f"{len(done)} of {n_total} encoders complete all {len(JOB_SUFFIXES)} jobs", ""]
     breaks: Dict[str, List[str]] = {}
 
-    L += ["## (a) Mismatch partial negative and significant (main record)", ""]
+    L += ["## (a) Mismatch partial negative and significant (main_xfit record)", ""]
     for lab in LABELS:
-        xs = [(x, x.part("main", lab, MISMATCH)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
+        xs = [(x, x.part("main_xfit", lab, MISMATCH)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
         good = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
         L.append(f"- {lab}: {len(good)} of {len(xs)}")
         breaks[f"(a) mismatch negative and significant, {lab}"] = [x.enc.name for x, _ in xs if x not in good]
-    L += ["", "## (b) Alignment partial sign and significance (main record)", "",
+    L += ["", "## (b) Alignment partial sign and significance (main_xfit record)", "",
           "Paper's claim per label (main.tex): mag_r and photo_z positive and significant; stellar_mass non-significant; "
           "smooth_fraction no stated claim (\"less consistent\"). Exceptions are encoders that do not match their label's claim.", ""]
     for lab in LABELS:
-        xs = [(x, x.part("main", lab, ALIGN)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
+        xs = [(x, x.part("main_xfit", lab, ALIGN)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
         neg = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
         pos = [x for x, v in xs if v["partial"] > 0 and v["p"] <= ALPHA]
         ns = [x for x, _ in xs if x not in neg and x not in pos]
@@ -304,19 +318,27 @@ def _report(data: List[EncData], n_total: int) -> str:
     L += ["", "## Encoders that break a claim", ""]
     for k, v in breaks.items():
         L.append(f"- {k}: " + (", ".join(v) if v else "none"))
+    L += ["", "## Stale encoders", ""]
+    stale = [x for x in data if x.stale not in (None, "not checked")]
+    unchecked = [x.enc.name for x in data if x.stale == "not checked"]
+    L += [f"- {x.enc.name}: {x.stale}" for x in stale]
+    if unchecked: L.append(f"- not checked: {', '.join(unchecked)}")
+    if not stale and not unchecked: L.append("- none")
     return "\n".join(L) + "\n"
 
 
-def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path) -> None:
+def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path,
+              encoders: Optional[List[str]] = None, published_dir: Optional[Path] = None) -> None:
     records_dir, arrays_dir, out_dir = Path(records_dir), Path(arrays_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    data = [EncData(e, records_dir, arrays_dir) for e in ordered(manifest)]
+    encs = [e for e in ordered(manifest) if encoders is None or e.name in set(encoders)]
+    data = [EncData(e, records_dir, arrays_dir) for e in encs]
     (out_dir / "tab_scaling_main.tex").write_text(_tab_main(data))
     (out_dir / "tab_scaling_xfit.tex").write_text(_tab_xfit(data))
     (out_dir / "tab_scaling_cf.tex").write_text(_tab_cf(data))
     (out_dir / "tab_scaling_robust.tex").write_text(_tab_robust(data))
     _fig_partials(data, out_dir); _fig_cf(data, out_dir); _fig_robust(data, out_dir)
-    (out_dir / "SCALING_REPORT.md").write_text(_report(data, len(manifest.encoders)))
+    (out_dir / "SCALING_REPORT.md").write_text(_report(data, len(encs)))
 
 
 def main() -> None:
@@ -324,8 +346,10 @@ def main() -> None:
     ap.add_argument("--records", type=Path, default=HERE / ".cache" / "scaling" / "records")
     ap.add_argument("--arrays", type=Path, default=HERE / ".cache" / "scaling" / "arrays")
     ap.add_argument("--out", type=Path, default=HERE / "results" / "scaling")
+    ap.add_argument("--encoders", type=lambda s: [t for t in s.split(",") if t], default=None)
+    ap.add_argument("--published-dir", type=Path, default=None)
     a = ap.parse_args()
-    aggregate(load_manifest(), a.records, a.arrays, a.out)
+    aggregate(load_manifest(), a.records, a.arrays, a.out, encoders=a.encoders, published_dir=a.published_dir)
 
 
 if __name__ == "__main__":
