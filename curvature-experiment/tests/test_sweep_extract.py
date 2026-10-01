@@ -34,3 +34,22 @@ def test_cf_summary_matches_tab_cf():
     block = tex[tex.index(r"\label{tab:cf}") - 8000: tex.index(r"\label{tab:cf}")]
     v = cf["mag_r"]["S_model"]
     assert f"{v['help']:.2f}" in block and f"{v['t_star']:.1f}" in block
+
+
+import numpy as np
+
+from sweep.extract import sign_test
+
+
+def test_readers_take_labels(tmp_path):
+    rng = np.random.default_rng(0); n = 30; d = {}
+    for var in ("S_model", "random_qmatched"):
+        cv = rng.normal(size=(n, 5)); cv[:, 4] = cv[:, 2] + 0.1; cv[:, 0] = cv[:, 2] - 0.1
+        d[f"gap:{var}:eq"] = rng.uniform(1, 2, n); d[f"gap:{var}:qq"] = np.ones(n); d[f"gap:{var}:r2_curve"] = cv
+    cf = tmp_path / "cf.npz"; np.savez(cf, **d)
+    th = tmp_path / "th.npz"; np.savez(th, overlap=np.zeros((n, n)))
+    assert cf_summary(cf) == {} and sign_test(cf, th) == {}          # galaxy defaults read no molecule key
+    s = cf_summary(cf, labels=("gap", "mu"))
+    assert set(s) == {"gap"} and s["gap"]["S_model"]["help"] == 1.0 and s["gap"]["S_model"]["hurt"] == 1.0
+    t = sign_test(cf, th, labels=("gap",))
+    assert t["gap"]["n"] == n and t["gap"]["help"] == 1.0
