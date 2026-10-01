@@ -201,3 +201,20 @@ def test_report_published_comparison_and_ladder(tmp_path):
     assert "| vit_base | mag_r | y/y | y/y |" in sec                              # counterfactual yes/no agreement
     lad = rep.split("## DINOv3 size ladder")[1]
     assert "descriptive" in lad and "| dinov3_vitb16 |" in lad
+
+
+import filecmp
+import pytest
+
+SC = Path(__file__).resolve().parents[1] / ".cache" / "scaling"
+RES = Path(__file__).resolve().parents[1] / "results" / "scaling"
+TEN = ["vit_base", "clip_base", "convnext_base", "vit_large", "dinov3_vits16", "dinov3_vits16plus",
+       "dinov3_vitb16", "dinov3_vitl16", "dinov3_vith16plus", "dinov3_vit7b16"]
+PUB = Path(__file__).resolve().parents[2] / "notebooks" / ".cache"
+
+
+@pytest.mark.skipif(not (SC / "records").exists(), reason="scaling records absent")
+def test_committed_results_regenerate(tmp_path):
+    aggregate(load_manifest(), SC / "records", SC / "arrays", tmp_path, encoders=TEN, published_dir=PUB)
+    for f in sorted(p.name for p in RES.iterdir() if p.suffix in (".tex", ".md")):
+        assert filecmp.cmp(RES / f, tmp_path / f, shallow=False), f

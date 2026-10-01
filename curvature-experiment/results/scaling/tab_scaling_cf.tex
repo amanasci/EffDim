@@ -1,0 +1,62 @@
+\begin{table*}[t]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llccccccccc}
+\toprule
+ & & \multicolumn{5}{c}{model normal $S$} & \multicolumn{2}{c}{random, $q$-matched} & sign test \\
+encoder & label & help & hurt & $\Delta R^2(+1)$ & $\Delta R^2(-1)$ & $t^{*}$ & help & hurt & $p_{\mathrm{help}}\le$ \\
+\midrule
+clip\_base & mag\_r & 0.95 & 0.99 & $+0.018$ & $-0.031$ & 2.2 & 0.31 & 0.68 & $4\times 10^{-3}$ \\
+ & photo\_z & 0.99 & 1.00 & $+0.019$ & $-0.026$ & 3.4 & 0.35 & 0.63 & $2\times 10^{-5}$ \\
+ & smooth\_fraction & 0.92 & 0.99 & $+0.014$ & $-0.027$ & 1.7 & 0.25 & 0.69 & $2\times 10^{-4}$ \\
+ & stellar\_mass & 0.97 & 1.00 & $+0.020$ & $-0.028$ & 2.9 & 0.35 & 0.68 & $5\times 10^{-7}$ \\
+\addlinespace[2pt]
+convnext\_base & mag\_r & 0.92 & 1.00 & $+0.018$ & $-0.031$ & 2.0 & 0.26 & 0.73 & $2\times 10^{-4}$ \\
+ & photo\_z & 0.99 & 1.00 & $+0.018$ & $-0.026$ & 2.9 & 0.28 & 0.64 & $5\times 10^{-7}$ \\
+ & smooth\_fraction & 0.88 & 0.98 & $+0.016$ & $-0.036$ & 1.6 & 0.23 & 0.75 & $2\times 10^{-4}$ \\
+ & stellar\_mass & 0.99 & 1.00 & $+0.022$ & $-0.032$ & 3.1 & 0.29 & 0.65 & $5\times 10^{-7}$ \\
+\addlinespace[2pt]
+dinov3\_vits16 & mag\_r & 0.92 & 0.99 & $+0.018$ & $-0.038$ & 1.5 & 0.21 & 0.76 & $8\times 10^{-4}$ \\
+ & photo\_z & 0.93 & 1.00 & $+0.013$ & $-0.022$ & 1.8 & 0.29 & 0.72 & $2\times 10^{-5}$ \\
+ & smooth\_fraction & 0.85 & 0.99 & $+0.017$ & $-0.039$ & 1.4 & 0.21 & 0.79 & $4\times 10^{-3}$ \\
+ & stellar\_mass & 0.83 & 0.96 & $+0.011$ & $-0.020$ & 1.6 & 0.27 & 0.74 & $2\times 10^{-5}$ \\
+\addlinespace[2pt]
+dinov3\_vits16plus & mag\_r & 0.89 & 0.99 & $+0.017$ & $-0.034$ & 1.6 & 0.28 & 0.76 & $4\times 10^{-3}$ \\
+ & photo\_z & 0.94 & 0.99 & $+0.017$ & $-0.029$ & 2.0 & 0.27 & 0.69 & $2\times 10^{-4}$ \\
+ & smooth\_fraction & 0.84 & 0.99 & $+0.017$ & $-0.040$ & 1.4 & 0.23 & 0.81 & $2\times 10^{-5}$ \\
+ & stellar\_mass & 0.89 & 0.99 & $+0.015$ & $-0.029$ & 1.7 & 0.25 & 0.71 & $2\times 10^{-4}$ \\
+\addlinespace[2pt]
+dinov3\_vitb16 & mag\_r & 0.92 & 0.99 & $+0.018$ & $-0.031$ & 2.0 & 0.29 & 0.71 & $8\times 10^{-4}$ \\
+ & photo\_z & 0.96 & 0.99 & $+0.020$ & $-0.030$ & 2.6 & 0.29 & 0.71 & $2\times 10^{-5}$ \\
+ & smooth\_fraction & 0.93 & 1.00 & $+0.024$ & $-0.055$ & 1.5 & 0.22 & 0.78 & $2\times 10^{-4}$ \\
+ & stellar\_mass & 0.95 & 1.00 & $+0.016$ & $-0.028$ & 2.1 & 0.26 & 0.74 & $5\times 10^{-7}$ \\
+\addlinespace[2pt]
+dinov3\_vitl16 & mag\_r & 0.97 & 1.00 & $+0.022$ & $-0.033$ & 2.5 & 0.26 & 0.72 & $5\times 10^{-4}$ \\
+ & photo\_z & 0.94 & 0.98 & $+0.015$ & $-0.021$ & 3.1 & 0.33 & 0.64 & $7\times 10^{-5}$ \\
+ & smooth\_fraction & 0.91 & 1.00 & $+0.025$ & $-0.044$ & 1.9 & 0.28 & 0.76 & $7\times 10^{-5}$ \\
+ & stellar\_mass & 0.95 & 0.99 & $+0.016$ & $-0.023$ & 3.2 & 0.34 & 0.68 & $6\times 10^{-6}$ \\
+\addlinespace[2pt]
+dinov3\_vith16plus & mag\_r & 0.98 & 1.00 & $+0.017$ & $-0.022$ & 5.5 & 0.38 & 0.61 & $2\times 10^{-5}$ \\
+ & photo\_z & 0.98 & 0.99 & $+0.017$ & $-0.020$ & 7.5 & 0.44 & 0.58 & $2\times 10^{-4}$ \\
+ & smooth\_fraction & 0.95 & 0.99 & $+0.022$ & $-0.033$ & 3.2 & 0.36 & 0.68 & $5\times 10^{-7}$ \\
+ & stellar\_mass & 0.98 & 0.99 & $+0.019$ & $-0.021$ & 7.6 & 0.41 & 0.59 & $2\times 10^{-5}$ \\
+\addlinespace[2pt]
+dinov3\_vit7b16 & mag\_r & 0.97 & 1.00 & $+0.027$ & $-0.039$ & 2.9 & 0.30 & 0.70 & $3\times 10^{-5}$ \\
+ & photo\_z & 0.97 & 1.00 & $+0.020$ & $-0.029$ & 3.5 & 0.35 & 0.65 & $3\times 10^{-5}$ \\
+ & smooth\_fraction & 0.94 & 0.99 & $+0.035$ & $-0.062$ & 2.3 & 0.25 & 0.71 & $3\times 10^{-4}$ \\
+ & stellar\_mass & 0.90 & 1.00 & $+0.016$ & $-0.027$ & 3.3 & 0.33 & 0.67 & $3\times 10^{-5}$ \\
+\addlinespace[2pt]
+vit\_base & mag\_r & 0.97 & 1.00 & $+0.030$ & $-0.051$ & 2.3 & 0.26 & 0.80 & $3\times 10^{-4}$ \\
+ & photo\_z & 0.99 & 0.99 & $+0.028$ & $-0.038$ & 3.0 & 0.33 & 0.68 & $3\times 10^{-5}$ \\
+ & smooth\_fraction & 0.90 & 1.00 & $+0.021$ & $-0.040$ & 1.7 & 0.25 & 0.78 & $3\times 10^{-5}$ \\
+ & stellar\_mass & 0.96 & 0.99 & $+0.026$ & $-0.039$ & 2.6 & 0.28 & 0.70 & $3\times 10^{-5}$ \\
+\addlinespace[2pt]
+vit\_large & mag\_r & 0.96 & 0.99 & $+0.022$ & $-0.034$ & 2.6 & 0.32 & 0.73 & $2\times 10^{-6}$ \\
+ & photo\_z & 0.97 & 0.99 & $+0.017$ & $-0.025$ & 3.2 & 0.34 & 0.66 & $2\times 10^{-6}$ \\
+ & smooth\_fraction & 0.79 & 0.97 & $+0.013$ & $-0.029$ & 1.6 & 0.25 & 0.77 & $4\times 10^{-4}$ \\
+ & stellar\_mass & 0.98 & 1.00 & $+0.022$ & $-0.032$ & 3.0 & 0.29 & 0.67 & $2\times 10^{-6}$ \\
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}
+\caption{Encoder scaling: counterfactual normal scaling at $d=16$. Fraction of anchors where $t=1$ beats shape-flat (help) and where $t=-1$ is worse (hurt), median $\Delta R^2$ at $t=\pm1$, median $t^{*}$; the same for a random in-sphere normal direction rescaled to the same centred amplitude; one-sided sign-test upper bound on $p$ for help on a maximal anchor set with pairwise overlap at most 5\% of $k$.}
+\label{tab:scaling_cf}
+\end{table*}
