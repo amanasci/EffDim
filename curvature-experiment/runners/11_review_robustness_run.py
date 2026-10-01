@@ -213,12 +213,12 @@ def counterfactual(X, y, a, neigh, geo, w, b0, d, seed: int = CF_SEED) -> Dict[s
     return out
 
 
-def cf_tables(arrays_by_label: Dict[str, Dict[str, np.ndarray]], ov: np.ndarray, tmpdir) -> Dict[str, Any]:
+def cf_tables(arrays_by_label: Dict[str, Dict[str, np.ndarray]], ov: np.ndarray, tmpdir, labels=extract.LABELS) -> Dict[str, Any]:
     tmpdir = Path(tmpdir); tmpdir.mkdir(parents=True, exist_ok=True)
     cf_npz, thin_npz = tmpdir / "cf.npz", tmpdir / "thin.npz"
     np.savez(cf_npz, **{f"{lab}:{k}": v for lab, arr in arrays_by_label.items() for k, v in arr.items()})
     np.savez(thin_npz, overlap=np.asarray(ov, np.float32))
-    return {"summary": extract.cf_summary(cf_npz), "sign": extract.sign_test(cf_npz, thin_npz, thr=SIGN_THR)}
+    return {"summary": extract.cf_summary(cf_npz, labels=labels), "sign": extract.sign_test(cf_npz, thin_npz, thr=SIGN_THR, labels=labels)}
 
 
 def surrogate_fidelity(arrays: Dict[str, np.ndarray]) -> Dict[str, Any]:
@@ -232,14 +232,14 @@ EXPECTED_LABELS = ("mag_r", "photo_z", "smooth_fraction", "stellar_mass")
 CF_VARIANTS = ("S_model", "random_qmatched")
 
 
-def published_reference(split_record, cf_npz) -> Dict[str, Any]:
+def published_reference(split_record, cf_npz, d: int = 16, labels=extract.LABELS) -> Dict[str, Any]:
     for f in (split_record, cf_npz):
         if f is None or not Path(f).exists():
             raise SystemExit(f"published reference missing: {f}")
-    rows = [r for r in extract.read_rows(split_record) if r.get("row") != "result" or r.get("d") == 16]
+    rows = [r for r in extract.read_rows(split_record) if r.get("row") != "result" or r.get("d") == d]
     return {"split": {k: {"partial": v["partial"], "p": v["p"]} for k, v in extract.split_cells(rows).items()
                       if k[1] in (MISMATCH, ALIGN)},
-            "cf": extract.cf_summary(cf_npz)}
+            "cf": extract.cf_summary(cf_npz, labels=labels)}
 
 
 def reproduction_diffs(ours: Dict[str, Any], ref: Dict[str, Any], mode: str) -> List[str]:
@@ -364,6 +364,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--n-perm", type=int, default=2000)
     p.add_argument("--n-boot", type=int, default=N_BOOT)
     p.add_argument("--smoke", action="store_true")
+    p.add_argument("--labels", type=str, default=",".join((ppf.pl.PRIMARY_LABEL,) + ppf.pl.SECONDARY_LABELS))
+    p.add_argument("--d", type=int, default=16, help="latent dimension of the stored geometry and of the reference rows")
+    pfs.add_domain_args(p)
     return p
 
 
@@ -380,6 +383,7 @@ def main() -> None:
         if cf_threads != args.threads:
             raise SystemExit(f"threads {args.threads} != the cf run's threads {cf_threads}: the counterfactual guard "
                              "compares at 1e-12, which needs the same BLAS thread count")
+    pfs.apply_domain_flags(args)
     t0 = time.monotonic()
     if args.smoke:
         import torch
@@ -400,9 +404,9 @@ def main() -> None:
         if lab_sha != args.label_table_sha256:
             raise SystemExit(f"label table sha256 {lab_sha} != expected {args.label_table_sha256}")
         install_shims(args.parquet_path, args.embedding_column, args.label_table)
-        data = ppf.load_physics(argparse.Namespace(labels=",".join((ppf.pl.PRIMARY_LABEL,) + ppf.pl.SECONDARY_LABELS)))
+        data = ppf.load_physics(argparse.Namespace(labels=args.labels))
         X, labels = data["X"], data["labels"]
-        k, n_anchors, d = pcp.K_NEIGHBOURS, pcp.N_ANCHORS, 16
+        k, n_anchors, d = pcp.K_NEIGHBOURS, pcp.N_ANCHORS, args.d
         a = pcp.anchor_indices(X.shape[0], pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)["anchor_idx"]
         z = np.load(args.geometry_npz)
         assert np.array_equal(z["anchor_idx"], a), "anchor draw differs from the stored geometry"
@@ -417,7 +421,7 @@ def main() -> None:
            "embedding_column": args.embedding_column, "label_table": args.label_table, "label_table_sha256": lab_sha,
            "published_split": args.published_split, "published_cf": args.published_cf, "published_cf_record": args.published_cf_record, "n_perm": args.n_perm, "n_boot": args.n_boot,
            "alpha_grid": list(ALPHA_GRID), "numpy": np.__version__, "sklearn": sklearn.__version__, "scipy": scipy.__version__,
-           "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}
+           "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing", **pfs.domain_env(args)}
     rows_by_mode: Dict[str, List[dict]] = {"published": [], "tuned": []}
     cf_by_mode: Dict[str, Dict[str, Any]] = {"published": {}, "tuned": {}}
     with tempfile.TemporaryDirectory() as tmp:
@@ -429,14 +433,14 @@ def main() -> None:
                 print(f"[{mode}] {name}: alpha {row['alpha']:g} OOF R2 {row['global_oof_r2']:.3f} "
                       f"mismatch {row['partials']['published_controls'][MISMATCH]['partial']:+.3f} "
                       f"align {row['partials']['published_controls'][ALIGN]['partial']:+.3f} ({time.monotonic() - t0:.0f}s)", flush=True)
-            tables = cf_tables(cf_by_mode[mode], ov, Path(tmp) / mode)
+            tables = cf_tables(cf_by_mode[mode], ov, Path(tmp) / mode, labels=extract.LABELS if args.smoke else tuple(labels))
             for row in rows_by_mode[mode]:
                 row["cf"] = tables["summary"].get(row["label"]); row["sign_test"] = tables["sign"].get(row["label"])
             if mode == "published" and not args.smoke:
                 ours = {"split": {(r["label"], c): r["partials"]["published_controls"][c] for r in rows_by_mode[mode] for c in (MISMATCH, ALIGN)},
                         "cf": tables["summary"]}
-                guard = enforce_reproduction(ours, published_reference(args.published_split, args.published_cf), args.guard,
-                                             labels=tuple(labels))
+                guard = enforce_reproduction(ours, published_reference(args.published_split, args.published_cf, d=d, labels=tuple(labels)),
+                                             args.guard, labels=tuple(labels))
                 guard.update({"published_split_sha256": _sha256(args.published_split),
                               "published_cf_sha256": _sha256(args.published_cf)})
     ppf._append(env, record_path)
