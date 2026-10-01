@@ -78,3 +78,18 @@ def test_geometry_forward_mode_only_off_cpu():
     assert split.geometry_forward_mode("cpu") is False
     assert split.geometry_forward_mode("cuda") is True
     assert not hasattr(split, "GPU_GEOMETRY_OUT_CHUNK")
+
+
+def test_scored_geometry_cpu_unchanged_gpu_from_float32():
+    split = _load("09_physics_probe_facing_split_run.py")
+    rng = np.random.default_rng(3)
+    b, D, d = 4, 9, 3
+    J = rng.normal(size=(b, D, d)); Hess = rng.normal(size=(b, D, d, d)); Hess = 0.5 * (Hess + Hess.transpose(0, 1, 3, 2))
+    image = rng.normal(size=(b, D)); image /= np.linalg.norm(image, axis=1, keepdims=True)
+    geo = split.geometry_from_arrays(J, Hess, image)
+    assert split.scored_geometry(geo, "cpu") is geo
+    g32 = split.scored_geometry(geo, "cuda")
+    ref = split.geometry_from_arrays(J.astype(np.float32), Hess.astype(np.float32), image.astype(np.float32))
+    for k in ("J", "Hess", "image", "g", "ginv", "II", "H"):
+        np.testing.assert_array_equal(g32[k], ref[k], err_msg=k)
+    np.testing.assert_array_equal(g32["J"].astype(np.float32), J.astype(np.float32))

@@ -64,6 +64,14 @@ def geometry_forward_mode(device: str) -> bool:
     return device != "cpu"
 
 
+def scored_geometry(geo: Dict[str, np.ndarray], device: str) -> Dict[str, np.ndarray]:
+    """On a GPU run, score from the float32 arrays the run saves, so the saved npz and the record agree
+    exactly (a later reader of the npz reproduces the partials bit for bit). CPU is unchanged."""
+    if device == "cpu":
+        return geo
+    return geometry_from_arrays(geo["J"].astype(np.float32), geo["Hess"].astype(np.float32), geo["image"].astype(np.float32))
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -300,13 +308,19 @@ def main() -> None:
             with torch.no_grad():
                 z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
             geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, forward_mode=geometry_forward_mode(args.device))
+            geo = scored_geometry(geo, args.device)
             print(f"[geometry] refit seed={args.fit_seed} hidden={pcp.AE_HIDDEN} var_explained={fit['var_explained']:.5f} fit {fit['wallclock_fit_s']:.0f}s", flush=True)
+            npz_sha = None
             if args.geometry_out:
                 Path(args.geometry_out).mkdir(parents=True, exist_ok=True)
-                np.savez_compressed(Path(args.geometry_out) / f"09_probe_facing_geometry_d{d}_seed{args.fit_seed}.npz", anchor_idx=a,
+                out_npz = Path(args.geometry_out) / f"09_probe_facing_geometry_d{d}_seed{args.fit_seed}.npz"
+                np.savez_compressed(out_npz, anchor_idx=a,
                                     J=geo["J"].astype(np.float32), Hess=geo["Hess"].astype(np.float32), image=geo["image"].astype(np.float32))
+                import hashlib
+                npz_sha = hashlib.sha256(out_npz.read_bytes()).hexdigest()
             ppf._append({"experiment": EXPERIMENT, "row": "fit", "mode": args.mode, "d": d, "fit_seed": args.fit_seed, "hidden": list(pcp.AE_HIDDEN),
-                         "var_explained": fit["var_explained"], "wallclock_fit_s": fit["wallclock_fit_s"], "timestamp": _utc_now()}, record_path)
+                         "var_explained": fit["var_explained"], "wallclock_fit_s": fit["wallclock_fit_s"],
+                         "geometry_npz_sha256": npz_sha, "timestamp": _utc_now()}, record_path)
         elif args.mode == "physics":
             path = geometry_root / f"09_probe_facing_geometry_d{d}.npz"
             z = np.load(path)
@@ -318,6 +332,7 @@ def main() -> None:
             with torch.no_grad():
                 z_anchor = fit["model"].encode(fit["x64"][torch.as_tensor(a, dtype=torch.long, device=fit["x64"].device)])
             geo = ppf.decoder_geometry(fit["curvature_model"], z_anchor, forward_mode=geometry_forward_mode(args.device))
+            geo = scored_geometry(geo, args.device)
             print(f"[geometry] smoke decoder var_explained={fit['var_explained']:.4f}", flush=True)
 
         # local quadratics: label and the probe's own prediction, per label (the probe differs per label)
