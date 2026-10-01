@@ -301,3 +301,29 @@ def test_launcher_exception_marks_job_failed_and_closes_log(tmp_path):
     log = lay.logs / "a__main.log"
     assert log.exists()
     log.unlink()   # would raise on POSIX if still open and locked elsewhere; mainly checks no leak
+
+
+def test_prune_waits_for_robust(tmp_path):
+    lay = Layout(tmp_path)
+    mx, cf, thin, geo = _geometry_chain(lay)
+    rb_rec = str(lay.records / "a__robust.jsonl")
+    # robust fails: thin is done but the geometry must stay
+    robust = _npz_job("a__robust", "robust", (rb_rec,), deps=("a__main_xfit", "a__cf"), exit_code=1)
+    run_queue([mx, cf, thin, robust], lay, gpus=["0", "1", "2"], poll_s=0.05)
+    assert geo.exists()
+
+
+def test_prune_after_thin_and_robust_both_done(tmp_path):
+    lay = Layout(tmp_path)
+    mx, cf, thin, geo = _geometry_chain(lay)
+    rb_rec = str(lay.records / "a__robust.jsonl")
+    robust = _npz_job("a__robust", "robust", (rb_rec,), deps=("a__main_xfit", "a__cf"))
+    run_queue([mx, cf, thin, robust], lay, gpus=["0", "1", "2"], poll_s=0.05)
+    assert not geo.exists()
+
+
+def test_order_largest_first_is_stable():
+    from sweep.run_queue import order_largest_first
+    js = [JobSpec(f"{e}__{s}", e, s, (), ("x",), (), "split") for e in ("small", "big", "mid") for s in ("a", "b")]
+    got = [j.id for j in order_largest_first(js, {"small": 384, "big": 4096, "mid": 1024})]
+    assert got == ["big__a", "big__b", "mid__a", "mid__b", "small__a", "small__b"]

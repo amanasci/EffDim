@@ -124,6 +124,22 @@ def prune_geometry(main_xfit_job: JobSpec, lay: Layout) -> None:
         geo.unlink()
 
 
+def order_largest_first(jobs: List[JobSpec], dims: Dict[str, int]) -> List[JobSpec]:
+    """Largest embedding dimension first, stable within an encoder: the slowest encoders start earliest."""
+    return sorted(jobs, key=lambda j: -dims.get(j.encoder, 0))
+
+
+def _maybe_prune(encoder: str, by_id: Dict[str, JobSpec], done: set, lay: Layout) -> None:
+    """Prune an encoder's main_xfit geometry once everything that reads it is done: thin, and robust if present."""
+    if f"{encoder}__thin" not in done:
+        return
+    if f"{encoder}__robust" in by_id and f"{encoder}__robust" not in done:
+        return
+    mx = by_id.get(f"{encoder}__main_xfit")
+    if mx is not None:
+        prune_geometry(mx, lay)
+
+
 def quarantine(job: JobSpec, lay: Layout) -> None:
     stamp = int(time.time())
     for o in job.outputs:
@@ -142,15 +158,12 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
     for j in jobs:
         if is_done(j, lay):
             status[j.id] = "done"; out["skipped"].append(j.id)
-            # a thin job can already be done at startup (an earlier invocation ran it, or
-            # this process crashed between mark_done(thin) and the prune_geometry() call
-            # that used to only happen on the live done-transition below) -- prune here
-            # too so a geometry npz doesn't survive just because run_queue was restarted
-            # after its thin job finished.
-            if j.kind == "thin" and not keep_geometry:
-                mx = by_id.get(f"{j.encoder}__main_xfit")
-                if mx is not None:
-                    prune_geometry(mx, lay)
+    if not keep_geometry:
+        # a thin/robust job can already be done at startup (an earlier invocation ran it, or
+        # this process crashed before the live prune below), so prune once status is filled.
+        done_now = {k for k, v in status.items() if v == "done"}
+        for enc in {j.encoder for j in jobs if j.id in done_now and j.kind in ("thin", "robust")}:
+            _maybe_prune(enc, by_id, done_now, lay)
     pending = [j for j in jobs if j.id not in status]
     running: Dict[str, Tuple[JobSpec, subprocess.Popen, object]] = {}   # gpu -> (job, proc, logfile)
     min_free_bytes = min_free_gb * (1024 ** 3)
@@ -163,10 +176,8 @@ def run_queue(jobs: List[JobSpec], lay: Layout, gpus: List[str], poll_s: float =
             ok, why = (validate_outputs(j) if proc.returncode == 0 else (False, f"exit {proc.returncode}"))
             if ok:
                 mark_done(j, lay); status[j.id] = "done"; out["done"].append(j.id)
-                if j.kind == "thin" and not keep_geometry:
-                    mx = by_id.get(f"{j.encoder}__main_xfit")
-                    if mx is not None:
-                        prune_geometry(mx, lay)
+                if j.kind in ("thin", "robust") and not keep_geometry:
+                    _maybe_prune(j.encoder, by_id, {k for k, v in status.items() if v == "done"}, lay)
             else:
                 status[j.id] = "failed"; out["failed"].append(j.id)
                 print(f"[queue] FAILED {j.id}: {why}", flush=True)
@@ -240,6 +251,7 @@ def main() -> None:
     ap.add_argument("--threads", type=int, required=True)
     ap.add_argument("--python", default=sys.executable)
     ap.add_argument("--runners", default=str(Path(__file__).resolve().parents[1] / "runners"))
+    ap.add_argument("--encoders", default=None, help="comma-separated encoder names")
     ap.add_argument("--only", default=None, help="run only jobs whose id contains this substring")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--keep-geometry", action="store_true",
@@ -249,7 +261,10 @@ def main() -> None:
                           "under --root drops below this many GB")
     a = ap.parse_args()
     lay = Layout(Path(a.root))
-    jobs = build_jobs(load_manifest(), lay, a.python, Path(a.runners), a.threads)
+    m = load_manifest()
+    jobs = build_jobs(m, lay, a.python, Path(a.runners), a.threads,
+                      encoders=a.encoders.split(",") if a.encoders else None)
+    jobs = order_largest_first(jobs, {e.name: e.dim for e in m.encoders})
     if a.only:
         wanted = {j.id for j in jobs if a.only in j.id}
         needed = set(wanted)
