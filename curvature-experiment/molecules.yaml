@@ -1,0 +1,101 @@
+# QM9 molecule manifest for C2 (docs/superpowers/specs/2026-10-01-c2-qm9-design.md).
+#
+# Loaded by sweep.manifest.load_manifest(MOLECULES_PATH). The molecule table data/qm9/qm9_molecules.parquet
+# (built by sweep/qm9_prepare.py from yairschiff/qm9 at `snapshot`) is both the label table and the SMILES
+# source; qm9_prepare writes its sha256 here (label_table_sha256). sweep/embed.py writes the embeddings to
+# <root>/hf/<parquet_file>; `python -m sweep.embed --pin <sidecar dir>` copies their sha256s here
+# (parquet_sha256) and, for ChemBERTa-2, the parameter count computed from the checkpoint weights (no
+# safetensors metadata exists for them). ChemBERTa-2's 5M/10M/77M are pretraining-set sizes, not model sizes.
+# MoLFormer and ChemFM params: HF safetensors metadata (https://huggingface.co/api/models/<repo>).
+repo: yairschiff/qm9
+snapshot: fe76afe05ba82b29b2f6b2d4da0cdad8d82e7d0e
+n_rows: 130744
+label_table: /mnt/ssd-cluster/EffDim/repo/curvature-experiment/data/qm9/qm9_molecules.parquet
+labels:
+- gap
+- mu
+- alpha
+- cv
+label_map: identity
+expected_rows: 130744
+encoders:
+- name: chemberta_5m_mtr
+  family: ChemBERTa-2
+  dim: 384
+  params: 0
+  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  in_paper: false
+  parquet_file: molecules/chemberta_5m_mtr.parquet
+  column: chemberta_5m_mtr_molecules
+  hf_id: DeepChem/ChemBERTa-5M-MTR
+  revision: a642f2611383af9c37550b805ca0ecc279079914
+- name: chemberta_10m_mtr
+  family: ChemBERTa-2
+  dim: 384
+  params: 0
+  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  in_paper: false
+  parquet_file: molecules/chemberta_10m_mtr.parquet
+  column: chemberta_10m_mtr_molecules
+  hf_id: DeepChem/ChemBERTa-10M-MTR
+  revision: b65d0a6af3156071d9519e867d695aa265bb393f
+- name: chemberta_77m_mtr
+  family: ChemBERTa-2
+  dim: 384
+  params: 0
+  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  in_paper: false
+  parquet_file: molecules/chemberta_77m_mtr.parquet
+  column: chemberta_77m_mtr_molecules
+  hf_id: DeepChem/ChemBERTa-77M-MTR
+  revision: 66b895cab8adebea0cb59a8effa66b2020f204ca
+- name: chemberta_10m_mlm
+  family: ChemBERTa-2
+  dim: 384
+  params: 0
+  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  in_paper: false
+  parquet_file: molecules/chemberta_10m_mlm.parquet
+  column: chemberta_10m_mlm_molecules
+  hf_id: DeepChem/ChemBERTa-10M-MLM
+  revision: a5cfe173103cff3149e7322130342a4880010cba
+- name: chemberta_77m_mlm
+  family: ChemBERTa-2
+  dim: 384
+  params: 0
+  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  in_paper: false
+  parquet_file: molecules/chemberta_77m_mlm.parquet
+  column: chemberta_77m_mlm_molecules
+  hf_id: DeepChem/ChemBERTa-77M-MLM
+  revision: ed8a5374f2024ec8da53760af91a33fb8f6a15ff
+- name: molformer_xl
+  family: MoLFormer
+  dim: 768
+  params: 46805760
+  params_source: https://huggingface.co/api/models/ibm-research/MoLFormer-XL-both-10pct
+  in_paper: false
+  parquet_file: molecules/molformer_xl.parquet
+  column: molformer_xl_molecules
+  hf_id: ibm-research/MoLFormer-XL-both-10pct
+  revision: 361063d0ad524ef77cf39b08469f6be770dc550f
+- name: chemfm_1b
+  family: ChemFM
+  dim: 2048
+  params: 970287104
+  params_source: https://huggingface.co/api/models/ChemFM/ChemFM-1B
+  in_paper: false
+  parquet_file: molecules/chemfm_1b.parquet
+  column: chemfm_1b_molecules
+  hf_id: ChemFM/ChemFM-1B
+  revision: f99dc2e89726539bb9cf31b2e2b4360650bac6a8
+- name: chemfm_3b
+  family: ChemFM
+  dim: 3072
+  params: 3004357632
+  params_source: https://huggingface.co/api/models/ChemFM/ChemFM-3B
+  in_paper: false
+  parquet_file: molecules/chemfm_3b.parquet
+  column: chemfm_3b_molecules
+  hf_id: ChemFM/ChemFM-3B
+  revision: c1464dd3c51643d2d6926a71db98558be97e1ecf
