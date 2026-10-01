@@ -19,11 +19,10 @@ Success criteria:
 1. All 60 jobs (6 per encoder x 10 encoders) complete with validated records and done-markers.
 2. Every `robust` job's reproduction guard passes in exact mode against its own encoder's `main_xfit`
    and `cf` outputs.
-3. For the five published encoders, the sweep's global out-of-fold R^2 equals the published value to 1e-10.
+3. For the five published encoders, the sweep's global out-of-fold R^2 equals the published value.
    This is a data-identity check (embeddings, label table, folds, probe), not a GPU check: the value is
-   computed before any geometry step. If it misses by less than 1e-12 (BLAS thread-count rounding; the
-   published runs used 16 threads), the difference is reported and the gate passes; a larger miss stops
-   the run.
+   computed before any geometry step. A difference below 1e-12 (BLAS thread-count rounding; the published
+   runs used 16 threads) is reported and the gate passes; a difference of 1e-12 or more stops the run.
 4. The report regenerates from the records: `.tex` and `.md` byte-for-byte (pinned by a test); figures
    identical between two runs in the same environment.
 5. The CPU equivalence gate passes; `paper/latex/main.tex` is unchanged.
