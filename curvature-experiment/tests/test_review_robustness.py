@@ -316,3 +316,29 @@ def test_report_discloses_alpha_edge_and_dependence_at_alpha_star(tmp_path):
     assert "8 split cells and 40 counterfactual values" in text and "max |diff| 0" in text
     assert "0.07" in text and "0.61" in text                     # random null help and t*
     assert "appendix" in text.lower() and "|local R2(surrogate) - local R2(probe)|" in text
+
+
+def test_robust_refuses_thread_mismatch(tmp_path, monkeypatch):
+    cfrec = tmp_path / "cf.jsonl"; cfrec.write_text(json.dumps({"row": "environment", "threads": 12}) + "\n")
+    g = tmp_path / "g.npz"; np.savez(g, anchor_idx=np.arange(3))
+    monkeypatch.setattr(sys, "argv", ["x", "--encoder", "e", "--geometry-npz", str(g), "--threads", "8",
+                                      "--published-cf-record", str(cfrec), "--record-path", str(tmp_path / "r.jsonl")])
+    with pytest.raises(SystemExit, match="threads"):
+        rr.main()
+    assert not (tmp_path / "r.jsonl").exists()
+
+
+def test_threads_of_reads_environment_row(tmp_path):
+    p = tmp_path / "c.jsonl"; p.write_text(json.dumps({"row": "environment", "threads": 3}) + "\n" + json.dumps({"row": "result"}) + "\n")
+    assert rr.threads_of(p) == 3
+
+
+def test_geometry_sha_optional_and_recorded(tmp_path, monkeypatch):
+    """No --geometry-sha256: the run proceeds past the sha check and fails later on the missing label table, not on the sha."""
+    g = tmp_path / "g.npz"; np.savez(g, anchor_idx=np.arange(3))
+    monkeypatch.setattr(sys, "argv", ["x", "--encoder", "e", "--geometry-npz", str(g), "--threads", "8",
+                                      "--label-table", str(tmp_path / "missing.parquet"), "--label-table-sha256", "0" * 64,
+                                      "--record-path", str(tmp_path / "r.jsonl")])
+    with pytest.raises((SystemExit, FileNotFoundError)) as e:
+        rr.main()
+    assert "geometry sha256" not in str(e.value)

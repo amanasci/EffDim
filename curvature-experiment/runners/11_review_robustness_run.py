@@ -35,6 +35,7 @@ ppf, adj, runner = pfs.ppf, pfs.adj, pfs.runner
 
 import argparse  # noqa: E402
 import hashlib  # noqa: E402
+import json  # noqa: E402
 import time  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 from typing import Any, Dict, List, Tuple  # noqa: E402
@@ -341,6 +342,14 @@ def analyse_label(X, y, a, panel, geo, d, ov, blocks, alpha_mode: str, n_perm: i
     return row, arrays
 
 
+def threads_of(record_path) -> int:
+    for line in Path(record_path).read_text().splitlines():
+        r = json.loads(line)
+        if r.get("row") == "environment":
+            return int(r["threads"])
+    raise SystemExit(f"no environment row in {record_path}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--encoder", type=str, default="smoke")
@@ -348,6 +357,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--parquet-path"); p.add_argument("--embedding-column")
     p.add_argument("--label-table"); p.add_argument("--label-table-sha256")
     p.add_argument("--published-split"); p.add_argument("--published-cf")
+    p.add_argument("--published-cf-record")
     p.add_argument("--guard", choices=["exact", "refit"], default="exact")
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--record-path", type=str, required=True)
@@ -365,6 +375,11 @@ def main() -> None:
         if record_path.name.startswith(stem):
             raise SystemExit(f"refusing to write to a Phase 9 production record path: {record_path}")
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
+    if args.published_cf_record:
+        cf_threads = threads_of(args.published_cf_record)
+        if cf_threads != args.threads:
+            raise SystemExit(f"threads {args.threads} != the cf run's threads {cf_threads}: the counterfactual guard "
+                             "compares at 1e-12, which needs the same BLAS thread count")
     t0 = time.monotonic()
     if args.smoke:
         import torch
@@ -379,7 +394,7 @@ def main() -> None:
         geo_sha = lab_sha = None
     else:
         geo_sha = _sha256(args.geometry_npz)
-        if geo_sha != args.geometry_sha256:
+        if args.geometry_sha256 is not None and geo_sha != args.geometry_sha256:
             raise SystemExit(f"geometry sha256 {geo_sha} != expected {args.geometry_sha256}: {args.geometry_npz}")
         lab_sha = _sha256(args.label_table)
         if lab_sha != args.label_table_sha256:
@@ -400,7 +415,7 @@ def main() -> None:
            "repo_head": adj._git_head(NOTEBOOK_ROOT.parent), "threads": args.threads, "guard": args.guard,
            "geometry_npz": args.geometry_npz, "geometry_sha256": geo_sha, "parquet_path": args.parquet_path,
            "embedding_column": args.embedding_column, "label_table": args.label_table, "label_table_sha256": lab_sha,
-           "published_split": args.published_split, "published_cf": args.published_cf, "n_perm": args.n_perm, "n_boot": args.n_boot,
+           "published_split": args.published_split, "published_cf": args.published_cf, "published_cf_record": args.published_cf_record, "n_perm": args.n_perm, "n_boot": args.n_boot,
            "alpha_grid": list(ALPHA_GRID), "numpy": np.__version__, "sklearn": sklearn.__version__, "scipy": scipy.__version__,
            "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}
     rows_by_mode: Dict[str, List[dict]] = {"published": [], "tuned": []}
