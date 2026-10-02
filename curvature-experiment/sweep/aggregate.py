@@ -477,6 +477,10 @@ MOL_LIMITS = (
     "expected near-linear for them.",
     "- Neighbourhoods (k = 2,048 of 130,744 molecules) cover about 1/64 of the data (galaxies: 1/42).",
     "- Special tokens are inside the mean pool.",
+    "- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n): 3,144 molecules in "
+    "1,479 groups share a token sequence and so an embedding, which also pulls their two_nn estimate below 1. "
+    "MoLFormer and ChemFM give every molecule its own embedding.",
+    "- ChemFM inputs carry no BOS (token id 1 is the atom 'He') and no trailing eos (its pretraining appended one).",
     "- d = 20 is the cap and sits at an open question from the d = 20 spike findings; the d = 16 baseline covers it.",
 )
 

@@ -282,3 +282,15 @@ def test_molecule_report_is_deterministic(tmp_path):
     for o in (a, b):
         aggregate_molecules(load_manifest(MOL_MANIFEST), rec, arr, o, d, timing_dir=tim, id_synthetic=syn)
     assert (a / "QM9_REPORT.md").read_bytes() == (b / "QM9_REPORT.md").read_bytes()
+
+
+QC = Path(__file__).resolve().parents[1] / ".cache" / "qm9"
+QRES = Path(__file__).resolve().parents[1] / "results" / "qm9"
+QDATA = Path(__file__).resolve().parents[1] / "data" / "qm9"
+
+
+@pytest.mark.skipif(not (QC / "records").exists(), reason="qm9 records absent")
+def test_qm9_results_regenerate(tmp_path):
+    aggregate_molecules(load_manifest(MOL_MANIFEST), QC / "records", QC / "arrays", tmp_path, QDATA / "molecules_d.json",
+                        timing_dir=QC / "timing", id_synthetic=QDATA / "id_synthetic.json")
+    assert filecmp.cmp(QRES / "QM9_REPORT.md", tmp_path / "QM9_REPORT.md", shallow=False)
