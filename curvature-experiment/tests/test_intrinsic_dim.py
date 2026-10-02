@@ -27,3 +27,17 @@ def test_sphere_and_synthetic_check():
     assert (row["true_d"], row["D"], res["n"]) == (4, 32, 2000)
     assert abs(np.median(list(row["estimates"].values())) - 4) < 1.0
     assert row["bias"]["mle"] == row["estimates"]["mle"] - 4
+
+
+import json
+from pathlib import Path
+
+D_FILE = Path(__file__).resolve().parents[1] / "data" / "qm9" / "molecules_d.json"
+
+
+def test_committed_d_file():
+    from sweep.manifest import MOLECULES_PATH, load_manifest
+    src = json.loads(D_FILE.read_text())
+    assert set(src) == {e.name for e in load_manifest(MOLECULES_PATH).encoders}
+    for name, v in src.items():
+        assert (v["d_ID"], v["d_run"]) == idm.choose_d(v["estimates"]), name
