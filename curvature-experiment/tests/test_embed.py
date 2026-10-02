@@ -126,3 +126,34 @@ def test_pin_copies_shas_and_chemberta_params(tmp_path):
     assert by["chemberta_5m_mtr"].params == 1000 and "position_ids" in by["chemberta_5m_mtr"].params_source
     assert by["molformer_xl"].params == 46805760 and by["molformer_xl"].parquet_sha256 == "05" * 32
     assert all(e.parquet_sha256 for e in by.values())
+
+
+def test_embed_encoder_writes_parquet_sidecar_and_removes_cache(tmp_path, monkeypatch):
+    import dataclasses
+    import hashlib
+    import pandas as pd
+    from sweep.intrinsic_dim import load_embeddings
+    smiles = ["CCO", "C", "c1ccccc1O", "CC(=O)O", "N#N"]
+    table = tmp_path / "table.parquet"
+    pd.DataFrame({"smiles_canonical": smiles}).to_parquet(table)
+    m = load_manifest(MOLECULES_PATH)
+    m = dataclasses.replace(m, label_table=str(table), label_table_sha256=hashlib.sha256(table.read_bytes()).hexdigest(),
+                            n_rows=len(smiles))
+    enc = dataclasses.replace(next(e for e in m.encoders if e.name == "chemberta_5m_mtr"), dim=4)
+    cache = tmp_path / "cache"
+    snap = cache / "models--DeepChem--ChemBERTa-5M-MTR" / "snapshots" / "rev"; snap.mkdir(parents=True)
+    torch.save({"w": torch.zeros(3, 4)}, snap / "pytorch_model.bin")
+    (cache / "blobs").mkdir(); (cache / "blobs" / "stray").write_bytes(b"x" * 10)     # hub 1.25 keeps shared blobs here
+    torch.manual_seed(0)
+    model = Recorder().eval()
+    monkeypatch.setattr(embed, "load_model", lambda e, c, d: (snap, StubTok(), model))
+    side = embed.embed_encoder(enc, m, tmp_path / "hf", cache, 2, "cpu")
+    dest = tmp_path / "hf" / enc.parquet_file
+    E = load_embeddings(dest, enc.column)
+    tok = StubTok(); embed.prepare_tokenizer(tok)
+    alone = np.concatenate([embed.embed_smiles(model, tok, [s], 1, "cpu") for s in smiles])
+    np.testing.assert_allclose(E, alone, rtol=0, atol=1e-6)                        # rows in table order
+    assert json.loads(dest.with_suffix(".json").read_text()) == side
+    assert side["n_rows"] == 5 and side["checkpoint_params"] == 12
+    assert side["parquet_sha256"] == hashlib.sha256(dest.read_bytes()).hexdigest()
+    assert not cache.exists()

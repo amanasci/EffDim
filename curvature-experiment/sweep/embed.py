@@ -196,7 +196,8 @@ def embed_encoder(enc: Encoder, m: Manifest, out_dir: Path, cache_dir: Path, bat
     del model
     if device.startswith("cuda"):
         torch.cuda.empty_cache()
-    shutil.rmtree(Path(cache_dir) / f"models--{enc.hf_id.replace('/', '--')}")
+    # the whole cache dir: huggingface_hub keeps shared blobs at <cache_dir>/blobs, outside models--<id>
+    shutil.rmtree(Path(cache_dir), ignore_errors=True)
     return side
 
 
