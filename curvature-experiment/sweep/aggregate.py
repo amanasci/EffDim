@@ -527,6 +527,15 @@ def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, syn
         est = " | ".join("--" for _ in ESTIMATORS) if e is None else " | ".join(f"{e['estimates'][k]:.2f}" for k in ESTIMATORS)
         dd = "-- | --" if e is None else f"{e['d_ID']} | {e['d_run']}"
         L.append(f"| {x.enc.name} | {x.enc.dim} | {x.enc.params:,} | {dd} | {est} |")
+    with_d = [(x.enc.name, d_info[x.enc.name]["estimates"]) for x in data if d_info.get(x.enc.name) is not None]
+    same = sum(1 for _, est in with_d if est["tle"] == est["mle"])
+    L += ["", "In effdim, tle and mle are the same formula (the mean of the per-point Levina-Bickel estimate), so where "
+          "tle == mle the median of the four is the mean of mle and the next value in sorted order. The pre-registered d "
+          "is kept.", "",
+          f"- tle equals mle (exact float equality) in {same} of {len(with_d)} encoders"]
+    for name, est in with_d:
+        order = sorted(ESTIMATORS, key=lambda k: (est[k], ESTIMATORS.index(k)))
+        L.append(f"- {name}: middle pair {order[1]}, {order[2]} (d_ID = round of their mean)")
 
     L += ["", "## Synthetic intrinsic-dimension check (unit spheres)", ""]
     if synth is None:

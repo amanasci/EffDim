@@ -284,6 +284,23 @@ def test_molecule_report_is_deterministic(tmp_path):
     assert (a / "QM9_REPORT.md").read_bytes() == (b / "QM9_REPORT.md").read_bytes()
 
 
+def test_molecule_report_tle_mle_disclosure(tmp_path):
+    rec, arr, d, tim, syn = _mol_fixture(tmp_path)
+    d.write_text(json.dumps({
+        "chemberta_5m_mtr": {"d_ID": 10, "d_run": 10,
+                             "estimates": {"mle": 10.5, "two_nn": 0.9, "tle": 10.5, "mind_mlk": 9.3}},
+        "molformer_xl": {"d_ID": 16, "d_run": 16,
+                         "estimates": {"mle": 16.2, "two_nn": 15.0, "tle": 16.6, "mind_mlk": 30.0}}}, indent=1, sort_keys=True) + "\n")
+    out = tmp_path / "out"
+    aggregate_molecules(load_manifest(MOL_MANIFEST), rec, arr, out, d, timing_dir=tim, id_synthetic=syn)
+    sec = (out / "QM9_REPORT.md").read_text().split("## d per encoder")[1].split("\n## ")[0]
+    assert "d_ID = median of mle, two_nn, tle, mind_mlk, rounded half to even" in sec
+    assert "- tle equals mle (exact float equality) in 1 of 2 encoders" in sec
+    assert "- chemberta_5m_mtr: middle pair mind_mlk, mle" in sec
+    assert "- molformer_xl: middle pair mle, tle" in sec
+    assert "same formula" in sec and "pre-registered d is kept" in sec
+
+
 QC = Path(__file__).resolve().parents[1] / ".cache" / "qm9"
 QRES = Path(__file__).resolve().parents[1] / "results" / "qm9"
 QDATA = Path(__file__).resolve().parents[1] / "data" / "qm9"
