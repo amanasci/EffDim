@@ -58,3 +58,23 @@ def test_check_counts_names_every_differing_key():
         qp.check_counts(bad)
     msg = str(e.value)
     assert "n_parse_failed" in msg and "n: expected 130744, got 130745" in msg and "n_source" not in msg
+
+
+import json
+from pathlib import Path
+
+from sweep.manifest import MOLECULES_PATH, load_manifest
+
+TABLE = Path(__file__).resolve().parents[1] / "data" / "qm9" / "qm9_molecules.parquet"
+
+
+def test_committed_molecule_table():
+    m = load_manifest(MOLECULES_PATH)
+    assert qp.sha256_file(TABLE) == m.label_table_sha256
+    s = json.loads(TABLE.with_name("qm9_molecules.summary.json").read_text())
+    assert (s["n_source"], s["n_uncharacterized"], s["n_uncharacterized_smiles_mismatch"], s["n_parse_failed"],
+            s["n_duplicate_rows"], s["n_duplicate_groups"], s["n"]) == (133885, 3054, 0, 0, 87, 87, 130744)
+    assert s["table_sha256"] == m.label_table_sha256 and s["revision"] == qp.REVISION
+    t = pd.read_parquet(TABLE)
+    assert list(t.columns) == list(qp.OUT_COLUMNS) and len(t) == m.n_rows == 130744
+    assert t["qm9_index"].is_monotonic_increasing and t["smiles_canonical"].is_unique

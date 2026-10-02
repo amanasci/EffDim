@@ -1,0 +1,19 @@
+{
+ "hartree_to_ev": 27.211386245988,
+ "n": 130744,
+ "n_duplicate_groups": 87,
+ "n_duplicate_rows": 87,
+ "n_parse_failed": 0,
+ "n_source": 133885,
+ "n_uncharacterized": 3054,
+ "n_uncharacterized_smiles_mismatch": 0,
+ "pandas": "3.0.5",
+ "rdkit": "2026.03.6",
+ "repo": "yairschiff/qm9",
+ "revision": "fe76afe05ba82b29b2f6b2d4da0cdad8d82e7d0e",
+ "source_parquet": "data/train-00000-of-00001-baa918c342229731.parquet",
+ "source_parquet_sha256": "8d526730480ec9db6be5cc30439c77b644c809352bd6c451efba1285cf239c2f",
+ "table_sha256": "c74aba84d4e623018ac77799af78ca8667963afabc24a42798d538f517206dea",
+ "uncharacterized_sha256": "3aa5115d540b356de94791d4a74c3bf1ed91c469ecf52a4f5d7cc0506fe02e24",
+ "uncharacterized_url": "https://ndownloader.figshare.com/files/3195404"
+}

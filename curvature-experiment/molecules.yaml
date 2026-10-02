@@ -99,3 +99,4 @@ encoders:
   column: chemfm_3b_molecules
   hf_id: ChemFM/ChemFM-3B
   revision: c1464dd3c51643d2d6926a71db98558be97e1ecf
+label_table_sha256: c74aba84d4e623018ac77799af78ca8667963afabc24a42798d538f517206dea
