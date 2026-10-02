@@ -65,3 +65,4 @@ pyarrow==25.0.0
 nbconvert==7.17.1
 jupyter==1.1.1
 rdkit==2026.3.6  # sweep/qm9_prepare.py (canonical SMILES, heavy-atom counts); cp314 manylinux wheel on PyPI
+transformers==5.16.1  # sweep/embed.py (SMILES encoders); needs huggingface-hub>=1.5,<2 (datasets 5.0.1 allows it), tokenizers 0.23.x
