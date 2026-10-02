@@ -16,6 +16,18 @@ d_ID = median of mle, two_nn, tle, mind_mlk, rounded half to even (Python round)
 | chemfm_1b | 2048 | 970,287,104 | 10 | 10 | 10.18 | 6.00 | 10.18 | 8.89 |
 | chemfm_3b | 3072 | 3,004,357,632 | 9 | 9 | 10.09 | 5.98 | 10.09 | 8.85 |
 
+In effdim, tle and mle are the same formula (the mean of the per-point Levina-Bickel estimate), so where tle == mle the median of the four is the mean of mle and the next value in sorted order. The pre-registered d is kept.
+
+- tle equals mle (exact float equality) in 7 of 8 encoders
+- chemberta_10m_mlm: middle pair mind_mlk, mle (d_ID = round of their mean)
+- chemberta_77m_mlm: middle pair mind_mlk, mle (d_ID = round of their mean)
+- chemberta_5m_mtr: middle pair mind_mlk, mle (d_ID = round of their mean)
+- chemberta_10m_mtr: middle pair mind_mlk, mle (d_ID = round of their mean)
+- chemberta_77m_mtr: middle pair mind_mlk, mle (d_ID = round of their mean)
+- molformer_xl: middle pair mind_mlk, tle (d_ID = round of their mean)
+- chemfm_1b: middle pair mind_mlk, mle (d_ID = round of their mean)
+- chemfm_3b: middle pair mind_mlk, mle (d_ID = round of their mean)
+
 ## Synthetic intrinsic-dimension check (unit spheres)
 
 Estimate minus true dimension; n = 10,000 points on a unit sphere of true dimension d, rotated into R^D.
@@ -33,6 +45,19 @@ Estimate minus true dimension; n = 10,000 points on a unit sphere of true dimens
 | 24 | 3072 | -2.36 | -3.64 | -2.36 | -4.01 |
 
 - read low at true d = 24 in every D: mle, two_nn, tle, mind_mlk (of 4)
+
+## Duplicate embeddings
+
+Rows whose embedding equals another row's exactly (sweep/embedding_duplicates.py).
+
+- chemberta_10m_mlm: 3,144 of 130,744 rows in 1,479 duplicate groups
+- chemberta_77m_mlm: 3,144 of 130,744 rows in 1,479 duplicate groups
+- chemberta_5m_mtr: 3,144 of 130,744 rows in 1,479 duplicate groups
+- chemberta_10m_mtr: 3,144 of 130,744 rows in 1,479 duplicate groups
+- chemberta_77m_mtr: 3,144 of 130,744 rows in 1,479 duplicate groups
+- molformer_xl: 0 of 130,744 rows in 0 duplicate groups
+- chemfm_1b: 0 of 130,744 rows in 0 duplicate groups
+- chemfm_3b: 0 of 130,744 rows in 0 duplicate groups
 
 ## (a) Mismatch partial negative and significant
 
@@ -240,6 +265,6 @@ Exit 124: killed by the --timeout-h limit.
 - The MTR models were pretrained on RDKit descriptors including molar refractivity (close to alpha), so alpha is expected near-linear for them.
 - Neighbourhoods (k = 2,048 of 130,744 molecules) cover about 1/64 of the data (galaxies: 1/42).
 - Special tokens are inside the mean pool.
-- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n): 3,144 molecules in 1,479 groups share a token sequence and so an embedding, which also pulls their two_nn estimate below 1. MoLFormer and ChemFM give every molecule its own embedding.
+- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n), so molecules that differ only there share an embedding (see Duplicate embeddings); zero nearest-neighbour distances pull their two_nn estimate below 1.
 - ChemFM inputs carry no BOS (token id 1 is the atom 'He') and no trailing eos (its pretraining appended one).
 - d = 20 is the cap and sits at an open question from the d = 20 spike findings; the d = 16 baseline covers it.
