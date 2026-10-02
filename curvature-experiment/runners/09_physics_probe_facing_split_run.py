@@ -72,6 +72,36 @@ def scored_geometry(geo: Dict[str, np.ndarray], device: str) -> Dict[str, np.nda
     return geometry_from_arrays(geo["J"].astype(np.float32), geo["Hess"].astype(np.float32), geo["image"].astype(np.float32))
 
 
+def add_domain_args(p: argparse.ArgumentParser) -> None:
+    """Flags for a second data domain (QM9 molecules); every default keeps the galaxy behaviour."""
+    p.add_argument("--expected-rows", type=int, default=None,
+                   help="row count of the embeddings and the label table (default: the galaxy constant pl.EXPECTED_N_PHYSICS_ROWS)")
+    p.add_argument("--label-map", choices=["galaxy", "identity"], default="galaxy",
+                   help="identity: each --labels name is its own label-table column and there are no sentinel values")
+    p.add_argument("--d-file-sha256", type=str, default=None, help="sha256 of the d file this job's d came from (recorded)")
+
+
+def apply_domain_flags(args: argparse.Namespace) -> None:
+    """Set the physics_labels globals the loaders read, before any loader shim is installed. A no-op at the defaults."""
+    if args.expected_rows is not None:
+        ppf.pl.EXPECTED_N_PHYSICS_ROWS = int(args.expected_rows)
+    if args.label_map == "identity":
+        ppf.pl.LABEL_COLUMN_MAP = {name: name for name in args.labels.split(",")}
+        ppf.pl.SENTINEL_VALUES = ()
+
+
+def domain_env(args: argparse.Namespace) -> Dict[str, Any]:
+    """Environment-row keys for the non-default domain flags only, so galaxy records are unchanged."""
+    out: Dict[str, Any] = {}
+    if args.expected_rows is not None:
+        out["expected_rows"] = int(args.expected_rows)
+    if args.label_map != "galaxy":
+        out["label_map"] = args.label_map
+    if args.d_file_sha256 is not None:
+        out["d_file_sha256"] = args.d_file_sha256
+    return out
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -201,12 +231,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label-table", type=str, default=None,
                    help="parquet of the label columns (LABEL_REPO@LABEL_REVISION shards, column-projected, concatenated in "
                         "shard order) to read instead of streaming the shards over hf://; sha256 is recorded")
+    add_domain_args(p)
     return p
 
 
 def main() -> None:
     p = build_parser()
     args = p.parse_args()
+    apply_domain_flags(args)
     if args.deterministic:
         os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
         torch.use_deterministic_algorithms(True)
@@ -273,7 +305,7 @@ def main() -> None:
                  "labels": list(labels), "n": n, "k": k, "n_anchors": n_anchors, "multiscale_ks": ks, "n_permutations": n_perm,
                  "geometry_root": str(geometry_root), "columns": COLUMNS, "label_table": args.label_table, "label_table_sha256": label_table_sha, "fit_seed": args.fit_seed, "hidden": args.hidden, "alpha": pcp.ALPHA_RIDGE, "hessian_xfit": args.hessian_xfit, "parquet_path": args.parquet_path, "embedding_column": args.embedding_column, "in_dim": int(data["X"].shape[1]), "numpy": np.__version__, "torch": torch.__version__,
                  "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing",
-                 "device": args.device, "deterministic": args.deterministic, "gpu_name": gpu_name, "cuda_version": torch.version.cuda}, record_path)
+                 "device": args.device, "deterministic": args.deterministic, "gpu_name": gpu_name, "cuda_version": torch.version.cuda, **domain_env(args)}, record_path)
 
     split = pcp.anchor_indices(n, pcp.SPLIT_SEED, pcp.HOLDOUT_FRACTION, n_anchors, pcp.ANCHOR_DRAW_SEED)
     a = split["anchor_idx"]

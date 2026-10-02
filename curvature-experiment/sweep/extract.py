@@ -54,10 +54,10 @@ def devices(rows: List[dict]) -> List[str]:
     return sorted({str(r["device"]) for r in rows if r.get("row") == "environment" and "device" in r})
 
 
-def cf_summary(npz_path) -> Dict[str, Dict[str, dict]]:
+def cf_summary(npz_path, labels=LABELS) -> Dict[str, Dict[str, dict]]:
     z = np.load(npz_path)
     out: Dict[str, Dict[str, dict]] = {}
-    for lab in LABELS:
+    for lab in labels:
         if f"{lab}:S_model:eq" not in z.files:
             continue
         out[lab] = {}
@@ -86,12 +86,12 @@ def _ptex(p):
     return ("%d\\times 10^{%d}" % (c, e)) if c > 1 else "10^{%d}" % e
 
 
-def sign_test(cf_npz, thin_npz, thr: float = 0.05) -> Dict[str, dict]:
+def sign_test(cf_npz, thin_npz, thr: float = 0.05, labels=LABELS) -> Dict[str, dict]:
     # Ported from appendix_gen's thinned-anchor block: the mask is `keep & isfinite(r2_curve[:, 0])`
     # (not `isfinite(eq)`), and help/hurt compare r2_curve columns directly (4 > 2, 0 < 2).
     z = np.load(cf_npz); keep = _indep(np.load(thin_npz)["overlap"].astype(float), thr)
     out = {}
-    for lab in LABELS:
+    for lab in labels:
         if f"{lab}:S_model:r2_curve" not in z.files:
             continue
         cv = z[f"{lab}:S_model:r2_curve"]; m = keep & np.isfinite(cv[:, 0]); n = int(m.sum())

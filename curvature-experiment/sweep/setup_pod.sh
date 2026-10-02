@@ -10,6 +10,15 @@ set -euo pipefail
 BASE=/mnt/ssd-cluster/EffDim
 REPO=$BASE/repo; VENV=$BASE/venv; OUT=$BASE/sweep-out; HF=$BASE/hf-cache
 BRANCH=${BRANCH:-encoder-scaling}
+QM9_OUT=$BASE/qm9-out
+MANIFEST=curvature-experiment/encoders.yaml
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --manifest) MANIFEST=$2; shift 2 ;;
+    *) echo "error: unknown argument $1 (usage: setup_pod.sh [--manifest <path>])" >&2; exit 2 ;;
+  esac
+done
+case "$MANIFEST" in /*) ;; *) MANIFEST=$REPO/$MANIFEST ;; esac
 SNAPSHOT=bc081f8a5db4767edcd958653d96efde9137de0b
 # Must match the local venv's Python (`.venv/bin/python --version`), not the pod's system
 # python3 (3.10). Verified locally on 2026-09-28.
@@ -20,7 +29,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.14}
 # for the broadest driver compatibility with the pod's A100s; override with TORCH_CUDA_TAG
 # if the pod's driver requires otherwise.
 TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu126}
-mkdir -p "$BASE" "$OUT" "$HF"
+mkdir -p "$BASE" "$OUT" "$HF" "$QM9_OUT"
 
 echo "--- disk space on /mnt/ssd-cluster (before anything else) ---"
 df -h /mnt/ssd-cluster
@@ -101,6 +110,8 @@ grep -vE '^torch==|^--extra-index-url|^--index-url|^-i |^--find-links|^-f ' \
   "$REPO/curvature-experiment/requirements.txt" > "$BASE/requirements-gpu.txt" || true
 "$UV" pip install --python "$VENV/bin/python" -q -r "$BASE/requirements-gpu.txt"
 "$UV" pip install --python "$VENV/bin/python" -q "$TORCH_PIN" --index-url "https://download.pytorch.org/whl/$TORCH_CUDA_TAG"
+# effdim itself (sweep/intrinsic_dim.py imports effdim.geometry); --no-deps so it cannot move a pinned dependency
+"$UV" pip install --python "$VENV/bin/python" -q --no-deps -e "$REPO"
 
 # HF_HOME/HF_HUB_CACHE stay on /mnt so any metadata huggingface_hub keeps outside the
 # hf_hub_download(..., local_dir=...) calls below also lands on persistent storage, not
@@ -114,24 +125,57 @@ grep -vE '^torch==|^--extra-index-url|^--index-url|^-i |^--find-links|^-f ' \
 # or move to `local_dir` + `HF_HUB_CACHE` pointed at a throwaway dir you clean up.
 export HF_HOME=$HF
 export HF_HUB_CACHE=$HF/hub
-"$VENV/bin/python" - "$REPO" "$OUT" "$SNAPSHOT" <<'EOF'
+"$VENV/bin/python" - "$REPO" "$OUT" "$SNAPSHOT" "$MANIFEST" "$QM9_OUT" <<'EOF'
+import hashlib
 import sys
 from pathlib import Path
 from huggingface_hub import hf_hub_download
-repo, out, snap = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+repo, out, snap, manifest, qm9_out = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4]), Path(sys.argv[5])
 sys.path.insert(0, str(repo / "curvature-experiment"))
 from sweep.manifest import load_manifest
-m = load_manifest()
-assert m.snapshot == snap, (m.snapshot, snap)
-for e in m.encoders:
-    dest = out / "hf" / e.parquet_file
-    if dest.exists() and dest.stat().st_size > 0:
-        continue
-    hf_hub_download(m.repo, e.parquet_file, repo_type="dataset", revision=snap, local_dir=str(out / "hf"))
-    print("downloaded", e.parquet_file, flush=True)
-if not Path(m.label_table).exists():
-    raise SystemExit(f"label table missing on the pod: {m.label_table}")
-print("parquets and label table present")
+m = load_manifest(manifest)
+
+
+def sha256(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+if m.labels is not None:
+    # molecules: no galaxy snapshot or parquet download; the table and any embeddings are checked by sha256
+    if not Path(m.label_table).exists():
+        raise SystemExit(f"molecule table missing on the pod: {m.label_table}")
+    got = sha256(m.label_table)
+    if got != m.label_table_sha256:
+        raise SystemExit(f"molecule table sha256 {got} != manifest {m.label_table_sha256}")
+    print(f"molecule table sha256 verified: {got}")
+    ok, unpinned, missing = [], [], []
+    for e in m.encoders:
+        p = qm9_out / "hf" / e.parquet_file
+        if not p.exists():
+            missing.append(e.name)
+        elif e.parquet_sha256 is None:
+            unpinned.append(e.name)
+        elif sha256(p) != e.parquet_sha256:
+            raise SystemExit(f"embedding sha256 mismatch for {e.name}: {p}")
+        else:
+            ok.append(e.name)
+    print(f"embeddings verified {len(ok)} of {len(m.encoders)}; present but not yet pinned: {', '.join(unpinned) or 'none'}; "
+          f"missing: {', '.join(missing) or 'none'}")
+else:
+    assert m.snapshot == snap, (m.snapshot, snap)
+    for e in m.encoders:
+        dest = out / "hf" / e.parquet_file
+        if dest.exists() and dest.stat().st_size > 0:
+            continue
+        hf_hub_download(m.repo, e.parquet_file, repo_type="dataset", revision=snap, local_dir=str(out / "hf"))
+        print("downloaded", e.parquet_file, flush=True)
+    if not Path(m.label_table).exists():
+        raise SystemExit(f"label table missing on the pod: {m.label_table}")
+    print("parquets and label table present")
 EOF
 "$VENV/bin/python" -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'available', torch.cuda.is_available())"
 nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv

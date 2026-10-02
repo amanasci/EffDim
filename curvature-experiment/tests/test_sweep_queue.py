@@ -327,3 +327,61 @@ def test_order_largest_first_is_stable():
     js = [JobSpec(f"{e}__{s}", e, s, (), ("x",), (), "split") for e in ("small", "big", "mid") for s in ("a", "b")]
     got = [j.id for j in order_largest_first(js, {"small": 384, "big": 4096, "mid": 1024})]
     assert got == ["big__a", "big__b", "mid__a", "mid__b", "small__a", "small__b"]
+
+
+from qm9_fixtures import MOL_MANIFEST, MOLECULES, write_d_file
+
+needs_timeout = pytest.mark.skipif(shutil.which("timeout") is None, reason="needs GNU timeout")
+
+
+def _capture():
+    seen = []
+
+    def launcher(argv, env=None, stdout=None, stderr=None):
+        seen.append(argv)
+        return subprocess.Popen(argv, env=env, stdout=stdout, stderr=stderr)
+    return seen, launcher
+
+
+def _timing(lay, jid):
+    return json.loads((lay.timing / f"{jid}.json").read_text())
+
+
+def test_no_timeout_leaves_argv_alone_and_still_times(tmp_path):
+    from sweep.run_queue import job_argv
+    lay = Layout(tmp_path)
+    j = _split_job(lay, "a__main", ["result"])
+    seen, launcher = _capture()
+    run_queue([j], lay, gpus=["0"], poll_s=0.05, launcher=launcher)
+    assert seen[0] == list(j.argv) == job_argv(j, lay)
+    t = _timing(lay, "a__main")
+    assert set(t) == {"exit", "max_rss_kb", "wall_s"} and t["exit"] == 0 and t["max_rss_kb"] > 0 and t["wall_s"] >= 0
+
+
+@needs_timeout
+def test_timeout_prefixes_argv(tmp_path):
+    lay = Layout(tmp_path)
+    j = _split_job(lay, "a__main", ["result"])
+    seen, launcher = _capture()
+    r = run_queue([j], lay, gpus=["0"], poll_s=0.05, launcher=launcher, timeout_h=8)
+    assert seen[0][:2] == ["timeout", "8h"] and seen[0][2:] == list(j.argv)
+    assert r["done"] == ["a__main"] and _timing(lay, "a__main")["exit"] == 0
+
+
+@needs_timeout
+def test_timed_out_job_gets_timing_file(tmp_path):
+    lay = Layout(tmp_path)
+    rec = str(lay.records / "a__main.jsonl")
+    j = JobSpec("a__main", "a", "main", (sys.executable, "-c", "import time; time.sleep(60)"), (rec,), (), "split")
+    r = run_queue([j], lay, gpus=["0"], poll_s=0.05, timeout_h=0.0005)          # about 2 s
+    assert r["failed"] == ["a__main"] and _timing(lay, "a__main")["exit"] == 124
+
+
+def test_main_reads_manifest_and_d_file(tmp_path, monkeypatch, capsys):
+    from sweep import run_queue as rq
+    d = write_d_file(tmp_path, {n: 23 for n in MOLECULES})
+    monkeypatch.setattr(sys, "argv", ["x", "--root", str(tmp_path / "root"), "--gpus", "0", "--threads", "3",
+                                      "--manifest", str(MOL_MANIFEST), "--d-file", str(d), "--encoders", "chemfm_3b", "--dry-run"])
+    rq.main()
+    ids = [w for w in capsys.readouterr().out.split() if w.startswith("chemfm_3b__")]
+    assert "chemfm_3b__main_d16" in ids and len(ids) == 7

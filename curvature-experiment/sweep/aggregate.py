@@ -5,6 +5,8 @@ encoders/jobs print as `--` and are left out of the report's counts."""
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import math
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -14,7 +16,7 @@ import numpy as np
 from sweep.extract import (LABELS, _ptex, cf_summary, devices, read_rows, sign_test, split_cells,
                            var_explained, xfit_cells, xfit_hess_cos_p50)
 from sweep.jobs import JOB_SUFFIXES
-from sweep.manifest import Encoder, Manifest, load_manifest
+from sweep.manifest import DEFAULT_PATH, Encoder, Manifest, load_manifest
 
 HERE = Path(__file__).resolve().parents[1]
 SPLIT_JOBS = ("main_xfit", "seed1", "seed2")
@@ -61,17 +63,18 @@ def _staleness(mx_rows, cf_rows, rb_rows) -> Optional[str]:
 
 
 class EncData:
-    def __init__(self, enc: Encoder, records_dir: Path, arrays_dir: Path):
+    def __init__(self, enc: Encoder, records_dir: Path, arrays_dir: Path, labels=LABELS, extra_split=()):
         self.enc = enc
-        self.rows = {s: read_rows(records_dir / f"scaling__{enc.name}__{s}.jsonl") for s in SPLIT_JOBS}
+        self.rows = {s: read_rows(records_dir / f"scaling__{enc.name}__{s}.jsonl") for s in SPLIT_JOBS + tuple(extra_split)}
         self.robust_rows = read_rows(records_dir / f"scaling__{enc.name}__robust.jsonl")
         cf_rows = read_rows(records_dir / f"scaling__{enc.name}__cf.jsonl")
+        self.cf_rows = cf_rows
         self.split = {s: split_cells(r) for s, r in self.rows.items()}
         self.xfit = xfit_cells(self.rows["main_xfit"])
         self.hcos = xfit_hess_cos_p50(self.rows["main_xfit"])
         cf_p, thin_p = arrays_dir / f"scaling__{enc.name}__cf.npz", arrays_dir / f"scaling__{enc.name}__thin.npz"
-        self.cf = cf_summary(cf_p) if cf_p.exists() else {}
-        self.sign = sign_test(cf_p, thin_p) if cf_p.exists() and thin_p.exists() else {}
+        self.cf = cf_summary(cf_p, labels=labels) if cf_p.exists() else {}
+        self.sign = sign_test(cf_p, thin_p, labels=labels) if cf_p.exists() and thin_p.exists() else {}
         self.has_any = any(self.rows.values()) or cf_p.exists() or thin_p.exists() \
             or (records_dir / f"scaling__{enc.name}__cf.jsonl").exists()
         self.complete = all(any(r.get("row") == "result" for r in self.rows[s]) for s in SPLIT_JOBS) \
@@ -266,6 +269,29 @@ def _fig_robust(data: List[EncData], out_dir: Path) -> None:
 
 
 # ------------------------------------------------------------------ report
+def _guard_lines(data: List[EncData]) -> List[str]:
+    L = ["", "## Reproduction guard (robust job)", ""]
+    for x in data:
+        if not x.robust_rows: continue
+        g = next((r for r in x.robust_rows if r.get("row") == "guard" and r.get("passed") is True), None)
+        L.append(f"- {x.enc.name}: {g['mode']} PASS, {g['n_split']} split cells and {g['n_cf']} counterfactual values, "
+                 f"max |diff| {g['max_abs_diff_split']:.2g} (split), {g['max_abs_diff_cf']:.2g} (counterfactual)"
+                 if g else f"- {x.enc.name}: no guard row")
+    no_robust = [x.enc.name for x in data if not x.robust_rows]
+    L.append(f"- not run: {', '.join(no_robust) if no_robust else 'none'}")
+    return L
+
+
+def _stale_lines(data: List[EncData]) -> List[str]:
+    L = ["", "## Stale encoders", ""]
+    stale = [x for x in data if x.stale not in (None, "not checked")]
+    unchecked = [x.enc.name for x in data if x.stale == "not checked"]
+    L += [f"- {x.enc.name}: {x.stale}" for x in stale]
+    if unchecked: L.append(f"- not checked: {', '.join(unchecked)}")
+    if not stale and not unchecked: L.append("- none")
+    return L
+
+
 def _report(data: List[EncData], n_total: int, published_dir: Optional[Path] = None) -> str:
     have = [x for x in data if x.has_any]
     done = [x for x in data if x.complete]
@@ -318,21 +344,8 @@ def _report(data: List[EncData], n_total: int, published_dir: Optional[Path] = N
     L += ["", "## Encoders that break a claim", ""]
     for k, v in breaks.items():
         L.append(f"- {k}: " + (", ".join(v) if v else "none"))
-    L += ["", "## Reproduction guard (robust job)", ""]
-    for x in data:
-        if not x.robust_rows: continue
-        g = next((r for r in x.robust_rows if r.get("row") == "guard" and r.get("passed") is True), None)
-        L.append(f"- {x.enc.name}: {g['mode']} PASS, {g['n_split']} split cells and {g['n_cf']} counterfactual values, "
-                 f"max |diff| {g['max_abs_diff_split']:.2g} (split), {g['max_abs_diff_cf']:.2g} (counterfactual)"
-                 if g else f"- {x.enc.name}: no guard row")
-    no_robust = [x.enc.name for x in data if not x.robust_rows]
-    L.append(f"- not run: {', '.join(no_robust) if no_robust else 'none'}")
-    L += ["", "## Stale encoders", ""]
-    stale = [x for x in data if x.stale not in (None, "not checked")]
-    unchecked = [x.enc.name for x in data if x.stale == "not checked"]
-    L += [f"- {x.enc.name}: {x.stale}" for x in stale]
-    if unchecked: L.append(f"- not checked: {', '.join(unchecked)}")
-    if not stale and not unchecked: L.append("- none")
+    L += _guard_lines(data)
+    L += _stale_lines(data)
     if published_dir is not None:
         L += _section_published(data, published_dir)
     L += _section_ladder(data)
@@ -453,6 +466,197 @@ def _section_ladder(data: List["EncData"]) -> List[str]:
     return L
 
 
+# ------------------------------------------------------------------ molecules (QM9)
+QM9_REPORT = "QM9_REPORT.md"
+MOL_EXTRA_SPLIT = ("main_d16",)
+ESTIMATORS = ("mle", "two_nn", "tle", "mind_mlk")
+MOL_LIMITS = (
+    "- Only ChemFM 1B -> 3B is a model-size pair; the five ChemBERTa-2 models share one architecture "
+    "(5M/10M/77M are pretraining-set sizes).",
+    "- The MTR models were pretrained on RDKit descriptors including molar refractivity (close to alpha), so alpha is "
+    "expected near-linear for them.",
+    "- Neighbourhoods (k = 2,048 of 130,744 molecules) cover about 1/64 of the data (galaxies: 1/42).",
+    "- Special tokens are inside the mean pool.",
+    "- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n), so molecules that differ "
+    "only there share an embedding (see Duplicate embeddings); zero nearest-neighbour distances pull their two_nn "
+    "estimate below 1.",
+    "- ChemFM inputs carry no BOS (token id 1 is the atom 'He') and no trailing eos (its pretraining appended one).",
+    "- d = 20 is the cap and sits at an open question from the d = 20 spike findings; the d = 16 baseline covers it.",
+)
+
+
+def read_timing(path) -> Optional[dict]:
+    """A queue timing file {"exit", "max_rss_kb", "wall_s"}; None when it is empty or truncated."""
+    try:
+        return json.loads(Path(path).read_text())
+    except json.JSONDecodeError:
+        return None
+
+
+def d16_variant(d_run: int) -> str:
+    """Claim (a) at d = 16 reads main_d16, or main_xfit where d_run is 16."""
+    return "main_xfit" if d_run == 16 else "main_d16"
+
+
+def _md(v) -> str:
+    if not _ok(v): return "--"
+    return f"{v['partial']:+.2f}" + ("" if v["p"] <= ALPHA else " (ns)")
+
+
+def _env_rows(x: EncData) -> List[dict]:
+    rows = [r for rs in x.rows.values() for r in rs] + list(x.cf_rows) + list(x.robust_rows)
+    return [r for r in rows if r.get("row") == "environment"]
+
+
+def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, synth: Optional[dict], timing: Dict[str, dict],
+                      dups: Optional[dict] = None) -> str:
+    n = len(data)
+    drun = {x.enc.name: (d_info.get(x.enc.name) or {}).get("d_run") for x in data}
+    have = [x for x in data if x.has_any]
+    done = [x for x in data if drun[x.enc.name] is not None and x.complete
+            and (drun[x.enc.name] == 16 or any(r.get("row") == "result" for r in x.rows["main_d16"]))]
+    L = [f"{len(have)} of {n} encoders have records",
+         f"{len(done)} of {n} encoders complete their battery (main_xfit, seed1, seed2, cf, thin, robust; main_d16 where d_run != 16)", ""]
+    breaks: Dict[str, List[str]] = {}
+
+    L += ["## d per encoder", "",
+          "d_ID = median of mle, two_nn, tle, mind_mlk, rounded half to even (Python round), on a 10,000-row subsample of "
+          "the row-normalised embeddings (one shared k-NN, k = 10); d_run = min(d_ID, 20).", "",
+          "| encoder | D | params | d_ID | d_run | " + " | ".join(ESTIMATORS) + " |", "|---|---|---|---|---|" + "---|" * len(ESTIMATORS)]
+    for x in data:
+        e = d_info.get(x.enc.name)
+        est = " | ".join("--" for _ in ESTIMATORS) if e is None else " | ".join(f"{e['estimates'][k]:.2f}" for k in ESTIMATORS)
+        dd = "-- | --" if e is None else f"{e['d_ID']} | {e['d_run']}"
+        L.append(f"| {x.enc.name} | {x.enc.dim} | {x.enc.params:,} | {dd} | {est} |")
+    with_d = [(x.enc.name, d_info[x.enc.name]["estimates"]) for x in data if d_info.get(x.enc.name) is not None]
+    same = sum(1 for _, est in with_d if est["tle"] == est["mle"])
+    L += ["", "In effdim, tle and mle are the same formula (the mean of the per-point Levina-Bickel estimate), so where "
+          "tle == mle the median of the four is the mean of mle and the next value in sorted order. The pre-registered d "
+          "is kept.", "",
+          f"- tle equals mle (exact float equality) in {same} of {len(with_d)} encoders"]
+    for name, est in with_d:
+        order = sorted(ESTIMATORS, key=lambda k: (est[k], ESTIMATORS.index(k)))
+        L.append(f"- {name}: middle pair {order[1]}, {order[2]} (d_ID = round of their mean)")
+
+    L += ["", "## Synthetic intrinsic-dimension check (unit spheres)", ""]
+    if synth is None:
+        L.append("- not run")
+    else:
+        L += [f"Estimate minus true dimension; n = {synth['n']:,} points on a unit sphere of true dimension d, rotated into R^D.", "",
+              "| true d | D | " + " | ".join(ESTIMATORS) + " |", "|---|---|" + "---|" * len(ESTIMATORS)]
+        for r in synth["rows"]:
+            L.append(f"| {r['true_d']} | {r['D']} | " + " | ".join(f"{r['estimates'][k] - r['true_d']:+.2f}" for k in ESTIMATORS) + " |")
+        top = max(r["true_d"] for r in synth["rows"])
+        low = [k for k in ESTIMATORS if all(r["estimates"][k] < r["true_d"] for r in synth["rows"] if r["true_d"] == top)]
+        L += ["", f"- read low at true d = {top} in every D: {', '.join(low) if low else 'none'} (of {len(ESTIMATORS)})"]
+
+    L += ["", "## Duplicate embeddings", ""]
+    if dups is None:
+        L.append("- not run")
+    else:
+        L += ["Rows whose embedding equals another row's exactly (sweep/embedding_duplicates.py).", ""]
+        for x in data:
+            c = dups.get(x.enc.name)
+            L.append(f"- {x.enc.name}: --" if c is None else
+                     f"- {x.enc.name}: {c['rows_in_duplicate_groups']:,} of {c['n_rows']:,} rows in {c['duplicate_groups']:,} duplicate groups")
+
+    L += ["", "## (a) Mismatch partial negative and significant"]
+    for title, key, variant in (("### at d_run (main_xfit)", "(a) mismatch negative and significant at d_run", lambda x: "main_xfit"),
+                                ("### at d = 16 (main_d16, or main_xfit where d_run = 16)", "(a) mismatch negative and significant at d = 16",
+                                 lambda x: None if drun[x.enc.name] is None else d16_variant(drun[x.enc.name]))):
+        L += ["", title, ""]
+        for lab in labels:
+            xs = [(x, x.part(variant(x), lab, MISMATCH)) for x in data if variant(x) is not None]
+            xs = [(x, v) for x, v in xs if _ok(v)]
+            good = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
+            L.append(f"- {lab}: {len(good)} of {len(xs)}")
+            breaks[f"{key}, {lab}"] = [x.enc.name for x, _ in xs if x not in good]
+
+    L += ["", "## (c) Counterfactual: model-normal help exceeds random help, and help > 0.5 (at d_run)", ""]
+    for lab in labels:
+        xs = [x for x in data if lab in x.cf]
+        g1 = [x for x in xs if x.cf[lab]["S_model"]["help"] > x.cf[lab]["random_qmatched"]["help"]]
+        g2 = [x for x in xs if x.cf[lab]["S_model"]["help"] > 0.5]
+        L.append(f"- {lab}: help > random help in {len(g1)} of {len(xs)}; help > 0.5 in {len(g2)} of {len(xs)}")
+        breaks[f"(c) help > random help, {lab}"] = [x.enc.name for x in xs if x not in g1]
+        breaks[f"(c) help > 0.5, {lab}"] = [x.enc.name for x in xs if x not in g2]
+    L += ["", "## (c') Counterfactual: sign reversal hurts (model-normal hurt > 0.5 and > random hurt, at d_run)", ""]
+    for lab in labels:
+        xs = [x for x in data if lab in x.cf]
+        g = [x for x in xs if x.cf[lab]["S_model"]["hurt"] > 0.5 and x.cf[lab]["S_model"]["hurt"] > x.cf[lab]["random_qmatched"]["hurt"]]
+        L.append(f"- {lab}: hurt > 0.5 and hurt > random hurt in {len(g)} of {len(xs)}")
+        breaks[f"(c') hurt > 0.5 and hurt > random hurt, {lab}"] = [x.enc.name for x in xs if x not in g]
+    L += ["", f"## (d) Thinned-anchor sign test p_help < {ALPHA} (at d_run)", ""]
+    for lab in labels:
+        xs = [x for x in data if lab in x.sign and x.sign[lab]["n"]]
+        good = [x for x in xs if x.sign[lab]["p_help"] < ALPHA]
+        L.append(f"- {lab}: {len(good)} of {len(xs)}")
+        breaks[f"(d) sign test p_help < {ALPHA}, {lab}"] = [x.enc.name for x in xs if x not in good]
+
+    L += ["", "## Alignment partial (descriptive; no molecular prior for its sign), at d_run", ""]
+    for lab in labels:
+        xs = [(x, x.part("main_xfit", lab, ALIGN)) for x in data]; xs = [(x, v) for x, v in xs if _ok(v)]
+        neg = [x for x, v in xs if v["partial"] < 0 and v["p"] <= ALPHA]
+        pos = [x for x, v in xs if v["partial"] > 0 and v["p"] <= ALPHA]
+        L.append(f"- {lab}: {len(neg)} negative-significant / {len(pos)} positive-significant / "
+                 f"{len(xs) - len(neg) - len(pos)} non-significant (of {len(xs)})")
+
+    L += ["", "## Per encoder and label", "",
+          "| encoder | d_run | label | mismatch @d_run | alignment @d_run | mismatch @16 | help | random help | hurt | p_help (thinned) |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
+    for x in data:
+        dr = drun[x.enc.name]
+        for lab in labels:
+            c, st = x.cf.get(lab), x.sign.get(lab)
+            cells = [_md(x.part("main_xfit", lab, MISMATCH)), _md(x.part("main_xfit", lab, ALIGN)),
+                     "--" if dr is None else _md(x.part(d16_variant(dr), lab, MISMATCH))]
+            cells += ["--"] * 3 if c is None else [f"{c['S_model']['help']:.2f}", f"{c['random_qmatched']['help']:.2f}", f"{c['S_model']['hurt']:.2f}"]
+            cells.append(f"{st['p_help']:.2g}" if st and st["n"] else "--")
+            L.append(f"| {x.enc.name} | {'--' if dr is None else dr} | {lab} | " + " | ".join(cells) + " |")
+
+    L += ["", "## Encoders that break a claim", ""]
+    for k, v in breaks.items():
+        L.append(f"- {k}: " + (", ".join(v) if v else "none"))
+    L += _guard_lines(data)
+    L += _stale_lines(data)
+    L += ["", "## d file in the environment rows", "",
+          f"molecules_d.json sha256 {d_sha}; every split, cf and robust record should carry it.", ""]
+    for x in data:
+        envs = _env_rows(x)
+        if envs:
+            k = sum(1 for r in envs if r.get("d_file_sha256") == d_sha)
+            L.append(f"- {x.enc.name}: {k} of {len(envs)} records carry it")
+    L += ["", "## Wall time and peak RSS per job", "", "Exit 124: killed by the --timeout-h limit.", "",
+          "| job | exit | wall (h) | peak RSS (GB) |", "|---|---|---|---|"]
+    for jid in sorted(timing):
+        t = timing[jid]
+        L.append(f"| {jid} | {t['exit']} | {t['wall_s'] / 3600:.2f} | {t['max_rss_kb'] / 1024 ** 2:.1f} |")
+    if not timing:
+        L.append("| -- | -- | -- | -- |")
+    L += ["", "## Stated limits", ""] + list(MOL_LIMITS)
+    return "\n".join(L) + "\n"
+
+
+def aggregate_molecules(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path, d_file: Path,
+                        timing_dir: Optional[Path] = None, id_synthetic: Optional[Path] = None,
+                        duplicates: Optional[Path] = None) -> None:
+    records_dir, arrays_dir, out_dir = Path(records_dir), Path(arrays_dir), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    labels = tuple(manifest.labels)
+    raw = Path(d_file).read_bytes()
+    d_info, d_sha = json.loads(raw), hashlib.sha256(raw).hexdigest()
+    data = [EncData(e, records_dir, arrays_dir, labels=labels, extra_split=MOL_EXTRA_SPLIT) for e in ordered(manifest)]
+    timing: Dict[str, dict] = {}
+    if timing_dir is not None and Path(timing_dir).exists():
+        for p in sorted(Path(timing_dir).glob("*.json")):
+            t = read_timing(p)
+            if t is not None:
+                timing[p.stem] = t
+    synth = json.loads(Path(id_synthetic).read_text()) if id_synthetic is not None and Path(id_synthetic).exists() else None
+    dups = json.loads(Path(duplicates).read_text()) if duplicates is not None and Path(duplicates).exists() else None
+    (out_dir / QM9_REPORT).write_text(_report_molecules(data, labels, d_info, d_sha, synth, timing, dups))
+
+
 def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path,
               encoders: Optional[List[str]] = None, published_dir: Optional[Path] = None) -> None:
     records_dir, arrays_dir, out_dir = Path(records_dir), Path(arrays_dir), Path(out_dir)
@@ -469,13 +673,27 @@ def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--records", type=Path, default=HERE / ".cache" / "scaling" / "records")
-    ap.add_argument("--arrays", type=Path, default=HERE / ".cache" / "scaling" / "arrays")
-    ap.add_argument("--out", type=Path, default=HERE / "results" / "scaling")
+    ap.add_argument("--manifest", type=Path, default=DEFAULT_PATH)
+    ap.add_argument("--records", type=Path, default=None)
+    ap.add_argument("--arrays", type=Path, default=None)
+    ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--encoders", type=lambda s: [t for t in s.split(",") if t], default=None)
     ap.add_argument("--published-dir", type=Path, default=None)
+    ap.add_argument("--timing-dir", type=Path, default=None)
+    ap.add_argument("--d-file", type=Path, default=HERE / "data" / "qm9" / "molecules_d.json")
+    ap.add_argument("--id-synthetic", type=Path, default=HERE / "data" / "qm9" / "id_synthetic.json")
+    ap.add_argument("--duplicates", type=Path, default=HERE / "data" / "qm9" / "embedding_duplicates.json")
     a = ap.parse_args()
-    aggregate(load_manifest(), a.records, a.arrays, a.out, encoders=a.encoders, published_dir=a.published_dir)
+    m = load_manifest(a.manifest)
+    sub = "scaling" if m.labels is None else "qm9"
+    records = a.records or HERE / ".cache" / sub / "records"
+    arrays = a.arrays or HERE / ".cache" / sub / "arrays"
+    out = a.out or HERE / "results" / sub
+    if m.labels is None:
+        aggregate(m, records, arrays, out, encoders=a.encoders, published_dir=a.published_dir)
+    else:
+        aggregate_molecules(m, records, arrays, out, a.d_file, timing_dir=a.timing_dir or HERE / ".cache" / "qm9" / "timing",
+                            id_synthetic=a.id_synthetic, duplicates=a.duplicates)
 
 
 if __name__ == "__main__":

@@ -342,3 +342,32 @@ def test_geometry_sha_optional_and_recorded(tmp_path, monkeypatch):
     with pytest.raises((SystemExit, FileNotFoundError)) as e:
         rr.main()
     assert "geometry sha256" not in str(e.value)
+
+
+def _write_published_mol(tmp_path):
+    rows = [{"row": "environment"}]
+    for d in (16, 20):
+        for lab in ("gap", "mu"):
+            rows.append({"row": "result", "d": d, "label": lab,
+                         "columns": {rr.MISMATCH: {"multiscale": {"partial": -0.2 if d == 20 else 0.5, "p": 0.01}},
+                                     rr.ALIGN: {"multiscale": {"partial": 0.1, "p": 0.2}}}})
+    p = tmp_path / "split_mol.jsonl"; p.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    arr = {f"{lab}:{k}": v for lab in ("gap", "mu") for k, v in _arrays(seed=6).items()}
+    c = tmp_path / "cf_mol.npz"; np.savez(c, **arr)
+    return p, c
+
+
+def test_reference_at_d_run_with_molecule_labels(tmp_path):
+    p, c = _write_published_mol(tmp_path)
+    ref = rr.published_reference(p, c, d=20, labels=("gap", "mu"))
+    assert ref["split"][("gap", rr.MISMATCH)]["partial"] == -0.2
+    assert set(ref["cf"]) == {"gap", "mu"} and rr.reference_gaps(ref, ("gap", "mu")) == []
+    assert rr.published_reference(p, c)["cf"] == {}            # the galaxy default reads no molecule key
+
+
+def test_cf_tables_with_molecule_labels(tmp_path):
+    rng = np.random.default_rng(4)
+    neigh = np.array([rng.choice(3000, 40, replace=False) for _ in range(64)])
+    ov = rr.th.overlap_matrix(neigh)
+    t = rr.cf_tables({"gap": _arrays(seed=1)}, ov, tmp_path, labels=("gap",))
+    assert set(t["summary"]) == {"gap"} and set(t["sign"]) == {"gap"}

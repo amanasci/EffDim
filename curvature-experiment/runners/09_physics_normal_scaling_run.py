@@ -138,12 +138,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--arrays-out", type=str, default=None, help="npz of the per-anchor arrays")
     p.add_argument("--threads", type=int, default=8)
     p.add_argument("--seed", type=int, default=20260915)
+    pfs.add_domain_args(p)
     return p
 
 
 def main() -> None:
     p = build_parser()
     args = p.parse_args()
+    pfs.apply_domain_flags(args)
     assert runner._THREADS == args.threads, (runner._THREADS, args.threads)
     record_path = Path(args.record_path).resolve()
     for stem in ppf.PRODUCTION_STEMS:
@@ -219,7 +221,7 @@ def main() -> None:
                  "geometry_npz": args.geometry_npz, "geometry_sha256": geometry_sha, "parquet_path": args.parquet_path,
                  "embedding_column": args.embedding_column, "label_table": args.label_table, "label_table_sha256": label_table_sha,
                  "cos_image_data_p05_p50": [float(np.percentile(cos_img, 5)), float(np.median(cos_img))], "seed": args.seed,
-                 "numpy": np.__version__, "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing"}, record_path)
+                 "numpy": np.__version__, "python": sys.version.split()[0], "pre_registered": False, "gates": "nothing", **pfs.domain_env(args)}, record_path)
 
     arrays: Dict[str, np.ndarray] = {"anchor_idx": a, "log_r": log_r}
     for name, y in labels.items():
