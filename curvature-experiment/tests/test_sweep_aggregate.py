@@ -331,8 +331,37 @@ QRES = Path(__file__).resolve().parents[1] / "results" / "qm9"
 QDATA = Path(__file__).resolve().parents[1] / "data" / "qm9"
 
 
+def first_sum_mismatch(sums: Path, roots):
+    """The first SHA256SUMS path whose file (the first root holding it) is missing or has another sha256; None if all match."""
+    for line in sums.read_text().splitlines():
+        if not line.strip():
+            continue
+        want, rel = line.split(maxsplit=1)
+        rel = rel.lstrip("*")
+        f = next((Path(r) / rel for r in roots if (Path(r) / rel).exists()), None)
+        if f is None or hashlib.sha256(f.read_bytes()).hexdigest() != want:
+            return rel
+    return None
+
+
+def test_first_sum_mismatch_resolves_both_roots(tmp_path):
+    a, b = tmp_path / "cache", tmp_path / "results"
+    (a / "records").mkdir(parents=True); (b / "sidecars").mkdir(parents=True)
+    (a / "records" / "r.jsonl").write_bytes(b"r"); (b / "sidecars" / "s.json").write_bytes(b"s")
+    sha = lambda x: hashlib.sha256(x).hexdigest()
+    sums = tmp_path / "SHA256SUMS"
+    sums.write_text(f"{sha(b'r')}  records/r.jsonl\n{sha(b's')}  sidecars/s.json\n")
+    assert first_sum_mismatch(sums, (a, b)) is None
+    sums.write_text(f"{sha(b'r')}  records/r.jsonl\n{sha(b'x')}  sidecars/s.json\n{sha(b'y')}  records/r.jsonl\n")
+    assert first_sum_mismatch(sums, (a, b)) == "sidecars/s.json"
+    sums.write_text(f"{sha(b'r')}  records/missing.jsonl\n")
+    assert first_sum_mismatch(sums, (a, b)) == "records/missing.jsonl"
+
+
 @pytest.mark.skipif(not (QC / "records").exists(), reason="qm9 records absent")
 def test_qm9_results_regenerate(tmp_path):
+    bad = first_sum_mismatch(QRES / "SHA256SUMS", (QC, QRES))
+    assert bad is None, f"input differs from results/qm9/SHA256SUMS: {bad}"
     aggregate_molecules(load_manifest(MOL_MANIFEST), QC / "records", QC / "arrays", tmp_path, QDATA / "molecules_d.json",
                         timing_dir=QC / "timing", id_synthetic=QDATA / "id_synthetic.json",
                         duplicates=QDATA / "embedding_duplicates.json")
