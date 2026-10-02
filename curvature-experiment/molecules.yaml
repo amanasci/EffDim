@@ -22,53 +22,68 @@ encoders:
 - name: chemberta_5m_mtr
   family: ChemBERTa-2
   dim: 384
-  params: 0
-  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  params: 3504453
+  params_source: 'computed from the checkpoint weights of DeepChem/ChemBERTa-5M-MTR@a642f2611383af9c37550b805ca0ecc279079914:
+    unique tensors in the checkpoint weight files (tied weights once), *position_ids
+    buffers excluded (sweep/embed.py)'
   in_paper: false
   parquet_file: molecules/chemberta_5m_mtr.parquet
   column: chemberta_5m_mtr_molecules
   hf_id: DeepChem/ChemBERTa-5M-MTR
   revision: a642f2611383af9c37550b805ca0ecc279079914
+  parquet_sha256: 8b65fbd8b7d9274aecc74c8ec79961c84ae1019b9cd8d20d9bae3663112f419b
 - name: chemberta_10m_mtr
   family: ChemBERTa-2
   dim: 384
-  params: 0
-  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  params: 3504453
+  params_source: 'computed from the checkpoint weights of DeepChem/ChemBERTa-10M-MTR@b65d0a6af3156071d9519e867d695aa265bb393f:
+    unique tensors in the checkpoint weight files (tied weights once), *position_ids
+    buffers excluded (sweep/embed.py)'
   in_paper: false
   parquet_file: molecules/chemberta_10m_mtr.parquet
   column: chemberta_10m_mtr_molecules
   hf_id: DeepChem/ChemBERTa-10M-MTR
   revision: b65d0a6af3156071d9519e867d695aa265bb393f
+  parquet_sha256: fe2865ba0fff7122f31b3d8b7bed4e4b43f57f0971b97d8f460632e7b57d6062
 - name: chemberta_77m_mtr
   family: ChemBERTa-2
   dim: 384
-  params: 0
-  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  params: 3504453
+  params_source: 'computed from the checkpoint weights of DeepChem/ChemBERTa-77M-MTR@66b895cab8adebea0cb59a8effa66b2020f204ca:
+    unique tensors in the checkpoint weight files (tied weights once), *position_ids
+    buffers excluded (sweep/embed.py)'
   in_paper: false
   parquet_file: molecules/chemberta_77m_mtr.parquet
   column: chemberta_77m_mtr_molecules
   hf_id: DeepChem/ChemBERTa-77M-MTR
   revision: 66b895cab8adebea0cb59a8effa66b2020f204ca
+  parquet_sha256: 458e81cd463bd7623aa85951fb378486c8bb981ca9d2e78b901ea8549b4ed269
 - name: chemberta_10m_mlm
   family: ChemBERTa-2
   dim: 384
-  params: 0
-  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  params: 3428808
+  params_source: 'computed from the checkpoint weights of DeepChem/ChemBERTa-10M-MLM@a5cfe173103cff3149e7322130342a4880010cba:
+    unique tensors in the checkpoint weight files (tied weights once), *position_ids
+    buffers excluded (sweep/embed.py)'
   in_paper: false
   parquet_file: molecules/chemberta_10m_mlm.parquet
   column: chemberta_10m_mlm_molecules
   hf_id: DeepChem/ChemBERTa-10M-MLM
   revision: a5cfe173103cff3149e7322130342a4880010cba
+  parquet_sha256: ea1cb67901ab64350184f7a99bc7ec32beb54205eacb1e5c9ac2cff2837eb05c
 - name: chemberta_77m_mlm
   family: ChemBERTa-2
   dim: 384
-  params: 0
-  params_source: pending, computed from the checkpoint weights by sweep.embed --pin
+  params: 3428808
+  params_source: 'computed from the checkpoint weights of DeepChem/ChemBERTa-77M-MLM@ed8a5374f2024ec8da53760af91a33fb8f6a15ff:
+    unique tensors in the checkpoint weight files (tied weights once), *position_ids
+    buffers excluded (sweep/embed.py)'
   in_paper: false
   parquet_file: molecules/chemberta_77m_mlm.parquet
   column: chemberta_77m_mlm_molecules
   hf_id: DeepChem/ChemBERTa-77M-MLM
   revision: ed8a5374f2024ec8da53760af91a33fb8f6a15ff
+  parquet_sha256: 9a01b00b5759456e5ec3a8d2f0e3070da25bb7b302675e32c24cebbc73874b77
 - name: molformer_xl
   family: MoLFormer
   dim: 768
@@ -79,6 +94,7 @@ encoders:
   column: molformer_xl_molecules
   hf_id: ibm-research/MoLFormer-XL-both-10pct
   revision: 361063d0ad524ef77cf39b08469f6be770dc550f
+  parquet_sha256: 2fdae05841add57938db8688d1b6892a8fcd2a09faee0e8467086b6d4be87668
 - name: chemfm_1b
   family: ChemFM
   dim: 2048
@@ -89,6 +105,7 @@ encoders:
   column: chemfm_1b_molecules
   hf_id: ChemFM/ChemFM-1B
   revision: f99dc2e89726539bb9cf31b2e2b4360650bac6a8
+  parquet_sha256: d4e744c949ad7fc32dee89bb76a77e56f5f84e7dfd5bab77fe30c3277b0885cb
 - name: chemfm_3b
   family: ChemFM
   dim: 3072
@@ -99,4 +116,5 @@ encoders:
   column: chemfm_3b_molecules
   hf_id: ChemFM/ChemFM-3B
   revision: c1464dd3c51643d2d6926a71db98558be97e1ecf
+  parquet_sha256: 582429274fb5e6c7ab4ed323ed0851532874352530a80c491a5268a028506109
 label_table_sha256: c74aba84d4e623018ac77799af78ca8667963afabc24a42798d538f517206dea

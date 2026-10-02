@@ -75,3 +75,11 @@ def test_update_manifest_keeps_header_and_sets_fields(tmp_path):
     assert next(e for e in m.encoders if e.name == "molformer_xl").parquet_sha256 == "cd" * 32
     with pytest.raises(ValueError, match="nope"):
         update_manifest(p, encoders={"nope": {"params": 1}})
+
+
+def test_molecule_manifest_pinned():
+    m = load_manifest(MOLECULES_PATH)
+    assert m.label_table_sha256 and len(m.label_table_sha256) == 64
+    for e in m.encoders:
+        assert e.parquet_sha256 and len(e.parquet_sha256) == 64, e.name
+        assert e.params > 0 and "pending" not in e.params_source, e.name
