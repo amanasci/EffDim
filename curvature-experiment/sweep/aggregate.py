@@ -477,9 +477,9 @@ MOL_LIMITS = (
     "expected near-linear for them.",
     "- Neighbourhoods (k = 2,048 of 130,744 molecules) cover about 1/64 of the data (galaxies: 1/42).",
     "- Special tokens are inside the mean pool.",
-    "- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n): 3,144 molecules in "
-    "1,479 groups share a token sequence and so an embedding, which also pulls their two_nn estimate below 1. "
-    "MoLFormer and ChemFM give every molecule its own embedding.",
+    "- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n), so molecules that differ "
+    "only there share an embedding (see Duplicate embeddings); zero nearest-neighbour distances pull their two_nn "
+    "estimate below 1.",
     "- ChemFM inputs carry no BOS (token id 1 is the atom 'He') and no trailing eos (its pretraining appended one).",
     "- d = 20 is the cap and sits at an open question from the d = 20 spike findings; the d = 16 baseline covers it.",
 )
@@ -508,7 +508,8 @@ def _env_rows(x: EncData) -> List[dict]:
     return [r for r in rows if r.get("row") == "environment"]
 
 
-def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, synth: Optional[dict], timing: Dict[str, dict]) -> str:
+def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, synth: Optional[dict], timing: Dict[str, dict],
+                      dups: Optional[dict] = None) -> str:
     n = len(data)
     drun = {x.enc.name: (d_info.get(x.enc.name) or {}).get("d_run") for x in data}
     have = [x for x in data if x.has_any]
@@ -548,6 +549,16 @@ def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, syn
         top = max(r["true_d"] for r in synth["rows"])
         low = [k for k in ESTIMATORS if all(r["estimates"][k] < r["true_d"] for r in synth["rows"] if r["true_d"] == top)]
         L += ["", f"- read low at true d = {top} in every D: {', '.join(low) if low else 'none'} (of {len(ESTIMATORS)})"]
+
+    L += ["", "## Duplicate embeddings", ""]
+    if dups is None:
+        L.append("- not run")
+    else:
+        L += ["Rows whose embedding equals another row's exactly (sweep/embedding_duplicates.py).", ""]
+        for x in data:
+            c = dups.get(x.enc.name)
+            L.append(f"- {x.enc.name}: --" if c is None else
+                     f"- {x.enc.name}: {c['rows_in_duplicate_groups']:,} of {c['n_rows']:,} rows in {c['duplicate_groups']:,} duplicate groups")
 
     L += ["", "## (a) Mismatch partial negative and significant"]
     for title, key, variant in (("### at d_run (main_xfit)", "(a) mismatch negative and significant at d_run", lambda x: "main_xfit"),
@@ -627,7 +638,8 @@ def _report_molecules(data: List[EncData], labels, d_info: Dict, d_sha: str, syn
 
 
 def aggregate_molecules(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path, d_file: Path,
-                        timing_dir: Optional[Path] = None, id_synthetic: Optional[Path] = None) -> None:
+                        timing_dir: Optional[Path] = None, id_synthetic: Optional[Path] = None,
+                        duplicates: Optional[Path] = None) -> None:
     records_dir, arrays_dir, out_dir = Path(records_dir), Path(arrays_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     labels = tuple(manifest.labels)
@@ -641,7 +653,8 @@ def aggregate_molecules(manifest: Manifest, records_dir: Path, arrays_dir: Path,
             if t is not None:
                 timing[p.stem] = t
     synth = json.loads(Path(id_synthetic).read_text()) if id_synthetic is not None and Path(id_synthetic).exists() else None
-    (out_dir / QM9_REPORT).write_text(_report_molecules(data, labels, d_info, d_sha, synth, timing))
+    dups = json.loads(Path(duplicates).read_text()) if duplicates is not None and Path(duplicates).exists() else None
+    (out_dir / QM9_REPORT).write_text(_report_molecules(data, labels, d_info, d_sha, synth, timing, dups))
 
 
 def aggregate(manifest: Manifest, records_dir: Path, arrays_dir: Path, out_dir: Path,
@@ -669,6 +682,7 @@ def main() -> None:
     ap.add_argument("--timing-dir", type=Path, default=None)
     ap.add_argument("--d-file", type=Path, default=HERE / "data" / "qm9" / "molecules_d.json")
     ap.add_argument("--id-synthetic", type=Path, default=HERE / "data" / "qm9" / "id_synthetic.json")
+    ap.add_argument("--duplicates", type=Path, default=HERE / "data" / "qm9" / "embedding_duplicates.json")
     a = ap.parse_args()
     m = load_manifest(a.manifest)
     sub = "scaling" if m.labels is None else "qm9"
@@ -679,7 +693,7 @@ def main() -> None:
         aggregate(m, records, arrays, out, encoders=a.encoders, published_dir=a.published_dir)
     else:
         aggregate_molecules(m, records, arrays, out, a.d_file, timing_dir=a.timing_dir or HERE / ".cache" / "qm9" / "timing",
-                            id_synthetic=a.id_synthetic)
+                            id_synthetic=a.id_synthetic, duplicates=a.duplicates)
 
 
 if __name__ == "__main__":

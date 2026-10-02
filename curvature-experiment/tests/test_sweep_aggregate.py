@@ -301,6 +301,31 @@ def test_molecule_report_tle_mle_disclosure(tmp_path):
     assert "same formula" in sec and "pre-registered d is kept" in sec
 
 
+def test_molecule_report_duplicate_embeddings(tmp_path):
+    rec, arr, d, tim, syn = _mol_fixture(tmp_path)
+    out = tmp_path / "out"
+    aggregate_molecules(load_manifest(MOL_MANIFEST), rec, arr, out, d, timing_dir=tim, id_synthetic=syn,
+                        duplicates=tmp_path / "absent.json")
+    rep = (out / "QM9_REPORT.md").read_text()
+    assert "## Duplicate embeddings\n\n- not run\n" in rep
+    lim = [l for l in rep.split("## Stated limits")[1].splitlines() if "ChemBERTa-2 tokenizer" in l]
+    assert lim == ["- The ChemBERTa-2 tokenizer drops bracket-atom detail ([N+] -> N, [O-] -> O, [nH] -> n), so molecules "
+                   "that differ only there share an embedding (see Duplicate embeddings); zero nearest-neighbour distances "
+                   "pull their two_nn estimate below 1."]                     # no data-derived counts in the text
+    assert "ChemFM inputs carry no BOS" in rep
+    dj = tmp_path / "dup.json"
+    dj.write_text(json.dumps({"numpy": "2.5.1",
+                              "chemberta_5m_mtr": {"n_rows": 130744, "n_unique": 129000, "rows_in_duplicate_groups": 3144,
+                                                   "duplicate_groups": 1479, "largest_group": 4, "parquet_sha256": "ab"},
+                              "molformer_xl": {"n_rows": 130744, "n_unique": 130744, "rows_in_duplicate_groups": 0,
+                                               "duplicate_groups": 0, "largest_group": 1, "parquet_sha256": "cd"}}))
+    aggregate_molecules(load_manifest(MOL_MANIFEST), rec, arr, out, d, timing_dir=tim, id_synthetic=syn, duplicates=dj)
+    sec = (out / "QM9_REPORT.md").read_text().split("## Duplicate embeddings")[1].split("\n## ")[0]
+    assert "- chemberta_5m_mtr: 3,144 of 130,744 rows in 1,479 duplicate groups" in sec
+    assert "- molformer_xl: 0 of 130,744 rows in 0 duplicate groups" in sec
+    assert "- chemfm_3b: --" in sec
+
+
 QC = Path(__file__).resolve().parents[1] / ".cache" / "qm9"
 QRES = Path(__file__).resolve().parents[1] / "results" / "qm9"
 QDATA = Path(__file__).resolve().parents[1] / "data" / "qm9"
@@ -309,5 +334,6 @@ QDATA = Path(__file__).resolve().parents[1] / "data" / "qm9"
 @pytest.mark.skipif(not (QC / "records").exists(), reason="qm9 records absent")
 def test_qm9_results_regenerate(tmp_path):
     aggregate_molecules(load_manifest(MOL_MANIFEST), QC / "records", QC / "arrays", tmp_path, QDATA / "molecules_d.json",
-                        timing_dir=QC / "timing", id_synthetic=QDATA / "id_synthetic.json")
+                        timing_dir=QC / "timing", id_synthetic=QDATA / "id_synthetic.json",
+                        duplicates=QDATA / "embedding_duplicates.json")
     assert filecmp.cmp(QRES / "QM9_REPORT.md", tmp_path / "QM9_REPORT.md", shallow=False)
