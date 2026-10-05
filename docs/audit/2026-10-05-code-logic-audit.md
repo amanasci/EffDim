@@ -5,6 +5,8 @@ modules behind it, the sweep and QM9 machinery, the result reports, and four ear
 check). Read-only except this file. No ssh, no git, [`paper/generate/appendix_gen.py`](../../paper/generate/appendix_gen.py) was read but never imported or
 run.
 
+Sources for the classical and standard facts the audit relies on are in [Section 9](#9-references-for-classical-and-standard-facts), with a derivation where a short one exists, cited inline as [R1]–[R9].
+
 How to read the citations. `file:line` points at the code as it is on disk today. "RR", "TF", "SC", "QM" are the
 four reports under `curvature-experiment/results/` ([`review-robustness/REPORT.md`](../../curvature-experiment/results/review-robustness/REPORT.md), [`tensor-fidelity/REPORT.md`](../../curvature-experiment/results/tensor-fidelity/REPORT.md),
 [`scaling/SCALING_REPORT.md`](../../curvature-experiment/results/scaling/SCALING_REPORT.md), [`qm9/QM9_REPORT.md`](../../curvature-experiment/results/qm9/QM9_REPORT.md)). "Sanity" is
@@ -32,7 +34,7 @@ is marked "unverified (pod-only)".
 ## 1. Executive summary
 
 **What the project claims.** A linear probe ŷ = w·x + b restricted to a curved embedding manifold has intrinsic
-Hessian K = ⟨w_N, II⟩ (classical). The paper estimates II per object with an autoencoder decoder, estimates the
+Hessian K = ⟨w_N, II⟩ (classical; [[R1]](#r1)). The paper estimates II per object with an autoencoder decoder, estimates the
 label's intrinsic Hessian from neighbours, and reports (i) that the mismatch ‖Hess y − K‖ is negatively associated
 with local probe accuracy for magnitude and redshift across five encoders, (ii) that alignment cos(Hess y, K) is
 positively associated, and (iii) that in a local second-order surrogate, keeping the probe's in-sphere bending
@@ -67,7 +69,7 @@ one library bug in `src/effdim` (TLE is MLE) that affects the QM9 choice of d, a
 
 | # | Claim (where made) | Status | Evidence | Where it is checked |
 |---|---|---|---|---|
-| 1 | Hess_M(w·x) = ⟨w_N, II⟩ and on the sphere K = K_S − (ŷ−b₀)g ([main.tex:97-113](../../paper/latex/main.tex#L97-L113)) | **holds** | Classical. Code check `II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9 in the published split record. My toy (check 1b) recovers ⟨w_N,II⟩ from data to 3e-15 | [`09_physics_probe_facing_split_run.py:174-179`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L174-L179), [`198-200`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L198-L200); Cache `09_physics_probe_facing_split.jsonl`; `test_radial_decomposition_on_analytic_sphere` |
+| 1 | Hess_M(w·x) = ⟨w_N, II⟩ and on the sphere K = K_S − (ŷ−b₀)g ([main.tex:97-113](../../paper/latex/main.tex#L97-L113)) | **holds** | Classical [[R1]](#r1) [[R3]](#r3). Code check `II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9 in the published split record. My toy (check 1b) recovers ⟨w_N,II⟩ from data to 3e-15 | [`09_physics_probe_facing_split_run.py:174-179`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L174-L179), [`198-200`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L198-L200); Cache `09_physics_probe_facing_split.jsonl`; `test_radial_decomposition_on_analytic_sphere` |
 | 2 | Decoder II validated on a synthetic surface: trace cos 0.999, ratio 1.00, rank 0.94 ([main.tex:63](../../paper/latex/main.tex#L63)) | **holds** for the trace | Record 09_instrument_adjudication ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §3.1). Not recomputed by me | [`09_instrument_adjudication_run.py`](../../curvature-experiment/runners/09_instrument_adjudication_run.py) |
 | 3 | Full probe contraction validated (rebuttal §1) | **weakened** | Paper scale, pf_tan cos 0.963–0.965 (noise 0), 0.675–0.843 (noise 0.25), TF:100-116. But the fixture has a one-dimensional in-sphere normal space, so how w_N selects among many normal directions is untested (Sanity I5). Paper-scale cells are one seed | [`10_tensor_fidelity_run.py`](../../curvature-experiment/runners/10_tensor_fidelity_run.py); [`09_instrument_adjudication_run.py:267-270`](../../curvature-experiment/runners/09_instrument_adjudication_run.py#L267-L270) per Sanity |
 | 4 | Residual expansion Eq. 3 and the help condition 2⟨H,K⟩ > ‖K‖² ([main.tex:118-159](../../paper/latex/main.tex#L118-L159)) | **holds as stated (Gaussian patch)**, **weakened** for real kNN patches | For a uniform d-ball (d = 16) my Monte Carlo gives Cov 0.0212 vs Gaussian formula 0.121 for trace-heavy tensors; the λ-corrected formula of Outline I2 matches (0.0212) | Section 3.4 below |
@@ -143,8 +145,8 @@ galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d
 
 ### 2.4 Geometry at the anchors
 
-- **Math.** J = DF̂ (D×d), g = JᵀJ, Γ = g⁻¹JᵀD²F̂, II = D²F̂ − JΓ = P_N D²F̂ with P_N = I − Jg⁻¹Jᵀ,
-  H = tr_g II = g^{ij} II_ij. Sphere split: II_rad = ⟨x̂, II⟩ (should equal −g), II_tan = II − x̂ ⊗ II_rad.
+- **Math.** J = DF̂ (D×d), g = JᵀJ, Γ = g⁻¹JᵀD²F̂, II = D²F̂ − JΓ = P_N D²F̂ [[R2]](#r2) with P_N = I − Jg⁻¹Jᵀ,
+  H = tr_g II = g^{ij} II_ij [[R4]](#r4). Sphere split: II_rad = ⟨x̂, II⟩ (should equal −g [[R3]](#r3)), II_tan = II − x̂ ⊗ II_rad.
 - **Code.** `decoder_geometry` [`09_physics_probe_facing_run.py:124-152`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L124-L152) (II at [:148-149](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)); stored-array version
   `geometry_from_arrays` [`09_physics_probe_facing_split_run.py:109-117`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L109-L117); sphere split inside `split_columns`
   [:171-181](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L171-L181). The sealed trace-only path `decoder_curvature.plain_decoder_curvature`
@@ -175,7 +177,7 @@ galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d
 
 - **Math.** For each anchor, u_i = g⁻¹Jᵀ(x_i − x₀) (tangent-projected coordinates), then least squares of the
   target on [1, u, ½u_i², u_iu_j (i<j)] so that the coefficients are (c, gradient, Hessian B). In Monge
-  coordinates at an on-manifold anchor the Christoffel symbols vanish, so B is the covariant Hessian to leading
+  coordinates at an on-manifold anchor the Christoffel symbols vanish [[R5]](#r5), so B is the covariant Hessian to leading
   order. Targets are the label y and the probe's own prediction p = Xw.
 - **Code.** `quad_design` [`09_physics_probe_facing_split_run.py:120-126`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L120-L126); `local_quadratics` [:135-161](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L135-L161) (u at [:146](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L146));
   `split_columns` [:168-209](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L168-L209) computes w_N [:172-173](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L172-L173), `pf_full` = ⟨w_N, II⟩ [:176](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L176), `pf_tan` = ⟨w_N, II_tan⟩ [:177](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L177),
@@ -187,7 +189,7 @@ galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d
 ### 2.7 Partial Spearman and inference
 
 - **Math.** Rank-transform x, y and each control; residualise rank x and rank y on [1, ranked controls]; report
-  the Pearson correlation of the residuals. Freedman–Lane null: regress rank y on the controls, permute the
+  the Pearson correlation of the residuals [[R8]](#r8). Freedman–Lane null [[R7]](#r7): regress rank y on the controls, permute the
   residuals, add the fit back, recompute the partial; p = (1 + #|null| ≥ |obs|)/(B + 1).
 - **Code.** `cross_split_curvature.partial_spearman` [`pu_manifold/cross_split_curvature.py:74-130`](../../curvature-experiment/pu_manifold/cross_split_curvature.py#L74-L130);
   `freedman_lane_y` [`physics_curvature_probe.py:852-872`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L852-L872); `p_value_from_null` [:875-886](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L875-L886); `permutation_fwer`
@@ -296,7 +298,7 @@ known to be biased or wrong.
 - **Math right, code right.** II = Hess − JΓ with Γ = g⁻¹JᵀHess is exactly P_N Hess
   ([`09_physics_probe_facing_run.py:148-149`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)). The runner 12 form Hess − Jg⁻¹JᵀHess ([`12_ii_rank_run.py:81-82`](../../curvature-experiment/runners/12_ii_rank_run.py#L81-L82)) is
   the same. The orthonormal-frame change II_on = R⁻ᵀ II R⁻¹ ([`12_ii_rank_run.py:83-85`](../../curvature-experiment/runners/12_ii_rank_run.py#L83-L85)) is correct.
-- Sphere split. Because F̂ maps into the unit sphere, x̂ is normal (JᵀF̂ = 0) and ⟨x̂, II⟩ = −g. The record checks
+- Sphere split. Because F̂ maps into the unit sphere, x̂ is normal (JᵀF̂ = 0) and ⟨x̂, II⟩ = −g [[R3]](#r3). The record checks
   confirm this to float32 precision (`II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9; II spectrum
   `radial_dev_max` 3.7e-8 to 3.2e-7). pf_tan = ⟨w_N, II_tan⟩ equals the paper's ⟨w_S, II^S⟩ because II_tan ⊥ x̂.
 - Verified by tests: `test_plain_decoder_curvature_dxd_solve_matches_explicit_projector`,
@@ -310,7 +312,7 @@ known to be biased or wrong.
 
 ### 3.4 Residual expansion and help condition (theory)
 
-- Eq. 3 is right for u ~ N(0, s²I): Var(½uᵀΔu) = ½s⁴‖Δ‖²_F and odd cross moments vanish.
+- Eq. 3 is right for u ~ N(0, s²I): Var(½uᵀΔu) = ½s⁴‖Δ‖²_F [[R6]](#r6) and odd cross moments vanish.
 - **Known bias, confirmed.** kNN patches are closer to uniform balls than Gaussians. For a spherically symmetric
   patch with E u₁⁴ = 3λs⁴, Cov(½A(u,u), ½B(u,u)) = (s⁴/4)[2λ⟨A,B⟩ + (λ−1) trA trB] (Outline I2). My Monte Carlo at
   d = 16 (400,000 draws, uniform ball) gives λ = 0.9003 against (d+2)/(d+4) = 0.9000, Cov 0.02116 against
@@ -461,7 +463,7 @@ known to be biased or wrong.
 - **Intrinsic dimension (library defect, confirmed).** `tle_dimensionality` computes (k−1)/Σ ln(r_k/r_j) averaged over
   points ([`src/effdim/geometry.py:348-393`](../../src/effdim/geometry.py#L348-L393)), which is the same formula as `mle_dimensionality` ([:34-86](../../src/effdim/geometry.py#L34-L86)).
   `mind_mlk_dimensionality` is the median of the same per-point estimate ([:246-290](../../src/effdim/geometry.py#L246-L290)), not the MiND-MLk likelihood. So
-  `choose_d`'s median of four ([`sweep/intrinsic_dim.py:46-48`](../../curvature-experiment/sweep/intrinsic_dim.py#L46-L48)) is effectively a function of the Levina–Bickel
+  `choose_d`'s median of four ([`sweep/intrinsic_dim.py:46-48`](../../curvature-experiment/sweep/intrinsic_dim.py#L46-L48)) is effectively a function of the Levina–Bickel [[R9]](#r9)
   statistic alone, with two_nn (broken by ChemBERTa duplicates, 0.85–1.04) as the low outlier. QM:19-29 discloses the
   tle = mle equality. The d = 16 replicate gives the same mismatch counts (QM:71-76), so the conclusion does not
   hinge on d.
@@ -756,3 +758,93 @@ the published records from the same inputs to 0 or 1e-15. They are not independe
 
 **What should we do first?** Fix the labels in the paper (Section 6, item 1), then run the two baselines and the emp
 cross-fit (items 2 and 3). Those three decide what the paper can honestly claim.
+
+## 9. References for classical and standard facts
+
+Every DOI below was resolved through Crossref on 2026-10-05 and returns the stated title and authors; every web page
+was fetched and its text checked for the statement it is cited for. "Location not checked" means I could not open the
+book or article text, so the theorem or section number is not confirmed; the short derivation is given so the fact
+can be checked without the source.
+
+<a id="r1"></a>**[R1] Hessian of a linear function restricted to a submanifold: Hess_M(w·x) = ⟨w, II⟩ = ⟨w_N, II⟩.**
+This is the "height function" fact of extrinsic geometry. Derivation from the Gauss formula [R2]: for tangent fields
+X, Y on M and f(x) = w·x, Hess_M f(X, Y) = X(Y f) − (∇_X Y) f = ⟨w, D_X Y⟩ − ⟨w, ∇_X Y⟩ = ⟨w, (D_X Y)^⊥⟩ =
+⟨w, II(X, Y)⟩, and since II is normal only the normal part w_N of w contributes. Classical sources, both cited for
+this identity by the ML4PS paper ([main.tex:219-220](../../paper/latex/main.tex#L219-L220)):
+- S.-S. Chern and R. K. Lashof, "On the Total Curvature of Immersed Manifolds", *American Journal of Mathematics*
+  79(2):306–318, 1957. [doi:10.2307/2372684](https://doi.org/10.2307/2372684). Uses height functions ⟨e, x⟩ on
+  immersed manifolds, whose Hessian at a critical point is the second fundamental form in direction e. Location not
+  checked.
+- J. Milnor, *Morse Theory*, Annals of Mathematics Studies 51, Princeton University Press, 1963.
+  [doi:10.1515/9781400881802](https://doi.org/10.1515/9781400881802). Part I, §6 computes the Hessian of the
+  distance function L_p on a submanifold of Euclidean space in terms of the second fundamental form; the height
+  function case is the same computation. Section number from memory, not checked.
+- Textbook form: J. M. Lee, *Introduction to Riemannian Manifolds*, 2nd ed., Graduate Texts in Mathematics 176,
+  Springer, 2018. [doi:10.1007/978-3-319-91755-9](https://doi.org/10.1007/978-3-319-91755-9), Chapter 8
+  (Riemannian submanifolds, Gauss formula). Location within the chapter not checked.
+
+<a id="r2"></a>**[R2] II as the normal part of the second derivative (Gauss formula), any codimension.**
+II(X, Y) = (D_X Y)^⊥, the normal component of the ambient derivative; in coordinates of a parametrisation F this is
+P_N D²F with P_N = I − J g⁻¹ Jᵀ.
+- Wikipedia, "Second fundamental form", section "Generalization to arbitrary codimension":
+  <https://en.wikipedia.org/wiki/Second_fundamental_form#Generalization_to_arbitrary_codimension>. Checked: the
+  section defines II with values in the normal bundle as the normal part of the covariant derivative.
+- Lee 2018 [R1], Chapter 8 (the Gauss formula D_X Y = ∇_X Y + II(X, Y)).
+
+<a id="r3"></a>**[R3] The unit sphere's second fundamental form is −g x̂ (every point umbilic).**
+For x on S^{D−1}, differentiating |x|² = 1 twice gives ⟨x, D²x⟩ = −⟨Dx, Dx⟩ = −g, so the component of II along
+the unit normal x̂ = x is −g; a submanifold of the sphere inherits this as the radial part of its II.
+- Wikipedia, "Umbilical point": <https://en.wikipedia.org/wiki/Umbilical_point>. Checked: states that the sphere is
+  the only surface of nonzero curvature on which every point is umbilic (II proportional to the metric).
+- Lee 2018 [R1], Chapter 8 (spheres as totally umbilic hypersurfaces). Location not checked.
+
+<a id="r4"></a>**[R4] Mean-curvature vector and the Laplacian of a linear function.** H = tr_g II, and the
+Laplace–Beltrami operator of the position vector is the mean-curvature vector, Δ_M x = H, so Δ_M (w·x) = ⟨w, H⟩
+(sign and normalisation conventions vary).
+- T. Takahashi, "Minimal immersions of Riemannian manifolds", *Journal of the Mathematical Society of Japan*
+  18(4):380–385, 1966. [doi:10.2969/jmsj/01840380](https://doi.org/10.2969/jmsj/01840380). The result relating the
+  Laplacian of the position vector to the mean-curvature vector is the paper's starting point. Location not checked.
+- Note: Wikipedia's "Mean curvature" article was checked and does not state this identity, so it is not cited.
+
+<a id="r5"></a>**[R5] Christoffel symbols vanish at the anchor in tangent-plane (Monge) coordinates.**
+Write M near x₀ as a graph over its tangent plane, x(u) = x₀ + Ju + h(u) with h(u) normal and h(0) = 0, Dh(0) = 0.
+Then g_ij(u) = δ_ij + ⟨∂_i h, ∂_j h⟩ (orthonormal J), so ∂g(0) = 0 and every Christoffel symbol vanishes at u = 0;
+the fitted quadratic coefficient is then the covariant Hessian at the anchor. This needs the anchor on the manifold
+and exact tangent-plane coordinates; the audit's known limits (decoder image vs data anchor, tilted tangent) are
+exactly the ways this assumption fails.
+- Wikipedia, "Second fundamental form", opening section (a surface as the graph z = f(x, y) tangent to z = 0 at the
+  origin, Taylor expansion starting with the quadratic terms): <https://en.wikipedia.org/wiki/Second_fundamental_form>.
+  Checked.
+- The analogous statement for exponential (normal) coordinates, which the paper's Section 3 also uses: Wikipedia,
+  "Normal coordinates": <https://en.wikipedia.org/wiki/Normal_coordinates>. Checked: states that the Christoffel
+  symbols vanish at p.
+
+<a id="r6"></a>**[R6] Variance of a Gaussian quadratic form.** For u ~ N(0, Σ) and symmetric A,
+Var(uᵀAu) = 2 tr(AΣAΣ); with Σ = s²I and the factor ½, Var(½uᵀΔu) = ½ s⁴ ‖Δ‖²_F. This rests on Gaussian
+fourth moments (Isserlis), which is why it fails for non-Gaussian (kNN-ball) patches (Section 3.4).
+- Wikipedia, "Quadratic form (statistics)", section "Variance in the Gaussian case":
+  <https://en.wikipedia.org/wiki/Quadratic_form_(statistics)#Variance_in_the_Gaussian_case>. Checked.
+
+<a id="r7"></a>**[R7] Freedman–Lane permutation test for a partial association.**
+- D. Freedman and D. Lane, "A Nonstochastic Interpretation of Reported Significance Levels", *Journal of Business &
+  Economic Statistics* 1(4):292–298, 1983. [doi:10.1080/07350015.1983.10509354](https://doi.org/10.1080/07350015.1983.10509354).
+  Cited by the ML4PS paper ([main.tex:164](../../paper/latex/main.tex#L164)).
+
+<a id="r8"></a>**[R8] Partial correlation as the correlation of residuals** (the code applies it to ranks, giving the
+rank-partial Spearman).
+- Wikipedia, "Partial correlation", "Using linear regression":
+  <https://en.wikipedia.org/wiki/Partial_correlation#Using_linear_regression>. Checked: defines it as the correlation of the residuals e_X and
+  e_Y from regressing each variable on the controls.
+
+<a id="r9"></a>**[R9] Intrinsic-dimension estimators used for the QM9 d (defect D6).**
+- MLE: E. Levina and P. J. Bickel, "Maximum Likelihood Estimation of Intrinsic Dimension", *Advances in Neural
+  Information Processing Systems 17* (NIPS 2004).
+  <https://papers.nips.cc/paper_files/paper/2004/hash/74934548253bcab8490ebd74afed7031-Abstract.html>. Checked
+  (title on the proceedings index). The `mle_dimensionality` formula in `src/effdim` is this estimator.
+- TLE: L. Amsaleg, O. Chelly, M. E. Houle et al., "Intrinsic Dimensionality Estimation within Tight Localities",
+  *Proceedings of the 2019 SIAM International Conference on Data Mining*, 2019.
+  [doi:10.1137/1.9781611975673.21](https://doi.org/10.1137/1.9781611975673.21). TLE uses distances among the
+  neighbours, not only to the centre; the `tle_dimensionality` code
+  ([`src/effdim/geometry.py:348-393`](../../src/effdim/geometry.py#L348-L393)) does not, which is defect D6.
+- MiND-MLk: A. Rozza, G. Lombardi, C. Ceruti et al., "Novel high intrinsic dimensionality estimators", *Machine
+  Learning* 89:37–65, 2012. [doi:10.1007/s10994-012-5294-7](https://doi.org/10.1007/s10994-012-5294-7).
