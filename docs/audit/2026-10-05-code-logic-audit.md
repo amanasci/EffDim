@@ -26,31 +26,31 @@ What I checked myself, and how. Scratch scripts are in `docs/audit/2026-10-05-sc
   and the CPU gate were not rerun; those results come from the session status.
 
 Not available locally, so not checked by me. The galaxy embeddings for the physics config, the galaxy label
-parquet, and every per-anchor geometry npz (J, Hess, image). They live on the pod only. Everything that needs them
+parquet, and every per-anchor geometry npz ($J$, Hess, image). They live on the pod only. Everything that needs them
 is marked "unverified (pod-only)".
 
 ---
 
 ## 1. Executive summary
 
-**What the project claims.** A linear probe ŷ = w·x + b restricted to a curved embedding manifold has intrinsic
-Hessian K = ⟨w_N, II⟩ (classical; [[R1]](#r1)). The paper estimates II per object with an autoencoder decoder, estimates the
-label's intrinsic Hessian from neighbours, and reports (i) that the mismatch ‖Hess y − K‖ is negatively associated
-with local probe accuracy for magnitude and redshift across five encoders, (ii) that alignment cos(Hess y, K) is
+**What the project claims.** A linear probe $\hat{y} = w \cdot x + b$ restricted to a curved embedding manifold has intrinsic
+Hessian $K = \langle w_N, \mathrm{II} \rangle$ (classical; [[R1]](#r1)). The paper estimates $\mathrm{II}$ per object with an autoencoder decoder, estimates the
+label's intrinsic Hessian from neighbours, and reports (i) that the mismatch $\lVert \operatorname{Hess} y - K \rVert$ is negatively associated
+with local probe accuracy for magnitude and redshift across five encoders, (ii) that alignment $\cos(\operatorname{Hess} y, K)$ is
 positively associated, and (iii) that in a local second-order surrogate, keeping the probe's in-sphere bending
-(t = 1) beats removing it (t = 0) at most anchors while reversing it (t = −1) hurts, unlike a random bend.
+($t = 1$) beats removing it ($t = 0$) at most anchors while reversing it ($t = -1$) hurts, unlike a random bend.
 
-**What holds.** The geometry code is correct. II, the sphere split, the label-Hessian design, the
-Freedman–Lane null, the counterfactual SSE formula, the II spectrum and the reproduction guards all do what they
+**What holds.** The geometry code is correct. $\mathrm{II}$, the sphere split, the label-Hessian design, the
+Freedman–Lane null, the counterfactual SSE formula, the $\mathrm{II}$ spectrum and the reproduction guards all do what they
 say, and I confirmed the key identities numerically. The reported numbers match the records. The
-magnitude/redshift association between the tabulated mismatch column and local R² is real and survives the block
-bootstrap (ten galaxy encoders, 9/10 and 10/10 at α = 100, 10/10 and 10/10 at α*).
+magnitude/redshift association between the tabulated mismatch column and local $R^2$ is real and survives the block
+bootstrap (ten galaxy encoders, 9/10 and 10/10 at $\alpha = 100$, 10/10 and 10/10 at $\alpha^*$).
 
 **What is weakened.** What that association means. The tabulated "mismatch" is `hess_mismatch_emp`, which by
-linearity of least squares equals the norm of the local quadratic part of the probe residual y − w·x. It contains
-no decoder II, it tracks the label-Hessian norm alone within 0.05 of partial in 36 of 40 galaxy cells, and it was
+linearity of least squares equals the norm of the local quadratic part of the probe residual $y - w \cdot x$. It contains
+no decoder $\mathrm{II}$, it tracks the label-Hessian norm alone within 0.05 of partial in 36 of 40 galaxy cells, and it was
 never cross-fitted. The paper's cross-fit appendix cross-fits a different column (`hess_mismatch_dec`). Alignment
-is much weaker under the bootstrap (magnitude 4/10, redshift 5/10 at α = 100). QM9 transfers for the mismatch on
+is much weaker under the bootstrap (magnitude 4/10, redshift 5/10 at $\alpha = 100$). QM9 transfers for the mismatch on
 three of four properties but not for the counterfactual.
 
 **What is unsupported or should be retracted.** The causal reading of the counterfactual ("bending toward the
@@ -58,66 +58,66 @@ label helps"), because "hurt" is implied by "help" and the help pattern is what 
 decodable label. The decoder surrogate carries only 0.38–0.51 of the probe's own in-sphere readout amplitude. Also
 the rebuttal's "label Hessian is about 2x too large" and "low split-half cosines are label noise", the rebuttal's
 "results get stronger with the tuned probe" as a general statement, and any "few dominant bending directions"
-claim for the II spectrum.
+claim for the $\mathrm{II}$ spectrum.
 
 **Confirmed defects.** No numerical bug in the experiment code. There are seven reporting or labelling defects
 (the paper describes a different column or variant than the one it tabulates, and one hand-typed range is wrong),
-one library bug in `src/effdim` (TLE is MLE) that affects the QM9 choice of d, and one misleading fit metric
+one library bug in `src/effdim` (TLE is MLE) that affects the QM9 choice of $d$, and one misleading fit metric
 ("variance explained" is uncentred). All are listed in Section 3.12.
 
 ### Claim table
 
 | # | Claim (where made) | Status | Evidence | Where it is checked |
 |---|---|---|---|---|
-| 1 | Hess_M(w·x) = ⟨w_N, II⟩ and on the sphere K = K_S − (ŷ−b₀)g ([main.tex:97-113](../../paper/latex/main.tex#L97-L113)) | **holds** | Classical [[R1]](#r1) [[R3]](#r3). Code check `II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9 in the published split record. My toy (check 1b) recovers ⟨w_N,II⟩ from data to 3e-15 | [`09_physics_probe_facing_split_run.py:174-179`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L174-L179), [`198-200`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L198-L200); Cache `09_physics_probe_facing_split.jsonl`; `test_radial_decomposition_on_analytic_sphere` |
-| 2 | Decoder II validated on a synthetic surface: trace cos 0.999, ratio 1.00, rank 0.94 ([main.tex:63](../../paper/latex/main.tex#L63)) | **holds** for the trace | Record 09_instrument_adjudication ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §3.1). Not recomputed by me | [`09_instrument_adjudication_run.py`](../../curvature-experiment/runners/09_instrument_adjudication_run.py) |
-| 3 | Full probe contraction validated (rebuttal §1) | **weakened** | Paper scale, pf_tan cos 0.963–0.965 (noise 0), 0.675–0.843 (noise 0.25), TF:100-116. But the fixture has a one-dimensional in-sphere normal space, so how w_N selects among many normal directions is untested (Sanity I5). Paper-scale cells are one seed | [`10_tensor_fidelity_run.py`](../../curvature-experiment/runners/10_tensor_fidelity_run.py); [`09_instrument_adjudication_run.py:267-270`](../../curvature-experiment/runners/09_instrument_adjudication_run.py#L267-L270) per Sanity |
-| 4 | Residual expansion Eq. 3 and the help condition 2⟨H,K⟩ > ‖K‖² ([main.tex:118-159](../../paper/latex/main.tex#L118-L159)) | **holds as stated (Gaussian patch)**, **weakened** for real kNN patches | For a uniform d-ball (d = 16) my Monte Carlo gives Cov 0.0212 vs Gaussian formula 0.121 for trace-heavy tensors; the λ-corrected formula of Outline I2 matches (0.0212) | Section 3.4 below |
-| 5 | Mismatch ‖Hess y − K‖ negatively associated with local R² for mag/z, −0.39 to −0.45 ([main.tex:183-185](../../paper/latex/main.tex#L183-L185)) | **weakened** | Numbers match the record. But the tabulated column is `hess_mismatch_emp` = ‖quadratic part of (y − w·x)‖, not ‖Hess y − ⟨w_N,II⟩‖. Within 0.05 of the ‖Hess y‖-alone partial in 36/40 galaxy cells (median gap 0.024, max 0.111 at ViT-B mag_r) | [`09_physics_probe_facing_split_run.py:192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L192); [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19); my [`check_records.py`](2026-10-05-scripts/check_records.py) |
+| 1 | $\operatorname{Hess}_M(w \cdot x) = \langle w_N, \mathrm{II} \rangle$ and on the sphere $K = K_S - (\hat{y} - b_0) g$ ([main.tex:97-113](../../paper/latex/main.tex#L97-L113)) | **holds** | Classical [[R1]](#r1) [[R3]](#r3). Code check `II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9 in the published split record. My toy (check 1b) recovers $\langle w_N, \mathrm{II} \rangle$ from data to 3e-15 | [`09_physics_probe_facing_split_run.py:174-179`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L174-L179), [`198-200`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L198-L200); Cache `09_physics_probe_facing_split.jsonl`; `test_radial_decomposition_on_analytic_sphere` |
+| 2 | Decoder $\mathrm{II}$ validated on a synthetic surface: trace cos 0.999, ratio 1.00, rank 0.94 ([main.tex:63](../../paper/latex/main.tex#L63)) | **holds** for the trace | Record 09_instrument_adjudication ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §3.1). Not recomputed by me | [`09_instrument_adjudication_run.py`](../../curvature-experiment/runners/09_instrument_adjudication_run.py) |
+| 3 | Full probe contraction validated (rebuttal §1) | **weakened** | Paper scale, pf_tan cos 0.963–0.965 (noise 0), 0.675–0.843 (noise 0.25), TF:100-116. But the fixture has a one-dimensional in-sphere normal space, so how $w_N$ selects among many normal directions is untested (Sanity I5). Paper-scale cells are one seed | [`10_tensor_fidelity_run.py`](../../curvature-experiment/runners/10_tensor_fidelity_run.py); [`09_instrument_adjudication_run.py:267-270`](../../curvature-experiment/runners/09_instrument_adjudication_run.py#L267-L270) per Sanity |
+| 4 | Residual expansion Eq. 3 and the help condition $2\langle H, K \rangle > \lVert K \rVert^2$ ([main.tex:118-159](../../paper/latex/main.tex#L118-L159)) | **holds as stated (Gaussian patch)**, **weakened** for real kNN patches | For a uniform $d$-ball ($d = 16$) my Monte Carlo gives Cov 0.0212 vs Gaussian formula 0.121 for trace-heavy tensors; the $\lambda$-corrected formula of Outline I2 matches (0.0212) | Section 3.4 below |
+| 5 | Mismatch $\lVert \operatorname{Hess} y - K \rVert$ negatively associated with local $R^2$ for mag/z, −0.39 to −0.45 ([main.tex:183-185](../../paper/latex/main.tex#L183-L185)) | **weakened** | Numbers match the record. But the tabulated column is `hess_mismatch_emp` $= \lVert \text{quadratic part of } (y - w \cdot x) \rVert$, not $\lVert \operatorname{Hess} y - \langle w_N, \mathrm{II} \rangle \rVert$. Within 0.05 of the $\lVert \operatorname{Hess} y \rVert$-alone partial in 36/40 galaxy cells (median gap 0.024, max 0.111 at ViT-B mag_r) | [`09_physics_probe_facing_split_run.py:192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L192); [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19); my [`check_records.py`](2026-10-05-scripts/check_records.py) |
 | 6 | "These relationships persist under cross-fitting" ([main.tex:190](../../paper/latex/main.tex#L190), 424) | **weakened (mislabelled), confirmed** | The cross-fitted column in tab:sens and tab:xencx is `hess_mismatch_dec`; tab:real and tab:xenc use `hess_mismatch_emp`. Every xfit row in all 15 record files that have one stores only `align_cos_tan`, `hess_label`, `hess_mismatch_dec`. emp was never cross-fitted | [`09_physics_probe_facing_split_run.py:407-442`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L407-L442) (column list [:432](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L432)); [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19), [`62`](../../paper/generate/appendix_gen.py#L62), [`90`](../../paper/generate/appendix_gen.py#L90), [`100`](../../paper/generate/appendix_gen.py#L100), [`224`](../../paper/generate/appendix_gen.py#L224); Section 5 point 11 |
-| 7 | Mag/z mismatch association is robust to anchor dependence (rebuttal §4) | **holds** | 32-block bootstrap excludes 0: ten encoders 9/10 (mag) and 10/10 (z) at α = 100, 10/10 and 10/10 at α*. QM9 gap/alpha/cv 8/8 at α = 100 | Cache `scaling/records/*__robust.jsonl`, `qm9/records/*__robust.jsonl` |
-| 8 | Alignment cos(Hess y, K) positively associated, +0.24 to +0.43 ([main.tex:186-189](../../paper/latex/main.tex#L186-L189)) | **weakened** | Tabulated column is `align_cos_tan` (uses K_S not K; numerically within 0.02 of `align_cos_full`). Bootstrap at α = 100, ten encoders: mag 4/10, z 5/10. Label-Hessian direction is poorly estimated (split-half cos 0.19–0.35) | [`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195); Cache robust records |
-| 9 | Smooth fraction weaker, stellar mass null ([main.tex:191-195](../../paper/latex/main.tex#L191-L195)) | **holds** | Five-encoder bootstrap at α = 100 excludes 0 for smooth and stellar in 0/10 | RR:106-177 |
-| 10 | t = 1 helps at 79–99%, t = −1 hurts at 97–100%, random t = 1 helps at 22–36% ([main.tex:275-285](../../paper/latex/main.tex#L275-L285)) | **holds (numbers)** | Recomputed from all 24 published cf arrays | Cache `09_physics_normal_scaling_*_d*.npz` |
-| 11 | That pattern shows the probe's bending is "toward the target's remaining curvature" ([main.tex:287-292](../../paper/latex/main.tex#L287-L292), abstract) | **unsupported** | Help ⇔ t* > ½ and hurt ⇔ t* > −½ (identity holds at 100% of anchors). Least squares makes help near-automatic for any decodable label (Novelty §6 simulation). Decoder q has 0.38–0.51 of the probe's own in-sphere readout amplitude | Section 3.9 |
-| 12 | t* > 1 means the ridge probe under-uses a locally beneficial term (Table cf caption) | **contested** | Ridge pushes pooled t*_S above 1, but the published t* (S_model) also contains a fidelity slope β(p|q) that can exceed 1 with no shrinkage. Cannot be split without ⟨p,q⟩, which is not stored | Section 5, point 2 |
-| 13 | Sphere term negative on every label ([main.tex:206-211](../../paper/latex/main.tex#L206-L211)) | **holds**, partly an artefact | −0.13 to −0.36 at α = 100; vanishes for z and stellar mass at α = 1 (paper discloses) | Cache split and `_alpha1` records |
-| 14 | Shape term tracks ‖K‖ at rank 0.96–0.99; decoder-free K cos 0.55–0.65 ([main.tex:197-216](../../paper/latex/main.tex#L197-L216)) | **holds** | rank 0.96–0.99; cos (tan) 0.55–0.65, (full) 0.57–0.67 | Cache split record `checks` |
+| 7 | Mag/z mismatch association is robust to anchor dependence (rebuttal §4) | **holds** | 32-block bootstrap excludes 0: ten encoders 9/10 (mag) and 10/10 (z) at $\alpha = 100$, 10/10 and 10/10 at $\alpha^*$. QM9 gap/alpha/cv 8/8 at $\alpha = 100$ | Cache `scaling/records/*__robust.jsonl`, `qm9/records/*__robust.jsonl` |
+| 8 | Alignment $\cos(\operatorname{Hess} y, K)$ positively associated, +0.24 to +0.43 ([main.tex:186-189](../../paper/latex/main.tex#L186-L189)) | **weakened** | Tabulated column is `align_cos_tan` (uses $K_S$ not $K$; numerically within 0.02 of `align_cos_full`). Bootstrap at $\alpha = 100$, ten encoders: mag 4/10, z 5/10. Label-Hessian direction is poorly estimated (split-half cos 0.19–0.35) | [`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195); Cache robust records |
+| 9 | Smooth fraction weaker, stellar mass null ([main.tex:191-195](../../paper/latex/main.tex#L191-L195)) | **holds** | Five-encoder bootstrap at $\alpha = 100$ excludes 0 for smooth and stellar in 0/10 | RR:106-177 |
+| 10 | $t = 1$ helps at 79–99%, $t = -1$ hurts at 97–100%, random $t = 1$ helps at 22–36% ([main.tex:275-285](../../paper/latex/main.tex#L275-L285)) | **holds (numbers)** | Recomputed from all 24 published cf arrays | Cache `09_physics_normal_scaling_*_d*.npz` |
+| 11 | That pattern shows the probe's bending is "toward the target's remaining curvature" ([main.tex:287-292](../../paper/latex/main.tex#L287-L292), abstract) | **unsupported** | Help $\Leftrightarrow t^* > \tfrac{1}{2}$ and hurt $\Leftrightarrow t^* > -\tfrac{1}{2}$ (identity holds at 100% of anchors). Least squares makes help near-automatic for any decodable label (Novelty §6 simulation). Decoder $q$ has 0.38–0.51 of the probe's own in-sphere readout amplitude | Section 3.9 |
+| 12 | $t^* > 1$ means the ridge probe under-uses a locally beneficial term (Table cf caption) | **contested** | Ridge pushes pooled $t^*_S$ above 1, but the published $t^*$ (S_model) also contains a fidelity slope $\beta(p \mid q)$ that can exceed 1 with no shrinkage. Cannot be split without $\langle p, q \rangle$, which is not stored | Section 5, point 2 |
+| 13 | Sphere term negative on every label ([main.tex:206-211](../../paper/latex/main.tex#L206-L211)) | **holds**, partly an artefact | −0.13 to −0.36 at $\alpha = 100$; vanishes for z and stellar mass at $\alpha = 1$ (paper discloses) | Cache split and `_alpha1` records |
+| 14 | Shape term tracks $\lVert K \rVert$ at rank 0.96–0.99; decoder-free $K$ cos 0.55–0.65 ([main.tex:197-216](../../paper/latex/main.tex#L197-L216)) | **holds** | rank 0.96–0.99; cos (tan) 0.55–0.65, (full) 0.57–0.67 | Cache split record `checks` |
 | 15 | Five-encoder and ten-encoder breadth (Appendix C, rebuttal) | **holds as robustness to embedding**, not as independent replication | Same 86,471 galaxies, labels and anchor indices for all encoders | [`11_review_robustness_run.py:410-412`](../../curvature-experiment/runners/11_review_robustness_run.py#L410-L412) |
-| 16 | Tuned probe makes results stronger (rebuttal §2) | **weakened** | True on galaxies by permutation counts. Not on QM9 (tuned help 0.12–0.60, t* 0.11–0.60, ChemFM alpha/cv mismatch turns positive). α* at the grid floor in 5/20 galaxy and 28/32 QM9 pairs. Not cross-fitted | RR:17-36; my [`check_qm9.py`](2026-10-05-scripts/check_qm9.py) |
-| 17 | Held-out added value beyond target difficulty (rebuttal §3) | **weakened** | α = 100 medians −0.006 to +0.147, p05 > 0 strictly in 9/20; α* +0.015 to +0.258, p05 > 0 in 18/20. Neighbourhood-residual baseline never run | RR:44-90 |
-| 18 | Roughness control "over-controls if anything" (RR:40, rebuttal §3) | **retract** | Partial grows in 13/20 pairs at α* when |Hess y| and roughness are added | RR:17-36 vs RR:71-90 |
+| 16 | Tuned probe makes results stronger (rebuttal §2) | **weakened** | True on galaxies by permutation counts. Not on QM9 (tuned help 0.12–0.60, $t^*$ 0.11–0.60, ChemFM alpha/cv mismatch turns positive). $\alpha^*$ at the grid floor in 5/20 galaxy and 28/32 QM9 pairs. Not cross-fitted | RR:17-36; my [`check_qm9.py`](2026-10-05-scripts/check_qm9.py) |
+| 17 | Held-out added value beyond target difficulty (rebuttal §3) | **weakened** | $\alpha = 100$ medians −0.006 to +0.147, p05 > 0 strictly in 9/20; $\alpha^*$ +0.015 to +0.258, p05 > 0 in 18/20. Neighbourhood-residual baseline never run | RR:44-90 |
+| 18 | Roughness control "over-controls if anything" (RR:40, rebuttal §3) | **retract** | Partial grows in 13/20 pairs at $\alpha^*$ when $\lvert \operatorname{Hess} y \rvert$ and roughness are added | RR:17-36 vs RR:71-90 |
 | 19 | Label Hessian "about 2x too large" at paper scale (RR:228, rebuttal §1) | **unsupported** | `relerr` is unsigned ([`10_tensor_fidelity_run.py:82-90`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L82-L90)); a cos/relerr pair admits two norm ratios (lin: 1.83 or 0.12). No signed ratio recorded | TF:100-116 |
-| 20 | Low real split-half cosines are label noise (rebuttal §1) | **unsupported** | Synthetic labels carry no noise; noise is added to X only | [`10_tensor_fidelity_run.py:153-175`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L153-L175), [`211-216`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L211-L216) |
+| 20 | Low real split-half cosines are label noise (rebuttal §1) | **unsupported** | Synthetic labels carry no noise; noise is added to $X$ only | [`10_tensor_fidelity_run.py:153-175`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L153-L175), [`211-216`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L211-L216) |
 | 21 | QM9: mismatch transfers, counterfactual "direction generalises, size depends on encoder" (rebuttal) | **weakened / unsupported** | Mismatch 8/8 for gap, alpha, cv (bootstrap); mu 5/8, ChemFM-3B mu significantly positive. Counterfactual surrogate per-anchor Spearman with the probe −0.30 to +0.23; data-side S helps at 0.88–1.00 while S_model helps at 0.28–0.74. The failure is surrogate fidelity | QM:62-141; Cache qm9 records and arrays |
 | 22 | Mean-bending trace −0.24 to +0.27 across five encoders ([main.tex:585](../../paper/latex/main.tex#L585)) | **unsupported in this repo** | Not produced by any runner here ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §5) | [`curvature-experiment/REPRODUCE.md`](../../curvature-experiment/REPRODUCE.md) |
-| 23 | Weak ridge raises global OOF R² "by 0.10 to 0.15" ([main.tex:352](../../paper/latex/main.tex#L352)) | **wrong** | Records give +0.136 to +0.158 | Cache `09_physics_probe_facing_split_alpha1.jsonl` vs main |
-| 24 | Decoder fits are good, "variance explained 0.952–0.985" (Appendix A, C) | **weakened (metric)** | VE is 1 − MSE / mean‖x‖² = 1 − MSE for unit rows, not relative to centred variance. On a cached PU DINOv3 embedding the centred variance is only 0.19–0.22, so centred VE could be far lower | [`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119) |
-| 25 | QM9 chart dimension d from four ID estimators (QM:6-29) | **weakened** | `tle_dimensionality` is the MLE formula and `mind_mlk` is the median of the same per-point estimate, so three of four "estimators" are one statistic | [`src/effdim/geometry.py:34-86`](../../src/effdim/geometry.py#L34-L86), [`246-290`](../../src/effdim/geometry.py#L246-L290), [`348-393`](../../src/effdim/geometry.py#L348-L393) |
-| 26 | II spectrum is low rank, "bends in a few dominant directions" (TMLR outline) | **unsupported** | Pre-stated rule gives "partial" for 8/10, "low" for 2/10; erank 22.3–42.4 of 136; full rank everywhere (cond 41–140); no decoder-prior null; no multi-direction validation | `results/ii-rank/*.json`; [`12_ii_rank_run.py:95-105`](../../curvature-experiment/runners/12_ii_rank_run.py#L95-L105) |
-| 27 | Every run reproduces its reference exactly (rebuttal, RR, SC, QM) | **holds** as determinism | max diff 0 (split), ≤ 2.2e-15 (cf). Self-consistency of the same code on the same inputs, not an independent replication | RR guard rows; SC:67-79; QM:170-180 |
+| 23 | Weak ridge raises global OOF $R^2$ "by 0.10 to 0.15" ([main.tex:352](../../paper/latex/main.tex#L352)) | **wrong** | Records give +0.136 to +0.158 | Cache `09_physics_probe_facing_split_alpha1.jsonl` vs main |
+| 24 | Decoder fits are good, "variance explained 0.952–0.985" (Appendix A, C) | **weakened (metric)** | VE is $1 - \mathrm{MSE} / \operatorname{mean}\lVert x \rVert^2 = 1 - \mathrm{MSE}$ for unit rows, not relative to centred variance. On a cached PU DINOv3 embedding the centred variance is only 0.19–0.22, so centred VE could be far lower | [`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119) |
+| 25 | QM9 chart dimension $d$ from four ID estimators (QM:6-29) | **weakened** | `tle_dimensionality` is the MLE formula and `mind_mlk` is the median of the same per-point estimate, so three of four "estimators" are one statistic | [`src/effdim/geometry.py:34-86`](../../src/effdim/geometry.py#L34-L86), [`246-290`](../../src/effdim/geometry.py#L246-L290), [`348-393`](../../src/effdim/geometry.py#L348-L393) |
+| 26 | $\mathrm{II}$ spectrum is low rank, "bends in a few dominant directions" (TMLR outline) | **unsupported** | Pre-stated rule gives "partial" for 8/10, "low" for 2/10; erank 22.3–42.4 of 136; full rank everywhere (cond 41–140); no decoder-prior null; no multi-direction validation | `results/ii-rank/*.json`; [`12_ii_rank_run.py:95-105`](../../curvature-experiment/runners/12_ii_rank_run.py#L95-L105) |
+| 27 | Every run reproduces its reference exactly (rebuttal, RR, SC, QM) | **holds** as determinism | max diff 0 (split), $\le$ 2.2e-15 (cf). Self-consistency of the same code on the same inputs, not an independent replication | RR guard rows; SC:67-79; QM:170-180 |
 
 ---
 
 ## 2. Pipeline map
 
-Notation. n rows (86,471 galaxies; 130,744 molecules), D ambient width (384 to 4,096), d chart dimension (16 or 20 for
-galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d(d+1)/2.
+Notation. $n$ rows (86,471 galaxies; 130,744 molecules), $D$ ambient width (384 to 4,096), $d$ chart dimension (16 or 20 for
+galaxies; 8 to 11 for QM9 plus 16), $b = 512$ anchors, $k = 2{,}048$ neighbours, $m = d(d+1)/2$.
 
 ### 2.1 Data and labels
 
-- **Math.** Rows x ∈ S^{D−1} after row L2 normalisation. Labels are a positional join with the embedding rows
+- **Math.** Rows $x \in S^{D-1}$ after row L2 normalisation. Labels are a positional join with the embedding rows
   (no id column exists).
 - **Code.** [`pu_manifold/physics_labels.py`](../../curvature-experiment/pu_manifold/physics_labels.py): `PHYSICS_PARQUET_PATH` [:55](../../curvature-experiment/pu_manifold/physics_labels.py#L55), `EXPECTED_N_PHYSICS_ROWS = 86471` [:61](../../curvature-experiment/pu_manifold/physics_labels.py#L61),
   `LABEL_REPO/REVISION` = `Smith42/galaxies@v2.0` [:74-79](../../curvature-experiment/pu_manifold/physics_labels.py#L74-L79), `LABEL_COLUMN_MAP` [:97-102](../../curvature-experiment/pu_manifold/physics_labels.py#L97-L102), `SENTINEL_VALUES = (-99.0,)`
   [:148](../../curvature-experiment/pu_manifold/physics_labels.py#L148), `ALIGNMENT_ASSUMED_OFFSET = 0` [:192](../../curvature-experiment/pu_manifold/physics_labels.py#L192), `canonical_label` [:337-355](../../curvature-experiment/pu_manifold/physics_labels.py#L337-L355), `shifted_pairing` [:358-363](../../curvature-experiment/pu_manifold/physics_labels.py#L358-L363).
   Loading in [`09_physics_probe_facing_run.py:180-189`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L180-L189); other encoders through runner-level shims
   ([`09_physics_probe_facing_split_run.py:254-267`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L254-L267), normalisation at [:263-264](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L263-L264)).
-- **Inputs/outputs.** X (n, D) float64; y (n,) with NaN for sentinels. photo_z 92.56% and stellar_mass 91.93%
+- **Inputs/outputs.** $X$ $(n, D)$ float64; $y$ $(n,)$ with NaN for sentinels. photo_z 92.56% and stellar_mass 91.93%
   populated ([`physics_labels.py:107-120`](../../curvature-experiment/pu_manifold/physics_labels.py#L107-L120)).
 - **Assumptions.** Row order identical between the embedding parquet and the 16 label shards concatenated in shard
-  order. Tested by the D9-06 shift proof for ViT-B (Cache `09_row_alignment.jsonl`: R² at shift 0 = 0.516, gap
-  0.516, passed). Other encoders rely on global OOF R² ≈ 0.5 as the alignment check ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §3.8).
+  order. Tested by the D9-06 shift proof for ViT-B (Cache `09_row_alignment.jsonl`: $R^2$ at shift 0 = 0.516, gap
+  0.516, passed). Other encoders rely on global OOF $R^2 \approx 0.5$ as the alignment check ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §3.8).
 
 ### 2.2 Embeddings (sweep and QM9 only)
 
@@ -131,37 +131,37 @@ galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d
 
 ### 2.3 Autoencoder decoder
 
-- **Math.** Plain AE, encoder and decoder MLPs with three hidden SiLU layers of 250, latent d, trained on the 80%
-  train split to minimise mean ‖x − F(E(x))‖². Curvature is taken of the sphere-projected decoder F̂(z) = F(z)/‖F(z)‖.
+- **Math.** Plain AE, encoder and decoder MLPs with three hidden SiLU layers of 250, latent $d$, trained on the 80%
+  train split to minimise mean $\lVert x - F(E(x)) \rVert^2$. Curvature is taken of the sphere-projected decoder $\hat{F}(z) = F(z)/\lVert F(z) \rVert$.
 - **Code.** `cae.PlainAutoEncoder` [`pu_manifold/cae.py:93-122`](../../curvature-experiment/pu_manifold/cae.py#L93-L122); loss [`cae.py:178`](../../curvature-experiment/pu_manifold/cae.py#L178); AdamW [`cae.py:156`](../../curvature-experiment/pu_manifold/cae.py#L156);
   `fit_decoder` [`09_physics_probe_facing_run.py:100-121`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L100-L121); `SphereProjectedDecoder`
   [`09_physics_curvature_run.py:84-99`](../../curvature-experiment/runners/09_physics_curvature_run.py#L84-L99).
 - **Constants** ([`pu_manifold/physics_curvature_probe.py`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py)). `SPLIT_SEED = 20260813` [:81](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L81), `HOLDOUT_FRACTION = 0.2` [:84](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L84),
   `AE_HIDDEN = (250,250,250)` [:90](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L90), `AE_ACTIVATION = "silu"` [:93](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L93), `MAX_EPOCHS = 600` [:96](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L96), `TORCH_INIT_SEED = 0` [:99](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L99),
   `TRAIN_CFG` lr 1e-3, weight decay 1e-4, batch 128, early stopping disabled [:102-111](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L102-L111).
-- **Outputs.** z_anchor = E(x_anchor) (b, d); `var_explained` on the holdout rows [:119](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L119).
-- **Assumptions.** The decoder's image near E(x₀) is the data manifold; the anchor x₀ is close to F̂(E(x₀)) (the
-  counterfactual runner logs cos(image, data row), [`09_physics_normal_scaling_run.py:215-216`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L215-L216)).
+- **Outputs.** $z_{\text{anchor}} = E(x_{\text{anchor}})$ $(b, d)$; `var_explained` on the holdout rows [:119](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L119).
+- **Assumptions.** The decoder's image near $E(x_0)$ is the data manifold; the anchor $x_0$ is close to $\hat{F}(E(x_0))$ (the
+  counterfactual runner logs $\cos(\text{image}, \text{data row})$, [`09_physics_normal_scaling_run.py:215-216`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L215-L216)).
 
 ### 2.4 Geometry at the anchors
 
-- **Math.** J = DF̂ (D×d), g = JᵀJ, Γ = g⁻¹JᵀD²F̂, II = D²F̂ − JΓ = P_N D²F̂ [[R2]](#r2) with P_N = I − Jg⁻¹Jᵀ,
-  H = tr_g II = g^{ij} II_ij [[R4]](#r4). Sphere split: II_rad = ⟨x̂, II⟩ (should equal −g [[R3]](#r3)), II_tan = II − x̂ ⊗ II_rad.
-- **Code.** `decoder_geometry` [`09_physics_probe_facing_run.py:124-152`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L124-L152) (II at [:148-149](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)); stored-array version
+- **Math.** $J = D\hat{F}$ $(D \times d)$, $g = J^{\top} J$, $\Gamma = g^{-1} J^{\top} D^2 \hat{F}$, $\mathrm{II} = D^2 \hat{F} - J\Gamma = P_N D^2 \hat{F}$ [[R2]](#r2) with $P_N = I - J g^{-1} J^{\top}$,
+  $H = \operatorname{tr}_g \mathrm{II} = g^{ij} \mathrm{II}_{ij}$ [[R4]](#r4). Sphere split: $\mathrm{II}_{\text{rad}} = \langle \hat{x}, \mathrm{II} \rangle$ (should equal $-g$ [[R3]](#r3)), $\mathrm{II}_{\text{tan}} = \mathrm{II} - \hat{x} \otimes \mathrm{II}_{\text{rad}}$.
+- **Code.** `decoder_geometry` [`09_physics_probe_facing_run.py:124-152`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L124-L152) ($\mathrm{II}$ at [:148-149](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)); stored-array version
   `geometry_from_arrays` [`09_physics_probe_facing_split_run.py:109-117`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L109-L117); sphere split inside `split_columns`
   [:171-181](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L171-L181). The sealed trace-only path `decoder_curvature.plain_decoder_curvature`
   [`pu_manifold/decoder_curvature.py:158-266`](../../curvature-experiment/pu_manifold/decoder_curvature.py#L158-L266) is used as a cross-check (`median_cos_H_geo_vs_sealed`,
   [`09_physics_probe_facing_run.py:278-280`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L278-L280)).
-- **Shapes.** J (b, D, d), Hess (b, D, d, d), image (b, D), stored float32 in the geometry npz (ViT-B d=16 about
+- **Shapes.** $J$ $(b, D, d)$, Hess $(b, D, d, d)$, image $(b, D)$, stored float32 in the geometry npz (ViT-B $d=16$ about
   400 MB). GPU runs use forward mode (`jacfwd`) and score from the float32 copy so the npz and record agree
   ([`09_physics_probe_facing_split_run.py:62-72`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L62-L72)).
-- **Assumptions.** J full column rank (g invertible); C² activation (guarded by `assert_c2_decoder`
+- **Assumptions.** $J$ full column rank ($g$ invertible); $C^2$ activation (guarded by `assert_c2_decoder`
   [`decoder_curvature.py:77-131`](../../curvature-experiment/pu_manifold/decoder_curvature.py#L77-L131)).
 
-### 2.5 Probe and local R²
+### 2.5 Probe and local $R^2$
 
-- **Math.** Ridge probe at α = 100. Outcome per anchor is the local out-of-fold R² over its k neighbours,
-  r2 = 1 − Σ(y − ŷ_oof)²/Σ(y − ȳ_patch)². The geometry uses a separate whole-data in-sample ridge w.
+- **Math.** Ridge probe at $\alpha = 100$. Outcome per anchor is the local out-of-fold $R^2$ over its $k$ neighbours,
+  r2 $= 1 - \sum (y - \hat{y}_{\text{oof}})^2 / \sum (y - \bar{y}_{\text{patch}})^2$. The geometry uses a separate whole-data in-sample ridge $w$.
 - **Code.** OOF wrapper `physics_curvature_probe.oof_ridge_predictions` :661-708 (KFold 5, seed 20260902, RidgeCV
   with a duplicated single alpha); finite-row wrapper [`09_physics_curvature_run.py:64-81`](../../curvature-experiment/runners/09_physics_curvature_run.py#L64-L81); whole-data ridge
   [`09_physics_probe_facing_split_run.py:323-328`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L323-L328); `local_r2_panel` [`physics_curvature_probe.py:758-806`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L758-L806);
@@ -169,98 +169,98 @@ galaxies; 8 to 11 for QM9 plus 16), b = 512 anchors, k = 2,048 neighbours, m = d
 - **Constants.** `ALPHA_RIDGE = 100` [:185](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L185), `N_OOF_FOLDS = 5` [:200](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L200), `OOF_FOLD_SEED = 20260902` [:203](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L203),
   `K_NEIGHBOURS = 2048` [:52](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L52), `N_ANCHORS = 512` [:62](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L62), `ANCHOR_DRAW_SEED = 20260902` [:65](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L65), `MIN_FINITE_NEIGHBOURS = 32`
   [:223](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L223). Anchors are drawn only from AE holdout rows (`anchor_indices` [:711-739](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L711-L739)).
-- **Controls.** Sealed Z = [log r_k, local label variance, local count]; multiscale Z replaces log r_k by
-  log r at k ∈ {16, 64, 256, 1024, 2048} (`MULTISCALE_KS`, [`09_physics_probe_facing_run.py:65`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L65); built at
+- **Controls.** Sealed $Z = [\log r_k, \text{local label variance}, \text{local count}]$; multiscale $Z$ replaces $\log r_k$ by
+  $\log r$ at $`k \in \{16, 64, 256, 1024, 2048\}`$ (`MULTISCALE_KS`, [`09_physics_probe_facing_run.py:65`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L65); built at
   [`09_physics_probe_facing_split_run.py:315`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L315), [`326-327`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L326-L327)). All paper tables use multiscale.
 
 ### 2.6 Label Hessian and probe-facing tensors
 
-- **Math.** For each anchor, u_i = g⁻¹Jᵀ(x_i − x₀) (tangent-projected coordinates), then least squares of the
-  target on [1, u, ½u_i², u_iu_j (i<j)] so that the coefficients are (c, gradient, Hessian B). In Monge
-  coordinates at an on-manifold anchor the Christoffel symbols vanish [[R5]](#r5), so B is the covariant Hessian to leading
-  order. Targets are the label y and the probe's own prediction p = Xw.
-- **Code.** `quad_design` [`09_physics_probe_facing_split_run.py:120-126`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L120-L126); `local_quadratics` [:135-161](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L135-L161) (u at [:146](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L146));
-  `split_columns` [:168-209](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L168-L209) computes w_N [:172-173](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L172-L173), `pf_full` = ⟨w_N, II⟩ [:176](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L176), `pf_tan` = ⟨w_N, II_tan⟩ [:177](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L177),
-  `pf_rad` = (w_N·x̂) II_rad [:178-179](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L178-L179), all norms in the g metric (`metric_norms`
+- **Math.** For each anchor, $u_i = g^{-1} J^{\top} (x_i - x_0)$ (tangent-projected coordinates), then least squares of the
+  target on $[1, u, \tfrac{1}{2} u_i^2, u_i u_j \ (i < j)]$ so that the coefficients are $(c, \text{gradient}, \text{Hessian } B)$. In Monge
+  coordinates at an on-manifold anchor the Christoffel symbols vanish [[R5]](#r5), so $B$ is the covariant Hessian to leading
+  order. Targets are the label $y$ and the probe's own prediction $p = Xw$.
+- **Code.** `quad_design` [`09_physics_probe_facing_split_run.py:120-126`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L120-L126); `local_quadratics` [:135-161](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L135-L161) ($u$ at [:146](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L146));
+  `split_columns` [:168-209](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L168-L209) computes $w_N$ [:172-173](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L172-L173), `pf_full` $= \langle w_N, \mathrm{II} \rangle$ [:176](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L176), `pf_tan` $= \langle w_N, \mathrm{II}_{\text{tan}} \rangle$ [:177](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L177),
+  `pf_rad` $= (w_N \cdot \hat{x}) \mathrm{II}_{\text{rad}}$ [:178-179](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L178-L179), all norms in the $g$ metric (`metric_norms`
   [`09_physics_probe_facing_run.py:155-158`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L155-L158)), `hess_mismatch_dec` [:191](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L191), `hess_mismatch_emp` [:192](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L192),
   `align_cos_full/tan` [:194-195](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L194-L195).
-- **Shapes.** hess_y and probe_emp (b, d, d); every column (b,). 153 regressors at d = 16, 231 at d = 20.
+- **Shapes.** hess_y and probe_emp $(b, d, d)$; every column $(b,)$. 153 regressors at $d = 16$, 231 at $d = 20$.
 
 ### 2.7 Partial Spearman and inference
 
-- **Math.** Rank-transform x, y and each control; residualise rank x and rank y on [1, ranked controls]; report
-  the Pearson correlation of the residuals [[R8]](#r8). Freedman–Lane null [[R7]](#r7): regress rank y on the controls, permute the
-  residuals, add the fit back, recompute the partial; p = (1 + #|null| ≥ |obs|)/(B + 1).
+- **Math.** Rank-transform $x$, $y$ and each control; residualise rank $x$ and rank $y$ on [1, ranked controls]; report
+  the Pearson correlation of the residuals [[R8]](#r8). Freedman–Lane null [[R7]](#r7): regress rank $y$ on the controls, permute the
+  residuals, add the fit back, recompute the partial; $`p = (1 + \#\lvert \text{null} \rvert \ge \lvert \text{obs} \rvert)/(B + 1)`$.
 - **Code.** `cross_split_curvature.partial_spearman` [`pu_manifold/cross_split_curvature.py:74-130`](../../curvature-experiment/pu_manifold/cross_split_curvature.py#L74-L130);
   `freedman_lane_y` [`physics_curvature_probe.py:852-872`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L852-L872); `p_value_from_null` [:875-886](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L875-L886); `permutation_fwer`
   [:889-920](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L889-L920); per-column wrapper `partial_row` [`09_physics_probe_facing_run.py:85-94`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L85-L94).
-- **Constants.** Runners use 2,000 permutations ([`09_physics_probe_facing_split_run.py:292`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L292)), so the p floor is
-  1/2001 ≈ 5.0e-4. `N_PERMUTATIONS = 10000` in [`physics_curvature_probe.py:262`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L262) is not what the paper used.
+- **Constants.** Runners use 2,000 permutations ([`09_physics_probe_facing_split_run.py:292`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L292)), so the $p$ floor is
+  $1/2001 \approx$ 5.0e-4. `N_PERMUTATIONS = 10000` in [`physics_curvature_probe.py:262`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L262) is not what the paper used.
   `PERMUTATION_SEED = 20260902` [:268](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L268).
-- **Cross-fit.** `--hessian-xfit` splits each patch at random into halves (seed 20260913), fits Hess y on one and
-  scores local R² on the other, for the columns `hess_mismatch_dec`, `align_cos_tan`, `hess_label` only
+- **Cross-fit.** `--hessian-xfit` splits each patch at random into halves (seed 20260913), fits $\operatorname{Hess} y$ on one and
+  scores local $R^2$ on the other, for the columns `hess_mismatch_dec`, `align_cos_tan`, `hess_label` only
   ([`09_physics_probe_facing_split_run.py:407-442`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L407-L442), column list [:432](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L432)).
 
 ### 2.8 Counterfactual normal scaling
 
-- **Math.** At each anchor split w = w_T + w_rad + w_S (tangent, radial along x̂, in-sphere normal). Score the
-  neighbours by ŷ_t = base + t·q + c with c refit, so SSE(t) = ‖e₀ − t q_c‖², t* = ⟨e₀,q_c⟩/‖q_c‖²,
-  ΔR²(1) = (2⟨e₀,q_c⟩ − ‖q_c‖²)/SST. Variants differ in base and q:
+- **Math.** At each anchor split $w = w_T + w_{\text{rad}} + w_S$ (tangent, radial along $\hat{x}$, in-sphere normal). Score the
+  neighbours by $\hat{y}_t = \text{base} + t \cdot q + c$ with $c$ refit, so $\mathrm{SSE}(t) = \lVert e_0 - t q_c \rVert^2$, $t^* = \langle e_0, q_c \rangle / \lVert q_c \rVert^2$,
+  $\Delta R^2(1) = (2\langle e_0, q_c \rangle - \lVert q_c \rVert^2)/\mathrm{SST}$. Variants differ in base and $q$:
 
-  | variant | base | scaled term q |
+  | variant | base | scaled term $q$ |
   |---|---|---|
-  | `S` | X(w_T + w_rad) | X w_S (data-side) |
-  | `S_model` (published) | X(w_T + w_rad) | ½⟨w_S, II^S⟩(u,u) |
-  | `S_proj` (the formula in [main.tex:250-252](../../paper/latex/main.tex#L250-L252)) | uᵀJᵀw_T − ½(w_N·x̂)uᵀgu | ½⟨w_S, II^S⟩(u,u) |
-  | `random_qmatched` (published null) | X(w_T + w_rad) | ½⟨v, II^S⟩(u,u), v random in-sphere normal, rescaled to the same ‖q_c‖ |
+  | `S` | $X(w_T + w_{\text{rad}})$ | $X w_S$ (data-side) |
+  | `S_model` (published) | $X(w_T + w_{\text{rad}})$ | $\tfrac{1}{2}\langle w_S, \mathrm{II}^S \rangle(u,u)$ |
+  | `S_proj` (the formula in [main.tex:250-252](../../paper/latex/main.tex#L250-L252)) | $u^{\top} J^{\top} w_T - \tfrac{1}{2}(w_N \cdot \hat{x}) u^{\top} g u$ | $\tfrac{1}{2}\langle w_S, \mathrm{II}^S \rangle(u,u)$ |
+  | `random_qmatched` (published null) | $X(w_T + w_{\text{rad}})$ | $\tfrac{1}{2}\langle v, \mathrm{II}^S \rangle(u,u)$, $v$ random in-sphere normal, rescaled to the same $\lVert q_c \rVert$ |
   | `full`, `full_model`, `random_wnorm`, `random_matched` | variants not in the paper | |
 
 - **Code.** `scaling_at_anchor` [`09_physics_normal_scaling_run.py:65-104`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L65-L104) (decomposition [:73-76](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L73-L76), random direction
-  [:77-79](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L77-L79), u [:81](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L81), q_S [:84](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L84), random rescaling [:87-92](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L87-L92), S_proj base [:93](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L93), SSE algebra [:98-103](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L98-L103)). `T_GRID` [:61](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L61).
-  Per-anchor loop [:243-252](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L243-L252). Ridge w at α = 100 [:230](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L230). Seed 20260915 [:140](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L140).
-- **Summaries.** help = fraction with r2(1) > r2(0), hurt = fraction with r2(−1) < r2(0), t* median
+  [:77-79](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L77-L79), $u$ [:81](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L81), $q_S$ [:84](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L84), random rescaling [:87-92](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L87-L92), S_proj base [:93](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L93), SSE algebra [:98-103](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L98-L103)). `T_GRID` [:61](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L61).
+  Per-anchor loop [:243-252](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L243-L252). Ridge $w$ at $\alpha = 100$ [:230](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L230). Seed 20260915 [:140](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L140).
+- **Summaries.** help = fraction with $\mathrm{r2}(1) > \mathrm{r2}(0)$, hurt = fraction with $\mathrm{r2}(-1) < \mathrm{r2}(0)$, $t^*$ median
   ([`sweep/extract.py:57-72`](../../curvature-experiment/sweep/extract.py#L57-L72), identical in [`appendix_gen.py:247-251`](../../paper/generate/appendix_gen.py#L247-L251)).
 - **Thinning.** Pairwise neighbourhood overlap ([`09_physics_normal_scaling_thin_run.py:317-323`](../../curvature-experiment/runners/09_physics_normal_scaling_thin_run.py#L317-L323)); min-degree greedy
-  independent set at overlap ≤ 5% of k for the paper's sign tests ([`appendix_gen.py:254-260`](../../paper/generate/appendix_gen.py#L254-L260), ported as
+  independent set at overlap $\le 5$% of $k$ for the paper's sign tests ([`appendix_gen.py:254-260`](../../paper/generate/appendix_gen.py#L254-L260), ported as
   [`sweep/extract.py:75-80`](../../curvature-experiment/sweep/extract.py#L75-L80)), one-sided binomial test [`extract.py:89-102`](../../curvature-experiment/sweep/extract.py#L89-L102).
 
 ### 2.9 Robustness battery (runner 11)
 
-- **Code** [`11_review_robustness_run.py`](../../curvature-experiment/runners/11_review_robustness_run.py). Tuned α* by RidgeCV (GCV/LOO) over 15 log-spaced values 1e-3..1e4
+- **Code** [`11_review_robustness_run.py`](../../curvature-experiment/runners/11_review_robustness_run.py). Tuned $\alpha^*$ by RidgeCV (GCV/LOO) over 15 log-spaced values 1e-3..1e4
   ([:52](../../curvature-experiment/runners/11_review_robustness_run.py#L52), [:83-87](../../curvature-experiment/runners/11_review_robustness_run.py#L83-L87)); nested OOF with the grid inside each outer fold ([:65-80](../../curvature-experiment/runners/11_review_robustness_run.py#L65-L80)); extended controls add `hess_label` and
-  roughness = 1 − label linear R² in the chart ([:108-115](../../curvature-experiment/runners/11_review_robustness_run.py#L108-L115)); 32-block cluster bootstrap with average-linkage blocks on
-  1 − overlap ([:122-155](../../curvature-experiment/runners/11_review_robustness_run.py#L122-L155), sensitivity 16 and 64, 2,000 resamples); thinned partial at overlap ≤ 10% ([:158-162](../../curvature-experiment/runners/11_review_robustness_run.py#L158-L162));
-  held-out ΔR² of local R² from adding mismatch and alignment to the extended controls, fit on half the blocks, 20
-  splits, OLS on ranks ([:165-189](../../curvature-experiment/runners/11_review_robustness_run.py#L165-L189)); surrogate fidelity = Spearman and median |ΔR²_S_model(1) − ΔR²_S(1)| ([:224-228](../../curvature-experiment/runners/11_review_robustness_run.py#L224-L228)).
-- **Reproduction guard.** At α = 100 recompute the published split partials (tolerance 1e-6 "exact" or 0.02
+  roughness $= 1 - \text{label linear } R^2$ in the chart ([:108-115](../../curvature-experiment/runners/11_review_robustness_run.py#L108-L115)); 32-block cluster bootstrap with average-linkage blocks on
+  $1 - \text{overlap}$ ([:122-155](../../curvature-experiment/runners/11_review_robustness_run.py#L122-L155), sensitivity 16 and 64, 2,000 resamples); thinned partial at overlap $\le 10$% ([:158-162](../../curvature-experiment/runners/11_review_robustness_run.py#L158-L162));
+  held-out $\Delta R^2$ of local $R^2$ from adding mismatch and alignment to the extended controls, fit on half the blocks, 20
+  splits, OLS on ranks ([:165-189](../../curvature-experiment/runners/11_review_robustness_run.py#L165-L189)); surrogate fidelity = Spearman and median $\lvert \Delta R^2_{S_{\text{model}}}(1) - \Delta R^2_S(1) \rvert$ ([:224-228](../../curvature-experiment/runners/11_review_robustness_run.py#L224-L228)).
+- **Reproduction guard.** At $\alpha = 100$ recompute the published split partials (tolerance 1e-6 "exact" or 0.02
   "refit", [:192](../../curvature-experiment/runners/11_review_robustness_run.py#L192)) and the cf summaries (1e-12, hard-coded [:258](../../curvature-experiment/runners/11_review_robustness_run.py#L258)); refuse to write on any difference or missing
   reference cell ([:245-281](../../curvature-experiment/runners/11_review_robustness_run.py#L245-L281)). Requires the same BLAS thread count as the cf run ([:381-385](../../curvature-experiment/runners/11_review_robustness_run.py#L381-L385)).
 
 ### 2.10 Tensor fidelity (runner 10)
 
 - Synthetic in-sphere fixture with exact geometry, labels `lin`, `nonlin`, `lam{0,0.5,1,2}` (`make_labels`
-  [`10_tensor_fidelity_run.py:153-175`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L153-L175)), truth covariant Hessian d²f − Γᵏ∂_k f ([:178-185](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L178-L185)), chart-free comparison by
-  ambient lift ([:66-90](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L66-L90)). Pass lines `TENSOR_COS_PASS = 0.8`, `MISMATCH_RHO_PASS = 0.7` ([:60-61](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L60-L61)). Probe α = 100
+  [`10_tensor_fidelity_run.py:153-175`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L153-L175)), truth covariant Hessian $d^2 f - \Gamma^k \partial_k f$ ([:178-185](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L178-L185)), chart-free comparison by
+  ambient lift ([:66-90](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L66-L90)). Pass lines `TENSOR_COS_PASS = 0.8`, `MISMATCH_RHO_PASS = 0.7` ([:60-61](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L60-L61)). Probe $\alpha = 100$
   ([:235](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L235)). `rho_mismatch` scores `hess_mismatch_dec` ([:249](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L249)); `rho_align` scores `align_cos_full` ([:250](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L250)).
 
 ### 2.11 Sweep and QM9
 
 - [`sweep/jobs.py:102-222`](../../curvature-experiment/sweep/jobs.py#L102-L222) expands each encoder into `main_xfit` (seed 0, xfit, saves geometry), `seed1`, `seed2`,
-  `cf`, `thin`, `robust`, plus `main_d16` for molecules when d_run ≠ 16. Split jobs refit the decoder on GPU with
+  `cf`, `thin`, `robust`, plus `main_d16` for molecules when $d_{\text{run}} \ne 16$. Split jobs refit the decoder on GPU with
   `--deterministic` ([:195](../../curvature-experiment/sweep/jobs.py#L195)). The robust job's guard compares against the sweep's own `main_xfit` and `cf` outputs
   ([:214-219](../../curvature-experiment/sweep/jobs.py#L214-L219)).
 - [`sweep/run_queue.py`](../../curvature-experiment/sweep/run_queue.py) schedules jobs, marks done, and by default deletes the geometry npz once `thin` and
   `robust` are done (`prune_geometry` [:99-140](../../curvature-experiment/sweep/run_queue.py#L99-L140); `--keep-geometry` [:278](../../curvature-experiment/sweep/run_queue.py#L278)).
 - [`sweep/aggregate.py`](../../curvature-experiment/sweep/aggregate.py) writes the reports (claim counts [:295-359](../../curvature-experiment/sweep/aggregate.py#L295-L359); GPU vs CPU comparison [:362-436](../../curvature-experiment/sweep/aggregate.py#L362-L436) with the ViT-B seed
   spread as tolerance [:367-374](../../curvature-experiment/sweep/aggregate.py#L367-L374)).
-- QM9 d: [`sweep/intrinsic_dim.py`](../../curvature-experiment/sweep/intrinsic_dim.py), 10,000-row subsample (seed 20261001), k = 10, `d_ID = round(median(mle,
+- QM9 $d$: [`sweep/intrinsic_dim.py`](../../curvature-experiment/sweep/intrinsic_dim.py), 10,000-row subsample (seed 20261001), $k = 10$, `d_ID = round(median(mle,
   two_nn, tle, mind_mlk))`, `d_run = min(d_ID, 20)` ([:33-48](../../curvature-experiment/sweep/intrinsic_dim.py#L33-L48)).
 
-### 2.12 II spectrum (runner 12)
+### 2.12 $\mathrm{II}$ spectrum (runner 12)
 
-- **Math.** In an orthonormal frame (J = QR, u = Rz) II_on(p,q) = II(R⁻¹e_p, R⁻¹e_q); remove the radial part;
-  flatten Frobenius-preserving to a D × m matrix; singular values; effective rank, participation ratio, k90, k99,
-  condition number; Gaussian D × m reference.
+- **Math.** In an orthonormal frame ($J = QR$, $u = Rz$) $\mathrm{II}_{\text{on}}(p,q) = \mathrm{II}(R^{-1} e_p, R^{-1} e_q)$; remove the radial part;
+  flatten Frobenius-preserving to a $D \times m$ matrix; singular values; effective rank, participation ratio, k90, k99,
+  condition number; Gaussian $D \times m$ reference.
 - **Code.** [`12_ii_rank_run.py:55-105`](../../curvature-experiment/runners/12_ii_rank_run.py#L55-L105) (`ii_spectra` [:75-92](../../curvature-experiment/runners/12_ii_rank_run.py#L75-L92)). Decision rule `FULL_FRAC = 0.9`, `LOW_FRAC = 0.25`
   ([:50-51](../../curvature-experiment/runners/12_ii_rank_run.py#L50-L51), [:100-105](../../curvature-experiment/runners/12_ii_rank_run.py#L100-L105)). Reads the sweep geometry `geometry/<enc>/09_probe_facing_geometry_d16_seed0.npz` ([:147](../../curvature-experiment/runners/12_ii_rank_run.py#L147)).
 
@@ -283,56 +283,56 @@ known to be biased or wrong.
 
 ### 3.2 Decoder fit
 
-- Correct as implemented. The C² guard prevents a ReLU decoder silently returning II = 0.
+- Correct as implemented. The $C^2$ guard prevents a ReLU decoder silently returning $\mathrm{II} = 0$.
 - **Questionable metric.** `var_explained = 1 − mse_total / mean‖x‖²` ([`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119)). For
-  unit rows mean‖x‖² = 1, so this is 1 − MSE, the share of the raw second moment, not of the centred variance.
-  On a locally cached PU embedding (`legacysurvey_dinov3_vitb16.parquet`, not the physics config) ‖mean‖² is
+  unit rows $\operatorname{mean}\lVert x \rVert^2 = 1$, so this is $1 - \mathrm{MSE}$, the share of the raw second moment, not of the centred variance.
+  On a locally cached PU embedding (`legacysurvey_dinov3_vitb16.parquet`, not the physics config) $\lVert \text{mean} \rVert^2$ is
   0.78–0.81, so the centred total variance is 0.19–0.22. If the galaxy configs are similar, the quoted 0.966 would
-  be roughly 1 − 0.034/0.2 ≈ 0.83 in centred terms. **Unverified on the actual galaxy data (pod-only).** Comparisons
+  be roughly $1 - 0.034/0.2 \approx 0.83$ in centred terms. **Unverified on the actual galaxy data (pod-only).** Comparisons
   of real VE with the synthetic fixture's VE (Sanity I4) are not like for like for the same reason.
 - Verified by tests: `test_plain_autoencoder_matches_eq22_shape`, `test_fit_decoder_cpu_device_matches_default`,
   `test_assert_c2_decoder_*`.
 
-### 3.3 Geometry, II and the sphere split
+### 3.3 Geometry, $\mathrm{II}$ and the sphere split
 
-- **Math right, code right.** II = Hess − JΓ with Γ = g⁻¹JᵀHess is exactly P_N Hess
-  ([`09_physics_probe_facing_run.py:148-149`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)). The runner 12 form Hess − Jg⁻¹JᵀHess ([`12_ii_rank_run.py:81-82`](../../curvature-experiment/runners/12_ii_rank_run.py#L81-L82)) is
-  the same. The orthonormal-frame change II_on = R⁻ᵀ II R⁻¹ ([`12_ii_rank_run.py:83-85`](../../curvature-experiment/runners/12_ii_rank_run.py#L83-L85)) is correct.
-- Sphere split. Because F̂ maps into the unit sphere, x̂ is normal (JᵀF̂ = 0) and ⟨x̂, II⟩ = −g [[R3]](#r3). The record checks
-  confirm this to float32 precision (`II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9; II spectrum
-  `radial_dev_max` 3.7e-8 to 3.2e-7). pf_tan = ⟨w_N, II_tan⟩ equals the paper's ⟨w_S, II^S⟩ because II_tan ⊥ x̂.
+- **Math right, code right.** $\mathrm{II} = \operatorname{Hess} - J\Gamma$ with $\Gamma = g^{-1} J^{\top} \operatorname{Hess}$ is exactly $P_N \operatorname{Hess}$
+  ([`09_physics_probe_facing_run.py:148-149`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L148-L149)). The runner 12 form $\operatorname{Hess} - J g^{-1} J^{\top} \operatorname{Hess}$ ([`12_ii_rank_run.py:81-82`](../../curvature-experiment/runners/12_ii_rank_run.py#L81-L82)) is
+  the same. The orthonormal-frame change $\mathrm{II}_{\text{on}} = R^{-\top} \mathrm{II} R^{-1}$ ([`12_ii_rank_run.py:83-85`](../../curvature-experiment/runners/12_ii_rank_run.py#L83-L85)) is correct.
+- Sphere split. Because $\hat{F}$ maps into the unit sphere, $\hat{x}$ is normal ($J^{\top} \hat{F} = 0$) and $\langle \hat{x}, \mathrm{II} \rangle = -g$ [[R3]](#r3). The record checks
+  confirm this to float32 precision (`II_rad_vs_minus_g_max_rel` 1.5e-8, `JT_xhat_max` 2e-9; $\mathrm{II}$ spectrum
+  `radial_dev_max` 3.7e-8 to 3.2e-7). pf_tan $= \langle w_N, \mathrm{II}_{\text{tan}} \rangle$ equals the paper's $\langle w_S, \mathrm{II}^S \rangle$ because $\mathrm{II}_{\text{tan}} \perp \hat{x}$.
 - Verified by tests: `test_plain_decoder_curvature_dxd_solve_matches_explicit_projector`,
   `test_plain_decoder_curvature_sphere_known_answer`, `test_radial_decomposition_on_analytic_sphere`,
   `test_decoder_geometry_forward_mode_matches_reverse`, `test_recovers_rank_and_radial_part_in_a_skewed_chart`,
   `test_probe_facing_tensors_match_split_columns_norms`, Swiss roll notebook
   `notebooks/02.6_swiss_roll_plainae_curvature_check.ipynb` (per `SWISS_ROLL_APPLICABILITY_RULE`,
   [`physics_curvature_probe.py:481-487`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L481-L487)).
-- Known limit. II is evaluated at F̂(E(x₀)), the decoder image, while neighbour coordinates are measured from the
-  data anchor x₀ ([`09_physics_probe_facing_split_run.py:145-146`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L145-L146)). The offset enters every downstream quantity.
+- Known limit. $\mathrm{II}$ is evaluated at $\hat{F}(E(x_0))$, the decoder image, while neighbour coordinates are measured from the
+  data anchor $x_0$ ([`09_physics_probe_facing_split_run.py:145-146`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L145-L146)). The offset enters every downstream quantity.
 
 ### 3.4 Residual expansion and help condition (theory)
 
-- Eq. 3 is right for u ~ N(0, s²I): Var(½uᵀΔu) = ½s⁴‖Δ‖²_F [[R6]](#r6) and odd cross moments vanish.
+- Eq. 3 is right for $u \sim \mathcal{N}(0, s^2 I)$: $\operatorname{Var}(\tfrac{1}{2} u^{\top} \Delta u) = \tfrac{1}{2} s^4 \lVert \Delta \rVert_F^2$ [[R6]](#r6) and odd cross moments vanish.
 - **Known bias, confirmed.** kNN patches are closer to uniform balls than Gaussians. For a spherically symmetric
-  patch with E u₁⁴ = 3λs⁴, Cov(½A(u,u), ½B(u,u)) = (s⁴/4)[2λ⟨A,B⟩ + (λ−1) trA trB] (Outline I2). My Monte Carlo at
-  d = 16 (400,000 draws, uniform ball) gives λ = 0.9003 against (d+2)/(d+4) = 0.9000, Cov 0.02116 against
+  patch with $\mathbb{E} u_1^4 = 3\lambda s^4$, $\operatorname{Cov}(\tfrac{1}{2}A(u,u), \tfrac{1}{2}B(u,u)) = (s^4/4)[2\lambda \langle A, B \rangle + (\lambda - 1) \operatorname{tr} A \operatorname{tr} B]$ (Outline I2). My Monte Carlo at
+  $d = 16$ (400,000 draws, uniform ball) gives $\lambda = 0.9003$ against $(d+2)/(d+4) = 0.9000$, Cov 0.02116 against
   0.02117 from the corrected formula, and 0.121 from the Gaussian formula for trace-heavy test tensors. The paper's
-  g-metric alignment and help condition weight the trace direction wrongly for real patches. The direction of the
+  $g$-metric alignment and help condition weight the trace direction wrongly for real patches. The direction of the
   effect on the reported partials is not known.
 
 ### 3.5 Label Hessian
 
 - **Math right in the ideal case, code right.** My check 1a puts an exact quadratic label on an exact Monge surface
-  in R¹⁰. `local_quadratics` recovers the true Hessian to 9e-15. The ½ on the diagonal design columns
-  ([`09_physics_probe_facing_split_run.py:125`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L125)) gives B_ii and B_ij directly.
+  in $\mathbb{R}^{10}$. `local_quadratics` recovers the true Hessian to 9e-15. The $\tfrac{1}{2}$ on the diagonal design columns
+  ([`09_physics_probe_facing_split_run.py:125`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L125)) gives $B_{ii}$ and $B_{ij}$ directly.
 - **Tilted-tangent leakage, confirmed.** With a linear label (true Hessian 0) and the decoder tangent tilted into
-  the normal space by ε, the estimate is 0.072, 0.146, 0.310 at ε = 0.05, 0.1, 0.2 (my check 3). The bias is linear
-  in ε and in the label gradient, and it is II-shaped (Test-1 C3). With real decoders at imperfect fit a few degrees
-  of tilt is plausible and has not been measured (no J vs local-PCA angles anywhere in the code).
+  the normal space by $\varepsilon$, the estimate is 0.072, 0.146, 0.310 at $\varepsilon = 0.05, 0.1, 0.2$ (my check 3). The bias is linear
+  in $\varepsilon$ and in the label gradient, and it is $\mathrm{II}$-shaped (Test-1 C3). With real decoders at imperfect fit a few degrees
+  of tilt is plausible and has not been measured (no $J$ vs local-PCA angles anywhere in the code).
 - **Magnitude error.** TF at paper scale: relerr hess_y 0.289–1.177 at noise 0, 0.463–1.247 at noise 0.25, with
   cosines 0.914–0.997 (TF:105-116). Direction is right; the norm is off by 29–118%. Whether it is inflated or
   shrunk cannot be read from the records, since relerr is unsigned ([`10_tensor_fidelity_run.py:82-90`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L82-L90)). For `lin`
-  (cos 0.978, relerr 0.880) both λ = 1.83 and λ = 0.12 satisfy the pair (medians are over anchors, so this is only
+  (cos 0.978, relerr 0.880) both $\lambda = 1.83$ and $\lambda = 0.12$ satisfy the pair (medians are over anchors, so this is only
   indicative). The "about 2x too large" statement (RR:228; rebuttal §1) is unsupported.
 - **Reliability on real labels.** Split-half tensor cosine p50 0.19–0.35; split-half norm rank 0.91–0.94 (Cache
   xfit record, verified). So the norm ranks well and the direction is weak.
@@ -342,22 +342,22 @@ known to be biased or wrong.
 
 ### 3.6 The two mismatch columns and the empirical identity
 
-- `hess_mismatch_dec` = ‖hess_y − ⟨w_N, II⟩‖_g uses the decoder. `hess_mismatch_emp` = ‖hess_y − probe_emp‖_g where
-  probe_emp is the local quadratic fit of p = Xw ([`09_physics_probe_facing_split_run.py:191-192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L191-L192)).
-- **Identity.** Least squares is linear in the target, so on the same rows hess_y − probe_emp is exactly the
-  quadratic coefficient of the residual y − Xw. My check 1c confirms it to 1e-14. For photo_z and stellar_mass the
-  masks differ slightly (the label has NaNs, p does not), so the identity is approximate there.
-- So `hess_mismatch_emp` = ‖Hess_M(y − w·x)‖, the curvature of the probe residual in the decoder chart. The decoder
-  enters only through J and g. In the ideal noise-free on-manifold case probe_emp equals ⟨w_N, II⟩ exactly (my check
-  1b, 2.6e-15), so it is a decoder-free estimate of K. On galaxies its median cosine with the decoder K is 0.57–0.67
+- `hess_mismatch_dec` $= \lVert \mathrm{hess}_y - \langle w_N, \mathrm{II} \rangle \rVert_g$ uses the decoder. `hess_mismatch_emp` $= \lVert \mathrm{hess}_y - \mathrm{probe}_{\text{emp}} \rVert_g$ where
+  probe_emp is the local quadratic fit of $p = Xw$ ([`09_physics_probe_facing_split_run.py:191-192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L191-L192)).
+- **Identity.** Least squares is linear in the target, so on the same rows $\mathrm{hess}_y - \mathrm{probe}_{\text{emp}}$ is exactly the
+  quadratic coefficient of the residual $y - Xw$. My check 1c confirms it to 1e-14. For photo_z and stellar_mass the
+  masks differ slightly (the label has NaNs, $p$ does not), so the identity is approximate there.
+- So `hess_mismatch_emp` $= \lVert \operatorname{Hess}_M(y - w \cdot x) \rVert$, the curvature of the probe residual in the decoder chart. The decoder
+  enters only through $J$ and $g$. In the ideal noise-free on-manifold case probe_emp equals $\langle w_N, \mathrm{II} \rangle$ exactly (my check
+  1b, 2.6e-15), so it is a decoder-free estimate of $K$. On galaxies its median cosine with the decoder $K$ is 0.57–0.67
   (full) and 0.55–0.65 (in-sphere) (Cache split record `checks`).
 - **Every paper table uses `hess_mismatch_emp`** ([`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19), [`90`](../../paper/generate/appendix_gen.py#L90), [`99`](../../paper/generate/appendix_gen.py#L99); [`table_main_gen.py:9`](../../paper/generate/table_main_gen.py#L9)). The paper
-  defines Δ = Hess_M y − ⟨w_N, II⟩ ([main.tex:127](../../paper/latex/main.tex#L127), 304). That is the dec column.
-- **Mismatch ≈ label-Hessian norm.** Across the 40 galaxy cells of the ten-encoder sweep the |partial(emp) −
-  partial(‖Hess y‖)| gap has median 0.024; 36/40 ≤ 0.05; 27/40 ≤ 0.03; largest 0.111 (ViT-B mag_r, −0.387 vs −0.276)
+  defines $\Delta = \operatorname{Hess}_M y - \langle w_N, \mathrm{II} \rangle$ ([main.tex:127](../../paper/latex/main.tex#L127), 304). That is the dec column.
+- **Mismatch $\approx$ label-Hessian norm.** Across the 40 galaxy cells of the ten-encoder sweep the
+  $\lvert \text{partial}(\text{emp}) - \text{partial}(\lVert \operatorname{Hess} y \rVert) \rvert$ gap has median 0.024; 36/40 $\le 0.05$; 27/40 $\le 0.03$; largest 0.111 (ViT-B mag_r, −0.387 vs −0.276)
   and 0.079 (ViT-B photo_z). Recomputed from Cache `scaling/records/*__main_xfit.jsonl`. ViT-B, the headline
   encoder, is where the two are most separated.
-- **Near-circularity.** The outcome is the local R² of the OOF residuals over the same 2,048 neighbours, and
+- **Near-circularity.** The outcome is the local $R^2$ of the OOF residuals over the same 2,048 neighbours, and
   emp is the norm of the quadratic part of (nearly) those residuals. The cross-fit that would break this coupling
   exists only for the dec column (Section 3.7).
 
@@ -370,76 +370,76 @@ known to be biased or wrong.
 - Tests: `test_partial_spearman_*` (4), `test_controlled_partial_reproduces_colleague_numbers`,
   `test_freedman_lane_preserves_control_fit`, `test_p_value_never_zero`.
 - **Known violated assumption.** Permutation treats the 512 anchors as exchangeable. They are not. Each point lies
-  in about 12 neighbourhoods on average (512 × 2048 / 86,471 = 12.1). From the stored overlap matrices, 42–59% of
+  in about 12 neighbourhoods on average ($512 \times 2048 / 86{,}471 = 12.1$). From the stored overlap matrices, 42–59% of
   anchor pairs share at least one point and each anchor shares points with 214–299 others on average (my block
   check). The paper's Limitations sentence ([main.tex:309](../../paper/latex/main.tex#L309)) acknowledges this; the tables still print permutation
   stars.
 - **Reporting defect (confirmed).** The cross-fit loop only cross-fits `hess_mismatch_dec`, `align_cos_tan` and
   `hess_label` ([`09_physics_probe_facing_split_run.py:432`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L432)). Appendix B and Table `tab:xencx` print the dec column
   under the heading "mismatch, cross-fit" ([`appendix_gen.py:62`](../../paper/generate/appendix_gen.py#L62), [`224`](../../paper/generate/appendix_gen.py#L224)), and the Appendix C prose "cross-fitted −0.28
-  to −0.62" is computed from it ([`appendix_gen.py:100`](../../paper/generate/appendix_gen.py#L100)). Main tables use emp. For ViT-B d = 16 the in-sample dec
+  to −0.62" is computed from it ([`appendix_gen.py:100`](../../paper/generate/appendix_gen.py#L100)). Main tables use emp. For ViT-B $d = 16$ the in-sample dec
   partial is −0.304 and its cross-fit is −0.381/−0.336, so the dec column survives cross-fitting. Nothing shows the
   emp column (−0.387) survives it.
-- **Labelling defect (confirmed, small).** The paper's alignment is cos_g(Hess_M y, K) ([main.tex:187](../../paper/latex/main.tex#L187), 390). The
-  tables use `align_cos_tan`, cosine with K_S ([`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195), [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19)).
+- **Labelling defect (confirmed, small).** The paper's alignment is $\cos_g(\operatorname{Hess}_M y, K)$ ([main.tex:187](../../paper/latex/main.tex#L187), 390). The
+  tables use `align_cos_tan`, cosine with $K_S$ ([`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195), [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19)).
   For ViT-B the two differ by at most 0.02 (my [`check_records.py`](2026-10-05-scripts/check_records.py)).
 
 ### 3.8 Probe and controls
 
 - Ridge without feature standardisation in both the OOF and the geometry fits ([`linear_probe.py:106-109`](../../curvature-experiment/pu_manifold/linear_probe.py#L106-L109),
-  `RidgeCV` with fit_intercept only). The two fits use the same α; the geometry w is fit on all finite rows, the
+  `RidgeCV` with fit_intercept only). The two fits use the same $\alpha$; the geometry $w$ is fit on all finite rows, the
   outcome uses OOF predictions. Test `test_oof_predictions_are_out_of_fold`.
-- The sphere term `pf_rad` ≈ √d |w·x̂| is a function of how extreme the prediction is. Its negative partial is
-  partly shrinkage: at α = 1 it vanishes for photo_z and stellar mass (Appendix B; records verified). The paper says
+- The sphere term `pf_rad` $\approx \sqrt{d} \lvert w \cdot \hat{x} \rvert$ is a function of how extreme the prediction is. Its negative partial is
+  partly shrinkage: at $\alpha = 1$ it vanishes for photo_z and stellar mass (Appendix B; records verified). The paper says
   so ([main.tex:583](../../paper/latex/main.tex#L583)).
 
 ### 3.9 Counterfactual
 
-- **SSE formula right, code right.** My check 2a computes r2 at each t by brute-force intercept refit and matches
-  the runner's `r2_curve` to 2e-16. Check 2c confirms variant `S` at t = 1 is the global readout with a local
+- **SSE formula right, code right.** My check 2a computes r2 at each $t$ by brute-force intercept refit and matches
+  the runner's `r2_curve` to 2e-16. Check 2c confirms variant `S` at $t = 1$ is the global readout with a local
   intercept.
-- **Help/hurt identity (confirmed).** SSE(t) − SSE(0) = ‖q_c‖²(t² − 2t t*). So help ⇔ t* > ½ and hurt ⇔ t* > −½,
-  hence help ⊂ hurt. Holds at 100% of anchors in all 24 published cells (my [`check_records.py`](2026-10-05-scripts/check_records.py), also Sanity §2).
-  The "hurt at 97–100%" is therefore not independent evidence. Random hurt is 0.64–0.80 at α = 100 because random t*
+- **Help/hurt identity (confirmed).** $\mathrm{SSE}(t) - \mathrm{SSE}(0) = \lVert q_c \rVert^2 (t^2 - 2t t^*)$. So help $\Leftrightarrow t^* > \tfrac{1}{2}$ and hurt $\Leftrightarrow t^* > -\tfrac{1}{2}$,
+  hence help $\subset$ hurt. Holds at 100% of anchors in all 24 published cells (my [`check_records.py`](2026-10-05-scripts/check_records.py), also Sanity §2).
+  The "hurt at 97–100%" is therefore not independent evidence. Random hurt is 0.64–0.80 at $\alpha = 100$ because random $t^*$
   sits near 0 (medians −0.16 to +0.06).
-- **What t* contains.** With p = centred X w_S on the patch, r_c the centred residual of the global probe and
-  q the decoder quadratic, the stored quantities satisfy t*_S = 1 + ⟨r_c, p⟩/‖p‖² and
-  t*_model = ⟨r_c + p, q⟩/‖q‖² = β(p|q) + ⟨r_c, q⟩/‖q‖², with β = ⟨p,q⟩/‖q‖² (Outline, corrected proposition).
-  I re-derived this from `scaling_at_anchor` (both variants share e₀ = r_c + p because they share the base). The
-  ridge normal equations give a pooled t*_S ≥ 1, not a per-anchor one.
-- **Surrogate amplitude (confirmed).** Median ‖q‖/‖p‖ = sqrt(qq_S_model/qq_S) is 0.38–0.51 over the 24 published
+- **What $t^*$ contains.** With $p = \text{centred } X w_S$ on the patch, $r_c$ the centred residual of the global probe and
+  $q$ the decoder quadratic, the stored quantities satisfy $t^*_S = 1 + \langle r_c, p \rangle / \lVert p \rVert^2$ and
+  $t^*_{\text{model}} = \langle r_c + p, q \rangle / \lVert q \rVert^2 = \beta(p \mid q) + \langle r_c, q \rangle / \lVert q \rVert^2$, with $\beta = \langle p, q \rangle / \lVert q \rVert^2$ (Outline, corrected proposition).
+  I re-derived this from `scaling_at_anchor` (both variants share $e_0 = r_c + p$ because they share the base). The
+  ridge normal equations give a pooled $t^*_S \ge 1$, not a per-anchor one.
+- **Surrogate amplitude (confirmed).** Median $\lVert q \rVert / \lVert p \rVert = \sqrt{\mathrm{qq}_{S_{\text{model}}} / \mathrm{qq}_S}$ is 0.38–0.51 over the 24 published
   cells (my recomputation; matches the controller's figure). On QM9 it is 0.29–0.55. So the decoder's second-order
   term reproduces under half of the probe's own in-sphere readout amplitude on a patch.
-- **Surrogate fidelity.** Per-anchor Spearman between ΔR²(1) of S_model and of S is +0.35 to +0.82 at α = 100 and
-  +0.16 to +0.66 at α* on galaxies (RR:185-224); −0.30 to +0.23 on QM9 (verified). On QM9 the data-side S helps at
+- **Surrogate fidelity.** Per-anchor Spearman between $\Delta R^2(1)$ of S_model and of S is +0.35 to +0.82 at $\alpha = 100$ and
+  +0.16 to +0.66 at $\alpha^*$ on galaxies (RR:185-224); −0.30 to +0.23 on QM9 (verified). On QM9 the data-side S helps at
   0.88–1.00 of anchors while S_model helps at 0.28–0.74 (verified).
 - **Least-squares null.** The Novelty review's simulation (labels with no designed curvature relation) reproduces
-  help 76–100%, hurt 80–100%, random help 15–45% and t* 2–3 at comparable shrinkage (Novelty §6 table). I did not
+  help 76–100%, hurt 80–100%, random help 15–45% and $t^*$ 2–3 at comparable shrinkage (Novelty §6 table). I did not
   rerun it. Its algebra agrees with mine.
 - **Reporting defect (confirmed, numerically immaterial).** [main.tex:250-252](../../paper/latex/main.tex#L250-L252) writes the surrogate as
-  c + aᵀu + ½K_sph(u,u) + (t/2)K_S(u,u), which is variant `S_proj`. The table, Figure 1 and the sign tests use
-  `S_model` ([`make_fig_intervention.py:17`](../../paper/latex/figures/make_fig_intervention.py#L17), [`appendix_gen.py:247`](../../paper/generate/appendix_gen.py#L247)). From the stored arrays the two differ by ≤ 0.01
-  in help and ≤ 0.02 in median t* in every cell. The rebuttal already promises to fix the wording.
+  $c + a^{\top} u + \tfrac{1}{2} K_{\text{sph}}(u,u) + (t/2) K_S(u,u)$, which is variant `S_proj`. The table, Figure 1 and the sign tests use
+  `S_model` ([`make_fig_intervention.py:17`](../../paper/latex/figures/make_fig_intervention.py#L17), [`appendix_gen.py:247`](../../paper/generate/appendix_gen.py#L247)). From the stored arrays the two differ by $\le 0.01$
+  in help and $\le 0.02$ in median $t^*$ in every cell. The rebuttal already promises to fix the wording.
 - Tests. No unit test calls `scaling_at_anchor`. Covered end to end by `test_smoke_end_to_end` and the extract
   tests (`test_cf_summary_matches_tab_cf`), and by the 1e-12 reproduction guard.
 
 ### 3.10 Robustness battery
 
-- **Tuned probe.** α* is chosen by GCV on all rows and sets w (so w_N, emp, alignment and the counterfactual);
+- **Tuned probe.** $\alpha^*$ is chosen by GCV on all rows and sets $w$ (so $w_N$, emp, alignment and the counterfactual);
   OOF uses fold-wise selection ([`11_review_robustness_run.py:65-87`](../../curvature-experiment/runners/11_review_robustness_run.py#L65-L87)). Leak-free for the OOF outcome
-  (`test_tuned_oof_never_uses_held_out_rows`). α* is at the grid floor 0.001 in 5/20 galaxy pairs (RR:18-28) and
-  in 28/32 QM9 pairs (my [`check_qm9.py`](2026-10-05-scripts/check_qm9.py)). The tensor-fidelity validation ran only at α = 100
-  ([`10_tensor_fidelity_run.py:235`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L235)), so the near-OLS w_N used at α* is unvalidated. Nothing in runner 11 is
+  (`test_tuned_oof_never_uses_held_out_rows`). $\alpha^*$ is at the grid floor 0.001 in 5/20 galaxy pairs (RR:18-28) and
+  in 28/32 QM9 pairs (my [`check_qm9.py`](2026-10-05-scripts/check_qm9.py)). The tensor-fidelity validation ran only at $\alpha = 100$
+  ([`10_tensor_fidelity_run.py:235`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L235)), so the near-OLS $w_N$ used at $\alpha^*$ is unvalidated. Nothing in runner 11 is
   cross-fitted (`split_quantities` [:108-111](../../curvature-experiment/runners/11_review_robustness_run.py#L108-L111) fits on the full panel).
 - **Block bootstrap.** Correct percentile cluster bootstrap. Blocks are unbalanced: with 32 blocks, the largest has
   50–57 anchors and the median 9–16, with 1–3 singletons (my check on the five published overlap matrices). Blocks
   are built from anchor overlap, so neighbouring blocks still share points. Tests:
   `test_cluster_bootstrap_covers_truth`, `test_bootstrap_skips_degenerate_replicates`, `test_overlap_blocks_count`.
-- **Held-out ΔR².** Correct as written. Ranks are computed on all anchors before the split
+- **Held-out $\Delta R^2$.** Correct as written. Ranks are computed on all anchors before the split
   ([`11_review_robustness_run.py:178-179`](../../curvature-experiment/runners/11_review_robustness_run.py#L178-L179)), which leaks only the rank scale. "Held out" means other anchor blocks on
   the same dataset, which share boundary points. Test `test_heldout_positive_with_signal_zero_with_noise`.
-- **Extended controls.** Adding |Hess y| and roughness makes the mismatch partial larger in magnitude in 13/20 pairs
-  at α* (counted from RR:17-36 vs RR:71-90), the suppression pattern RR itself warns about. RR:40's
+- **Extended controls.** Adding $\lvert \operatorname{Hess} y \rvert$ and roughness makes the mismatch partial larger in magnitude in 13/20 pairs
+  at $\alpha^*$ (counted from RR:17-36 vs RR:71-90), the suppression pattern RR itself warns about. RR:40's
   "over-controls rather than under-controls" is not supported.
 - **Reproduction guard.** Correct and strict (refuses on missing reference cells). Tests
   `test_guard_stops_on_perturbed_reference`, `test_guard_refuses_missing_or_incomplete_reference`,
@@ -448,39 +448,39 @@ known to be biased or wrong.
   observed diffs are 0, so the relaxation is moot. In the sweep the guard compares the robust job with the sweep's
   own split and cf jobs, so it is a determinism check, not a replication.
 
-### 3.11 II spectrum and intrinsic dimension
+### 3.11 $\mathrm{II}$ spectrum and intrinsic dimension
 
-- **II spectrum math right, code right.** Tests `test_sym_flatten_keeps_frobenius_norm`,
+- **$\mathrm{II}$ spectrum math right, code right.** Tests `test_sym_flatten_keeps_frobenius_norm`,
   `test_spectrum_metrics_on_known_spectra`, `test_full_rank_when_enough_directions`,
   `test_random_reference_is_near_full`, `test_recovers_rank_and_radial_part_in_a_skewed_chart`.
 - **Results** (verified from `results/ii-rank/*.json`). Median erank 22.3–42.4, participation ratio 9.9–22.1, k90
-  29–50, k99 78–104 of m = 136, condition number 41–140 (Gaussian reference 1.4–3.9). Verdicts: "low" for
+  29–50, k99 78–104 of $m = 136$, condition number 41–140 (Gaussian reference 1.4–3.9). Verdicts: "low" for
   dinov3_vits16 and dinov3_vits16plus, "partial" for the other eight.
-- **Decoder-prior confound, not addressed.** The only reference is a single Gaussian D × m matrix
+- **Decoder-prior confound, not addressed.** The only reference is a single Gaussian $D \times m$ matrix
   ([`12_ii_rank_run.py:95-97`](../../curvature-experiment/runners/12_ii_rank_run.py#L95-L97)). No random-init decoder, no AE on a covariance-matched cloud, no column-permuted
-  embeddings, no decoder-free II, no seed subspace overlap (singular vectors were not saved, [:152](../../curvature-experiment/runners/12_ii_rank_run.py#L152)), no d sweep. The
+  embeddings, no decoder-free $\mathrm{II}$, no seed subspace overlap (singular vectors were not saved, [:152](../../curvature-experiment/runners/12_ii_rank_run.py#L152)), no $d$ sweep. The
   tensor-fidelity fixture has a single in-sphere normal direction, so spectrum recovery is unvalidated.
-- **Intrinsic dimension (library defect, confirmed).** `tle_dimensionality` computes (k−1)/Σ ln(r_k/r_j) averaged over
+- **Intrinsic dimension (library defect, confirmed).** `tle_dimensionality` computes $(k-1)/\sum \ln(r_k/r_j)$ averaged over
   points ([`src/effdim/geometry.py:348-393`](../../src/effdim/geometry.py#L348-L393)), which is the same formula as `mle_dimensionality` ([:34-86](../../src/effdim/geometry.py#L34-L86)).
   `mind_mlk_dimensionality` is the median of the same per-point estimate ([:246-290](../../src/effdim/geometry.py#L246-L290)), not the MiND-MLk likelihood. So
   `choose_d`'s median of four ([`sweep/intrinsic_dim.py:46-48`](../../curvature-experiment/sweep/intrinsic_dim.py#L46-L48)) is effectively a function of the Levina–Bickel [[R9]](#r9)
   statistic alone, with two_nn (broken by ChemBERTa duplicates, 0.85–1.04) as the low outlier. QM:19-29 discloses the
-  tle = mle equality. The d = 16 replicate gives the same mismatch counts (QM:71-76), so the conclusion does not
-  hinge on d.
+  tle = mle equality. The $d = 16$ replicate gives the same mismatch counts (QM:71-76), so the conclusion does not
+  hinge on $d$.
 
 ### 3.12 Consolidated list of confirmed defects
 
 | # | Defect | Where | Effect |
 |---|---|---|---|
 | D1 | Cross-fit appendix prints `hess_mismatch_dec` under "mismatch, cross-fit"; main tables use `hess_mismatch_emp`; emp never cross-fitted | [`09_physics_probe_facing_split_run.py:432`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L432); [`paper/generate/appendix_gen.py:62`](../../paper/generate/appendix_gen.py#L62), [`100`](../../paper/generate/appendix_gen.py#L100), [`224`](../../paper/generate/appendix_gen.py#L224); [`main.tex:190`](../../paper/latex/main.tex#L190), [`424`](../../paper/latex/main.tex#L424) | The paper's cross-fitting defence does not apply to the tabulated column |
-| D2 | Δ defined with ⟨w_N, II⟩, tables use emp (no decoder II) | [`main.tex:127`](../../paper/latex/main.tex#L127), [`304`](../../paper/latex/main.tex#L304) vs [`09_physics_probe_facing_split_run.py:192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L192), [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19) | The headline association is about residual curvature, not decoder probe-facing curvature (Sanity I6, Outline C4) |
-| D3 | Alignment defined with K, tables use K_S | [`main.tex:187`](../../paper/latex/main.tex#L187), [`390`](../../paper/latex/main.tex#L390) vs [`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195) | ≤ 0.02 numerically |
-| D4 | Main-text surrogate formula is `S_proj`, reported numbers are `S_model` | [`main.tex:250-252`](../../paper/latex/main.tex#L250-L252) vs [`make_fig_intervention.py:17`](../../paper/latex/figures/make_fig_intervention.py#L17), [`appendix_gen.py:247`](../../paper/generate/appendix_gen.py#L247) | ≤ 0.01 help, ≤ 0.02 t* |
-| D5 | "Global out-of-sample R² rises by 0.10 to 0.15" at α = 1 | [`appendix_gen.py:51`](../../paper/generate/appendix_gen.py#L51) → [`main.tex:352`](../../paper/latex/main.tex#L352) | Records give +0.136 to +0.158 |
-| D6 | `tle_dimensionality` equals MLE; `mind_mlk` is median Levina–Bickel | [`src/effdim/geometry.py:246-290`](../../src/effdim/geometry.py#L246-L290), [`348-393`](../../src/effdim/geometry.py#L348-L393) | QM9 d effectively from one statistic |
+| D2 | $\Delta$ defined with $\langle w_N, \mathrm{II} \rangle$, tables use emp (no decoder $\mathrm{II}$) | [`main.tex:127`](../../paper/latex/main.tex#L127), [`304`](../../paper/latex/main.tex#L304) vs [`09_physics_probe_facing_split_run.py:192`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L192), [`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19) | The headline association is about residual curvature, not decoder probe-facing curvature (Sanity I6, Outline C4) |
+| D3 | Alignment defined with $K$, tables use $K_S$ | [`main.tex:187`](../../paper/latex/main.tex#L187), [`390`](../../paper/latex/main.tex#L390) vs [`09_physics_probe_facing_split_run.py:195`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L195) | $\le 0.02$ numerically |
+| D4 | Main-text surrogate formula is `S_proj`, reported numbers are `S_model` | [`main.tex:250-252`](../../paper/latex/main.tex#L250-L252) vs [`make_fig_intervention.py:17`](../../paper/latex/figures/make_fig_intervention.py#L17), [`appendix_gen.py:247`](../../paper/generate/appendix_gen.py#L247) | $\le 0.01$ help, $\le 0.02$ $t^*$ |
+| D5 | "Global out-of-sample $R^2$ rises by 0.10 to 0.15" at $\alpha = 1$ | [`appendix_gen.py:51`](../../paper/generate/appendix_gen.py#L51) → [`main.tex:352`](../../paper/latex/main.tex#L352) | Records give +0.136 to +0.158 |
+| D6 | `tle_dimensionality` equals MLE; `mind_mlk` is median Levina–Bickel | [`src/effdim/geometry.py:246-290`](../../src/effdim/geometry.py#L246-L290), [`348-393`](../../src/effdim/geometry.py#L348-L393) | QM9 $d$ effectively from one statistic |
 | D7 | "Variance explained" is uncentred | [`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119) | Overstates decoder fit; size unverified on galaxy data |
 | D8 | Appendix E mean-bending trace range not produced by this repository | [`main.tex:585`](../../paper/latex/main.tex#L585); [REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §5 | Unverifiable from the code here |
-| D9 | "Every significant sign of the main table is retained" | [`appendix_gen.py:25`](../../paper/generate/appendix_gen.py#L25) → [`main.tex:319`](../../paper/latex/main.tex#L319) | Signs are retained but mag_r shape loses significance in seed 1 and 400³ (+0.05*); wording is loose, not false |
+| D9 | "Every significant sign of the main table is retained" | [`appendix_gen.py:25`](../../paper/generate/appendix_gen.py#L25) → [`main.tex:319`](../../paper/latex/main.tex#L319) | Signs are retained but mag_r shape loses significance in seed 1 and $400^3$ (+0.05*); wording is loose, not false |
 
 ---
 
@@ -527,7 +527,7 @@ code reproduces it exactly from the same geometry, which closes most of that gap
 | Tensor-fidelity records | [`10_tensor_fidelity_run.py`](../../curvature-experiment/runners/10_tensor_fidelity_run.py) alone (synthetic) | CPU or GPU time; paper scale is long |
 | Split, cf, robust records for galaxies | runners 09/11 | pod-only geometry npz, pod label parquet, embeddings at snapshot `bc081f8a` |
 | Sweep and QM9 records | [`sweep/run_queue.py`](../../curvature-experiment/sweep/run_queue.py) on the pod | GPUs, embeddings, label tables |
-| II-rank JSON | [`12_ii_rank_run.py`](../../curvature-experiment/runners/12_ii_rank_run.py) | sweep geometry npz, which `run_queue` deletes by default after `thin` and `robust` ([`run_queue.py:99-140`](../../curvature-experiment/sweep/run_queue.py#L99-L140)). Whether it still exists on the pod is unknown |
+| $\mathrm{II}$-rank JSON | [`12_ii_rank_run.py`](../../curvature-experiment/runners/12_ii_rank_run.py) | sweep geometry npz, which `run_queue` deletes by default after `thin` and `robust` ([`run_queue.py:99-140`](../../curvature-experiment/sweep/run_queue.py#L99-L140)). Whether it still exists on the pod is unknown |
 
 **Where things live.**
 - Pod only: ViT-B geometry `/mnt/ssd-cluster/effdim/probe-facing-out/probe-facing/09_probe_facing_geometry_d{16,20}.npz`
@@ -537,7 +537,7 @@ code reproduces it exactly from the same geometry, which closes most of that gap
   only names the second.
 - Local only (git-ignored, `.gitignore` "Notebook analysis caches"): `notebooks/.cache/` with all 09 records, the
   published cf npz and thin npz, `scaling/` and `qm9/` records and arrays. No galaxy geometry npz locally (only a
-  d = 4 smoke file in `probe-facing/`).
+  $d = 4$ smoke file in `probe-facing/`).
 - Committed: `results/tensor-fidelity/records`, `results/review-robustness/records`, reports, `results/ii-rank` JSON
   and spectra, `results/qm9/sidecars`, SHA256SUMS files.
 - No script builds the galaxy label parquet ([REPRODUCE.md](../../curvature-experiment/REPRODUCE.md) §2). No sha256 for the ViT-B geometry is in
@@ -548,44 +548,44 @@ code reproduces it exactly from the same geometry, which closes most of that gap
 ## 5. Contested points
 
 1. **Does `hess_mismatch_emp` contain the second fundamental form?** Sanity I6 and Outline C4 say no. [REPRODUCE.md](../../curvature-experiment/REPRODUCE.md)
-   and the split runner docstring ([:14-16](../../curvature-experiment/REPRODUCE.md#L14-L16)) call it a data-side check of ⟨w, II⟩. Both are partly right. My check 1b
-   shows probe_emp equals ⟨w_N, II⟩ exactly when the data lie on the manifold and the chart is correct, so it does
-   estimate the data's II in the probe direction. My check 1c shows it is also exactly the quadratic part of y − w·x.
-   **Judgement.** It is a decoder-free estimate of residual curvature. It does not use the decoder's II and agrees
+   and the split runner docstring ([:14-16](../../curvature-experiment/REPRODUCE.md#L14-L16)) call it a data-side check of $\langle w, \mathrm{II} \rangle$. Both are partly right. My check 1b
+   shows probe_emp equals $\langle w_N, \mathrm{II} \rangle$ exactly when the data lie on the manifold and the chart is correct, so it does
+   estimate the data's $\mathrm{II}$ in the probe direction. My check 1c shows it is also exactly the quadratic part of $y - w \cdot x$.
+   **Judgement.** It is a decoder-free estimate of residual curvature. It does not use the decoder's $\mathrm{II}$ and agrees
    with it only at median cosine 0.55–0.67. The paper must not describe the tabulated mismatch as built from the
-   decoder's K. The practical worry (it is mostly ‖Hess y‖ and nearly the outcome's own residual) stands.
+   decoder's $K$. The practical worry (it is mostly $\lVert \operatorname{Hess} y \rVert$ and nearly the outcome's own residual) stands.
 
-2. **Why is t* > 1 at α = 100?** The paper caption, Sanity I2 and Novelty §6-7 say ridge shrinkage. Outline C1(e)
-   says the published t* also contains the fidelity slope β(p|q), which can exceed 1 with no shrinkage since
-   ‖p‖/‖q‖ ≈ 2-2.6. **Judgement.** The Outline's algebra is correct (re-derived above). The ridge argument is exact
-   only pooled over all rows and for variant S. The stored arrays do not contain ⟨p, q⟩, so the two parts cannot be
-   separated. That t*_model drops to 0.96–1.36 at α* (RR:17-36) is consistent with both. Unresolved until ⟨p,q⟩ is
+2. **Why is $t^* > 1$ at $\alpha = 100$?** The paper caption, Sanity I2 and Novelty §6-7 say ridge shrinkage. Outline C1(e)
+   says the published $t^*$ also contains the fidelity slope $\beta(p \mid q)$, which can exceed 1 with no shrinkage since
+   $\lVert p \rVert / \lVert q \rVert \approx$ 2-2.6. **Judgement.** The Outline's algebra is correct (re-derived above). The ridge argument is exact
+   only pooled over all rows and for variant S. The stored arrays do not contain $\langle p, q \rangle$, so the two parts cannot be
+   separated. That $t^*_{\text{model}}$ drops to 0.96–1.36 at $\alpha^*$ (RR:17-36) is consistent with both. Unresolved until $\langle p, q \rangle$ is
    stored.
 
 3. **Is "reversal hurts" evidence?** The paper presents it as half the asymmetry. Sanity I1 says it is automatic.
-   **Judgement.** Sanity is right. hurt ⇔ t* > −½ is an identity, and help ⊂ hurt always. The informative contrast
+   **Judgement.** Sanity is right. hurt $\Leftrightarrow t^* > -\tfrac{1}{2}$ is an identity, and help $\subset$ hurt always. The informative contrast
    is help vs random help, and the Novelty simulation shows that contrast is expected from least squares for any
-   decodable label. The surviving content is that the decoder's q correlates with the probe's own normal readout,
+   decodable label. The surviving content is that the decoder's $q$ correlates with the probe's own normal readout,
    which is an instrument check.
 
 4. **Label-Hessian magnitude.** RR:228 and the rebuttal say "about 2x too large". Outline I6 says the sign is not
    established. **Judgement.** Outline is right. Remove the factor-of-two sentence or compute a signed norm ratio.
 
 5. **Roughness "over-controls".** RR:40 and the rebuttal say so. Sanity I8 says the data contradict it.
-   **Judgement.** Sanity is right (13/20 partials grow at α*).
+   **Judgement.** Sanity is right (13/20 partials grow at $\alpha^*$).
 
 6. **"Results get stronger with the tuned probe."** Rebuttal §2 vs Sanity C3. **Judgement.** True for galaxy
-   permutation counts, false for QM9 (verified), and not like for like because α* changes w_N, sits at the grid edge
+   permutation counts, false for QM9 (verified), and not like for like because $\alpha^*$ changes $w_N$, sits at the grid edge
    in many pairs and is unvalidated by the fixture.
 
 7. **Cause of QM9 counterfactual non-transfer.** Rebuttal: "size depends on the encoder". Sanity C3: surrogate
    fidelity. **Judgement.** Fidelity is the better-supported explanation. Data-side S helps at 0.88–1.00 on every QM9
    pair, S_model at 0.28–0.74, and per-anchor agreement is −0.30 to +0.23 (all verified).
 
-8. **Mismatch partial vs ‖Hess y‖ alone.** Sanity C2 and Outline C4 agree with each other and with the records
+8. **Mismatch partial vs $\lVert \operatorname{Hess} y \rVert$ alone.** Sanity C2 and Outline C4 agree with each other and with the records
    (36/40 within 0.05, verified). The paper and rebuttal do not report the comparison. Not contested on the facts.
 
-9. **Held-out ΔR² range.** The TMLR outline draft said "+0.001 to +0.15" at α = 100. Outline I5 says −0.006 to
+9. **Held-out $\Delta R^2$ range.** The TMLR outline draft said "+0.001 to +0.15" at $\alpha = 100$. Outline I5 says −0.006 to
    +0.147. **Judgement.** Outline is right (RR:44-63, vit_large smooth_fraction −0.006).
 
 10. **Minor factual slip in the Test-1 review.** It says the local machine has no `.cache`. The Cache exists (8.9 GB)
@@ -606,7 +606,7 @@ code reproduces it exactly from the same geometry, which closes most of that gap
     - Paper generator. tab:real and tab:xenc read `hess_mismatch_emp` ([`appendix_gen.py:19`](../../paper/generate/appendix_gen.py#L19), [`90`](../../paper/generate/appendix_gen.py#L90);
       [`table_main_gen.py:9`](../../paper/generate/table_main_gen.py#L9)). tab:sens and tab:xencx read `hess_mismatch_dec` under the heading "mismatch, cross-fit"
       ([`appendix_gen.py:62`](../../paper/generate/appendix_gen.py#L62), [`224`](../../paper/generate/appendix_gen.py#L224)), and the prose range "cross-fitted −0.28 to −0.62" is built from dec ([:100](../../paper/generate/appendix_gen.py#L100)).
-    - Size of the gap. For ViT-B d = 16 mag_r, in-sample emp −0.387, in-sample dec −0.304, cross-fitted dec
+    - Size of the gap. For ViT-B $d = 16$ mag_r, in-sample emp −0.387, in-sample dec −0.304, cross-fitted dec
       −0.381 / −0.336. So the dec statistic survives cross-fitting, and nothing tests whether emp does.
     **Conclusion.** The claim is correct. [main.tex:190](../../paper/latex/main.tex#L190) ("These relationships persist under cross-fitting") and
     [main.tex:424](../../paper/latex/main.tex#L424) compare a different statistic from the one in the main tables. Either cross-fit emp (needs a
@@ -625,25 +625,25 @@ code reproduces it exactly from the same geometry, which closes most of that gap
 1. **Fix the paper's labels before anyone quotes it** (hours). Say the tabulated mismatch is the residual-curvature
    column, or switch the main tables to `hess_mismatch_dec`, which does have a cross-fit. Fix D1-D5 and D8. Replace
    permutation stars by block-bootstrap intervals for the claims that matter.
-2. **Report the two baselines the ML4PS reviewer asked for** (1-2 days, CPU, stored geometry and records). ‖Hess y‖
-   alone, and a cross-fitted neighbourhood-residual baseline (half-A residual variance → half-B local R²), with
+2. **Report the two baselines the ML4PS reviewer asked for** (1-2 days, CPU, stored geometry and records). $\lVert \operatorname{Hess} y \rVert$
+   alone, and a cross-fitted neighbourhood-residual baseline (half-A residual variance → half-B local $R^2$), with
    block-bootstrap intervals. Claim explanation of local error, not prediction, unless mismatch beats the residual
    baseline.
 3. **Cross-fit the emp column** (small code change in the xfit loop at [`09_physics_probe_facing_split_run.py:428-432`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L428-L432);
-   needs a probe_emp fit per half). Also cross-fit the α* battery.
-4. **Counterfactual decomposition and a geometry-isolating null** (1-2 days). Store ⟨p,q⟩, ‖p‖, ‖q‖ in
-   `scaling_at_anchor`; report β(p|q) and ⟨r_c,q⟩/‖q‖² separately; add a mismatched-II null (II from another anchor
-   or a Haar rotation of the tangent frame, keeping w_S). Present the existing result as an instrument check.
+   needs a probe_emp fit per half). Also cross-fit the $\alpha^*$ battery.
+4. **Counterfactual decomposition and a geometry-isolating null** (1-2 days). Store $\langle p, q \rangle$, $\lVert p \rVert$, $\lVert q \rVert$ in
+   `scaling_at_anchor`; report $\beta(p \mid q)$ and $\langle r_c, q \rangle / \lVert q \rVert^2$ separately; add a mismatched-$\mathrm{II}$ null ($\mathrm{II}$ from another anchor
+   or a Haar rotation of the tangent frame, keeping $w_S$). Present the existing result as an instrument check.
 5. **Rebuttal corrections** (hours). Remove "2x too large", the label-noise reading, "over-controls", the general
    "stronger with tuning"; use bootstrap counts; report alignment's weaker counts; state that encoder counts share
    galaxies, labels and anchors.
 6. **Centred variance explained** for every decoder (minutes on the pod).
 7. **Instrument gaps.** A multi-direction in-sphere fixture with label noise and a signed norm ratio; a tilt-leak
-   placebo on real data (labels v·x with v in the local PCA tangent) and J vs local-PCA principal angles; the
-   Σ-metric (non-Gaussian patch) version of Eq. 3. A Swiss roll notebook is required by [CLAUDE.md](../../CLAUDE.md) for any new
+   placebo on real data (labels $v \cdot x$ with $v$ in the local PCA tangent) and $J$ vs local-PCA principal angles; the
+   $\Sigma$-metric (non-Gaussian patch) version of Eq. 3. A Swiss roll notebook is required by [CLAUDE.md](../../CLAUDE.md) for any new
    curvature measure.
-8. **Before any II-spectrum claim.** Decoder-prior nulls, decoder-free local-polynomial II, seed and width subspace
-   overlap (save singular vectors), d sweep. Use `--keep-geometry` or copy the sweep geometry off the pod first.
+8. **Before any $\mathrm{II}$-spectrum claim.** Decoder-prior nulls, decoder-free local-polynomial $\mathrm{II}$, seed and width subspace
+   overlap (save singular vectors), $d$ sweep. Use `--keep-geometry` or copy the sweep geometry off the pod first.
 9. **Library fix** (issue only; [CLAUDE.md](../../CLAUDE.md) forbids editing `src/effdim` during v1.1). TLE and MiND-MLk are mislabelled.
 10. **Provenance hygiene.** Commit the label-parquet build script, record geometry sha256 in [COMPLIANCE.md](../../paper/latex/COMPLIANCE.md), pin the
     revision in `PHYSICS_PARQUET_PATH`, add galaxy parquet sha256 to [`encoders.yaml`](../../curvature-experiment/encoders.yaml), and decide which pod directory
@@ -657,60 +657,60 @@ code reproduces it exactly from the same geometry, which closes most of that gap
 
 | term | meaning | code |
 |---|---|---|
-| x, X | unit-normalised embedding row, matrix (n × D) | [`09_physics_probe_facing_split_run.py:263-264`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L263-L264) |
-| F, F̂ | decoder; sphere-projected decoder F/‖F‖ | [`09_physics_curvature_run.py:84-99`](../../curvature-experiment/runners/09_physics_curvature_run.py#L84-L99) |
-| J, g, ginv | decoder Jacobian (D×d), metric JᵀJ, its inverse | [`09_physics_probe_facing_split_run.py:109-117`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L109-L117) |
-| II, II_rad, II_tan / II^S | second fundamental form; its component along x̂ (≈ −g); the in-sphere remainder | :115, :174-175 |
-| H, H_tan_norm | mean-curvature vector tr_g II; norm of its in-sphere part | :116, :187 |
-| w, b0, w_T, w_N, w_rad, w_S | probe weight and intercept; tangent, normal, radial and in-sphere normal parts | :172-178; [`09_physics_normal_scaling_run.py:73-76`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L73-L76) |
-| K | probe-facing curvature ⟨w_N, II⟩ | |
-| pf_full | ‖⟨w_N, II⟩‖_g (decoder) | :176, :188 |
-| pf_tan | ‖⟨w_N, II_tan⟩‖_g, the "shape" term K_S | :177 |
-| pf_rad | ‖(w_N·x̂) II_rad‖_g ≈ √d |w·x̂|, the "sphere" term | :178-179 |
-| pf_trace_tan | w_N·H_tan | :189 |
-| hess_y, hess_label | local quadratic label Hessian; its g-norm | :135-161, :190 |
-| probe_emp | local quadratic Hessian of p = Xw on the data | :192 |
-| hess_mismatch_dec | ‖hess_y − pf_full tensor‖_g (decoder) | :191 |
-| hess_mismatch_emp | ‖hess_y − probe_emp‖_g = ‖Hess(y − w·x)‖ (the paper's "mismatch") | :192 |
-| align_cos_full / align_cos_tan | g-cosine of hess_y with ⟨w_N,II⟩ / with ⟨w_N,II_tan⟩ (the paper's "alignment" is _tan) | :194-195 |
-| cross_full / cross_tan | g-inner products behind those cosines | :185 |
-| bias_sq | (y − ŷ_oof)² at the anchor | :329 |
-| local R², r2 | 1 − SSR/SST of OOF predictions over the anchor's k neighbours | [`physics_curvature_probe.py:758-806`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L758-L806) |
-| sealed / multiscale controls, Z_multi | [log r_2048, label variance, count] / log r at 5 scales + the two | [`09_physics_probe_facing_split_run.py:326-327`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L326-L327) |
-| Z_ext, roughness | Z_multi + hess_label + (1 − label linear R² in the chart) | [`11_review_robustness_run.py:111-115`](../../curvature-experiment/runners/11_review_robustness_run.py#L111-L115) |
-| partial | rank-partial Spearman with Freedman–Lane p | [`cross_split_curvature.py:74`](../../curvature-experiment/pu_manifold/cross_split_curvature.py#L74) |
-| xfit, fitA_scoreB | Hessian fitted on half A, local R² on half B | [`09_physics_probe_facing_split_run.py:407-442`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L407-L442) |
-| u | tangent-projected coordinates g⁻¹Jᵀ(x − x₀) | :146 |
-| p, q, q_c, r_c, e₀ | data-side in-sphere readout X w_S; decoder quadratic ½⟨w_S,II^S⟩(u,u); centred q; centred global residual; shape-flat residual | [`09_physics_normal_scaling_run.py:84`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L84), [`98-99`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L98-L99) |
+| $x$, $X$ | unit-normalised embedding row, matrix $(n \times D)$ | [`09_physics_probe_facing_split_run.py:263-264`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L263-L264) |
+| $F$, $\hat{F}$ | decoder; sphere-projected decoder $F/\lVert F \rVert$ | [`09_physics_curvature_run.py:84-99`](../../curvature-experiment/runners/09_physics_curvature_run.py#L84-L99) |
+| $J$, $g$, ginv | decoder Jacobian $(D \times d)$, metric $J^{\top} J$, its inverse | [`09_physics_probe_facing_split_run.py:109-117`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L109-L117) |
+| $\mathrm{II}$, $\mathrm{II}_{\text{rad}}$, $\mathrm{II}_{\text{tan}}$ / $\mathrm{II}^S$ | second fundamental form; its component along $\hat{x}$ ($\approx -g$); the in-sphere remainder | :115, :174-175 |
+| $H$, H_tan_norm | mean-curvature vector $\operatorname{tr}_g \mathrm{II}$; norm of its in-sphere part | :116, :187 |
+| $w$, $b_0$, $w_T$, $w_N$, $w_{\text{rad}}$, $w_S$ | probe weight and intercept; tangent, normal, radial and in-sphere normal parts | :172-178; [`09_physics_normal_scaling_run.py:73-76`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L73-L76) |
+| $K$ | probe-facing curvature $\langle w_N, \mathrm{II} \rangle$ | |
+| pf_full | $\lVert \langle w_N, \mathrm{II} \rangle \rVert_g$ (decoder) | :176, :188 |
+| pf_tan | $\lVert \langle w_N, \mathrm{II}_{\text{tan}} \rangle \rVert_g$, the "shape" term $K_S$ | :177 |
+| pf_rad | $\lVert (w_N \cdot \hat{x}) \mathrm{II}_{\text{rad}} \rVert_g \approx \sqrt{d} \lvert w \cdot \hat{x} \rvert$, the "sphere" term | :178-179 |
+| pf_trace_tan | $w_N \cdot H_{\text{tan}}$ | :189 |
+| hess_y, hess_label | local quadratic label Hessian; its $g$-norm | :135-161, :190 |
+| probe_emp | local quadratic Hessian of $p = Xw$ on the data | :192 |
+| hess_mismatch_dec | $\lVert \mathrm{hess}_y - \mathrm{pf}_{\text{full}} \text{ tensor} \rVert_g$ (decoder) | :191 |
+| hess_mismatch_emp | $\lVert \mathrm{hess}_y - \mathrm{probe}_{\text{emp}} \rVert_g = \lVert \operatorname{Hess}(y - w \cdot x) \rVert$ (the paper's "mismatch") | :192 |
+| align_cos_full / align_cos_tan | $g$-cosine of hess_y with $\langle w_N, \mathrm{II} \rangle$ / with $\langle w_N, \mathrm{II}_{\text{tan}} \rangle$ (the paper's "alignment" is _tan) | :194-195 |
+| cross_full / cross_tan | $g$-inner products behind those cosines | :185 |
+| bias_sq | $(y - \hat{y}_{\text{oof}})^2$ at the anchor | :329 |
+| local $R^2$, r2 | $1 - \mathrm{SSR}/\mathrm{SST}$ of OOF predictions over the anchor's $k$ neighbours | [`physics_curvature_probe.py:758-806`](../../curvature-experiment/pu_manifold/physics_curvature_probe.py#L758-L806) |
+| sealed / multiscale controls, $Z_{\text{multi}}$ | $[\log r_{2048}, \text{label variance}, \text{count}]$ / $\log r$ at 5 scales + the two | [`09_physics_probe_facing_split_run.py:326-327`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L326-L327) |
+| $Z_{\text{ext}}$, roughness | $Z_{\text{multi}}$ + hess_label + ($1 - \text{label linear } R^2$ in the chart) | [`11_review_robustness_run.py:111-115`](../../curvature-experiment/runners/11_review_robustness_run.py#L111-L115) |
+| partial | rank-partial Spearman with Freedman–Lane $p$ | [`cross_split_curvature.py:74`](../../curvature-experiment/pu_manifold/cross_split_curvature.py#L74) |
+| xfit, fitA_scoreB | Hessian fitted on half A, local $R^2$ on half B | [`09_physics_probe_facing_split_run.py:407-442`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L407-L442) |
+| $u$ | tangent-projected coordinates $g^{-1} J^{\top} (x - x_0)$ | :146 |
+| $p$, $q$, $q_c$, $r_c$, $e_0$ | data-side in-sphere readout $X w_S$; decoder quadratic $\tfrac{1}{2}\langle w_S, \mathrm{II}^S \rangle(u,u)$; centred $q$; centred global residual; shape-flat residual | [`09_physics_normal_scaling_run.py:84`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L84), [`98-99`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L98-L99) |
 | S, S_model, S_proj, full, full_model | counterfactual variants (table in 2.8) | :95-97 |
-| random_wnorm, random_matched, random_qmatched | random in-sphere normal v matched on ‖v‖, on ‖⟨v,II^S⟩‖_g, or on ‖q_c‖ (published) | :77-92 |
-| rand_ratio | ‖⟨r,II^S⟩‖_g / ‖⟨w_S,II^S⟩‖_g at equal norm | :89 |
-| eq, qq, dR2, r2_curve | ⟨e₀,q_c⟩, ‖q_c‖², ΔR²(1), r2 at t ∈ T_GRID | :100-103 |
-| t* | eq/qq, the SSE-minimising scale | :101 |
-| help, hurt | fraction of anchors with r2(1) > r2(0); with r2(−1) < r2(0) | [`sweep/extract.py:66-68`](../../curvature-experiment/sweep/extract.py#L66-L68) |
-| d_r2_plus / d_r2_minus | median ΔR² at t = +1 / −1 | :68 |
-| dec_cross_tan, dec_t_star | ⟨hess_y, K_S⟩_g; that over ‖K_S‖² (decoder-predicted t*) | [`09_physics_normal_scaling_run.py:237-238`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L237-L238) |
-| thinned, keep | anchors with pairwise overlap ≤ 5% (sign tests) or ≤ 10% (RR partials) | [`extract.py:75-80`](../../curvature-experiment/sweep/extract.py#L75-L80); `11_…:158-162` |
-| blocks | average-linkage clusters of anchors on 1 − overlap (16/32/64) | `11_…:122-127` |
-| α*, fold alphas | GCV-selected ridge on all rows; per-fold selections for OOF | `11_…:65-87` |
+| random_wnorm, random_matched, random_qmatched | random in-sphere normal $v$ matched on $\lVert v \rVert$, on $\lVert \langle v, \mathrm{II}^S \rangle \rVert_g$, or on $\lVert q_c \rVert$ (published) | :77-92 |
+| rand_ratio | $\lVert \langle r, \mathrm{II}^S \rangle \rVert_g / \lVert \langle w_S, \mathrm{II}^S \rangle \rVert_g$ at equal norm | :89 |
+| eq, qq, dR2, r2_curve | $\langle e_0, q_c \rangle$, $\lVert q_c \rVert^2$, $\Delta R^2(1)$, r2 at $t \in$ T_GRID | :100-103 |
+| $t^*$ | eq/qq, the SSE-minimising scale | :101 |
+| help, hurt | fraction of anchors with $\mathrm{r2}(1) > \mathrm{r2}(0)$; with $\mathrm{r2}(-1) < \mathrm{r2}(0)$ | [`sweep/extract.py:66-68`](../../curvature-experiment/sweep/extract.py#L66-L68) |
+| d_r2_plus / d_r2_minus | median $\Delta R^2$ at $t = +1$ / $-1$ | :68 |
+| dec_cross_tan, dec_t_star | $\langle \mathrm{hess}_y, K_S \rangle_g$; that over $\lVert K_S \rVert^2$ (decoder-predicted $t^*$) | [`09_physics_normal_scaling_run.py:237-238`](../../curvature-experiment/runners/09_physics_normal_scaling_run.py#L237-L238) |
+| thinned, keep | anchors with pairwise overlap $\le 5$% (sign tests) or $\le 10$% (RR partials) | [`extract.py:75-80`](../../curvature-experiment/sweep/extract.py#L75-L80); `11_…:158-162` |
+| blocks | average-linkage clusters of anchors on $1 - \text{overlap}$ (16/32/64) | `11_…:122-127` |
+| $\alpha^*$, fold alphas | GCV-selected ridge on all rows; per-fold selections for OOF | `11_…:65-87` |
 | guard exact / refit | reproduction tolerance 1e-6 / 0.02 on partials, 1e-12 on cf | `11_…:192,258` |
 | main_xfit, seed1, seed2, main_d16, cf, thin, robust | sweep job suffixes | [`sweep/jobs.py:102-113`](../../curvature-experiment/sweep/jobs.py#L102-L113) |
-| d_ID, d_run | rounded median of four ID estimates; min(d_ID, 20) | [`sweep/intrinsic_dim.py:46-48`](../../curvature-experiment/sweep/intrinsic_dim.py#L46-L48) |
-| erank, pr, k90, k99, cond | entropy effective rank, participation ratio, directions for 90/99% of squared spectrum, s₁/s_m | [`12_ii_rank_run.py:63-72`](../../curvature-experiment/runners/12_ii_rank_run.py#L63-L72) |
-| m | d(d+1)/2 = 136 at d = 16 | |
+| $d_{\text{ID}}$, $d_{\text{run}}$ | rounded median of four ID estimates; $\min(d_{\text{ID}}, 20)$ | [`sweep/intrinsic_dim.py:46-48`](../../curvature-experiment/sweep/intrinsic_dim.py#L46-L48) |
+| erank, pr, k90, k99, cond | entropy effective rank, participation ratio, directions for 90/99% of squared spectrum, $s_1/s_m$ | [`12_ii_rank_run.py:63-72`](../../curvature-experiment/runners/12_ii_rank_run.py#L63-L72) |
+| $m$ | $d(d+1)/2 = 136$ at $d = 16$ | |
 | relerr, rho_mismatch, rho_align | TF unsigned relative error; Spearman of dec mismatch; Spearman of full alignment | [`10_tensor_fidelity_run.py:82-90`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L82-L90), [`249-250`](../../curvature-experiment/runners/10_tensor_fidelity_run.py#L249-L250) |
-| var_explained | 1 − MSE/mean‖x‖² on holdout (uncentred) | [`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119) |
-| u_scale | RMS g-norm of the neighbours' chart coordinates | [`09_physics_probe_facing_split_run.py:147`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L147) |
+| var_explained | $1 - \mathrm{MSE}/\operatorname{mean}\lVert x \rVert^2$ on holdout (uncentred) | [`09_physics_probe_facing_run.py:119`](../../curvature-experiment/runners/09_physics_probe_facing_run.py#L119) |
+| u_scale | RMS $g$-norm of the neighbours' chart coordinates | [`09_physics_probe_facing_split_run.py:147`](../../curvature-experiment/runners/09_physics_probe_facing_split_run.py#L147) |
 
 ---
 
 ## 8. Questions teammates are likely to ask
 
 **Is there a bug that changes a number in the paper?** No numerical bug in the experiment code. One hand-typed
-range is wrong (α = 1 OOF R² gain is +0.14 to +0.16, not 0.10 to 0.15). The bigger problems are that the paper
+range is wrong ($\alpha = 1$ OOF $R^2$ gain is +0.14 to +0.16, not 0.10 to 0.15). The bigger problems are that the paper
 describes different columns and variants than it tabulates (D1-D4).
 
-**Is the mismatch result real?** The association between the tabulated mismatch and local R² for magnitude and
+**Is the mismatch result real?** The association between the tabulated mismatch and local $R^2$ for magnitude and
 redshift is real and survives the block bootstrap on ten encoders. What it measures is the curvature of the probe's
 residual, which in rank is almost the label's own curvature. It is not shown to be about the decoder's probe-facing
 bending.
@@ -723,17 +723,17 @@ Hessian and the outcome sharing rows. The column in the main tables was never cr
 the probe's own in-sphere readout. Treat it as a check that the decoder's second-order term correlates with the
 probe's normal readout.
 
-**Why is t* about 2 to 3?** Some of it is ridge shrinkage. Some may be that the decoder quadratic is smaller than the
+**Why is $t^*$ about 2 to 3?** Some of it is ridge shrinkage. Some may be that the decoder quadratic is smaller than the
 probe's actual normal readout. We cannot split the two without storing one more inner product.
 
 **Is the decoder instrument trustworthy?** For the trace and for the full shape tensor in a fixture with one normal
-direction, yes (cos ≥ 0.96 at paper scale without noise). With realistic noise the in-sphere cosine drops to
-0.68–0.84. Multi-direction selection and the II spectrum are not validated. The "variance explained" numbers are
+direction, yes (cos $\ge 0.96$ at paper scale without noise). With realistic noise the in-sphere cosine drops to
+0.68–0.84. Multi-direction selection and the $\mathrm{II}$ spectrum are not validated. The "variance explained" numbers are
 uncentred and likely flatter the fit.
 
-**How good is the label Hessian?** Its norm ranks well (split-half ρ 0.91–0.94). Its direction is poor on real labels
+**How good is the label Hessian?** Its norm ranks well (split-half $\rho$ 0.91–0.94). Its direction is poor on real labels
 (split-half cosine 0.19–0.35). Its magnitude is off by 29–118% on the fixture, direction of the error unknown. It
-also picks up a gradient-proportional, II-shaped bias if the decoder tangent is tilted.
+also picks up a gradient-proportional, $\mathrm{II}$-shaped bias if the decoder tangent is tilted.
 
 **Can I trust the p-values?** Not the permutation ones. Anchors overlap heavily. Use the block-bootstrap counts, and
 read them as robustness, since blocks still share points.
@@ -745,7 +745,7 @@ to the choice of embedding.
 dipole moment (5/8, with a significant reversal on ChemFM-3B). The counterfactual did not, because the decoder
 surrogate does not track the probe on molecules.
 
-**Is the II spectrum result solid?** The numbers are computed correctly. The claim that the manifold bends in a few
+**Is the $\mathrm{II}$ spectrum result solid?** The numbers are computed correctly. The claim that the manifold bends in a few
 directions is not supported: 8 of 10 encoders are "partial" by the pre-stated rule, and nothing yet separates the
 decoder's own smoothness prior from the representation.
 
@@ -766,40 +766,40 @@ was fetched and its text checked for the statement it is cited for. "Location no
 book or article text, so the theorem or section number is not confirmed; the short derivation is given so the fact
 can be checked without the source.
 
-<a id="r1"></a>**[R1] Hessian of a linear function restricted to a submanifold: Hess_M(w·x) = ⟨w, II⟩ = ⟨w_N, II⟩.**
+<a id="r1"></a>**[R1] Hessian of a linear function restricted to a submanifold: $\operatorname{Hess}_M(w \cdot x) = \langle w, \mathrm{II} \rangle = \langle w_N, \mathrm{II} \rangle$.**
 This is the "height function" fact of extrinsic geometry. Derivation from the Gauss formula [R2]: for tangent fields
-X, Y on M and f(x) = w·x, Hess_M f(X, Y) = X(Y f) − (∇_X Y) f = ⟨w, D_X Y⟩ − ⟨w, ∇_X Y⟩ = ⟨w, (D_X Y)^⊥⟩ =
-⟨w, II(X, Y)⟩, and since II is normal only the normal part w_N of w contributes. Classical sources, both cited for
+$X$, $Y$ on $M$ and $f(x) = w \cdot x$, $\operatorname{Hess}_M f(X, Y) = X(Y f) - (\nabla_X Y) f = \langle w, D_X Y \rangle - \langle w, \nabla_X Y \rangle = \langle w, (D_X Y)^{\perp} \rangle = \langle w, \mathrm{II}(X, Y) \rangle$,
+and since $\mathrm{II}$ is normal only the normal part $w_N$ of $w$ contributes. Classical sources, both cited for
 this identity by the ML4PS paper ([main.tex:219-220](../../paper/latex/main.tex#L219-L220)):
 - S.-S. Chern and R. K. Lashof, "On the Total Curvature of Immersed Manifolds", *American Journal of Mathematics*
-  79(2):306–318, 1957. [doi:10.2307/2372684](https://doi.org/10.2307/2372684). Uses height functions ⟨e, x⟩ on
-  immersed manifolds, whose Hessian at a critical point is the second fundamental form in direction e. Location not
+  79(2):306–318, 1957. [doi:10.2307/2372684](https://doi.org/10.2307/2372684). Uses height functions $\langle e, x \rangle$ on
+  immersed manifolds, whose Hessian at a critical point is the second fundamental form in direction $e$. Location not
   checked.
 - J. Milnor, *Morse Theory*, Annals of Mathematics Studies 51, Princeton University Press, 1963.
   [doi:10.1515/9781400881802](https://doi.org/10.1515/9781400881802). Part I, §6 computes the Hessian of the
-  distance function L_p on a submanifold of Euclidean space in terms of the second fundamental form; the height
+  distance function $L_p$ on a submanifold of Euclidean space in terms of the second fundamental form; the height
   function case is the same computation. Section number from memory, not checked.
 - Textbook form: J. M. Lee, *Introduction to Riemannian Manifolds*, 2nd ed., Graduate Texts in Mathematics 176,
   Springer, 2018. [doi:10.1007/978-3-319-91755-9](https://doi.org/10.1007/978-3-319-91755-9), Chapter 8
   (Riemannian submanifolds, Gauss formula). Location within the chapter not checked.
 
-<a id="r2"></a>**[R2] II as the normal part of the second derivative (Gauss formula), any codimension.**
-II(X, Y) = (D_X Y)^⊥, the normal component of the ambient derivative; in coordinates of a parametrisation F this is
-P_N D²F with P_N = I − J g⁻¹ Jᵀ.
+<a id="r2"></a>**[R2] $\mathrm{II}$ as the normal part of the second derivative (Gauss formula), any codimension.**
+$\mathrm{II}(X, Y) = (D_X Y)^{\perp}$, the normal component of the ambient derivative; in coordinates of a parametrisation $F$ this is
+$P_N D^2 F$ with $P_N = I - J g^{-1} J^{\top}$.
 - Wikipedia, "Second fundamental form", section "Generalization to arbitrary codimension":
   <https://en.wikipedia.org/wiki/Second_fundamental_form#Generalization_to_arbitrary_codimension>. Checked: the
-  section defines II with values in the normal bundle as the normal part of the covariant derivative.
-- Lee 2018 [R1], Chapter 8 (the Gauss formula D_X Y = ∇_X Y + II(X, Y)).
+  section defines $\mathrm{II}$ with values in the normal bundle as the normal part of the covariant derivative.
+- Lee 2018 [R1], Chapter 8 (the Gauss formula $D_X Y = \nabla_X Y + \mathrm{II}(X, Y)$).
 
-<a id="r3"></a>**[R3] The unit sphere's second fundamental form is −g x̂ (every point umbilic).**
-For x on S^{D−1}, differentiating |x|² = 1 twice gives ⟨x, D²x⟩ = −⟨Dx, Dx⟩ = −g, so the component of II along
-the unit normal x̂ = x is −g; a submanifold of the sphere inherits this as the radial part of its II.
+<a id="r3"></a>**[R3] The unit sphere's second fundamental form is $-g \hat{x}$ (every point umbilic).**
+For $x$ on $S^{D-1}$, differentiating $\lvert x \rvert^2 = 1$ twice gives $\langle x, D^2 x \rangle = -\langle Dx, Dx \rangle = -g$, so the component of $\mathrm{II}$ along
+the unit normal $\hat{x} = x$ is $-g$; a submanifold of the sphere inherits this as the radial part of its $\mathrm{II}$.
 - Wikipedia, "Umbilical point": <https://en.wikipedia.org/wiki/Umbilical_point>. Checked: states that the sphere is
-  the only surface of nonzero curvature on which every point is umbilic (II proportional to the metric).
+  the only surface of nonzero curvature on which every point is umbilic ($\mathrm{II}$ proportional to the metric).
 - Lee 2018 [R1], Chapter 8 (spheres as totally umbilic hypersurfaces). Location not checked.
 
-<a id="r4"></a>**[R4] Mean-curvature vector and the Laplacian of a linear function.** H = tr_g II, and the
-Laplace–Beltrami operator of the position vector is the mean-curvature vector, Δ_M x = H, so Δ_M (w·x) = ⟨w, H⟩
+<a id="r4"></a>**[R4] Mean-curvature vector and the Laplacian of a linear function.** $H = \operatorname{tr}_g \mathrm{II}$, and the
+Laplace–Beltrami operator of the position vector is the mean-curvature vector, $\Delta_M x = H$, so $\Delta_M (w \cdot x) = \langle w, H \rangle$
 (sign and normalisation conventions vary).
 - T. Takahashi, "Minimal immersions of Riemannian manifolds", *Journal of the Mathematical Society of Japan*
   18(4):380–385, 1966. [doi:10.2969/jmsj/01840380](https://doi.org/10.2969/jmsj/01840380). The result relating the
@@ -807,20 +807,20 @@ Laplace–Beltrami operator of the position vector is the mean-curvature vector,
 - Note: Wikipedia's "Mean curvature" article was checked and does not state this identity, so it is not cited.
 
 <a id="r5"></a>**[R5] Christoffel symbols vanish at the anchor in tangent-plane (Monge) coordinates.**
-Write M near x₀ as a graph over its tangent plane, x(u) = x₀ + Ju + h(u) with h(u) normal and h(0) = 0, Dh(0) = 0.
-Then g_ij(u) = δ_ij + ⟨∂_i h, ∂_j h⟩ (orthonormal J), so ∂g(0) = 0 and every Christoffel symbol vanishes at u = 0;
+Write $M$ near $x_0$ as a graph over its tangent plane, $x(u) = x_0 + Ju + h(u)$ with $h(u)$ normal and $h(0) = 0$, $Dh(0) = 0$.
+Then $g_{ij}(u) = \delta_{ij} + \langle \partial_i h, \partial_j h \rangle$ (orthonormal $J$), so $\partial g(0) = 0$ and every Christoffel symbol vanishes at $u = 0$;
 the fitted quadratic coefficient is then the covariant Hessian at the anchor. This needs the anchor on the manifold
 and exact tangent-plane coordinates; the audit's known limits (decoder image vs data anchor, tilted tangent) are
 exactly the ways this assumption fails.
-- Wikipedia, "Second fundamental form", opening section (a surface as the graph z = f(x, y) tangent to z = 0 at the
+- Wikipedia, "Second fundamental form", opening section (a surface as the graph $z = f(x, y)$ tangent to $z = 0$ at the
   origin, Taylor expansion starting with the quadratic terms): <https://en.wikipedia.org/wiki/Second_fundamental_form>.
   Checked.
 - The analogous statement for exponential (normal) coordinates, which the paper's Section 3 also uses: Wikipedia,
   "Normal coordinates": <https://en.wikipedia.org/wiki/Normal_coordinates>. Checked: states that the Christoffel
-  symbols vanish at p.
+  symbols vanish at $p$.
 
-<a id="r6"></a>**[R6] Variance of a Gaussian quadratic form.** For u ~ N(0, Σ) and symmetric A,
-Var(uᵀAu) = 2 tr(AΣAΣ); with Σ = s²I and the factor ½, Var(½uᵀΔu) = ½ s⁴ ‖Δ‖²_F. This rests on Gaussian
+<a id="r6"></a>**[R6] Variance of a Gaussian quadratic form.** For $u \sim \mathcal{N}(0, \Sigma)$ and symmetric $A$,
+$\operatorname{Var}(u^{\top} A u) = 2 \operatorname{tr}(A \Sigma A \Sigma)$; with $\Sigma = s^2 I$ and the factor $\tfrac{1}{2}$, $\operatorname{Var}(\tfrac{1}{2} u^{\top} \Delta u) = \tfrac{1}{2} s^4 \lVert \Delta \rVert_F^2$. This rests on Gaussian
 fourth moments (Isserlis), which is why it fails for non-Gaussian (kNN-ball) patches (Section 3.4).
 - Wikipedia, "Quadratic form (statistics)", section "Variance in the Gaussian case":
   <https://en.wikipedia.org/wiki/Quadratic_form_(statistics)#Variance_in_the_Gaussian_case>. Checked.
@@ -833,10 +833,10 @@ fourth moments (Isserlis), which is why it fails for non-Gaussian (kNN-ball) pat
 <a id="r8"></a>**[R8] Partial correlation as the correlation of residuals** (the code applies it to ranks, giving the
 rank-partial Spearman).
 - Wikipedia, "Partial correlation", "Using linear regression":
-  <https://en.wikipedia.org/wiki/Partial_correlation#Using_linear_regression>. Checked: defines it as the correlation of the residuals e_X and
-  e_Y from regressing each variable on the controls.
+  <https://en.wikipedia.org/wiki/Partial_correlation#Using_linear_regression>. Checked: defines it as the correlation of the residuals $e_X$ and
+  $e_Y$ from regressing each variable on the controls.
 
-<a id="r9"></a>**[R9] Intrinsic-dimension estimators used for the QM9 d (defect D6).**
+<a id="r9"></a>**[R9] Intrinsic-dimension estimators used for the QM9 $d$ (defect D6).**
 - MLE: E. Levina and P. J. Bickel, "Maximum Likelihood Estimation of Intrinsic Dimension", *Advances in Neural
   Information Processing Systems 17* (NIPS 2004).
   <https://papers.nips.cc/paper_files/paper/2004/hash/74934548253bcab8490ebd74afed7031-Abstract.html>. Checked
