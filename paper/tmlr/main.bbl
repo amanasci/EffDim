@@ -1,0 +1,258 @@
+\begin{thebibliography}{35}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aamari \& Levrard(2019)Aamari and Levrard]{aamari2019nonasymptotic}
+Eddie Aamari and Cl{\'e}ment Levrard.
+\newblock Nonasymptotic rates for manifold, tangent space and curvature
+  estimation.
+\newblock \emph{Annals of Statistics}, 47\penalty0 (1):\penalty0 177--204,
+  2019.
+
+\bibitem[Acosta et~al.(2023)Acosta, Sanborn, Duc, Madhav, and
+  Miolane]{acosta2023extrinsic}
+Francisco Acosta, Sophia Sanborn, Khanh~Dao Duc, Manu Madhav, and Nina Miolane.
+\newblock Quantifying extrinsic curvature in neural manifolds.
+\newblock In \emph{2023 IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition Workshops (CVPRW)}, pp.\  610--619, 2023.
+\newblock \doi{10.1109/CVPRW59228.2023.00068}.
+
+\bibitem[Ahmad et~al.(2022)Ahmad, Simon, Chithrananda, Grand, and
+  Ramsundar]{ahmad2022chemberta2}
+Walid Ahmad, Elana Simon, Seyone Chithrananda, Gabriel Grand, and Bharath
+  Ramsundar.
+\newblock {ChemBERTa-2}: Towards chemical foundation models, 2022.
+
+\bibitem[Alain \& Bengio(2016)Alain and Bengio]{alain2017probes}
+Guillaume Alain and Yoshua Bengio.
+\newblock Understanding intermediate layers using linear classifier probes,
+  2016.
+\newblock arXiv:1610.01644.
+
+\bibitem[Aldeghi et~al.(2022)Aldeghi, Graff, Frey, Morrone, Pyzer-Knapp,
+  Jordan, and Coley]{aldeghi2022roughness}
+Matteo Aldeghi, David~E. Graff, Nathan Frey, Joseph~A. Morrone, Edward~O.
+  Pyzer-Knapp, Kirk~E. Jordan, and Connor~W. Coley.
+\newblock Roughness of molecular property landscapes and its impact on
+  modellability.
+\newblock \emph{Journal of Chemical Information and Modeling}, 62\penalty0
+  (19):\penalty0 4660--4671, 2022.
+\newblock \doi{10.1021/acs.jcim.2c00903}.
+
+\bibitem[Belinkov(2022)]{belinkov2022probing}
+Yonatan Belinkov.
+\newblock Probing classifiers: Promises, shortcomings, and advances.
+\newblock \emph{Computational Linguistics}, 48\penalty0 (1):\penalty0 207--219,
+  2022.
+\newblock \doi{10.1162/coli_a_00422}.
+
+\bibitem[Cai et~al.(2024)Cai, Zacour, Zhu, Tzeng, Duan, Liu, Pilla, Li, and
+  Luo]{cai2024chemfm}
+Feiyang Cai, Katelin Zacour, Tianyu Zhu, Tzuen-Rong Tzeng, Yongping Duan, Ling
+  Liu, Srikanth Pilla, Gang Li, and Feng Luo.
+\newblock {ChemFM} as a scaling law guided foundation model pre-trained on
+  informative chemicals, 2024.
+
+\bibitem[Canatar et~al.(2021)Canatar, Bordelon, and
+  Pehlevan]{canatar2021spectral}
+Abdulkadir Canatar, Blake Bordelon, and Cengiz Pehlevan.
+\newblock Spectral bias and task-model alignment explain generalization in
+  kernel regression and infinitely wide neural networks.
+\newblock \emph{Nature Communications}, 12\penalty0 (1):\penalty0 2914, 2021.
+\newblock \doi{10.1038/s41467-021-23103-1}.
+
+\bibitem[Cheng \& Wu(2013)Cheng and Wu]{cheng2013local}
+Ming-Yen Cheng and Hau-Tieng Wu.
+\newblock Local linear regression on manifolds and its geometric
+  interpretation.
+\newblock \emph{Journal of the American Statistical Association}, 108\penalty0
+  (504):\penalty0 1421--1434, 2013.
+\newblock \doi{10.1080/01621459.2013.827984}.
+
+\bibitem[Chern \& Lashof(1957)Chern and Lashof]{chern1957total}
+Shiing-Shen Chern and Richard~K. Lashof.
+\newblock On the total curvature of immersed manifolds.
+\newblock \emph{American Journal of Mathematics}, 79\penalty0 (2):\penalty0
+  306--318, 1957.
+\newblock \doi{10.2307/2372684}.
+
+\bibitem[Chou et~al.(2026)Chou, Kirsanov, Yang, and Chung]{chou2026diagnosing}
+Chi-Ning Chou, Artem Kirsanov, Yao-Yuan Yang, and SueYeon Chung.
+\newblock Diagnosing generalization failures from representational geometry
+  markers.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2026.
+\newblock URL \url{https://arxiv.org/abs/2603.01879}.
+
+\bibitem[Chung et~al.(2016)Chung, Lee, and Sompolinsky]{chung2016linear}
+SueYeon Chung, Daniel~D. Lee, and Haim Sompolinsky.
+\newblock Linear readout of object manifolds.
+\newblock \emph{Physical Review E}, 93\penalty0 (6):\penalty0 060301, 2016.
+\newblock \doi{10.1103/PhysRevE.93.060301}.
+
+\bibitem[Duraphe et~al.(2025)Duraphe, Smith, Sourav, and
+  Wu]{duraphe2025platonic}
+Kshitij Duraphe, Michael~J. Smith, Shashwat Sourav, and John~F. Wu.
+\newblock The platonic universe: Do foundation models see the same sky?
+\newblock In \emph{NeurIPS 2025 Workshop on Machine Learning and the Physical
+  Sciences}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2509.19453}.
+
+\bibitem[Engels et~al.(2024)Engels, Michaud, Liao, Gurnee, and
+  Tegmark]{engels2024notall}
+Joshua Engels, Eric~J. Michaud, Isaac Liao, Wes Gurnee, and Max Tegmark.
+\newblock Not all language model features are one-dimensionally linear, 2024.
+
+\bibitem[Gurnee et~al.(2026)Gurnee, Ameisen, Kauvar, Tarng, Pearce, Olah, and
+  Batson]{gurnee2026manipulate}
+Wes Gurnee, Emmanuel Ameisen, Isaac Kauvar, Julius Tarng, Adam Pearce, Chris
+  Olah, and Joshua Batson.
+\newblock When models manipulate manifolds: The geometry of a counting task,
+  2026.
+
+\bibitem[Hewitt \& Liang(2019)Hewitt and Liang]{hewitt2019control}
+John Hewitt and Percy Liang.
+\newblock Designing and interpreting probes with control tasks.
+\newblock In \emph{Proceedings of the 2019 Conference on Empirical Methods in
+  Natural Language Processing and the 9th International Joint Conference on
+  Natural Language Processing (EMNLP-IJCNLP)}, pp.\  2733--2743, 2019.
+\newblock \doi{10.18653/v1/D19-1275}.
+
+\bibitem[Hindupur et~al.(2026)Hindupur, Orgad, Fel, and Ba]{hindupur2026dont}
+Sai Sumedh~R. Hindupur, Hadas Orgad, Thomas Fel, and Demba Ba.
+\newblock When models don't manipulate manifolds: The geometry of a comparison
+  task, 2026.
+
+\bibitem[Jurewicz et~al.(2024)Jurewicz, Sleezer, Mehta, Hayden, and
+  Ebitz]{jurewicz2024irrational}
+Katarzyna Jurewicz, Brianna~J. Sleezer, Priyanka~S. Mehta, Benjamin~Y. Hayden,
+  and R.~Becket Ebitz.
+\newblock Irrational choices via a curvilinear representational geometry for
+  value.
+\newblock \emph{Nature Communications}, 15\penalty0 (1):\penalty0 6424, 2024.
+\newblock \doi{10.1038/s41467-024-49568-4}.
+
+\bibitem[Kaufman \& Azencot(2023)Kaufman and Azencot]{kaufman2023latent}
+Ilya Kaufman and Omri Azencot.
+\newblock Data representations' study of latent image manifolds.
+\newblock In \emph{Proceedings of the 40th International Conference on Machine
+  Learning}, volume 202 of \emph{Proceedings of Machine Learning Research},
+  pp.\  15928--15945. PMLR, 2023.
+
+\bibitem[Lee(2018)]{lee2018riemannian}
+John~M. Lee.
+\newblock \emph{Introduction to Riemannian Manifolds}, volume 176 of
+  \emph{Graduate Texts in Mathematics}.
+\newblock Springer, 2nd edition, 2018.
+\newblock \doi{10.1007/978-3-319-91755-9}.
+
+\bibitem[Lee \& Park(2023)Lee and Park]{lee2023curvature}
+Yonghyeon Lee and Frank~C. Park.
+\newblock On explicit curvature regularization in deep generative models.
+\newblock In \emph{Proceedings of the 2nd Annual Workshop on Topology, Algebra,
+  and Geometry in Machine Learning (TAG-ML)}, volume 221 of \emph{Proceedings
+  of Machine Learning Research}, pp.\  505--518. PMLR, 2023.
+
+\bibitem[Liu et~al.(2023)Liu, He, and Tsai]{liu2023linear}
+Liangchen Liu, Juncai He, and Yen-Hsi Tsai.
+\newblock Linear regression on manifold structured data: the impact of
+  extrinsic geometry on solutions.
+\newblock In \emph{Proceedings of the 2nd Annual Workshop on Topology, Algebra,
+  and Geometry in Machine Learning (TAG-ML)}, volume 221 of \emph{Proceedings
+  of Machine Learning Research}, pp.\  557--576. PMLR, 2023.
+
+\bibitem[Ma et~al.(2023)Ma, Jiao, Liu, Yang, Liu, and Li]{ma2023curvature}
+Yanbiao Ma, Licheng Jiao, Fang Liu, Shuyuan Yang, Xu~Liu, and Lingling Li.
+\newblock Curvature-balanced feature manifold learning for long-tailed
+  classification.
+\newblock In \emph{2023 IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, pp.\  15824--15835, 2023.
+\newblock \doi{10.1109/CVPR52729.2023.01519}.
+
+\bibitem[Milnor(1963)]{milnor1963morse}
+John Milnor.
+\newblock \emph{Morse Theory}, volume~51 of \emph{Annals of Mathematics
+  Studies}.
+\newblock Princeton University Press, Princeton, 1963.
+\newblock \doi{10.1515/9781400881802}.
+\newblock Based on lecture notes by M. Spivak and R. Wells.
+
+\bibitem[Modell(2026)]{modell2026probing}
+Alexander Modell.
+\newblock Probing for representation manifolds in superposition, 2026.
+
+\bibitem[Psenka et~al.(2024)Psenka, Pai, Raman, Sastry, and
+  Ma]{psenka2024flattening}
+Michael Psenka, Druv Pai, Vishal Raman, Shankar Sastry, and Yi~Ma.
+\newblock Representation learning via manifold flattening and reconstruction.
+\newblock \emph{Journal of Machine Learning Research}, 25\penalty0
+  (132):\penalty0 1--47, 2024.
+\newblock URL \url{https://www.jmlr.org/papers/v25/23-0615.html}.
+
+\bibitem[Rahman et~al.(2026)Rahman, Barrett, and Last]{rahman2026alphaearth}
+Mashrekur Rahman, Samuel~J. Barrett, and Christina Last.
+\newblock Characterizing {AlphaEarth} embedding geometry for agentic
+  environmental reasoning, 2026.
+
+\bibitem[Ramakrishnan et~al.(2014)Ramakrishnan, Dral, Rupp, and von
+  Lilienfeld]{ramakrishnan2014qm9}
+Raghunathan Ramakrishnan, Pavlo~O. Dral, Matthias Rupp, and O.~Anatole von
+  Lilienfeld.
+\newblock Quantum chemistry structures and properties of 134 kilo molecules.
+\newblock \emph{Scientific Data}, 1\penalty0 (1):\penalty0 140022, 2014.
+\newblock \doi{10.1038/sdata.2014.22}.
+
+\bibitem[Ross et~al.(2022)Ross, Belgodere, Chenthamarakshan, Padhi, Mroueh, and
+  Das]{ross2022molformer}
+Jerret Ross, Brian Belgodere, Vijil Chenthamarakshan, Inkit Padhi, Youssef
+  Mroueh, and Payel Das.
+\newblock Large-scale chemical language representations capture molecular
+  structure and properties.
+\newblock \emph{Nature Machine Intelligence}, 4\penalty0 (12):\penalty0
+  1256--1264, 2022.
+\newblock \doi{10.1038/s42256-022-00580-7}.
+
+\bibitem[Sim{\'e}oni et~al.(2025)Sim{\'e}oni, Vo, Seitzer, Baldassarre, Oquab,
+  et~al.]{simeoni2025dinov3}
+Oriane Sim{\'e}oni, Huy~V. Vo, Maximilian Seitzer, Federico Baldassarre, Maxime
+  Oquab, et~al.
+\newblock {DINOv3}.
+\newblock \emph{arXiv preprint}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2508.10104}.
+
+\bibitem[Slatton et~al.(2026)Slatton, Chou, and Chung]{slatton2026linear}
+Will Slatton, Chi-Ning Chou, and SueYeon Chung.
+\newblock Linear readout of neural manifolds with continuous variables, 2026.
+\newblock URL \url{https://arxiv.org/abs/2603.10956}.
+
+\bibitem[Smith et~al.(2024)Smith, Roberts, Angeloudi, and
+  Huertas-Company]{smith2024astropt}
+Michael~J. Smith, Ryan~J. Roberts, Eirini Angeloudi, and Marc Huertas-Company.
+\newblock {AstroPT}: Scaling large observation models for astronomy.
+\newblock \emph{arXiv preprint}, 2024.
+\newblock \doi{10.48550/arXiv.2405.14930}.
+\newblock URL \url{https://arxiv.org/abs/2405.14930}.
+
+\bibitem[Steier(2026)]{steier2026routing}
+Joshua Steier.
+\newblock Information routing in atomistic foundation models: How task
+  alignment and equivariance shape linear disentanglement, 2026.
+
+\bibitem[Tame-Narvaez et~al.(2026)Tame-Narvaez, {\'C}iprijanovi{\'c}, and
+  Trivedi]{tamenarvaez2026beyond}
+Karla Tame-Narvaez, Aleksandra {\'C}iprijanovi{\'c}, and Shubhendu Trivedi.
+\newblock Beyond point estimates: Benchmarking uncertainty quantification
+  methods on the {AION-1} astronomical foundation model, 2026.
+
+\bibitem[Yocum et~al.(2026)Yocum, Allen, Olshausen, and
+  Russell]{yocum2026neural}
+Julian Yocum, Cameron Allen, Bruno Olshausen, and Stuart Russell.
+\newblock Neural manifold geometry encodes feature fields.
+\newblock In \emph{NeurIPS Workshop on Symmetry and Geometry in Neural
+  Representations}, volume 282 of \emph{Proceedings of Machine Learning
+  Research}, pp.\  770--791. PMLR, 2026.
+
+\end{thebibliography}

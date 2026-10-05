@@ -1,0 +1,59 @@
+% SOURCE: curvature-experiment/results/scaling/tab_scaling_robust.tex (tabular body copied verbatim by
+% paper/tmlr/scripts/make_tables.py; only header labels renamed: ).
+\begin{tabular}{llcccc}
+\toprule
+ & & \multicolumn{2}{c}{mismatch} & \multicolumn{2}{c}{alignment} \\
+encoder & label & min--max & sign flips & min--max & sign flips \\
+\midrule
+clip\_base & mag\_r & $[-0.34, -0.33]$ & 0 & $[+0.30, +0.33]$ & 0 \\
+ & photo\_z & $[-0.46, -0.45]$ & 0 & $[+0.02, +0.06]$ & 0 \\
+ & smooth\_fraction & $[-0.27, -0.24]$ & 0 & $[+0.17, +0.24]$ & 0 \\
+ & stellar\_mass & $[-0.13, -0.09]$ & 0 & $[-0.01, +0.14]$ & 2 \\
+\addlinespace[2pt]
+convnext\_base & mag\_r & $[-0.34, -0.32]$ & 0 & $[+0.14, +0.21]$ & 0 \\
+ & photo\_z & $[-0.48, -0.48]$ & 0 & $[+0.15, +0.22]$ & 0 \\
+ & smooth\_fraction & $[-0.21, -0.18]$ & 0 & $[+0.04, +0.09]$ & 0 \\
+ & stellar\_mass & $[-0.06, -0.04]$ & 0 & $[-0.02, +0.07]$ & 1 \\
+\addlinespace[2pt]
+dinov3\_vits16 & mag\_r & $[-0.62, -0.62]$ & 0 & $[+0.19, +0.21]$ & 0 \\
+ & photo\_z & $[-0.64, -0.62]$ & 0 & $[-0.01, +0.06]$ & 2 \\
+ & smooth\_fraction & $[-0.13, -0.12]$ & 0 & $[+0.29, +0.32]$ & 0 \\
+ & stellar\_mass & $[-0.24, -0.23]$ & 0 & $[+0.01, +0.06]$ & 0 \\
+\addlinespace[2pt]
+dinov3\_vits16plus & mag\_r & $[-0.60, -0.58]$ & 0 & $[+0.18, +0.26]$ & 0 \\
+ & photo\_z & $[-0.54, -0.53]$ & 0 & $[+0.12, +0.18]$ & 0 \\
+ & smooth\_fraction & $[-0.16, -0.12]$ & 0 & $[+0.18, +0.29]$ & 0 \\
+ & stellar\_mass & $[-0.15, -0.13]$ & 0 & $[+0.08, +0.14]$ & 0 \\
+\addlinespace[2pt]
+dinov3\_vitb16 & mag\_r & $[-0.57, -0.56]$ & 0 & $[+0.53, +0.56]$ & 0 \\
+ & photo\_z & $[-0.62, -0.61]$ & 0 & $[+0.27, +0.33]$ & 0 \\
+ & smooth\_fraction & $[-0.34, -0.33]$ & 0 & $[-0.07, +0.05]$ & 1 \\
+ & stellar\_mass & $[+0.02, +0.04]$ & 0 & $[-0.14, -0.05]$ & 0 \\
+\addlinespace[2pt]
+dinov3\_vitl16 & mag\_r & $[-0.56, -0.52]$ & 0 & $[+0.01, +0.13]$ & 0 \\
+ & photo\_z & $[-0.50, -0.48]$ & 0 & $[+0.16, +0.22]$ & 0 \\
+ & smooth\_fraction & $[-0.44, -0.41]$ & 0 & $[+0.01, +0.10]$ & 0 \\
+ & stellar\_mass & $[-0.27, -0.24]$ & 0 & $[-0.05, +0.06]$ & 2 \\
+\addlinespace[2pt]
+dinov3\_vith16plus & mag\_r & $[-0.58, -0.57]$ & 0 & $[-0.08, +0.06]$ & 2 \\
+ & photo\_z & $[-0.34, -0.33]$ & 0 & $[+0.05, +0.17]$ & 0 \\
+ & smooth\_fraction & $[-0.32, -0.30]$ & 0 & $[+0.05, +0.13]$ & 0 \\
+ & stellar\_mass & $[-0.29, -0.27]$ & 0 & $[-0.13, -0.05]$ & 0 \\
+\addlinespace[2pt]
+dinov3\_vit7b16 & mag\_r & $[-0.66, -0.65]$ & 0 & $[+0.10, +0.15]$ & 0 \\
+ & photo\_z & $[-0.42, -0.37]$ & 0 & $[+0.02, +0.17]$ & 0 \\
+ & smooth\_fraction & $[-0.39, -0.36]$ & 0 & $[+0.07, +0.11]$ & 0 \\
+ & stellar\_mass & $[-0.37, -0.33]$ & 0 & $[-0.05, +0.02]$ & 2 \\
+\addlinespace[2pt]
+vit\_base & mag\_r & $[-0.39, -0.34]$ & 0 & $[+0.31, +0.37]$ & 0 \\
+ & photo\_z & $[-0.45, -0.42]$ & 0 & $[+0.24, +0.26]$ & 0 \\
+ & smooth\_fraction & $[-0.09, -0.05]$ & 0 & $[+0.09, +0.19]$ & 0 \\
+ & stellar\_mass & $[-0.04, +0.03]$ & 2 & $[-0.03, +0.03]$ & 1 \\
+\addlinespace[2pt]
+vit\_large & mag\_r & $[-0.44, -0.42]$ & 0 & $[+0.13, +0.16]$ & 0 \\
+ & photo\_z & $[-0.47, -0.45]$ & 0 & $[+0.14, +0.19]$ & 0 \\
+ & smooth\_fraction & $[-0.02, -0.01]$ & 0 & $[+0.13, +0.18]$ & 0 \\
+ & stellar\_mass & $[-0.03, -0.02]$ & 0 & $[-0.03, +0.03]$ & 1 \\
+\addlinespace[2pt]
+\bottomrule
+\end{tabular}
